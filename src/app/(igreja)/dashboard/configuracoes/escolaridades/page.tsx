@@ -25,8 +25,8 @@ export default async function EscolaridadesPage() {
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: ENSINO SUPERIOR"
-        onAdd={(fd) => addSettingItemAction("settings_schooling", fd)}
-        onDelete={(id) => deleteSettingItemAction("settings_schooling", id)}
+        onAdd={addSettingItemAction.bind(null, "settings_schooling")}
+        onDelete={deleteSettingItemAction.bind(null, "settings_schooling")}
       />
     </div>
   );

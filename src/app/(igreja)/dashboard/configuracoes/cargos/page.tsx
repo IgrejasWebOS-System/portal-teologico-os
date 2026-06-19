@@ -25,8 +25,8 @@ export default async function CargosPage() {
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: PASTOR PRESIDENTE"
-        onAdd={(fd) => addSettingItemAction("ecclesiastical_roles", fd)}
-        onDelete={(id) => deleteSettingItemAction("ecclesiastical_roles", id)}
+        onAdd={addSettingItemAction.bind(null, "ecclesiastical_roles")}
+        onDelete={deleteSettingItemAction.bind(null, "ecclesiastical_roles")}
       />
     </div>
   );

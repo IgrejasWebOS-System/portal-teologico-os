@@ -6,7 +6,7 @@ type Profile = {
   id: string;
   full_name: string | null;
   email: string | null;
-  role: string | null;
+  system_role: string | null;
   church_id: string | null;
 };
 
@@ -21,8 +21,8 @@ export default async function UsuariosPage() {
   const supabase = await createClient();
 
   const { data } = await supabase
-    .from("user_profiles")
-    .select("id, full_name, email, role, church_id")
+    .from("profiles")
+    .select("id, full_name, email, system_role, church_id")
     .order("full_name");
 
   const users = (data ?? []) as Profile[];
@@ -63,7 +63,7 @@ export default async function UsuariosPage() {
         ) : (
           <ul className="divide-y divide-iw-border">
             {users.map((u) => {
-              const role = u.role ?? "MEMBER";
+              const role = u.system_role ?? "MEMBER";
               return (
                 <li
                   key={u.id}

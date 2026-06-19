@@ -9,7 +9,7 @@ export default async function SedesPage() {
   const { data } = await supabase
     .from("churches")
     .select("id, name, sectors(name)")
-    .eq("is_sede", true)
+    .or("is_sede.eq.true,is_headquarters.eq.true")
     .order("name");
 
   const sedes = (data ?? []) as Array<{ id: string; name: string; sectors: { name: string } | null }>;

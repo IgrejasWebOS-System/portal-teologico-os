@@ -9,8 +9,7 @@ type SimpleTable =
   | "settings_professions"
   | "settings_schooling"
   | "settings_civil_status"
-  | "settings_gender"
-  | "settings_departments";
+  | "settings_gender";
 
 // ── Adicionar item simples ────────────────────────────────────
 export async function addSettingItemAction(
@@ -24,16 +23,7 @@ export async function addSettingItemAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("church_id")
-    .eq("id", user.id)
-    .single();
-
-  const payload: Record<string, unknown> = { name };
-  if (profile?.church_id) payload.church_id = profile.church_id;
-
-  const { error } = await supabase.from(table).insert(payload);
+  const { error } = await supabase.from(table).insert({ name });
   if (error) return { success: false, message: error.message };
 
   revalidatePath("/dashboard/configuracoes");
@@ -92,15 +82,9 @@ export async function addSetorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("church_id")
-    .eq("id", user.id)
-    .single();
-
   const { error } = await supabase
     .from("sectors")
-    .insert({ name: name.toUpperCase(), church_id: profile?.church_id ?? null });
+    .insert({ name: name.toUpperCase() });
 
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
@@ -112,5 +96,28 @@ export async function deleteSetorAction(id: string) {
   const { error } = await supabase.from("sectors").delete().eq("id", id);
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
+  return { success: true };
+}
+
+// ── Departamentos ─────────────────────────────────────────────
+export async function addDepartamentoAction(formData: FormData) {
+  const name = (formData.get("name") as string)?.trim();
+  if (!name) return { success: false, message: "Nome obrigatório." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("departments")
+    .insert({ name: name.toUpperCase() });
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/departamentos");
+  return { success: true };
+}
+
+export async function deleteDepartamentoAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("departments").delete().eq("id", id);
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/departamentos");
   return { success: true };
 }

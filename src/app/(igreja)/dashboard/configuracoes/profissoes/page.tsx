@@ -23,8 +23,8 @@ export default async function ProfissoesPage() {
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: ENGENHEIRO CIVIL"
-        onAdd={(fd) => addSettingItemAction("settings_professions", fd)}
-        onDelete={(id) => deleteSettingItemAction("settings_professions", id)}
+        onAdd={addSettingItemAction.bind(null, "settings_professions")}
+        onDelete={deleteSettingItemAction.bind(null, "settings_professions")}
       />
     </div>
   );

@@ -48,12 +48,13 @@ if ($GitStatus) {
     Write-Host "  INFO - Nada para commitar." -ForegroundColor Gray
 }
 
-git push origin main 2>&1
+$Branch = git rev-parse --abbrev-ref HEAD 2>&1
+git push origin $Branch 2>&1
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "  OK - Push para GitHub concluido." -ForegroundColor Green
+    Write-Host "  OK - Push para GitHub concluido (branch: $Branch)." -ForegroundColor Green
 } else {
-    Write-Host "  AVISO - Push falhou. Verifique credenciais ou nome do branch." -ForegroundColor Yellow
+    Write-Host "  AVISO - Push falhou. Verifique credenciais ou acesso ao repositorio." -ForegroundColor Yellow
 }
 
 # ── 3. RESUMO ─────────────────────────────────────────────

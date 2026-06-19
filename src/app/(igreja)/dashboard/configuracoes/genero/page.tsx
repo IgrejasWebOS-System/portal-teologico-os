@@ -25,8 +25,8 @@ export default async function GeneroPage() {
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: MASCULINO"
-        onAdd={(fd) => addSettingItemAction("settings_gender", fd)}
-        onDelete={(id) => deleteSettingItemAction("settings_gender", id)}
+        onAdd={addSettingItemAction.bind(null, "settings_gender")}
+        onDelete={deleteSettingItemAction.bind(null, "settings_gender")}
       />
     </div>
   );

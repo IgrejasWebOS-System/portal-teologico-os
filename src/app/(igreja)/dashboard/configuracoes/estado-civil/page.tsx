@@ -25,8 +25,8 @@ export default async function EstadoCivilPage() {
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: CASADO(A)"
-        onAdd={(fd) => addSettingItemAction("settings_civil_status", fd)}
-        onDelete={(id) => deleteSettingItemAction("settings_civil_status", id)}
+        onAdd={addSettingItemAction.bind(null, "settings_civil_status")}
+        onDelete={deleteSettingItemAction.bind(null, "settings_civil_status")}
       />
     </div>
   );
