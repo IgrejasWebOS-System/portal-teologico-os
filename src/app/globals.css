@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   IgrejasWebOS Design System v1.0 — Tailwind v4
+   Projeto: portal-teologico-os
+   Paleta extraída do logo oficial (2026-06-15)
+   ============================================================ */
+
+@theme {
+  /* ===== AZUIS IGREJAS-WEB-OS ===== */
+  --color-iw-navy:    #1A435B;   /* base, títulos, ícones de destaque */
+  --color-iw-blue:    #4A90C2;   /* botões de ação, elementos ativos */
+  --color-iw-sky:     #86BBD8;   /* bordas, hover, fundos suaves */
+
+  /* ===== DOURADO ===== */
+  --color-iw-gold:    #C5A059;   /* destaques, badges, ícones de sistema */
+  --color-iw-gold-alt:#D4AF37;   /* variação mais viva para hover */
+
+  /* ===== NEUTROS ===== */
+  --color-iw-bg:      #E8E8E8;   /* fundo da página */
+  --color-iw-surface: #FFFFFF;   /* cards e painéis */
+  --color-iw-text:    #1A435B;   /* texto principal */
+  --color-iw-muted:   #6B7280;   /* texto secundário */
+  --color-iw-border:  #D1D5DB;   /* bordas sutis */
+
+  /* ===== SEMÂNTICAS ===== */
+  --color-iw-success: #059669;
+  --color-iw-success-bg: #D1FAE5;
+  --color-iw-error:   #DC2626;
+  --color-iw-error-bg:#FEE2E2;
+  --color-iw-warning: #D97706;
+  --color-iw-warning-bg:#FEF3C7;
+
+  /* ===== DS TOKENS — CyberOS UI Framework v1.0 ===== */
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.10);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
+
+  /* Radius */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
+  --radius-full: 999px;
+
+  /* Spacing (referência DS — uso via Tailwind ou inline) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Tailwind shadow utilities mapeadas aos tokens DS */
+  --shadow-*: initial;
+  --drop-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --drop-shadow-md: 0 4px 6px rgba(0,0,0,0.10);
+  --drop-shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ===== TIPOGRAFIA BASE ===== */
+/* Fontes injetadas via next/font/google no layout.tsx */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  color: #1A435B;
+  background-color: #E8E8E8;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-merriweather), 'Merriweather', Georgia, serif;
+  color: #1A435B;
+}
+
+/* ===== SCROLLBAR CUSTOMIZADA ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #E8E8E8;
+}
+::-webkit-scrollbar-thumb {
+  background: #86BBD8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4A90C2;
 }

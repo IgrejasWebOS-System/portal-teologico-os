@@ -1,0 +1,33 @@
+import { Users } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import PageHeader from "../PageHeader";
+import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
+import { addSettingItemAction, deleteSettingItemAction } from "../actions";
+
+export default async function GeneroPage() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("settings_gender")
+    .select("id, name")
+    .order("name");
+
+  const items = (data ?? []).map((d) => ({ id: d.id as string, name: d.name as string }));
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <PageHeader
+        icon={Users}
+        title="Gênero"
+        description="Classificação oficial do sistema"
+        iconColor="text-iw-sky"
+        iconBg="bg-iw-sky/20"
+      />
+      <SimpleSettingsCRUD
+        items={items}
+        placeholder="Ex: MASCULINO"
+        onAdd={(fd) => addSettingItemAction("settings_gender", fd)}
+        onDelete={(id) => deleteSettingItemAction("settings_gender", id)}
+      />
+    </div>
+  );
+}
