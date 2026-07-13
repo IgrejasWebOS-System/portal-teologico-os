@@ -346,22 +346,21 @@ export default function NovoMembroForm() {
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
       {/* ── Cabeçalho ── */}
-      <div className="flex items-start gap-4">
-        <div className="flex-1 min-w-0">
-          <Link
-            href="/dashboard/membros"
-            className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar para Gestão de Membros
-          </Link>
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-            Novo Membro
-          </h1>
-          <p className="text-iw-muted text-sm mt-0.5">
-            Preencha a ficha cadastral completa.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <Link
+          href="/dashboard/membros"
+          className="inline-flex items-center gap-1 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors shrink-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Voltar para Gestão de Membros
+        </Link>
+        <span className="text-iw-border text-sm select-none">·</span>
+        <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+          Novo Membro
+        </h1>
+        <p className="text-iw-muted text-sm">
+          Preencha a ficha cadastral completa.
+        </p>
       </div>
 
       {/* ── Erro do servidor ── */}

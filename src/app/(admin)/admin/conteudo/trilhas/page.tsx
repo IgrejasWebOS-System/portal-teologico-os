@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowLeft, Plus, GraduationCap, BookOpen } from "lucide-react";
 import type { Course } from "@/types";
 import { createCourseVoidAction, toggleCourseStatusAction } from "../actions";
+import { checkIsStaff } from "@/utils/staff";
+import AcessoRestrito from "@/components/admin/AcessoRestrito";
 
 export const metadata = { title: "Trilhas — Admin" };
 
@@ -14,6 +16,10 @@ export default async function TrilhasPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return <AcessoRestrito />;
+  }
 
   const { data: courses } = await supabase
     .from("courses")
@@ -32,8 +38,10 @@ export default async function TrilhasPage() {
         <Link href="/admin/conteudo" className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium mb-3">
           <ArrowLeft className="w-3.5 h-3.5" /> Voltar para Biblioteca
         </Link>
-        <h1 className="text-2xl font-black text-iw-navy tracking-tight">Trilhas e Módulos</h1>
-        <p className="text-iw-muted text-sm mt-0.5">Organize as trilhas de conteúdo por módulo.</p>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="text-2xl font-black text-iw-navy tracking-tight">Trilhas e Módulos</h1>
+          <p className="text-iw-muted text-sm">Organize as trilhas de conteúdo por módulo.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

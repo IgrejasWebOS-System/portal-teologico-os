@@ -198,7 +198,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                 <input type="hidden" name="courseId"   value={course.id} />
                 <input type="hidden" name="returnPath" value={returnPath} />
                 <button type="submit"
-                  className="w-full py-3 rounded-xl bg-iw-navy text-white text-sm font-semibold hover:bg-iw-blue transition-colors">
+                  className="w-full py-3 rounded-xl bg-iw-navy text-white text-sm font-semibold hover:bg-iw-sky hover:text-gray-900 transition-colors">
                   Matricular-se nesta disciplina
                 </button>
               </form>

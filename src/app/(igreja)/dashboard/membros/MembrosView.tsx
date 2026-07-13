@@ -91,14 +91,14 @@ export default function MembrosView({ initialMembers }: Props) {
       {/* ── Cabeçalho ── */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-            {isArchived ? "Arquivo Morto" : "Gestão de Membros"}
-          </h1>
-          <p className="text-iw-muted text-sm mt-0.5">
-            {isArchived
-              ? "Membros arquivados — fora do rol ativo."
-              : "Membros ativos da congregação."}
-          </p>
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+              {isArchived ? "Arquivo Morto" : "Gestão de Membros"}
+            </h1>
+            <p className="text-iw-muted text-sm">
+              {isArchived ? "Membros arquivados — fora do rol ativo." : "Membros ativos da congregação."}
+            </p>
+          </div>
         </div>
 
         {/* Busca */}

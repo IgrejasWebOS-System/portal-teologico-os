@@ -1,0 +1,116 @@
+# Roteiro de Apresentação — Portal EAD CETADP (24/07/2026)
+
+Roteiro de apoio para o ensaio e a apresentação. Baseado no
+`CETADP_PORTAL_EAD.md` (documento institucional completo) — aqui o foco é
+a sequência de fala e a demonstração ao vivo.
+
+Tempo estimado total: 12–15 minutos (ajuste conforme o tempo disponível).
+
+---
+
+## 1. Abertura (1 min)
+
+"O CETADP forma membros, obreiros e líderes das Assembleias de Deus em
+Piracicaba há [tempo de existência da instituição]. Hoje essa formação é
+presencial — o que limita quem pode participar a quem consegue se
+deslocar até Piracicaba. O que vou apresentar resolve isso: um portal que
+leva a mesma formação oficial do CETADP para qualquer campo ou
+ministério, a distância, sem abrir mão do controle que uma instituição de
+ensino precisa ter sobre quem se matricula."
+
+## 2. O problema, em uma frase (30 seg)
+
+"Hoje, formação teológica de qualidade e ensino a distância com controle
+de matrícula são duas coisas que não existem juntas para o CETADP. O
+portal une as duas."
+
+## 3. Demonstração ao vivo — parte 1: o site institucional (2 min)
+
+Abrir a home pública (`/`).
+
+- Mostrar o hero e a frase-chave: **"presencial e a distância, para todos
+  os campos e ministérios"**.
+- Passar rapidamente pelos 4 serviços (Cursos Oficiais, Reciclagem,
+  Teologia em Níveis, Treinamentos).
+- Abrir `/sobre` — "Quem Somos".
+- Mencionar a Biblioteca (`/biblioteca`) como distribuidora de material
+  (livros, apostilas, Revista Escola Dominical, Jornal Semeador) — deixar
+  claro que o catálogo em si é o próximo passo, hoje é apresentação.
+
+## 4. Demonstração ao vivo — parte 2: o fluxo de inscrição (3 min)
+
+**Preparação prévia:** já existem 3 inscrições de demonstração pendentes
+no banco (Mariana Alves Ferreira, Carlos Eduardo Lima, Fernanda Souza
+Ribeiro) — não precisa preencher o formulário ao vivo se quiser economizar
+tempo, mas preencher é mais impactante. Escolha uma das duas abordagens:
+
+**Opção A — mostrar o formulário sendo preenchido:**
+1. Abrir `/inscricao`, preencher com um dado fictício na hora.
+2. Enviar → mostrar a tela de confirmação (`/inscricao/obrigado`).
+
+**Opção B — ir direto para a aprovação (mais rápido):**
+1. Fazer login como secretaria.
+2. Abrir `/admin/inscricoes` — mostrar as 3 inscrições pendentes já carregadas.
+3. Clicar em **"Aprovar e gerar matrícula"** numa delas, ao vivo.
+4. Mostrar a matrícula gerada automaticamente (formato `CETADP-2026-XXXX`).
+
+Falar durante a ação: "A secretaria não perde o controle — toda matrícula
+passa por aprovação humana antes de existir. O sistema só automatiza a
+parte mecânica: gerar o número, criar o acesso e mandar o e-mail."
+
+## 5. Demonstração ao vivo — parte 3: a área do aluno (2 min)
+
+Login com um usuário de teste já matriculado (ou o próprio usuário
+demonstrador).
+
+- Mostrar o hub `/portal` com os módulos (Escola, Cursos, EBD).
+- Entrar em **Escola Teológica** → mostrar os 3 cursos de demonstração
+  (Fundamentos da Fé Cristã, Hermenêutica Bíblica, Teologia Sistemática).
+- Abrir um curso, mostrar a lista de aulas.
+- Passar rapidamente pela **EBD** — trimestre "A Igreja e sua Missão", 4
+  lições carregadas.
+
+## 6. O que já está pronto vs. o que falta (1 min)
+
+Ser direto e honesto aqui — gera confiança:
+
+- **Pronto:** site institucional, inscrição pública, aprovação da
+  secretaria, matrícula automática, convite por e-mail, login, três
+  módulos de conteúdo com dados de demonstração, banco de dados próprio e
+  seguro (isolado, não compartilhado com outros sistemas).
+- **Falta:** catálogo real da Biblioteca, emissão de certificado,
+  conteúdo curricular definitivo (o que está carregado hoje é
+  placeholder), abertura para outras igrejas/campos.
+
+## 7. O ponto de governança (1 min — importante, não pular)
+
+"Um ponto de transparência: o fornecedor já está construindo, em
+paralelo, um sistema de gestão eclesiástica de próxima geração
+(`igrejas-web-system-os`), com controle de acesso mais robusto e pensado
+desde o início para várias igrejas. A decisão foi apresentar hoje sobre a
+base que já está pronta e testada, e migrar este Portal EAD para essa
+arquitetura nova logo após a aprovação — sem colocar o prazo de hoje em
+risco. Já existe um plano técnico documentado para essa migração."
+
+## 8. Fechamento e pedido (30 seg)
+
+"O que eu preciso da liderança hoje é a aprovação para: 1) seguir
+operando o piloto com o CETADP, 2) planejar a extensão para uma segunda
+igreja depois que o piloto estiver validado. Dúvidas?"
+
+---
+
+## Perguntas prováveis (preparar respostas)
+
+- **"Isso substitui a formação presencial?"** — Não, complementa. O
+  próprio hero da home já diz "presencial e a distância".
+- **"E se o aluno não tiver e-mail ou não souber usar?"** — A secretaria
+  aprova e orienta; o fluxo é o mesmo de qualquer sistema acadêmico com
+  e-mail e senha.
+- **"Quanto custa manter isso rodando?"** — O banco de dados novo está no
+  plano gratuito do Supabase hoje; hospedagem via Vercel. Custo cresce
+  conforme uso real (alunos, dados).
+- **"Quando dá pra abrir pra outra igreja?"** — Depois de validar o
+  piloto com o CETADP e migrar para a arquitetura multi-tenant nova —
+  não antes, para não repetir o problema de isolamento que já resolvemos
+  aqui.

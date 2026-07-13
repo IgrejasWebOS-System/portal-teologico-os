@@ -1,0 +1,14 @@
+Data,Dia da semana,Fase,Tarefas principais,Entregavel do dia
+12/07/2026,Domingo,Planejamento,"Parecer de individualizacao concluido; definicao do modelo de tenant (campo/ministerio) e da estrategia de vinculo com o IgrejaWebOS",Parecer tecnico e cronograma aprovados
+13/07/2026,Segunda,Modelagem de dados,"Criar tabela de tenants (campos/ministerios); adicionar tenant_id em cursos, aulas, trilhas, matriculas e progresso; escrever migracoes",Migracao multi-tenant criada e aplicada em ambiente de teste
+14/07/2026,Terca,Seguranca (RLS),"Reaplicar em todas as tabelas o padrao de RLS ja usado em member_timeline, restringindo acesso por tenant_id; remover politicas abertas do tipo 'qualquer autenticado le/escreve'",RLS por tenant validada com 2 usuarios de tenants diferentes
+15/07/2026,Quarta,Consolidacao de modulos,"Unificar EBD, Escola e Cursos em um unico motor de Trilhas parametrizado por tenant e tipo de trilha",Motor de Trilhas unico funcionando para os 3 casos de uso antigos
+16/07/2026,Quinta,Controle de acesso (RBAC),"Implementar papeis (super_admin, admin_tenant, tutor, aluno) e checagem de papel nas rotas e server actions de admin",Paineis administrativos protegidos por papel, testados
+17/07/2026,Sexta,Provisionamento e branding,"Fluxo de criacao de novo campo/ministerio (tenant) com convite de admin; tema visual (nome, logo, cor) por tenant",Novo tenant pode ser criado em poucos cliques, com identidade propria
+18/07/2026,Sabado,Testes de isolamento,"Checklist de seguranca: usuario do campo A nao acessa dados do campo B em nenhuma tela ou action; correcao de bugs encontrados",Checklist de isolamento multi-tenant 100% aprovado
+19/07/2026,Domingo,Dados de demonstracao,"Popular 2 campos/ministerios ficticios com cursos, aulas, alunos e progresso, cobrindo o fluxo ponta a ponta",Ambiente de demonstracao completo e populado
+20/07/2026,Segunda,Ensaio funcional,"Rodar o fluxo completo de demonstracao: login, matricula, aula assistida, progresso, publicacao de conteudo pelo admin do tenant",Fluxo de demo gravado/roteirizado sem erros
+21/07/2026,Terca,Material do pitch,"Montar slides do pitch (proposta de valor, mercado de campos/ministerios, arquitetura multi-tenant, roadmap pos-aprovacao)",Slides do pitch prontos em rascunho
+22/07/2026,Quarta,Revisao geral,"Revisar codigo, seguranca e slides; buffer para resolver imprevistos tecnicos que apareceram nos dias anteriores",Lista de pendencias zerada ou reduzida ao minimo
+23/07/2026,Quinta,Ensaio geral,"Ensaio completo da apresentacao com demonstracao ao vivo; ajustes finais de tempo e discurso",Apresentacao ensaiada dentro do tempo previsto
+24/07/2026,Sexta,Apresentacao,"Pitch do Portal EAD de Teologia para a banca/lideranca",Projeto apresentado

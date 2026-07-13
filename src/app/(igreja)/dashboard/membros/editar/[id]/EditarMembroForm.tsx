@@ -344,12 +344,14 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
           <ArrowLeft className="w-3.5 h-3.5" />
           Voltar para Gestão de Membros
         </Link>
-        <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-          Editar Membro
-        </h1>
-        <p className="text-iw-muted text-sm mt-0.5">
-          {member.full_name} — Matrícula #{member.registration_number ?? "—"}
-        </p>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+            Editar Membro
+          </h1>
+          <p className="text-iw-muted text-sm">
+            {member.full_name} — Matrícula #{member.registration_number ?? "—"}
+          </p>
+        </div>
       </div>
 
       {/* ── Erro do servidor ── */}

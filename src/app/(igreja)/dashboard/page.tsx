@@ -119,13 +119,11 @@ export default async function DashboardPage() {
     <div className="space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* ── Cabeçalho ── */}
-      <div>
+      <div className="flex flex-wrap items-baseline gap-x-3">
         <h1 className="text-2xl font-black text-iw-navy tracking-tight">
           Visão Geral — Igreja
         </h1>
-        <p className="text-iw-muted text-sm mt-1">
-          Panorama do ministério em tempo real.
-        </p>
+        <p className="text-iw-muted text-sm">Panorama do ministério em tempo real.</p>
       </div>
 
       {/* ── KPIs ── */}
@@ -161,47 +159,53 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Ações Rápidas ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <Link
           href="/dashboard/membros/novo"
-          className="group bg-iw-surface rounded-2xl border border-iw-blue/25 shadow-sm p-5 flex items-center gap-4 hover:border-iw-blue/60 hover:shadow-md transition-all duration-150"
+          className="group bg-iw-surface rounded-[var(--radius-xl)] border border-iw-blue/20 shadow-[var(--shadow-sm)] p-6 flex items-start gap-4 hover:border-iw-blue/50 hover:shadow-[var(--shadow-md)] transition-all duration-150"
         >
-          <div className="w-11 h-11 rounded-xl bg-iw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
-            <UserPlus className="w-5 h-5 text-iw-blue" />
+          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-iw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
+            <UserPlus className="w-6 h-6 text-iw-blue" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-iw-navy text-sm">Novo Membro</p>
-            <p className="text-xs text-iw-muted truncate">Cadastrar ficha completa</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Novo Membro</p>
+            <p className="text-sm font-bold text-iw-navy mt-1">Cadastrar ficha completa</p>
+            <p className="text-xs text-iw-blue mt-2 flex items-center gap-1 font-medium">
+              Acessar <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
           </div>
-          <ArrowRight className="w-4 h-4 text-iw-blue/50 group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all" />
         </Link>
 
         <Link
           href="/dashboard/membros"
-          className="group bg-iw-surface rounded-2xl border border-iw-sky/25 shadow-sm p-5 flex items-center gap-4 hover:border-iw-sky/60 hover:shadow-md transition-all duration-150"
+          className="group bg-iw-surface rounded-[var(--radius-xl)] border border-iw-sky/20 shadow-[var(--shadow-sm)] p-6 flex items-start gap-4 hover:border-iw-sky/50 hover:shadow-[var(--shadow-md)] transition-all duration-150"
         >
-          <div className="w-11 h-11 rounded-xl bg-iw-sky/10 flex items-center justify-center shrink-0 group-hover:bg-iw-sky/20 transition-colors">
-            <List className="w-5 h-5 text-iw-sky" />
+          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-iw-sky/10 flex items-center justify-center shrink-0 group-hover:bg-iw-sky/20 transition-colors">
+            <List className="w-6 h-6 text-iw-sky" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-iw-navy text-sm">Lista de Membros</p>
-            <p className="text-xs text-iw-muted truncate">Gerir e buscar membros</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Lista de Membros</p>
+            <p className="text-sm font-bold text-iw-navy mt-1">Gerir e buscar membros</p>
+            <p className="text-xs text-iw-sky mt-2 flex items-center gap-1 font-medium">
+              Acessar <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
           </div>
-          <ArrowRight className="w-4 h-4 text-iw-sky/50 group-hover:text-iw-sky group-hover:translate-x-0.5 transition-all" />
         </Link>
 
         <Link
           href="/dashboard/ocorrencias"
-          className="group bg-iw-surface rounded-2xl border border-iw-gold/25 shadow-sm p-5 flex items-center gap-4 hover:border-iw-gold/60 hover:shadow-md transition-all duration-150"
+          className="group bg-iw-surface rounded-[var(--radius-xl)] border border-iw-gold/20 shadow-[var(--shadow-sm)] p-6 flex items-start gap-4 hover:border-iw-gold/50 hover:shadow-[var(--shadow-md)] transition-all duration-150"
         >
-          <div className="w-11 h-11 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0 group-hover:bg-iw-gold/20 transition-colors">
-            <CalendarClock className="w-5 h-5 text-iw-gold" />
+          <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-iw-gold/10 flex items-center justify-center shrink-0 group-hover:bg-iw-gold/20 transition-colors">
+            <CalendarClock className="w-6 h-6 text-iw-gold" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-iw-navy text-sm">Ocorrências</p>
-            <p className="text-xs text-iw-muted truncate">Registrar no dossiê</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Ocorrências</p>
+            <p className="text-sm font-bold text-iw-navy mt-1">Registrar no dossiê</p>
+            <p className="text-xs text-iw-gold mt-2 flex items-center gap-1 font-medium">
+              Acessar <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
           </div>
-          <ArrowRight className="w-4 h-4 text-iw-gold/50 group-hover:text-iw-gold group-hover:translate-x-0.5 transition-all" />
         </Link>
       </div>
 

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Plus, Video, Youtube, Bot, FileText, Pencil } from "lucide-react";
 import type { Course, Lesson, VideoType } from "@/types";
 import { toggleCourseStatusAction } from "./actions";
+import { checkIsStaff } from "@/utils/staff";
+import AcessoRestrito from "@/components/admin/AcessoRestrito";
 
 export const metadata = { title: "Admin — Conteúdo" };
 
@@ -25,6 +27,10 @@ export default async function AdminConteudoPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return <AcessoRestrito />;
+  }
 
   const { data: courses } = await supabase
     .from("courses")
@@ -56,9 +62,9 @@ export default async function AdminConteudoPage() {
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="flex flex-wrap items-baseline gap-x-3">
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">Gestão de Conteúdo</h1>
-          <p className="text-iw-muted text-sm mt-0.5">
+          <p className="text-iw-muted text-sm">
             {lessons.length} aulas · {totalWithVideo} com vídeo · {courseList.length} trilhas
           </p>
         </div>

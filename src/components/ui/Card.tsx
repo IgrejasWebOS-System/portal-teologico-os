@@ -114,20 +114,20 @@ export function StatCard({ title, value, subtitle, icon, accent = "blue" }: Stat
         a.border
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider truncate">
+      <div className="flex items-start gap-4">
+        <div className={cn("flex items-center justify-center w-12 h-12 rounded-[var(--radius-lg)] shrink-0", a.bg)}>
+          <span className={cn("w-6 h-6", a.icon)}>{icon}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider">
             {title}
           </p>
           <p className="text-3xl font-black text-iw-navy mt-1 leading-none">
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-iw-muted mt-1 truncate">{subtitle}</p>
+            <p className="text-xs text-iw-muted mt-1">{subtitle}</p>
           )}
-        </div>
-        <div className={cn("flex items-center justify-center w-12 h-12 rounded-[var(--radius-lg)] shrink-0", a.bg)}>
-          <span className={cn("w-6 h-6", a.icon)}>{icon}</span>
         </div>
       </div>
     </div>

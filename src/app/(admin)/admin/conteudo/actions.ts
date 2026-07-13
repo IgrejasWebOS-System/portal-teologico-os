@@ -3,12 +3,31 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { checkIsStaff } from "@/utils/staff";
 
-// ── Criar aula ───────────────────────────────────────────────
-export async function createLessonAction(formData: FormData) {
+// ============================================================
+// Checagem de papel feita AQUI, no servidor — mesma correção já
+// aplicada em /admin/inscricoes. Antes, qualquer usuário autenticado
+// (não só a secretaria) podia criar/editar curso e aula.
+// ============================================================
+async function requireStaff() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (!(await checkIsStaff(supabase, user.id))) {
+    redirect(
+      "/admin/conteudo?error=" +
+        encodeURIComponent("Acesso restrito à secretaria do CETADP.")
+    );
+  }
+
+  return supabase;
+}
+
+// ── Criar aula ───────────────────────────────────────────────
+export async function createLessonAction(formData: FormData) {
+  const supabase = await requireStaff();
 
   const course_id   = formData.get("course_id") as string;
   const title       = formData.get("title") as string;
@@ -43,9 +62,7 @@ export async function createLessonAction(formData: FormData) {
 
 // ── Atualizar vídeo de uma aula existente ────────────────────
 export async function updateLessonVideoAction(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const supabase = await requireStaff();
 
   const id          = formData.get("id") as string;
   const video_url   = formData.get("video_url") as string;
@@ -75,9 +92,7 @@ export async function updateLessonVideoAction(formData: FormData) {
 
 // ── Criar curso/trilha ───────────────────────────────────────
 export async function createCourseAction(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const supabase = await requireStaff();
 
   const title           = formData.get("title") as string;
   const description     = formData.get("description") as string;
@@ -115,9 +130,7 @@ export async function createCourseVoidAction(formData: FormData): Promise<void> 
 
 // ── Publicar / despublicar curso ─────────────────────────────
 export async function toggleCourseStatusAction(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const supabase = await requireStaff();
 
   const id         = formData.get("id") as string;
   const newStatus  = formData.get("status") as string;

@@ -59,13 +59,11 @@ export default async function EbdPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Cabeçalho */}
-      <div>
+      <div className="flex flex-wrap items-baseline gap-x-3">
         <h1 className="text-2xl font-black text-iw-navy tracking-tight">
           EBD — Escola Bíblica Dominical
         </h1>
-        <p className="text-iw-muted text-sm mt-1">
-          Lições semanais organizadas por trimestre e audiência.
-        </p>
+        <p className="text-iw-muted text-sm">Lições semanais organizadas por trimestre e audiência.</p>
       </div>
 
       {/* Stats */}

@@ -8,9 +8,9 @@
 
 @theme {
   /* ===== AZUIS IGREJAS-WEB-OS ===== */
-  --color-iw-navy:    #1A435B;   /* base, títulos, ícones de destaque */
-  --color-iw-blue:    #4A90C2;   /* botões de ação, elementos ativos */
-  --color-iw-sky:     #86BBD8;   /* bordas, hover, fundos suaves */
+  --color-iw-navy:    #111111;   /* base, títulos, ícones de destaque — preto elegante */
+  --color-iw-blue:    #BCE5FF;   /* botões de ação, elementos ativos — azul pastel claro */
+  --color-iw-sky:     #88CDF6;   /* bordas, hover, fundos suaves — azul céu médio */
 
   /* ===== DOURADO ===== */
   --color-iw-gold:    #C5A059;   /* destaques, badges, ícones de sistema */
@@ -19,7 +19,7 @@
   /* ===== NEUTROS ===== */
   --color-iw-bg:      #E8E8E8;   /* fundo da página */
   --color-iw-surface: #FFFFFF;   /* cards e painéis */
-  --color-iw-text:    #1A435B;   /* texto principal */
+  --color-iw-text:    #111111;   /* texto principal — preto */
   --color-iw-muted:   #6B7280;   /* texto secundário */
   --color-iw-border:  #D1D5DB;   /* bordas sutis */
 
@@ -65,13 +65,24 @@
 /* Fontes injetadas via next/font/google no layout.tsx */
 body {
   font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
-  color: #1A435B;
+  color: #111111;
   background-color: #E8E8E8;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-merriweather), 'Merriweather', Georgia, serif;
-  color: #1A435B;
+  color: #111111;
+}
+
+/* ===== BOTÕES COM bg-iw-blue (agora azul pastel #BCE5FF) =====
+   Como o fundo ficou claro, forçamos texto escuro automaticamente.
+   No hover (bg fica navy/#111111), restauramos texto branco.
+   CSS fora de @layer tem precedência sobre utilities do Tailwind v4. */
+.bg-iw-blue {
+  color: #111111;
+}
+.bg-iw-blue:hover {
+  color: #ffffff;
 }
 
 /* ===== SCROLLBAR CUSTOMIZADA ===== */

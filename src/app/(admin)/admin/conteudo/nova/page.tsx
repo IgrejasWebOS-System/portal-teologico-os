@@ -2,6 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import NovaAulaForm from "./NovaAulaForm";
 import type { Course } from "@/types";
+import { checkIsStaff } from "@/utils/staff";
+import AcessoRestrito from "@/components/admin/AcessoRestrito";
 
 export const metadata = { title: "Inserir Aula — Admin" };
 
@@ -15,6 +17,10 @@ export default async function NovaAulaPage({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return <AcessoRestrito />;
+  }
 
   const { data: courses } = await supabase
     .from("courses")

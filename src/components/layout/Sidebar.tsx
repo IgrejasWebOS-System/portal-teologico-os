@@ -18,6 +18,7 @@ import {
   ListTree,
   ShieldAlert,
   Settings2,
+  UserPlus,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -68,8 +69,9 @@ const adminModules = [
     icon: ShieldCheck,
     description: "Conteúdo e trilhas",
     subItems: [
-      { label: "Conteúdo", href: "/admin/conteudo", icon: Library },
-      { label: "Trilhas",  href: "/admin/conteudo/trilhas", icon: ListTree },
+      { label: "Conteúdo",   href: "/admin/conteudo", icon: Library },
+      { label: "Trilhas",    href: "/admin/conteudo/trilhas", icon: ListTree },
+      { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
     ],
   },
 ];
@@ -119,7 +121,7 @@ export default function Sidebar() {
                   className={cn(
                     "w-5 h-5 shrink-0 transition-colors",
                     isModuleActive
-                      ? "text-white"
+                      ? "text-gray-800"
                       : "text-iw-sky/60 group-hover:text-iw-sky"
                   )}
                 />
@@ -136,8 +138,8 @@ export default function Sidebar() {
                 )}
               </Link>
 
-              {/* Sub-items — só aparecem quando o módulo está ativo */}
-              {isModuleActive && mod.subItems && (
+              {/* Sub-items — sempre visíveis para o módulo Igreja */}
+              {mod.subItems && (
                 <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-iw-sky/20 space-y-0.5">
                   {mod.subItems.map((sub) => {
                     const SubIcon = sub.icon;
@@ -195,7 +197,7 @@ export default function Sidebar() {
                     : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
                 )}
               >
-                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isModuleActive ? "text-white" : "text-iw-sky/60 group-hover:text-iw-sky")} />
+                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isModuleActive ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky")} />
                 <div className="flex-1 min-w-0">
                   <p className="leading-tight truncate">{mod.label}</p>
                   {!isModuleActive && (

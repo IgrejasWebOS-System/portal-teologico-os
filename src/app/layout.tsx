@@ -15,10 +15,11 @@ const merriweather = Merriweather({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Portal Teológico",
-    default: "Portal Teológico",
+    template: "%s | CETADP",
+    default: "CETADP — Portal EAD de Teologia",
   },
-  description: "IgrejasWebOS — Portal Teológico: Igreja, Escola e Cursos",
+  description:
+    "CETADP — Centro Educacional Teológico das Assembleias de Deus Piracicaba. Cursos oficiais, reciclagem e teologia em vários níveis, de forma presencial e a distância.",
 };
 
 export default function RootLayout({

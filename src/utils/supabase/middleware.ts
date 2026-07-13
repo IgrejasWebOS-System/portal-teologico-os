@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Rotas acessíveis sem autenticação
-const PUBLIC_PATHS = ["/login"];
+// Rotas acessíveis sem autenticação (prefixo)
+const PUBLIC_PATHS = ["/login", "/inscricao", "/sobre", "/certificados", "/biblioteca", "/auth/callback"];
+// Rotas públicas de correspondência exata (evita casar "/" com tudo)
+const PUBLIC_EXACT = ["/"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,12 +36,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
+  const isPublic =
+    PUBLIC_EXACT.includes(path) || PUBLIC_PATHS.some((p) => path.startsWith(p));
 
-  // Usuário logado tentando acessar /login → redireciona para hub
+  // Usuário logado tentando acessar /login → redireciona para o hub do portal
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/portal";
     return NextResponse.redirect(url);
   }
 

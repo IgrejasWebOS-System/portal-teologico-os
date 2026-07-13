@@ -18,5 +18,5 @@ export async function loginAction(formData: FormData) {
     redirect("/login?error=" + encodeURIComponent(error.message));
   }
 
-  redirect("/");
+  redirect("/portal");
 }

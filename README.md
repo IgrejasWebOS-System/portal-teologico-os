@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CETADP — Portal EAD de Teologia
 
-## Getting Started
+Portal de ensino a distância do **CETADP** (Centro Educacional Teológico
+das Assembleias de Deus Piracicaba), construído sobre o **IgrejasWebOS** —
+o mesmo sistema de gestão eclesiástica (`portal-teologico-os`). O Portal
+EAD é um módulo habilitável dentro dessa mesma plataforma, não um sistema
+separado: compartilha autenticação, banco de dados e design system com o
+restante do IgrejasWebOS.
 
-First, run the development server:
+## O que é
+
+Site institucional público (home, "Quem Somos", Biblioteca) + fluxo de
+inscrição e matrícula + área do aluno com cursos oficiais, reciclagem,
+teologia em vários níveis e EBD (Escola Bíblica Dominical) em vídeo,
+pensado para atender vários campos e ministérios a partir de um único
+portal.
+
+## Stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript** (`strict`)
+- **Tailwind CSS v4** — design system próprio, ver [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md)
+- **Supabase** — Postgres + Auth + Row Level Security, via `@supabase/ssr` (client/server) e `@supabase/supabase-js` (cliente admin/`service_role`, só em server actions)
+
+## Rodando localmente
+
+```bash
+npm install
+```
+
+Crie um `.env.local` na raiz com:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...   # necessário para aprovar inscrições (convite de aluno)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+Aplique as migrações em `supabase/migrations/` (001 a 005, nessa ordem —
+esta é a única pasta ativa desde 13/07/2026) no seu projeto Supabase,
+depois:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> Este projeto usa um Supabase **isolado e dedicado** (`toduvwtzklntyptcodkf`,
+> criado em 13/07/2026), separado do banco antigo que era compartilhado com
+> o `Igrejas-Web-os`. Veja `ordem-tecnica-isolamento-e-migracao.md` para o
+> histórico dessa decisão.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estrutura de rotas
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Rotas ficam organizadas em grupos do App Router (pastas entre parênteses,
+não aparecem na URL), cada uma com seu próprio layout:
 
-## Learn More
+| Grupo/rota | Conteúdo |
+|---|---|
+| `/`, `/sobre`, `/inscricao`, `/biblioteca`, `/certificados` | Site público — sem login, `PublicHeader`/`PublicFooter` |
+| `(auth)/login` | Login (e-mail + senha) |
+| `/portal` | Hub autenticado — seleção de módulo |
+| `(igreja)` | Dashboard da igreja: membros, configurações, ocorrências |
+| `(escola)`, `(cursos)`, `(ebd)` | Módulos de conteúdo em vídeo/aula |
+| `(admin)` | Administração de conteúdo e aprovação de inscrições |
 
-To learn more about Next.js, take a look at the following resources:
+Rotas públicas x protegidas são decididas em
+`src/utils/supabase/middleware.ts`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Fluxo de inscrição e matrícula
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Candidato preenche o formulário público em `/inscricao` (sem login) → grava um registro `PENDENTE` em `ead_inscricoes`.
+2. A secretaria (usuário com `profiles.system_role` em `GLOBAL_ADMIN`/`SECTOR_ADMIN`/`LOCAL_ADMIN`) analisa em `/admin/inscricoes`.
+3. Ao aprovar: gera a matrícula (`get_next_matricula_ead()`), cria o registro em `ead_alunos` e convida o aluno por e-mail via Supabase Auth (`auth.admin.inviteUserByEmail`, cliente `service_role` em `src/utils/supabase/admin.ts`).
+4. O aluno recebe o e-mail, clica no link (`redirectTo` aponta para `/auth/callback`, que troca o `code` por sessão) e é levado a `/definir-senha` para criar sua senha.
+5. Dali em diante, o aluno acessa normalmente em `/login` com e-mail e senha.
 
-## Deploy on Vercel
+Detalhes de schema e RLS: `supabase/migrations/001_schema_base_isolado.sql` e `003_rls_corrigida.sql`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentação do projeto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — tokens, componentes, arquitetura de layout, checklist para telas novas.
+- `parecer-tecnico-portal-teologico-os.md` — auditoria técnica e cronológica do projeto original.
+- `parecer-individualizacao-portal-ead-teologia.md` — avaliação de viabilidade do Portal EAD como produto multi-tenant.
+- `cronograma-portal-ead-teologia.csv` — cronograma de implementação.
+- `CETADP_PORTAL_EAD.md` — documento institucional do projeto (visão geral, público-alvo, roadmap).
+
+## Pontos em aberto (roadmap)
+
+- RBAC (checagem de `system_role`) está aplicado em `/admin/inscricoes` e `/admin/conteudo` (13/07/2026) — falta estender a `/dashboard/configuracoes`.
+- `/certificados` e o catálogo de `/biblioteca` são páginas-placeholder ("em breve").
+- Popular dados de demonstração (cursos/aulas reais, alunos de teste aprovados) antes do ensaio do pitch de 24/07.
+- Pós-pitch: migrar este projeto para dentro do `igrejas-web-system-os` (RBAC de 5 níveis via `admin_roles`, Party Pattern, `ministry_id` obrigatório) — ver `ordem-tecnica-isolamento-e-migracao.md`, Fase 4.

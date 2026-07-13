@@ -94,7 +94,6 @@ const CONFIG_CARDS = [
     description: "Gestão de campos, sedes e permissões",
     cta: "Acessar Painel",
     accent: "text-iw-error bg-iw-error-bg",
-    wide: true,
   },
 ];
 
@@ -106,11 +105,11 @@ export default function ConfiguracoesPage() {
         <div className="w-12 h-12 rounded-2xl bg-iw-navy flex items-center justify-center shrink-0">
           <Settings2 className="w-6 h-6 text-iw-sky" />
         </div>
-        <div>
+        <div className="flex flex-wrap items-baseline gap-x-3">
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
             Configurações do Sistema
           </h1>
-          <p className="text-iw-muted text-sm mt-0.5">
+          <p className="text-iw-muted text-sm">
             Gerencie as tabelas auxiliares e dados mestres da plataforma.
           </p>
         </div>
@@ -124,24 +123,24 @@ export default function ConfiguracoesPage() {
             <Link
               key={card.href}
               href={card.href}
-              className={`group bg-iw-surface border border-iw-border rounded-2xl p-5 flex flex-col gap-4 hover:border-iw-blue/40 hover:shadow-md transition-all duration-150${card.wide ? " sm:col-span-2 lg:col-span-2" : ""}`}
+              className="group bg-iw-surface border border-iw-border rounded-2xl p-5 flex flex-col gap-3 hover:border-iw-blue/40 hover:shadow-md transition-all duration-150 min-h-[140px]"
             >
-              {/* Icon */}
-              <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${card.accent}`}
-              >
-                <Icon className="w-5 h-5" />
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-iw-navy text-sm uppercase tracking-wide">
+              {/* Icon + Title inline — ícone à esquerda, título centralizado verticalmente */}
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${card.accent}`}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="font-bold text-iw-navy text-sm uppercase tracking-wide leading-snug">
                   {card.title}
                 </p>
-                <p className="text-xs text-iw-muted mt-0.5 leading-relaxed">
-                  {card.description}
-                </p>
               </div>
+
+              {/* Description */}
+              <p className="text-xs text-iw-muted leading-relaxed flex-1">
+                {card.description}
+              </p>
 
               {/* CTA */}
               <div className="flex items-center justify-between pt-2 border-t border-iw-border">
