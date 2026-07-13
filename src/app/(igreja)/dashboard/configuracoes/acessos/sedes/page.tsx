@@ -12,7 +12,7 @@ export default async function SedesPage() {
     .or("is_sede.eq.true,is_headquarters.eq.true")
     .order("name");
 
-  const sedes = (data ?? []) as Array<{ id: string; name: string; sectors: { name: string } | null }>;
+  const sedes = (data ?? []) as unknown as Array<{ id: string; name: string; sectors: { name: string } | null }>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

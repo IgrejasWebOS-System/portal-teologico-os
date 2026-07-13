@@ -31,7 +31,7 @@ export default async function IgrejasPage() {
     .select("id, name, church_type, sector_id, sectors(name)")
     .order("name");
 
-  const churches = (data ?? []) as ChurchRow[];
+  const churches = (data ?? []) as unknown as ChurchRow[];
 
   // Separar por tipo
   const main  = churches.filter((c) => c.church_type === "CHURCH" || !c.church_type);

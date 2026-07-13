@@ -17,7 +17,7 @@ export default async function LidereSetorPage() {
     .select("id, name, mother_church_id, churches(name)")
     .order("name");
 
-  const sectors = (data ?? []) as SectorLeader[];
+  const sectors = (data ?? []) as unknown as SectorLeader[];
   const withLeader    = sectors.filter((s) => s.mother_church_id);
   const withoutLeader = sectors.filter((s) => !s.mother_church_id);
 

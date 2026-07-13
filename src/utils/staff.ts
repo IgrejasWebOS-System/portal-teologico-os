@@ -3,26 +3,21 @@
 // Compartilhado entre /admin/inscricoes e /admin/conteudo para
 // não duplicar a lista de papéis em cada rota administrativa.
 //
-// O tipo do client fica solto de propósito (em vez de importar
-// SupabaseClient<Database> de @supabase/supabase-js) para aceitar
-// tanto o client de server.ts quanto o de admin.ts sem conflito
-// de generics no tsc --noEmit.
+// O parâmetro `supabase` é tipado como `any` de propósito: tentar
+// tipá-lo estruturalmente (mesmo com um tipo "mínimo" próprio) faz
+// o TypeScript comparar contra o tipo real do SupabaseClient
+// (profundamente genérico/recursivo) e estoura em "Type
+// instantiation is excessively deep and possibly infinite" no
+// build de produção (next build/tsc), embora `next dev` não
+// acuse nada. A segurança do check continua sendo em runtime
+// (a própria consulta e a RLS do banco), não depende de tipo aqui.
 // ============================================================
 
 export const STAFF_ROLES = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN"];
 
-type MinimalSupabaseClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        single: () => Promise<{ data: { system_role?: string } | null }>;
-      };
-    };
-  };
-};
-
 export async function checkIsStaff(
-  supabase: MinimalSupabaseClient,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   userId: string
 ): Promise<boolean> {
   const { data: profile } = await supabase
