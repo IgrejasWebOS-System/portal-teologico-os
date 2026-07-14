@@ -46,7 +46,7 @@ export default function PublicHeader() {
   return (
     <header className="sticky top-0 w-full z-50 shadow-sm">
       {/* ── Barra de utilidade ── */}
-      <div className="bg-iw-navy hidden md:block">
+      <div className="bg-iw-navy hidden md:block w-full">
         <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center justify-between">
           <span className="text-white text-sm font-semibold">
             CETADP · Assembleia de Deus · Piracicaba-SP
@@ -64,7 +64,7 @@ export default function PublicHeader() {
       </div>
 
       {/* ── Identidade + CTAs ── */}
-      <div className="bg-iw-surface border-b border-iw-border">
+      <div className="bg-iw-surface border-b border-iw-border w-full">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 select-none group">
             <Logo size="md" variant="dark" />
@@ -115,7 +115,7 @@ export default function PublicHeader() {
       </div>
 
       {/* ── Navegação institucional ── */}
-      <div className="bg-iw-navy hidden md:block border-t-2 border-b-2 border-iw-gold/40">
+      <div className="bg-iw-navy hidden md:block border-t-2 border-b-2 border-iw-gold/40 w-full">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-8">
           {NAV_ITEMS.map((item) => (
             <Link

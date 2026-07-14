@@ -14,6 +14,10 @@ do MCP do Supabase — não via Supabase CLI.
 | `005_seed_campos_ministerios.sql` | Dados de referência (campos/ministérios do CETADP) |
 | `006_dados_demonstracao.sql` | Cursos/aulas, EBD e inscrições pendentes para o ensaio do pitch (conteúdo placeholder) |
 | `007_correcao_nome_cetadp.sql` | Correção do prefixo de matrícula: "CETADEP" → "CETADP" |
+| `008_atualizacao_nomes_cursos_reais.sql` | Renomeia 3 dos 5 cursos de demonstração para nomes reais do catálogo (Curso Teológico Básico, Curso Teológico Médio, EBOM), com base na apresentação institucional em PDF |
+| `009_turmas_edicoes_anuais.sql` | Tabela `course_editions` (turmas/edições anuais, ex: "Edição Dezembro 2026") + `enrollments.course_edition_id` (nullable) + RLS |
+| `010_modulo_certificados.sql` | Tabela `certificates` (emissão, nº público, assinaturas) + RLS (SELECT público para validação, escrita só staff) |
+| `011_correcao_grants_certificates.sql` | Corrige GRANT revogado por engano na 010, que teria bloqueado a secretaria de emitir certificados |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

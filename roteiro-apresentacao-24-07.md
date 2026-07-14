@@ -4,19 +4,20 @@ Roteiro de apoio para o ensaio e a apresentação. Baseado no
 `CETADP_PORTAL_EAD.md` (documento institucional completo) — aqui o foco é
 a sequência de fala e a demonstração ao vivo.
 
-Tempo estimado total: 12–15 minutos (ajuste conforme o tempo disponível).
+Tempo estimado total: 13–16 minutos (ajuste conforme o tempo disponível).
 
 ---
 
 ## 1. Abertura (1 min)
 
 "O CETADP forma membros, obreiros e líderes das Assembleias de Deus em
-Piracicaba há [tempo de existência da instituição]. Hoje essa formação é
-presencial — o que limita quem pode participar a quem consegue se
-deslocar até Piracicaba. O que vou apresentar resolve isso: um portal que
-leva a mesma formação oficial do CETADP para qualquer campo ou
-ministério, a distância, sem abrir mão do controle que uma instituição de
-ensino precisa ter sobre quem se matricula."
+Piracicaba há 76 anos — hoje são 388 igrejas, 22.126 membros e mais de 800
+alunos em formação teológica pelo Brasil. Essa formação hoje é presencial
+— o que limita quem pode participar a quem consegue se deslocar até um
+dos polos. O que vou apresentar resolve isso: um portal que leva a mesma
+formação oficial do CETADP para qualquer campo ou ministério, a
+distância, sem abrir mão do controle que uma instituição de ensino
+precisa ter sobre quem se matricula."
 
 ## 2. O problema, em uma frase (30 seg)
 
@@ -24,7 +25,19 @@ ensino precisa ter sobre quem se matricula."
 de matrícula são duas coisas que não existem juntas para o CETADP. O
 portal une as duas."
 
-## 3. Demonstração ao vivo — parte 1: o site institucional (2 min)
+## 3. O que o CETADP já usa hoje (1 min)
+
+"A secretaria do CETADP já usa um sistema — o WPENSAR — para matrícula,
+controle financeiro, notas e histórico do aluno. É um sistema de gestão
+escolar genérico, feito para qualquer escola, não para uma rede de
+igrejas. Ele não sabe o que é um campo, um ministério, ou um membro — só
+sabe 'aluno'. O Portal EAD não reinventa isso: ele parte do mesmo
+princípio (matrícula, financeiro, histórico), mas nasce integrado ao
+cadastro de membros e igrejas que o CETADP já tem. Um aluno aqui já é, ao
+mesmo tempo, um membro de uma igreja específica, dentro de um campo
+específico — informação que o WPENSAR simplesmente não enxerga."
+
+## 4. Demonstração ao vivo — parte 1: o site institucional (2 min)
 
 Abrir a home pública (`/`).
 
@@ -37,7 +50,7 @@ Abrir a home pública (`/`).
   (livros, apostilas, Revista Escola Dominical, Jornal Semeador) — deixar
   claro que o catálogo em si é o próximo passo, hoje é apresentação.
 
-## 4. Demonstração ao vivo — parte 2: o fluxo de inscrição (3 min)
+## 5. Demonstração ao vivo — parte 2: o fluxo de inscrição (3 min)
 
 **Preparação prévia:** já existem 3 inscrições de demonstração pendentes
 no banco (Mariana Alves Ferreira, Carlos Eduardo Lima, Fernanda Souza
@@ -58,19 +71,20 @@ Falar durante a ação: "A secretaria não perde o controle — toda matrícula
 passa por aprovação humana antes de existir. O sistema só automatiza a
 parte mecânica: gerar o número, criar o acesso e mandar o e-mail."
 
-## 5. Demonstração ao vivo — parte 3: a área do aluno (2 min)
+## 6. Demonstração ao vivo — parte 3: a área do aluno (2 min)
 
 Login com um usuário de teste já matriculado (ou o próprio usuário
 demonstrador).
 
 - Mostrar o hub `/portal` com os módulos (Escola, Cursos, EBD).
-- Entrar em **Escola Teológica** → mostrar os 3 cursos de demonstração
-  (Fundamentos da Fé Cristã, Hermenêutica Bíblica, Teologia Sistemática).
+- Entrar em **Escola Teológica** → mostrar os cursos, já com nomes reais
+  do catálogo (Curso Teológico Básico, Curso Teológico Médio,
+  Hermenêutica Bíblica).
 - Abrir um curso, mostrar a lista de aulas.
 - Passar rapidamente pela **EBD** — trimestre "A Igreja e sua Missão", 4
   lições carregadas.
 
-## 6. O que já está pronto vs. o que falta (1 min)
+## 7. O que já está pronto vs. o que falta (1 min)
 
 Ser direto e honesto aqui — gera confiança:
 
@@ -82,7 +96,7 @@ Ser direto e honesto aqui — gera confiança:
   conteúdo curricular definitivo (o que está carregado hoje é
   placeholder), abertura para outras igrejas/campos.
 
-## 7. O ponto de governança (1 min — importante, não pular)
+## 8. O ponto de governança (1 min — importante, não pular)
 
 "Um ponto de transparência: o fornecedor já está construindo, em
 paralelo, um sistema de gestão eclesiástica de próxima geração
@@ -92,7 +106,7 @@ base que já está pronta e testada, e migrar este Portal EAD para essa
 arquitetura nova logo após a aprovação — sem colocar o prazo de hoje em
 risco. Já existe um plano técnico documentado para essa migração."
 
-## 8. Fechamento e pedido (30 seg)
+## 9. Fechamento e pedido (30 seg)
 
 "O que eu preciso da liderança hoje é a aprovação para: 1) seguir
 operando o piloto com o CETADP, 2) planejar a extensão para uma segunda

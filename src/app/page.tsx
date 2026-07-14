@@ -19,10 +19,10 @@ import PublicFooter from "@/components/public/PublicFooter";
 // ============================================================
 
 const NUMEROS = [
-  { valor: "3", label: "Níveis de Teologia" },
-  { valor: "2", label: "Modalidades: Presencial e EAD" },
-  { valor: "Vários", label: "Campos e Ministérios" },
-  { valor: "Piracicaba", label: "Sede — AD Piracicaba" },
+  { valor: "388", label: "Igrejas no Campo de Piracicaba" },
+  { valor: "22.126", label: "Membros na rede" },
+  { valor: "802", label: "Alunos em formação teológica" },
+  { valor: "76", label: "Anos de história (desde 1948)" },
 ];
 
 const SERVICOS = [

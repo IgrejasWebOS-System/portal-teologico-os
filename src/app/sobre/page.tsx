@@ -8,6 +8,30 @@ export const metadata = {
   title: "Quem Somos",
 };
 
+const DIRETORIA = [
+  { cargo: "Presidente", nomes: ["Pr. Dilmo dos Santos"] },
+  { cargo: "1º Vice-Presidente", nomes: ["Pra. Marisa Galvão"] },
+  { cargo: "2º Vice-Presidente", nomes: ["Pr. Marcelo Trevisan"] },
+  {
+    cargo: "Secretário",
+    nomes: [
+      "Pr. Amarinho de Melo",
+      "Ev. Milena Pandolfo",
+      "Ev. Ariane Bueno",
+      "Ev. Josias Cardoso",
+    ],
+  },
+  { cargo: "Tesouraria", nomes: ["Pr. Antonio Pandolfo", "Pr. Márcio Siqueira"] },
+  {
+    cargo: "Conselho Fiscal",
+    nomes: ["Pr. Edmilson Maria", "Pr. Paulo Minharo", "Ev. Pedro Venâncio"],
+  },
+  {
+    cargo: "Conselho Teológico",
+    nomes: ["Pr. Carlos Arthuso", "Pr. Luiz Roberto", "Pr. Alexandre Medrano"],
+  },
+];
+
 const PILARES = [
   {
     icon: Target,
@@ -63,6 +87,40 @@ export default function SobrePage() {
               </div>
             );
           })}
+        </section>
+
+        <section className="bg-iw-bg border-t border-iw-border">
+          <div className="max-w-5xl mx-auto px-6 py-16">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
+                Diretoria CETADP
+              </h2>
+              <p className="text-iw-muted text-sm max-w-xl mx-auto">
+                Liderança responsável pela condução institucional, acadêmica e
+                administrativa do centro educacional.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {DIRETORIA.map((item) => (
+                <div
+                  key={item.cargo}
+                  className="bg-iw-surface border border-iw-border rounded-2xl p-5 shadow-sm"
+                >
+                  <h3 className="font-extrabold text-sm text-iw-gold uppercase tracking-wider mb-2">
+                    {item.cargo}
+                  </h3>
+                  <ul className="space-y-1">
+                    {item.nomes.map((nome) => (
+                      <li key={nome} className="text-iw-navy text-sm font-medium">
+                        {nome}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="bg-iw-navy">
