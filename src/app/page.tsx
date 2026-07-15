@@ -67,10 +67,12 @@ export default function HomePage() {
       <main>
         {/* ── HERO ── */}
         <section className="relative overflow-hidden bg-iw-bg">
-          <div className="max-w-7xl mx-auto px-6 pt-3 md:pt-4">
-            <div className="inline-flex items-center gap-2 bg-iw-navy/5 border border-iw-navy/20 text-iw-navy text-sm font-bold px-4 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 bg-iw-gold rounded-full animate-pulse" />
-              CETADP · Assembleia de Deus Piracicaba
+          <div className="max-w-7xl mx-auto px-6 pt-3 md:pt-4 grid grid-cols-1 lg:grid-cols-12">
+            <div className="lg:col-span-6 flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-iw-navy/5 border border-iw-navy/20 text-iw-navy text-base font-bold px-4 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 bg-iw-gold rounded-full animate-pulse" />
+                Centro Educacional Teológico Assembleias de Deus Piracicaba
+              </div>
             </div>
           </div>
 
@@ -86,9 +88,9 @@ export default function HomePage() {
                 todos os campos e ministérios.
               </h1>
 
-              <p className="text-black text-base md:text-lg leading-relaxed max-w-xl">
-                O CETADP — Centro Educacional Teológico das Assembleias de
-                Deus Piracicaba — capacita membros, obreiros e líderes
+              <p className="text-black font-bold text-base md:text-lg leading-relaxed max-w-xl">
+                CETADP — Centro Educacional Teológico Assembleias de Deus
+                Piracicaba — capacita membros, obreiros e líderes
                 evangélicos por meio de cursos oficiais, reciclagem e
                 teologia em vários níveis, de forma presencial e a distância.
               </p>
