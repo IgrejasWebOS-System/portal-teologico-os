@@ -28,7 +28,7 @@ export default function HeroAcessoImagem() {
     <img
       src="/como-funciona.png"
       alt="Como funciona o acesso ao Portal EAD do CETADP"
-      className="w-full h-auto rounded-2xl shadow-xl object-cover"
+      className="w-full max-h-[320px] md:max-h-[380px] rounded-2xl shadow-xl object-contain"
       onError={() => setErro(true)}
     />
   );

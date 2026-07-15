@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, BadgeCheck, ShoppingCart } from "lucide-react";
+import { Menu, X, ShoppingCart } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "@/components/Logo";
@@ -58,17 +58,13 @@ export default function PublicHeader() {
       {/* ── Barra de utilidade ── */}
       <div className="bg-iw-navy hidden md:block w-full">
         <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center justify-between">
-          <span className="text-white text-sm font-semibold">
+          <span className="text-white text-base font-semibold">
             CETADP · Assembleia de Deus · Piracicaba-SP
           </span>
           <div className="flex items-center gap-4">
-            <Link
-              href="/certificados"
-              className="text-white hover:text-iw-gold text-sm font-semibold transition-colors inline-flex items-center gap-1"
-            >
-              <BadgeCheck className="w-3 h-3" />
-              Validar Certificado
-            </Link>
+            <span className="text-iw-gold text-lg font-semibold">
+              Uma Igreja Voltada ao Ensino
+            </span>
           </div>
         </div>
       </div>
@@ -88,7 +84,16 @@ export default function PublicHeader() {
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-5">
+            <p className="hidden lg:block text-iw-muted text-sm italic leading-snug text-right">
+              <span className="block whitespace-nowrap">
+                &ldquo;Antes, crescei na graça e conhecimento de nosso
+              </span>
+              <span className="block whitespace-nowrap">
+                Senhor e Salvador Jesus Cristo.&rdquo;{" "}
+                <span className="text-xs font-bold text-black">2 Pe 3:18</span>
+              </span>
+            </p>
             {emPaginaDaLoja && (
               <Link
                 href="/loja/carrinho"

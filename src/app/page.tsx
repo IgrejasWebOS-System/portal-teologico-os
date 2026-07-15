@@ -10,6 +10,7 @@ import {
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 import HeroAcessoImagem from "@/components/public/HeroAcessoImagem";
+import FloatingSocialIcons from "@/components/public/FloatingSocialIcons";
 
 // ============================================================
 // CETADP — Home institucional (rota pública "/")
@@ -61,6 +62,7 @@ export default function HomePage() {
   return (
     <div className="w-full bg-iw-surface text-iw-navy">
       <PublicHeader />
+      <FloatingSocialIcons />
 
       <main>
         {/* ── HERO ── */}
@@ -72,7 +74,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-6 pt-4 pb-14 md:pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="max-w-7xl mx-auto px-6 pt-4 pb-6 md:pb-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-6">
               <HeroAcessoImagem />
             </div>
@@ -81,7 +83,7 @@ export default function HomePage() {
               <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 Formação teológica{" "}
                 <span className="text-iw-gold">presencial e a distância</span>, para
-                todos os campos e ministérios
+                todos os campos e ministérios.
               </h1>
 
               <p className="text-black text-base md:text-lg leading-relaxed max-w-xl">
@@ -107,14 +109,13 @@ export default function HomePage() {
               </div>
 
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Piracicaba+-+SP"
+                href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Bairro+Alto%2C+Piracicaba+-+SP%2C+13419-080"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-iw-navy text-sm font-semibold hover:text-iw-gold transition-colors w-fit"
+                className="inline-flex items-center gap-2 text-iw-navy text-base font-semibold hover:text-iw-gold transition-colors w-fit"
               >
                 <MapPin className="w-4 h-4 text-iw-gold shrink-0" />
-                Rua Alfredo Guedes, 1950 — Piracicaba - SP
-                <span className="text-xs underline underline-offset-2">Ver localização</span>
+                Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
               </a>
             </div>
           </div>
@@ -173,7 +174,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-7 flex flex-col gap-4">
               <h2 className="text-2xl font-black tracking-tight">Sobre o CETADP</h2>
-              <p className="text-black text-sm leading-relaxed">
+              <p className="text-black text-lg leading-relaxed text-justify">
                 O CETADP é a instituição de ensino teológico das Assembleias
                 de Deus em Piracicaba, dedicada à formação de membros,
                 obreiros e líderes para o exercício do ministério com

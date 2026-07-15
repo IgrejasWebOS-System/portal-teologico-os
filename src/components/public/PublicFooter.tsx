@@ -8,7 +8,7 @@ export default function PublicFooter() {
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2 mb-4">
-            <Logo size="sm" variant="light" />
+            <Logo size="sm" variant="dark" />
             <span className="text-white font-extrabold text-lg">CETADP</span>
           </div>
           <p className="text-sm leading-relaxed max-w-md">
@@ -18,13 +18,13 @@ export default function PublicFooter() {
           </p>
 
           <a
-            href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Piracicaba+-+SP"
+            href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Bairro+Alto%2C+Piracicaba+-+SP%2C+13419-080"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-flex items-center gap-2 text-sm hover:text-iw-gold transition-colors w-fit"
           >
             <MapPin className="w-4 h-4 shrink-0" />
-            Rua Alfredo Guedes, 1950 — Piracicaba - SP
+            Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
           </a>
 
           <div className="flex items-center gap-3 mt-4">
