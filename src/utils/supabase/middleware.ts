@@ -2,7 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Rotas acessíveis sem autenticação (prefixo)
-const PUBLIC_PATHS = ["/login", "/inscricao", "/sobre", "/certificados", "/biblioteca", "/auth/callback"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/cadastro",
+  "/inscricao",
+  "/sobre",
+  "/certificados",
+  "/biblioteca",
+  "/auth/callback",
+  "/loja",
+  "/api/webhooks/mercadopago",
+];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
 

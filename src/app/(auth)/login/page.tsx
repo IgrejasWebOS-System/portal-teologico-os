@@ -91,6 +91,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
         </p>
 
+        <p className="text-center text-sm mt-2">
+          <Link href="/cadastro" className="text-iw-muted font-medium hover:underline">
+            Não é membro do ministério? Crie uma conta para comprar cursos avulsos
+          </Link>
+        </p>
+
         <p className="text-center text-iw-muted text-xs mt-6">
           CETADP · Portal EAD de Teologia · IgrejasWebOS
         </p>

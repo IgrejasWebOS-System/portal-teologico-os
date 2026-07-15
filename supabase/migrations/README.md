@@ -18,6 +18,10 @@ do MCP do Supabase — não via Supabase CLI.
 | `009_turmas_edicoes_anuais.sql` | Tabela `course_editions` (turmas/edições anuais, ex: "Edição Dezembro 2026") + `enrollments.course_edition_id` (nullable) + RLS |
 | `010_modulo_certificados.sql` | Tabela `certificates` (emissão, nº público, assinaturas) + RLS (SELECT público para validação, escrita só staff) |
 | `011_correcao_grants_certificates.sql` | Corrige GRANT revogado por engano na 010, que teria bloqueado a secretaria de emitir certificados |
+| `012_correcao_role_padrao_novo_usuario.sql` | **Correção de segurança:** `handle_new_user()` promovia todo usuário novo a `LOCAL_ADMIN` (staff/admin) por padrão. Corrigido para `MEMBER`; 2 perfis de teste de aluno afetados foram migrados |
+| `013_loja_produtos_pedidos.sql` | Tabelas `products`, `orders`, `order_items` — loja de cursos avulsos, material físico e PDFs, com checkout via Mercado Pago (sandbox) + RLS |
+| `014_seed_produtos_loja.sql` | 4 produtos de demonstração para a Loja (1 curso avulso, 1 material físico, 1 PDF grátis, 1 PDF pago) — conteúdo placeholder |
+| `015_snapshot_comprador_orders.sql` | `orders.nome_comprador`/`email_comprador` — snapshot do comprador (profiles não tem policy de staff, só self-select) |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X, BadgeCheck } from "lucide-react";
+import { Menu, X, BadgeCheck, ShoppingCart } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "@/components/Logo";
+import { useCarrinho } from "@/utils/useCarrinho";
+import { contarItensCarrinho } from "@/utils/carrinho";
 
 // ============================================================
 // PublicHeader — cabeçalho institucional do CETADP
@@ -25,12 +27,15 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/#reciclagem", label: "Reciclagem" },
   { href: "/#teologia", label: "Teologia (níveis)" },
   { href: "/biblioteca", label: "Biblioteca" },
+  { href: "/loja", label: "Loja" },
   { href: "/sobre", label: "Quem Somos" },
 ];
 
 export default function PublicHeader() {
   const [user, setUser] = useState<User | null>(null);
   const [menuAberto, setMenuAberto] = useState(false);
+  const { itens } = useCarrinho();
+  const totalItensCarrinho = contarItensCarrinho(itens);
 
   useEffect(() => {
     const supabase = createClient();
@@ -79,6 +84,18 @@ export default function PublicHeader() {
           </Link>
 
           <div className="hidden md:flex items-center gap-2">
+            <Link
+              href="/loja/carrinho"
+              className="relative p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
+              aria-label="Carrinho"
+            >
+              <ShoppingCart className="w-[18px] h-[18px]" />
+              {totalItensCarrinho > 0 && (
+                <span className="absolute -top-1 -right-1 bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {totalItensCarrinho}
+                </span>
+              )}
+            </Link>
             {user ? (
               <Link
                 href="/portal"
@@ -143,6 +160,18 @@ export default function PublicHeader() {
                 {item.label}
               </Link>
             ))}
+            <Link
+              href="/loja/carrinho"
+              onClick={() => setMenuAberto(false)}
+              className="px-2 py-2 text-sm font-medium text-iw-navy hover:bg-iw-bg rounded-md transition-colors flex items-center justify-between"
+            >
+              Carrinho
+              {totalItensCarrinho > 0 && (
+                <span className="bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {totalItensCarrinho}
+                </span>
+              )}
+            </Link>
             <div className="border-t border-iw-border my-2" />
             <div className="flex flex-col gap-2">
               {user ? (
