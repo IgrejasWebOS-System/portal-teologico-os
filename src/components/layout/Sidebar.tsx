@@ -21,6 +21,9 @@ import {
   UserPlus,
   Package,
   Award,
+  UserCheck,
+  Wallet,
+  Boxes,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -74,8 +77,11 @@ const adminModules = [
       { label: "Conteúdo",   href: "/admin/conteudo", icon: Library },
       { label: "Trilhas",    href: "/admin/conteudo/trilhas", icon: ListTree },
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
+      { label: "Matrículas", href: "/admin/matriculas", icon: UserCheck },
       { label: "Pedidos (Loja)", href: "/admin/pedidos", icon: Package },
       { label: "Certificados", href: "/admin/certificados", icon: Award },
+      { label: "Financeiro", href: "/admin/financeiro", icon: Wallet },
+      { label: "Patrimônio", href: "/admin/patrimonio", icon: Boxes },
     ],
   },
 ];

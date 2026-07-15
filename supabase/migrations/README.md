@@ -26,6 +26,12 @@ do MCP do Supabase — não via Supabase CLI.
 | `017_funcao_numero_certificado.sql` | Sequência + `get_next_certificado()` (staff-only, SECURITY DEFINER) — gera o número público `CETADP-CERT-AAAA-NNNN` |
 | `018_cursos_preparatorios_avulsos.sql` | 9 cursos preparatórios reais (Diaconato, Presbitério, Dirigentes, Noivos, Casados, Tesouraria, EBD/Superintendente, Professores, Devocional) + produtos CURSO_AVULSO vinculados na Loja (preço placeholder R$40) |
 | `019_pagamento_matricula_oficial.sql` | `ead_inscricoes` ganha `preco_matricula_centavos`, `mercadopago_preference_id`, `mercadopago_payment_id`, `pago_em` — matrícula do curso teológico oficial (Básico, R$25) passa a ser cobrada de verdade via Mercado Pago no ato da inscrição, antes da análise da secretaria |
+| `020_cadastro_completo_aluno_cpf_unico.sql` | `ead_alunos` ganha ficha cadastral completa (RG, nascimento, gênero, estado civil, escolaridade, profissão, endereço, filiação) + índice único de CPF — uma pessoa = uma linha |
+| `021_ead_matriculas.sql` | Nova tabela `ead_matriculas` (matrícula por curso, status EM_ANDAMENTO/APROVADO/REPROVADO/CANCELADO, origem INSCRICAO_PUBLICA/MATRICULA_DIRETA) + trigger que bloqueia matrícula duplicada no mesmo curso a não ser que a anterior tenha sido reprovada/cancelada. Backfill dos alunos já aprovados |
+| `022_financeiro_plano_de_contas.sql` | Tabela `fin_categorias` (plano de contas hierárquico RECEITA/DESPESA) + seed inicial de categorias |
+| `023_financeiro_caixa_diario.sql` | Tabelas `fin_caixa_diario` (abertura/fechamento por dia) e `fin_lancamentos` (entradas/saídas vinculadas a uma categoria) |
+| `024_patrimonio_inventario.sql` | Módulo de patrimônio/inventário adaptado do igrejas-web-system-os: `patrimony_items`, `patrimony_movements`, `patrimony_depreciations` + numeração automática de tombamento (`get_next_tombamento`) + funções de cálculo de depreciação |
+| `025_avaliacoes_simulados_provas.sql` | Simulados e provas — fase sem IA: `avaliacoes_banco_questoes` (banco estático por curso), `avaliacoes` (1 prova por matrícula via índice único parcial), `avaliacao_questoes` (snapshot sorteado/embaralhado por aluno). Seed de 12 questões de exemplo para o Curso Teológico Básico |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

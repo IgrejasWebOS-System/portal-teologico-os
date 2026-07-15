@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Church, GraduationCap, BookOpen, BookMarked, Award, ArrowRight } from "lucide-react";
+import { Church, GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList } from "lucide-react";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -67,6 +67,18 @@ const modules = [
     border: "border-iw-gold/30",
     iconBg: "bg-iw-gold/10",
     iconColor: "text-iw-gold",
+    badge: "Ativo",
+    badgeColor: "bg-iw-success/10 text-iw-success",
+  },
+  {
+    href: "/portal/avaliacoes",
+    icon: ClipboardList,
+    label: "Simulados e Provas",
+    description:
+      "Simulado opcional (ilimitado) e prova final (única tentativa) de cada curso em andamento.",
+    border: "border-iw-blue/30",
+    iconBg: "bg-iw-blue/10",
+    iconColor: "text-iw-blue",
     badge: "Ativo",
     badgeColor: "bg-iw-success/10 text-iw-success",
   },
