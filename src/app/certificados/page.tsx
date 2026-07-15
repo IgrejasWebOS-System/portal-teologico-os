@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, CheckCircle2, XCircle } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 
@@ -7,10 +8,45 @@ export const metadata = {
   title: "Validar Certificado",
 };
 
-// TODO (fora do escopo do MVP para o pitch de 24/07): esta página é um
-// placeholder. A validação real depende de um módulo de certificados
-// (emissão + código público de verificação) ainda não implementado.
-export default function CertificadosPage() {
+interface PageProps {
+  searchParams: Promise<{ numero?: string }>;
+}
+
+// ============================================================
+// /certificados — validação pública de certificados por número
+// (ex: CETADP-CERT-2026-0001). Consulta direta em `certificates`,
+// que tem SELECT público (migração 010) exatamente para esse uso —
+// mesmo tipo de validação que aparece impressa em qualquer diploma
+// físico. Antes desta versão, a página era um placeholder estático.
+// ============================================================
+export default async function CertificadosPage({ searchParams }: PageProps) {
+  const { numero } = await searchParams;
+  const numeroBuscado = numero?.trim();
+
+  let certificado: {
+    numero_certificado: string;
+    nome_aluno: string;
+    nome_curso: string;
+    carga_horaria: number | null;
+    assinatura_presidente: string;
+    assinatura_coordenador: string;
+    emitido_em: string;
+  } | null = null;
+  let buscado = false;
+
+  if (numeroBuscado) {
+    buscado = true;
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("certificates")
+      .select(
+        "numero_certificado, nome_aluno, nome_curso, carga_horaria, assinatura_presidente, assinatura_coordenador, emitido_em"
+      )
+      .eq("numero_certificado", numeroBuscado)
+      .maybeSingle();
+    certificado = data;
+  }
+
   return (
     <div className="w-full min-h-screen bg-iw-bg flex flex-col">
       <PublicHeader />
@@ -24,9 +60,67 @@ export default function CertificadosPage() {
             Validação de Certificados
           </h1>
           <p className="text-iw-muted text-sm leading-relaxed mb-6">
-            Em breve você poderá validar aqui a autenticidade de certificados
-            emitidos pelo CETADP. Este módulo está no roteiro do Portal EAD.
+            Digite o número do certificado impresso para confirmar sua
+            autenticidade.
           </p>
+
+          <form className="flex gap-2 mb-6" action="/certificados">
+            <input
+              type="text"
+              name="numero"
+              defaultValue={numeroBuscado}
+              placeholder="CETADP-CERT-2026-0001"
+              className="flex-1 border border-iw-border rounded-lg px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted outline-none focus:ring-2 focus:ring-iw-blue/30 focus:border-iw-blue"
+            />
+            <button
+              type="submit"
+              className="bg-iw-gold hover:opacity-90 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-opacity"
+            >
+              Validar
+            </button>
+          </form>
+
+          {buscado && (
+            <div
+              className={`p-4 rounded-xl border text-left mb-6 ${
+                certificado
+                  ? "bg-iw-success-bg border-iw-success"
+                  : "bg-iw-error-bg border-iw-error"
+              }`}
+            >
+              {certificado ? (
+                <>
+                  <p className="flex items-center gap-2 text-iw-success font-bold text-sm mb-2">
+                    <CheckCircle2 className="w-4 h-4" /> Certificado válido
+                  </p>
+                  <p className="text-iw-navy text-sm">
+                    <strong>{certificado.nome_aluno}</strong>
+                  </p>
+                  <p className="text-iw-muted text-xs mt-0.5">{certificado.nome_curso}</p>
+                  {certificado.carga_horaria && (
+                    <p className="text-iw-muted text-xs">
+                      Carga horária: {certificado.carga_horaria}h
+                    </p>
+                  )}
+                  <p className="text-iw-muted text-xs mt-2">
+                    Emitido em{" "}
+                    {new Date(certificado.emitido_em).toLocaleDateString("pt-BR")}
+                  </p>
+                  <p className="text-iw-muted text-xs mt-2 italic">
+                    {certificado.assinatura_presidente} — Presidente
+                    <br />
+                    {certificado.assinatura_coordenador} — Coordenador Acadêmico
+                  </p>
+                </>
+              ) : (
+                <p className="flex items-center gap-2 text-iw-error font-bold text-sm">
+                  <XCircle className="w-4 h-4" /> Certificado não encontrado. Confira o
+                  número e tente novamente.
+                </p>
+              )}
+            </div>
+          )}
+
           <Link
             href="/"
             className="inline-block border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold px-6 py-3 rounded-xl text-sm transition-colors"

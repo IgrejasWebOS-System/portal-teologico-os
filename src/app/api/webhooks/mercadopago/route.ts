@@ -7,16 +7,21 @@ import { buscarPagamento } from "@/utils/mercadopago/client";
 //
 // Recebe a notificação assíncrona do Mercado Pago (configurada como
 // notification_url na preferência), busca o pagamento de verdade na
-// API (nunca confia no payload da notificação sozinho) e:
-// - marca o pedido como PAGO/CANCELADO/REEMBOLSADO;
-// - se PAGO e o item é CURSO_AVULSO, cria a matrícula (enrollment)
-//   automaticamente — é a "liberação automática pós-pagamento" que
-//   foi decidida para usuários externos.
-// - se PAGO e o item é MATERIAL_FISICO, o pedido já nasce com
-//   fulfillment_status = AGUARDANDO_ENVIO (definido no checkout);
-//   a secretaria trata o envio depois, manualmente.
+// API (nunca confia no payload da notificação sozinho) e atualiza o
+// registro correspondente ao external_reference. Dois tipos possíveis
+// de registro, tentados nesta ordem:
 //
-// Idempotente: se o pedido já está PAGO, não repete a liberação.
+// 1. Pedido da Loja (orders) — cursos avulsos, material físico, PDFs.
+//    Aprovado -> PAGO (+ libera enrollment automático se CURSO_AVULSO).
+//
+// 2. Inscrição EAD com matrícula paga (ead_inscricoes) — decisão do
+//    CETADP de 14/07/2026 de cobrar de verdade a matrícula do curso
+//    teológico oficial. Aprovado -> status vira PENDENTE (entra na
+//    fila de análise da secretaria, fluxo manual de sempre a partir
+//    daí). Recusado/cancelado -> PAGAMENTO_RECUSADO.
+//
+// Idempotente nos dois casos: se o registro já saiu do estado
+// "aguardando pagamento", a notificação repetida não faz nada.
 // ============================================================
 
 export async function POST(request: Request) {
@@ -45,22 +50,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Falha ao consultar pagamento" }, { status: 502 });
   }
 
-  const orderId = pagamento.external_reference;
-  if (!orderId) {
+  const referenceId = pagamento.external_reference;
+  if (!referenceId) {
     return NextResponse.json({ erro: "external_reference ausente" }, { status: 400 });
-  }
-
-  const novoStatus =
-    pagamento.status === "approved"
-      ? "PAGO"
-      : pagamento.status === "rejected" || pagamento.status === "cancelled"
-        ? "CANCELADO"
-        : pagamento.status === "refunded"
-          ? "REEMBOLSADO"
-          : null; // pending/in_process etc. — não muda o pedido ainda
-
-  if (!novoStatus) {
-    return NextResponse.json({ recebido: true });
   }
 
   const admin = createAdminClient();
@@ -68,49 +60,97 @@ export async function POST(request: Request) {
   const { data: pedido } = await admin
     .from("orders")
     .select("id, status, user_id")
-    .eq("id", orderId)
+    .eq("id", referenceId)
     .single();
 
-  if (!pedido) {
-    return NextResponse.json({ erro: "Pedido não encontrado" }, { status: 404 });
+  if (pedido) {
+    if (pedido.status === "PAGO") {
+      return NextResponse.json({ ok: true }); // já processado, idempotência
+    }
+
+    const novoStatus =
+      pagamento.status === "approved"
+        ? "PAGO"
+        : pagamento.status === "rejected" || pagamento.status === "cancelled"
+          ? "CANCELADO"
+          : pagamento.status === "refunded"
+            ? "REEMBOLSADO"
+            : null; // pending/in_process etc. — não muda o pedido ainda
+
+    if (!novoStatus) {
+      return NextResponse.json({ recebido: true });
+    }
+
+    await admin
+      .from("orders")
+      .update({
+        status: novoStatus,
+        mercadopago_payment_id: String(pagamento.id),
+        paid_at: novoStatus === "PAGO" ? new Date().toISOString() : null,
+      })
+      .eq("id", referenceId);
+
+    if (novoStatus === "PAGO") {
+      const { data: itens } = await admin
+        .from("order_items")
+        .select("product_id")
+        .eq("order_id", referenceId);
+
+      for (const item of itens ?? []) {
+        const { data: produto } = await admin
+          .from("products")
+          .select("tipo, course_id")
+          .eq("id", item.product_id)
+          .single();
+
+        if (produto?.tipo === "CURSO_AVULSO" && produto.course_id) {
+          await admin
+            .from("enrollments")
+            .upsert(
+              { user_id: pedido.user_id, course_id: produto.course_id },
+              { onConflict: "user_id,course_id", ignoreDuplicates: true }
+            );
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true });
   }
 
-  if (pedido.status === "PAGO") {
-    return NextResponse.json({ ok: true }); // já processado, idempotência
+  // Não é pedido da Loja — tenta como inscrição EAD com matrícula paga
+  const { data: inscricao } = await admin
+    .from("ead_inscricoes")
+    .select("id, status")
+    .eq("id", referenceId)
+    .single();
+
+  if (!inscricao) {
+    return NextResponse.json({ erro: "Pedido/inscrição não encontrado" }, { status: 404 });
+  }
+
+  if (inscricao.status !== "AGUARDANDO_PAGAMENTO") {
+    return NextResponse.json({ ok: true }); // já processado ou não se aplica — idempotência
+  }
+
+  const novoStatusInscricao =
+    pagamento.status === "approved"
+      ? "PENDENTE" // matrícula paga -> entra na fila de análise da secretaria
+      : pagamento.status === "rejected" || pagamento.status === "cancelled"
+        ? "PAGAMENTO_RECUSADO"
+        : null; // pending/in_process etc. — continua aguardando
+
+  if (!novoStatusInscricao) {
+    return NextResponse.json({ recebido: true });
   }
 
   await admin
-    .from("orders")
+    .from("ead_inscricoes")
     .update({
-      status: novoStatus,
+      status: novoStatusInscricao,
       mercadopago_payment_id: String(pagamento.id),
-      paid_at: novoStatus === "PAGO" ? new Date().toISOString() : null,
+      pago_em: novoStatusInscricao === "PENDENTE" ? new Date().toISOString() : null,
     })
-    .eq("id", orderId);
-
-  if (novoStatus === "PAGO") {
-    const { data: itens } = await admin
-      .from("order_items")
-      .select("product_id")
-      .eq("order_id", orderId);
-
-    for (const item of itens ?? []) {
-      const { data: produto } = await admin
-        .from("products")
-        .select("tipo, course_id")
-        .eq("id", item.product_id)
-        .single();
-
-      if (produto?.tipo === "CURSO_AVULSO" && produto.course_id) {
-        await admin
-          .from("enrollments")
-          .upsert(
-            { user_id: pedido.user_id, course_id: produto.course_id },
-            { onConflict: "user_id,course_id", ignoreDuplicates: true }
-          );
-      }
-    }
-  }
+    .eq("id", referenceId);
 
   return NextResponse.json({ ok: true });
 }

@@ -128,3 +128,37 @@ igreja depois que o piloto estiver validado. Dúvidas?"
   piloto com o CETADP e migrar para a arquitetura multi-tenant nova —
   não antes, para não repetir o problema de isolamento que já resolvemos
   aqui.
+
+---
+
+## Se a venda fechar: o que falta para produção real (material de apoio — não ler ao vivo)
+
+Guardar esta seção para responder se a liderança perguntar "e se a gente
+fechar hoje, o que falta pra valer?". Separado em técnico (o que eu
+resolvo) e institucional (o que só o CETADP decide).
+
+**Técnico, para o portal rodar de verdade:**
+- Domínio próprio (ex: `portal.cetadp.com.br`) — hoje está no subdomínio
+  gratuito da Vercel. Além de mais profissional, é o que permite
+  configurar o envio de e-mail com autenticação de domínio (SPF/DKIM),
+  melhorando a entrega e evitando spam.
+- Conta Mercado Pago em modo **produção** (não sandbox/teste), vinculada
+  ao CNPJ do CETADP, com conta bancária para recebimento — troca as
+  credenciais de teste pelas de produção.
+- Conta de envio de e-mail transacional (Resend recomendado — mais
+  apropriado que usar um Gmail pessoal, que tem limite baixo e não foi
+  feito para esse volume) com o domínio verificado.
+- Definir quem paga e administra Supabase e Vercel daqui pra frente —
+  hoje estão no plano gratuito; com uso real (mais alunos, mais dados,
+  mais tráfego) alguns desses planos podem precisar virar pagos.
+
+**Institucional — decisão do CETADP, não técnica:**
+- Quem é o dono das contas de serviço (Mercado Pago, Supabase, Vercel,
+  domínio, e-mail) — a própria instituição, ou o fornecedor operando
+  como serviço para eles? É modelo de negócio, não escolha técnica.
+- Política de privacidade e termos de uso — o portal coleta CPF, dados
+  pessoais e agora processa pagamento (produtos físicos e digitais).
+  Vale revisão jurídica (LGPD, Código de Defesa do Consumidor). Isso não
+  é algo que o desenvolvedor substitui — precisa de um advogado.
+- Quem mantém e alimenta conteúdo real (aulas, PDFs, apostilas) depois do
+  piloto — hoje o conteúdo carregado é só demonstração.

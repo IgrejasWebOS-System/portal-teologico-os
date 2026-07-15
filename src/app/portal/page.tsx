@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Church, GraduationCap, BookOpen, BookMarked, ArrowRight } from "lucide-react";
+import { Church, GraduationCap, BookOpen, BookMarked, Award, ArrowRight } from "lucide-react";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -55,6 +55,18 @@ const modules = [
     border: "border-iw-success/30",
     iconBg: "bg-iw-success/10",
     iconColor: "text-iw-success",
+    badge: "Ativo",
+    badgeColor: "bg-iw-success/10 text-iw-success",
+  },
+  {
+    href: "/portal/certificados",
+    icon: Award,
+    label: "Meus Certificados",
+    description:
+      "Certificados emitidos pela secretaria ao concluir cursos, com número de validação pública.",
+    border: "border-iw-gold/30",
+    iconBg: "bg-iw-gold/10",
+    iconColor: "text-iw-gold",
     badge: "Ativo",
     badgeColor: "bg-iw-success/10 text-iw-success",
   },

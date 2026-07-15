@@ -4,17 +4,9 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Send, Loader2 } from "lucide-react";
 import { submitInscricaoAction } from "./actions";
+import { CURSOS_EAD } from "@/utils/cursos-ead";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
-
-const CURSOS = [
-  { value: "OFICIAL", label: "Curso Oficial" },
-  { value: "RECICLAGEM", label: "Curso de Reciclagem" },
-  { value: "TEOLOGIA_BASICO", label: "Teologia — Nível Básico" },
-  { value: "TEOLOGIA_MEDIO", label: "Teologia — Nível Médio" },
-  { value: "TEOLOGIA_AVANCADO", label: "Teologia — Nível Avançado" },
-  { value: "TREINAMENTO", label: "Treinamento / Capacitação" },
-];
 
 function maskCPF(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 11);
@@ -115,8 +107,13 @@ export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] })
           <label className={labelCls} htmlFor="curso_pretendido">Curso pretendido</label>
           <select id="curso_pretendido" name="curso_pretendido" required className={inputCls} defaultValue="">
             <option value="" disabled>Selecione um curso</option>
-            {CURSOS.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+            {CURSOS_EAD.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+                {c.precoMatriculaCentavos > 0
+                  ? ` — matrícula R$ ${(c.precoMatriculaCentavos / 100).toFixed(2).replace(".", ",")}`
+                  : ""}
+              </option>
             ))}
           </select>
         </div>
@@ -135,7 +132,9 @@ export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] })
 
       <p className="text-[11px] text-iw-muted leading-relaxed">
         Seus dados são usados apenas para análise da inscrição pela secretaria
-        do CETADP e ficam protegidos conforme a LGPD.
+        do CETADP e ficam protegidos conforme a LGPD. Cursos com matrícula
+        paga redirecionam para o pagamento antes da análise; os demais seguem
+        direto para a secretaria.
       </p>
 
       <SubmitButton />

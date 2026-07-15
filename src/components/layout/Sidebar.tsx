@@ -20,6 +20,7 @@ import {
   Settings2,
   UserPlus,
   Package,
+  Award,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -74,6 +75,7 @@ const adminModules = [
       { label: "Trilhas",    href: "/admin/conteudo/trilhas", icon: ListTree },
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
       { label: "Pedidos (Loja)", href: "/admin/pedidos", icon: Package },
+      { label: "Certificados", href: "/admin/certificados", icon: Award },
     ],
   },
 ];

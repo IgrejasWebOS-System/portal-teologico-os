@@ -2,19 +2,18 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { UserPlus, ShieldAlert, Mail, Phone, IdCard } from "lucide-react";
 import { approveInscricaoAction, rejectInscricaoAction } from "./actions";
+import { labelCurso } from "@/utils/cursos-ead";
 
 const STAFF_ROLES = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN"];
 
-const CURSO_LABEL: Record<string, string> = {
-  OFICIAL: "Curso Oficial",
-  RECICLAGEM: "Curso de Reciclagem",
-  TEOLOGIA_BASICO: "Teologia — Básico",
-  TEOLOGIA_MEDIO: "Teologia — Médio",
-  TEOLOGIA_AVANCADO: "Teologia — Avançado",
-  TREINAMENTO: "Treinamento / Capacitação",
+const STATUS_LABEL: Record<string, string> = {
+  AGUARDANDO_PAGAMENTO: "AGUARDANDO PAGAMENTO",
+  PAGAMENTO_RECUSADO: "PAGAMENTO RECUSADO",
 };
 
 const STATUS_STYLE: Record<string, string> = {
+  AGUARDANDO_PAGAMENTO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  PAGAMENTO_RECUSADO: "bg-iw-error-bg text-iw-error border-iw-error/30",
   PENDENTE: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
   APROVADA: "bg-iw-success-bg text-iw-success border-iw-success/30",
   REJEITADA: "bg-iw-error-bg text-iw-error border-iw-error/30",
@@ -60,8 +59,15 @@ export default async function InscricoesAdminPage({ searchParams }: PageProps) {
     .select("*, ead_campos_ministerios(nome)")
     .order("created_at", { ascending: false });
 
-  // Pendentes primeiro (são as que exigem ação), depois as já analisadas
-  const STATUS_ORDER: Record<string, number> = { PENDENTE: 0, APROVADA: 1, REJEITADA: 2 };
+  // Pendentes primeiro (são as que exigem ação da secretaria), depois as
+  // que aguardam o pagamento do próprio candidato, depois as já analisadas
+  const STATUS_ORDER: Record<string, number> = {
+    PENDENTE: 0,
+    AGUARDANDO_PAGAMENTO: 1,
+    PAGAMENTO_RECUSADO: 2,
+    APROVADA: 3,
+    REJEITADA: 4,
+  };
   const lista = [...(inscricoes ?? [])].sort(
     (a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
   );
@@ -78,7 +84,10 @@ export default async function InscricoesAdminPage({ searchParams }: PageProps) {
           </h1>
           <p className="text-iw-muted text-xs mt-0.5">
             Aprove ou rejeite candidatos ao CETADP. Ao aprovar, a matrícula é
-            gerada e o acesso é enviado por e-mail.
+            gerada e o acesso é enviado por e-mail. Cursos com matrícula paga
+            só chegam aqui como &quot;PENDENTE&quot; depois que o candidato
+            paga — as que ainda estão &quot;aguardando pagamento&quot;
+            aparecem abaixo, sem ação necessária da secretaria.
           </p>
         </div>
       </div>
@@ -121,15 +130,22 @@ export default async function InscricoesAdminPage({ searchParams }: PageProps) {
                 <span
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLE[i.status] ?? STATUS_STYLE.PENDENTE}`}
                 >
-                  {i.status}
+                  {STATUS_LABEL[i.status] ?? i.status}
                 </span>
               </div>
 
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-iw-muted">
-                <span><strong className="text-iw-navy">Curso:</strong> {CURSO_LABEL[i.curso_pretendido] ?? i.curso_pretendido}</span>
+                <span><strong className="text-iw-navy">Curso:</strong> {labelCurso(i.curso_pretendido)}</span>
                 <span><strong className="text-iw-navy">Campo/Ministério:</strong> {i.ead_campos_ministerios?.nome ?? i.campo_ministerio_nome ?? "—"}</span>
                 {i.matricula_gerada && (
                   <span><strong className="text-iw-navy">Matrícula:</strong> {i.matricula_gerada}</span>
+                )}
+                {i.preco_matricula_centavos > 0 && (
+                  <span>
+                    <strong className="text-iw-navy">Matrícula paga:</strong>{" "}
+                    R$ {(i.preco_matricula_centavos / 100).toFixed(2).replace(".", ",")}
+                    {i.pago_em ? ` em ${new Date(i.pago_em).toLocaleDateString("pt-BR")}` : " — pendente"}
+                  </span>
                 )}
               </div>
 

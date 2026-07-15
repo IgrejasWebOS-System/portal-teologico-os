@@ -22,6 +22,10 @@ do MCP do Supabase — não via Supabase CLI.
 | `013_loja_produtos_pedidos.sql` | Tabelas `products`, `orders`, `order_items` — loja de cursos avulsos, material físico e PDFs, com checkout via Mercado Pago (sandbox) + RLS |
 | `014_seed_produtos_loja.sql` | 4 produtos de demonstração para a Loja (1 curso avulso, 1 material físico, 1 PDF grátis, 1 PDF pago) — conteúdo placeholder |
 | `015_snapshot_comprador_orders.sql` | `orders.nome_comprador`/`email_comprador` — snapshot do comprador (profiles não tem policy de staff, só self-select) |
+| `016_polos_presenciais_reais.sql` | 8 polos presenciais reais em `ead_campos_ministerios` (Centenário do Sul-PR, Caruaru-PE, Nova Andradina-MS, São Pedro-SP, Pau da Lima-BA, Piracicamirim-SP, São Francisco-SP, Kobaiat Líbano-SP) |
+| `017_funcao_numero_certificado.sql` | Sequência + `get_next_certificado()` (staff-only, SECURITY DEFINER) — gera o número público `CETADP-CERT-AAAA-NNNN` |
+| `018_cursos_preparatorios_avulsos.sql` | 9 cursos preparatórios reais (Diaconato, Presbitério, Dirigentes, Noivos, Casados, Tesouraria, EBD/Superintendente, Professores, Devocional) + produtos CURSO_AVULSO vinculados na Loja (preço placeholder R$40) |
+| `019_pagamento_matricula_oficial.sql` | `ead_inscricoes` ganha `preco_matricula_centavos`, `mercadopago_preference_id`, `mercadopago_payment_id`, `pago_em` — matrícula do curso teológico oficial (Básico, R$25) passa a ser cobrada de verdade via Mercado Pago no ato da inscrição, antes da análise da secretaria |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

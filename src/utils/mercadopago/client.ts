@@ -31,6 +31,9 @@ interface CriarPreferenciaParams {
   orderId: string;
   itens: ItemPreferencia[];
   emailComprador?: string;
+  // Caminho base do back_url, ex: "/loja/pedido" (padrão) ou
+  // "/inscricao/pagamento" — o id é sempre anexado no final.
+  backUrlPath?: string;
 }
 
 interface PreferenciaResposta {
@@ -54,9 +57,9 @@ export async function criarPreferenciaCheckout(
     payer: params.emailComprador ? { email: params.emailComprador } : undefined,
     external_reference: params.orderId,
     back_urls: {
-      success: `${appUrl}/loja/pedido/${params.orderId}`,
-      pending: `${appUrl}/loja/pedido/${params.orderId}`,
-      failure: `${appUrl}/loja/pedido/${params.orderId}`,
+      success: `${appUrl}${params.backUrlPath ?? "/loja/pedido"}/${params.orderId}`,
+      pending: `${appUrl}${params.backUrlPath ?? "/loja/pedido"}/${params.orderId}`,
+      failure: `${appUrl}${params.backUrlPath ?? "/loja/pedido"}/${params.orderId}`,
     },
     auto_return: "approved",
     notification_url: `${appUrl}/api/webhooks/mercadopago`,
