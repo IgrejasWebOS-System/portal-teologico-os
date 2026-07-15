@@ -5,10 +5,11 @@ import {
   RefreshCw,
   Layers,
   ArrowRight,
-  ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
+import HeroAcessoImagem from "@/components/public/HeroAcessoImagem";
 
 // ============================================================
 // CETADP — Home institucional (rota pública "/")
@@ -20,7 +21,7 @@ import PublicFooter from "@/components/public/PublicFooter";
 
 const NUMEROS = [
   { valor: "388", label: "Igrejas no Campo de Piracicaba" },
-  { valor: "22.126", label: "Membros na rede" },
+  { valor: "22.126", label: "Membros Igreja" },
   { valor: "802", label: "Alunos em formação teológica" },
   { valor: "76", label: "Anos de história (desde 1948)" },
 ];
@@ -64,20 +65,26 @@ export default function HomePage() {
       <main>
         {/* ── HERO ── */}
         <section className="relative overflow-hidden bg-iw-bg">
-          <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-7 flex flex-col gap-6">
-              <div className="inline-flex items-center gap-2 bg-iw-navy/5 border border-iw-navy/20 text-iw-navy text-xs font-bold px-4 py-1.5 rounded-full self-start">
-                <span className="w-1.5 h-1.5 bg-iw-gold rounded-full animate-pulse" />
-                CETADP · Assembleia de Deus Piracicaba
-              </div>
+          <div className="max-w-7xl mx-auto px-6 pt-3 md:pt-4">
+            <div className="inline-flex items-center gap-2 bg-iw-navy/5 border border-iw-navy/20 text-iw-navy text-sm font-bold px-4 py-1.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-iw-gold rounded-full animate-pulse" />
+              CETADP · Assembleia de Deus Piracicaba
+            </div>
+          </div>
 
+          <div className="max-w-7xl mx-auto px-6 pt-4 pb-14 md:pb-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            <div className="lg:col-span-6">
+              <HeroAcessoImagem />
+            </div>
+
+            <div className="lg:col-span-6 flex flex-col gap-6">
               <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 Formação teológica{" "}
                 <span className="text-iw-gold">presencial e a distância</span>, para
                 todos os campos e ministérios
               </h1>
 
-              <p className="text-iw-muted text-base md:text-lg leading-relaxed max-w-xl">
+              <p className="text-black text-base md:text-lg leading-relaxed max-w-xl">
                 O CETADP — Centro Educacional Teológico das Assembleias de
                 Deus Piracicaba — capacita membros, obreiros e líderes
                 evangélicos por meio de cursos oficiais, reciclagem e
@@ -98,21 +105,17 @@ export default function HomePage() {
                   Já sou aluno — Entrar →
                 </Link>
               </div>
-            </div>
 
-            <div className="lg:col-span-5">
-              <div className="bg-iw-navy rounded-2xl p-8 text-white shadow-xl">
-                <div className="w-10 h-10 rounded-xl bg-iw-gold/15 flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-5 h-5 text-iw-gold" />
-                </div>
-                <h3 className="text-xl font-extrabold mb-2">Como funciona o acesso</h3>
-                <ol className="text-white/70 text-sm leading-relaxed space-y-2 list-decimal list-inside">
-                  <li>Você preenche a inscrição no curso desejado.</li>
-                  <li>A secretaria do CETADP analisa e aprova seus dados.</li>
-                  <li>Sua matrícula é gerada e o acesso é liberado por e-mail.</li>
-                  <li>Você entra no Portal do Aluno com e-mail e senha.</li>
-                </ol>
-              </div>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Piracicaba+-+SP"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-iw-navy text-sm font-semibold hover:text-iw-gold transition-colors w-fit"
+              >
+                <MapPin className="w-4 h-4 text-iw-gold shrink-0" />
+                Rua Alfredo Guedes, 1950 — Piracicaba - SP
+                <span className="text-xs underline underline-offset-2">Ver localização</span>
+              </a>
             </div>
           </div>
         </section>
@@ -124,7 +127,7 @@ export default function HomePage() {
               {NUMEROS.map((item) => (
                 <div key={item.label} className="text-center">
                   <div className="text-3xl md:text-4xl font-extrabold">{item.valor}</div>
-                  <div className="text-white/50 text-sm font-medium mt-1">{item.label}</div>
+                  <div className="text-white text-sm font-medium mt-1 uppercase tracking-wide">{item.label}</div>
                 </div>
               ))}
             </div>
@@ -170,7 +173,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-7 flex flex-col gap-4">
               <h2 className="text-2xl font-black tracking-tight">Sobre o CETADP</h2>
-              <p className="text-iw-muted text-sm leading-relaxed">
+              <p className="text-black text-sm leading-relaxed">
                 O CETADP é a instituição de ensino teológico das Assembleias
                 de Deus em Piracicaba, dedicada à formação de membros,
                 obreiros e líderes para o exercício do ministério com

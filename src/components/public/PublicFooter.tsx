@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPin, Instagram, Facebook, Mail, Phone } from "lucide-react";
 import Logo from "@/components/Logo";
 
 export default function PublicFooter() {
@@ -15,6 +16,53 @@ export default function PublicFooter() {
             capacitação de membros, obreiros e líderes evangélicos através de
             cursos oficiais, reciclagem e formação teológica em vários níveis.
           </p>
+
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=Rua+Alfredo+Guedes%2C+1950%2C+Piracicaba+-+SP"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 text-sm hover:text-iw-gold transition-colors w-fit"
+          >
+            <MapPin className="w-4 h-4 shrink-0" />
+            Rua Alfredo Guedes, 1950 — Piracicaba - SP
+          </a>
+
+          <div className="flex items-center gap-3 mt-4">
+            <a
+              href="https://instagram.com/cetadp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram do CETADP"
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
+            >
+              <Instagram className="w-4 h-4" />
+            </a>
+            <a
+              href="https://facebook.com/cetadp"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook do CETADP"
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
+            >
+              <Facebook className="w-4 h-4" />
+            </a>
+            <a
+              href="https://wa.me/5519999551205"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp do CETADP"
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+            <a
+              href="mailto:cetadp@gmail.com"
+              aria-label="E-mail do CETADP"
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+            </a>
+          </div>
         </div>
 
         <div>

@@ -10,7 +10,7 @@ import { cn } from "@/utils/cn";
 // Usado no header público, rodapé, tela de login e "Quem Somos".
 // Para colocar o ícone/logo oficial, basta salvar o arquivo em:
 //
-//   public/logo.png   (ou public/logo.svg — ajuste o <img> abaixo)
+//   public/logo.png   (ou ajuste o <img> abaixo para outro nome)
 //
 // Nenhuma outra tela precisa ser tocada: todas importam <Logo />.
 // Enquanto o arquivo não existir (ou falhar ao carregar), o
@@ -50,7 +50,7 @@ export default function Logo({
         shape === "circle" ? "rounded-full" : "rounded-lg",
         BOX_SIZE[size],
         variant === "dark"
-          ? "bg-iw-navy"
+          ? "bg-iw-gold"
           : "bg-white/30 border-2 border-white/60",
         className
       )}
@@ -65,7 +65,7 @@ export default function Logo({
         />
       ) : (
         <GraduationCap
-          className={cn(ICON_SIZE[size], variant === "dark" ? "text-iw-gold" : "text-iw-navy")}
+          className={cn(ICON_SIZE[size], variant === "dark" ? "text-iw-navy" : "text-iw-navy")}
         />
       )}
     </div>

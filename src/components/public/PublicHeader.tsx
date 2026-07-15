@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X, BadgeCheck, ShoppingCart } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -36,6 +37,10 @@ export default function PublicHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
   const { itens } = useCarrinho();
   const totalItensCarrinho = contarItensCarrinho(itens);
+  const pathname = usePathname();
+  // O ícone/link do carrinho só faz sentido dentro da Loja — a home e
+  // as demais páginas institucionais não devem exibi-lo.
+  const emPaginaDaLoja = pathname?.startsWith("/loja");
 
   useEffect(() => {
     const supabase = createClient();
@@ -84,18 +89,20 @@ export default function PublicHeader() {
           </Link>
 
           <div className="hidden md:flex items-center gap-2">
-            <Link
-              href="/loja/carrinho"
-              className="relative p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
-              aria-label="Carrinho"
-            >
-              <ShoppingCart className="w-[18px] h-[18px]" />
-              {totalItensCarrinho > 0 && (
-                <span className="absolute -top-1 -right-1 bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {totalItensCarrinho}
-                </span>
-              )}
-            </Link>
+            {emPaginaDaLoja && (
+              <Link
+                href="/loja/carrinho"
+                className="relative p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
+                aria-label="Carrinho"
+              >
+                <ShoppingCart className="w-[18px] h-[18px]" />
+                {totalItensCarrinho > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalItensCarrinho}
+                  </span>
+                )}
+              </Link>
+            )}
             {user ? (
               <Link
                 href="/portal"
@@ -160,18 +167,20 @@ export default function PublicHeader() {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/loja/carrinho"
-              onClick={() => setMenuAberto(false)}
-              className="px-2 py-2 text-sm font-medium text-iw-navy hover:bg-iw-bg rounded-md transition-colors flex items-center justify-between"
-            >
-              Carrinho
-              {totalItensCarrinho > 0 && (
-                <span className="bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {totalItensCarrinho}
-                </span>
-              )}
-            </Link>
+            {emPaginaDaLoja && (
+              <Link
+                href="/loja/carrinho"
+                onClick={() => setMenuAberto(false)}
+                className="px-2 py-2 text-sm font-medium text-iw-navy hover:bg-iw-bg rounded-md transition-colors flex items-center justify-between"
+              >
+                Carrinho
+                {totalItensCarrinho > 0 && (
+                  <span className="bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalItensCarrinho}
+                  </span>
+                )}
+              </Link>
+            )}
             <div className="border-t border-iw-border my-2" />
             <div className="flex flex-col gap-2">
               {user ? (
