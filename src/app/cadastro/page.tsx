@@ -5,7 +5,7 @@ import CadastroButton from "./CadastroButton";
 import { cadastroAction } from "./actions";
 
 interface CadastroPageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }
 
 export const metadata = {
@@ -20,7 +20,7 @@ export const metadata = {
 // conteúdo pago é liberado depois, quando o pagamento é confirmado.
 // ============================================================
 export default async function CadastroPage({ searchParams }: CadastroPageProps) {
-  const { error } = await searchParams;
+  const { error, redirectTo } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
@@ -54,6 +54,9 @@ export default async function CadastroPage({ searchParams }: CadastroPageProps) 
           )}
 
           <form action={cadastroAction} className="flex flex-col gap-5">
+            {redirectTo && (
+              <input type="hidden" name="redirectTo" value={redirectTo} />
+            )}
             <div>
               <Label htmlFor="nome" required>Nome completo</Label>
               <TextInput

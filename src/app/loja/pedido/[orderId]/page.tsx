@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, GraduationCap } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
@@ -40,6 +40,18 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
     .select("id, status, total_centavos, fulfillment_status, created_at")
     .eq("id", orderId)
     .single();
+
+  // Convite pra virar aluno: só faz sentido pra quem pagou e ainda não
+  // tem nenhuma matrícula (comprador avulso da loja, não aluno ainda).
+  let mostrarConviteAluno = false;
+  if (pedido?.status === "PAGO") {
+    const { data: aluno } = await supabase
+      .from("ead_alunos")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    mostrarConviteAluno = !aluno;
+  }
 
   return (
     <div className="w-full min-h-screen bg-iw-bg flex flex-col">
@@ -87,6 +99,27 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                   Isso pode levar alguns segundos. Atualize a página se acabou
                   de pagar.
                 </p>
+              )}
+
+              {mostrarConviteAluno && (
+                <div className="mt-2 mb-6 p-4 rounded-xl bg-iw-gold/10 border border-iw-gold/40 text-left">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <GraduationCap className="w-4 h-4 text-iw-gold shrink-0" />
+                    <p className="text-sm font-bold text-iw-navy">
+                      Quer ir além da compra?
+                    </p>
+                  </div>
+                  <p className="text-xs text-iw-muted leading-relaxed mb-3">
+                    Conheça a formação teológica do CETADP — presencial e a
+                    distância, em vários níveis.
+                  </p>
+                  <Link
+                    href="/inscricao"
+                    className="inline-block bg-iw-gold hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity"
+                  >
+                    Conhecer os cursos e me inscrever
+                  </Link>
+                </div>
               )}
             </>
           )}

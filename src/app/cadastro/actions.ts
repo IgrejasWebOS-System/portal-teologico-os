@@ -20,6 +20,12 @@ export async function cadastroAction(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
   const senha = formData.get("senha") as string;
   const confirmar = formData.get("confirmar") as string;
+  const redirectToRaw = formData.get("redirectTo") as string | null;
+  // Só aceita caminhos internos (evita open redirect via query string).
+  const redirectTo =
+    redirectToRaw && redirectToRaw.startsWith("/") && !redirectToRaw.startsWith("//")
+      ? redirectToRaw
+      : "/portal";
 
   if (!nome || !email || !senha || !confirmar) {
     redirect("/cadastro?error=" + encodeURIComponent("Preencha todos os campos."));
@@ -40,7 +46,7 @@ export async function cadastroAction(formData: FormData) {
     password: senha,
     options: {
       data: { full_name: nome },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/portal`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
     },
   });
 

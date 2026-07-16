@@ -1,6 +1,6 @@
 # Roteiro de Teste Ponta a Ponta — Pré-Migração
 
-**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 15/07/2026, após o pacote de matrícula direta, financeiro, patrimônio e simulados/provas.
+**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 15/07/2026, após o pacote de matrícula direta, financeiro, patrimônio, simulados/provas e a rodada de ajustes visuais da home/header/footer.
 
 Este roteiro é para ser seguido manualmente, um item por vez, marcando `[x]` no que passou e anotando o que falhou. Rode-o no ambiente que for migrar (produção Vercel, de preferência — é o estado real que será levado para o novo sistema).
 
@@ -53,10 +53,30 @@ Antes, `ead_alunos` guardava um curso por pessoa. Agora `ead_alunos` é só a id
 
 ## 1. Módulo Institucional / Público
 
-- [ ] `/` carrega, mostra os 4 números reais e o menu tem "Loja"
+- [ ] `/` carrega, mostra os 4 números reais (com o rótulo "MEMBROS IGREJA" em caixa alta/branco) e o menu tem "Loja"
 - [ ] `/sobre` carrega e mostra o bloco de Diretoria (7 grupos)
 - [ ] Header público tem a mesma largura em todas as páginas públicas
 - [ ] Layout responde bem em mobile
+- [ ] Ícone do carrinho só aparece no header quando a rota é `/loja*`; some na home e demais páginas institucionais
+
+### 1.1 Header — barra de utilidade e identidade (novo)
+
+- [ ] Barra escura superior mostra "CETADP · Assembleia de Deus · Piracicaba-SP" à esquerda e "Uma Igreja Voltada ao Ensino" em dourado à direita (sem o antigo link "Validar Certificado")
+- [ ] Logo do header carrega a partir de `public/logo.png`; se o arquivo faltar, cai no ícone de capelo sem quebrar o layout
+- [ ] Versículo "Antes, crescei na graça e conhecimento de nosso Senhor e Salvador Jesus Cristo." 2 Pe 3:18 aparece em duas linhas, alinhado à esquerda do botão "Fazer Login", com a referência em negrito preto (só visível em telas largas, `lg:`)
+
+### 1.2 Hero da home (novo)
+
+- [ ] Selo "Centro Educacional Teológico Assembleias de Deus Piracicaba" aparece centralizado sobre a coluna da imagem (metade esquerda), não sobre a largura total da página
+- [ ] Imagem do hero (`public/como-funciona.png`) aparece à esquerda, título e texto à direita; título termina com ponto final
+- [ ] Endereço "Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080" aparece como link único (sem o texto "Ver localização"), abre o Google Maps na aba nova
+- [ ] Parágrafo "CETADP — Centro Educacional Teológico Assembleias de Deus Piracicaba..." aparece em preto e negrito
+
+### 1.3 Ícones flutuantes e rodapé (novo)
+
+- [ ] Ícones de redes sociais (Instagram, Facebook, WhatsApp, e-mail) aparecem fixos, em coluna vertical, no lado esquerdo da tela, permanecendo visíveis durante o scroll da home
+- [ ] Links abrem corretamente: Instagram/Facebook em nova aba, WhatsApp via `wa.me`, e-mail via `mailto:`
+- [ ] Rodapé mostra o mesmo endereço padronizado (com CEP) e os 4 ícones de redes sociais, com o logo em fundo dourado
 
 ## 2. Módulo Autenticação
 

@@ -10,7 +10,6 @@ import {
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 import HeroAcessoImagem from "@/components/public/HeroAcessoImagem";
-import FloatingSocialIcons from "@/components/public/FloatingSocialIcons";
 
 // ============================================================
 // CETADP — Home institucional (rota pública "/")
@@ -62,7 +61,6 @@ export default function HomePage() {
   return (
     <div className="w-full bg-iw-surface text-iw-navy">
       <PublicHeader />
-      <FloatingSocialIcons />
 
       <main>
         {/* ── HERO ── */}

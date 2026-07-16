@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 import Logo from "@/components/Logo";
 import { useCarrinho } from "@/utils/useCarrinho";
 import { contarItensCarrinho } from "@/utils/carrinho";
+import FloatingSocialIcons from "./FloatingSocialIcons";
 
 // ============================================================
 // PublicHeader — cabeçalho institucional do CETADP
@@ -54,7 +55,9 @@ export default function PublicHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 w-full z-50 shadow-sm">
+    <>
+      <FloatingSocialIcons />
+      <header className="sticky top-0 w-full z-50 shadow-sm">
       {/* ── Barra de utilidade ── */}
       <div className="bg-iw-navy hidden md:block w-full">
         <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center justify-between">
@@ -94,20 +97,6 @@ export default function PublicHeader() {
                 <span className="text-xs font-bold text-black">2 Pe 3:18</span>
               </span>
             </p>
-            {emPaginaDaLoja && (
-              <Link
-                href="/loja/carrinho"
-                className="relative p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
-                aria-label="Carrinho"
-              >
-                <ShoppingCart className="w-[18px] h-[18px]" />
-                {totalItensCarrinho > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                    {totalItensCarrinho}
-                  </span>
-                )}
-              </Link>
-            )}
             {user ? (
               <Link
                 href="/portal"
@@ -130,6 +119,20 @@ export default function PublicHeader() {
                   Inscreva-se
                 </Link>
               </>
+            )}
+            {emPaginaDaLoja && (
+              <Link
+                href="/loja/carrinho"
+                className="relative p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
+                aria-label="Carrinho"
+              >
+                <ShoppingCart className="w-[18px] h-[18px]" />
+                {totalItensCarrinho > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalItensCarrinho}
+                  </span>
+                )}
+              </Link>
             )}
           </div>
 
@@ -172,20 +175,6 @@ export default function PublicHeader() {
                 {item.label}
               </Link>
             ))}
-            {emPaginaDaLoja && (
-              <Link
-                href="/loja/carrinho"
-                onClick={() => setMenuAberto(false)}
-                className="px-2 py-2 text-sm font-medium text-iw-navy hover:bg-iw-bg rounded-md transition-colors flex items-center justify-between"
-              >
-                Carrinho
-                {totalItensCarrinho > 0 && (
-                  <span className="bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                    {totalItensCarrinho}
-                  </span>
-                )}
-              </Link>
-            )}
             <div className="border-t border-iw-border my-2" />
             <div className="flex flex-col gap-2">
               {user ? (
@@ -214,10 +203,25 @@ export default function PublicHeader() {
                   </Link>
                 </>
               )}
+              {emPaginaDaLoja && (
+                <Link
+                  href="/loja/carrinho"
+                  onClick={() => setMenuAberto(false)}
+                  className="w-full text-center border border-iw-navy/30 text-iw-navy font-bold py-2.5 rounded-md text-sm flex items-center justify-center gap-2"
+                >
+                  Carrinho
+                  {totalItensCarrinho > 0 && (
+                    <span className="bg-iw-gold text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {totalItensCarrinho}
+                    </span>
+                  )}
+                </Link>
+              )}
             </div>
           </div>
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 }

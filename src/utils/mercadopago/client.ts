@@ -47,6 +47,12 @@ export async function criarPreferenciaCheckout(
 ): Promise<PreferenciaResposta> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
+  // auto_return só é aceito pelo Mercado Pago quando as back_urls são
+  // https — em desenvolvimento local (http://localhost) ele rejeita a
+  // preferência inteira se auto_return vier junto. Então só ativamos
+  // o retorno automático quando o app está publicado em https.
+  const usaHttps = appUrl?.startsWith("https://");
+
   const body = {
     items: params.itens.map((item) => ({
       title: item.titulo,
@@ -61,7 +67,7 @@ export async function criarPreferenciaCheckout(
       pending: `${appUrl}${params.backUrlPath ?? "/loja/pedido"}/${params.orderId}`,
       failure: `${appUrl}${params.backUrlPath ?? "/loja/pedido"}/${params.orderId}`,
     },
-    auto_return: "approved",
+    ...(usaHttps ? { auto_return: "approved" } : {}),
     notification_url: `${appUrl}/api/webhooks/mercadopago`,
   };
 

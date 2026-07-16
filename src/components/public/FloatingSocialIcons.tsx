@@ -28,7 +28,7 @@ export default function FloatingSocialIcons() {
         <Facebook className="w-4 h-4" />
       </a>
       <a
-        href="https://wa.me/5519999551205"
+        href="https://wa.me/5519998121950"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp do CETADP"

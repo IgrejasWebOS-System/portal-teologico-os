@@ -2,7 +2,27 @@ import Link from "next/link";
 import { MapPin, Instagram, Facebook, Mail, Phone } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export default function PublicFooter() {
+// ============================================================
+// PublicFooter — rodapé institucional.
+// `minimal` = só a barra de copyright (usado em /loja e
+// /loja/carrinho, onde o conteúdo completo já é redundante com
+// os ícones flutuantes e o cabeçalho). Sem a prop, mostra o
+// rodapé completo (logo, descrição, endereço, redes e navegação),
+// usado na home e demais páginas institucionais.
+// ============================================================
+
+export default function PublicFooter({ minimal = false }: { minimal?: boolean }) {
+  if (minimal) {
+    return (
+      <footer className="bg-iw-navy text-white/70">
+        <div className="max-w-7xl mx-auto px-6 py-5 text-sm text-white flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>© 2026 CETADP · Centro Educacional Teológico das Assembleias de Deus Piracicaba</span>
+          <span>Portal EAD · IgrejasWebOS</span>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="bg-iw-navy text-white/70">
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
@@ -47,7 +67,7 @@ export default function PublicFooter() {
               <Facebook className="w-4 h-4" />
             </a>
             <a
-              href="https://wa.me/5519999551205"
+              href="https://wa.me/5519998121950"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp do CETADP"

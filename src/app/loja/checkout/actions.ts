@@ -21,6 +21,7 @@ interface ItemCarrinho {
 export async function finalizarCompraAction(formData: FormData) {
   const itensJson = formData.get("itens") as string | null;
   const enderecoJson = formData.get("endereco") as string | null;
+  const telefone = (formData.get("telefone") as string) || null;
 
   if (!itensJson) {
     redirect("/loja?error=" + encodeURIComponent("Carrinho vazio."));
@@ -43,7 +44,12 @@ export async function finalizarCompraAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?error=" + encodeURIComponent("Faça login para finalizar a compra."));
+    redirect(
+      "/login?redirectTo=" +
+        encodeURIComponent("/loja/carrinho") +
+        "&error=" +
+        encodeURIComponent("Faça login para finalizar a compra.")
+    );
   }
 
   const { data: perfil } = await supabase
@@ -98,6 +104,7 @@ export async function finalizarCompraAction(formData: FormData) {
       fulfillment_status: temItemFisico ? "AGUARDANDO_ENVIO" : "NAO_APLICAVEL",
       nome_comprador: perfil?.full_name ?? null,
       email_comprador: user!.email ?? null,
+      telefone_comprador: telefone,
     })
     .select("id")
     .single();
@@ -125,7 +132,8 @@ export async function finalizarCompraAction(formData: FormData) {
       })),
       emailComprador: user!.email ?? undefined,
     });
-  } catch {
+  } catch (e) {
+    console.error("[checkout] Falha ao criar preferência no Mercado Pago:", e);
     redirect(
       `/loja/pedido/${pedido!.id}?error=` +
         encodeURIComponent("Erro ao iniciar o pagamento. Tente novamente.")

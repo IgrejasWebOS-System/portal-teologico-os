@@ -79,6 +79,7 @@ const adminModules = [
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
       { label: "Matrículas", href: "/admin/matriculas", icon: UserCheck },
       { label: "Pedidos (Loja)", href: "/admin/pedidos", icon: Package },
+      { label: "Leads (Loja)", href: "/admin/leads-loja", icon: UserPlus },
       { label: "Certificados", href: "/admin/certificados", icon: Award },
       { label: "Financeiro", href: "/admin/financeiro", icon: Wallet },
       { label: "Patrimônio", href: "/admin/patrimonio", icon: Boxes },

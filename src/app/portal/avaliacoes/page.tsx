@@ -36,10 +36,17 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
   if (!aluno) {
     return (
       <div className="min-h-screen bg-iw-bg flex items-center justify-center px-8">
-        <div className="max-w-md bg-iw-surface border border-iw-border rounded-2xl p-8 text-center">
+        <div className="max-w-md bg-iw-surface border border-iw-border rounded-2xl p-8 text-center flex flex-col items-center gap-4">
           <p className="text-iw-muted text-sm">
             Você ainda não tem uma matrícula ativa como aluno do CETADP.
           </p>
+          <Link
+            href="/portal"
+            className="inline-flex items-center gap-1.5 text-iw-gold font-semibold text-sm hover:underline"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar ao Portal
+          </Link>
         </div>
       </div>
     );

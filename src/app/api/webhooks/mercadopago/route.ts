@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { buscarPagamento } from "@/utils/mercadopago/client";
+import { enviarConviteParaSerAluno } from "@/utils/email/resend";
 
 // ============================================================
 // POST /api/webhooks/mercadopago
@@ -111,6 +112,33 @@ export async function POST(request: Request) {
               { onConflict: "user_id,course_id", ignoreDuplicates: true }
             );
         }
+      }
+
+      // Comprador avulso sem matrícula ainda? Manda o convite pra virar
+      // aluno. Nunca deixa uma falha de e-mail derrubar o webhook.
+      try {
+        const { data: aluno } = await admin
+          .from("ead_alunos")
+          .select("id")
+          .eq("user_id", pedido.user_id)
+          .maybeSingle();
+
+        if (!aluno) {
+          const { data: pedidoCompleto } = await admin
+            .from("orders")
+            .select("nome_comprador, email_comprador")
+            .eq("id", referenceId)
+            .single();
+
+          if (pedidoCompleto?.email_comprador) {
+            await enviarConviteParaSerAluno(
+              pedidoCompleto.email_comprador,
+              pedidoCompleto.nome_comprador ?? ""
+            );
+          }
+        }
+      } catch (e) {
+        console.error("[webhook mercadopago] Falha ao enviar convite de aluno:", e);
       }
     }
 

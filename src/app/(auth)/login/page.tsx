@@ -5,7 +5,7 @@ import LoginButton from "./LoginButton";
 import { loginAction } from "./actions";
 
 interface LoginPageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }
 
 export const metadata = {
@@ -13,7 +13,7 @@ export const metadata = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error } = await searchParams;
+  const { error, redirectTo } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
@@ -54,6 +54,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           )}
 
           <form action={loginAction} className="flex flex-col gap-5">
+            {redirectTo && (
+              <input type="hidden" name="redirectTo" value={redirectTo} />
+            )}
             <div>
               <Label htmlFor="email" required>E-mail</Label>
               <TextInput

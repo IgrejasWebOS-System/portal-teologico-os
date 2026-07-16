@@ -8,7 +8,7 @@
  */
 
 import { forwardRef, useState } from "react";
-import type { InputHTMLAttributes, SelectHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
+import type { ChangeEvent, InputHTMLAttributes, SelectHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -87,34 +87,49 @@ export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?      : string;
   leftAddon?  : ReactNode;
   rightAddon? : ReactNode;
+  /** Força a digitação em caixa alta (independente de como o usuário digitar). */
+  uppercase?  : boolean;
 }
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ error, leftAddon, rightAddon, className, ...rest }, ref) => (
-    <div className="relative flex items-center">
-      {leftAddon && (
-        <span className="absolute left-3 flex items-center pointer-events-none text-iw-muted">
-          {leftAddon}
-        </span>
-      )}
-      <input
-        ref={ref}
-        className={cn(
-          INPUT_BASE,
-          error ? INPUT_ERROR : INPUT_NORMAL,
-          leftAddon  && "pl-9",
-          rightAddon && "pr-9",
-          className
+  ({ error, leftAddon, rightAddon, uppercase, className, style, onChange, ...rest }, ref) => {
+    const handleChange = uppercase
+      ? (e: ChangeEvent<HTMLInputElement>) => {
+          const pos = e.target.selectionStart;
+          e.target.value = e.target.value.toUpperCase();
+          if (pos !== null) e.target.setSelectionRange(pos, pos);
+          onChange?.(e);
+        }
+      : onChange;
+
+    return (
+      <div className="relative flex items-center">
+        {leftAddon && (
+          <span className="absolute left-3 flex items-center pointer-events-none text-iw-muted">
+            {leftAddon}
+          </span>
         )}
-        {...rest}
-      />
-      {rightAddon && (
-        <span className="absolute right-3 flex items-center pointer-events-none text-iw-muted">
-          {rightAddon}
-        </span>
-      )}
-    </div>
-  )
+        <input
+          ref={ref}
+          onChange={handleChange}
+          style={uppercase ? { textTransform: "uppercase", ...style } : style}
+          className={cn(
+            INPUT_BASE,
+            error ? INPUT_ERROR : INPUT_NORMAL,
+            leftAddon  && "pl-9",
+            rightAddon && "pr-9",
+            className
+          )}
+          {...rest}
+        />
+        {rightAddon && (
+          <span className="absolute right-3 flex items-center pointer-events-none text-iw-muted">
+            {rightAddon}
+          </span>
+        )}
+      </div>
+    );
+  }
 );
 TextInput.displayName = "TextInput";
 

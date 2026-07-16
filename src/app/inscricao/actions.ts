@@ -81,7 +81,8 @@ export async function submitInscricaoAction(formData: FormData) {
       emailComprador: email,
       backUrlPath: "/inscricao/pagamento",
     });
-  } catch {
+  } catch (e) {
+    console.error("[inscricao] Falha ao criar preferência no Mercado Pago:", e);
     redirect(
       `/inscricao/pagamento/${inscricao!.id}?error=` +
         encodeURIComponent("Erro ao iniciar o pagamento. Tente novamente.")
