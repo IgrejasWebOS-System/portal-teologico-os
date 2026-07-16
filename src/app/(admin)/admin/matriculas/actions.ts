@@ -5,6 +5,13 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
+
+function centavosMatricula(valor: string): number {
+  const limpo = valor.replace(/\./g, "").replace(",", ".");
+  const num = Number(limpo);
+  return Math.round((isNaN(num) ? 0 : num) * 100);
+}
 
 // ============================================================
 // Matrícula direta pelo staff — rotina paralela à inscrição
@@ -185,21 +192,53 @@ export async function matricularDiretoAction(formData: FormData) {
     }
   }
 
-  const { error: matriculaInsertError } = await admin.from("ead_matriculas").insert({
-    aluno_id: aluno.id,
-    course_id: curso!.id,
-    curso_nome_snapshot: curso!.title,
-    matricula: matriculaNum,
-    status: "EM_ANDAMENTO",
-    origem: "MATRICULA_DIRETA",
-    matriculado_por: userId,
-  });
+  const { data: matriculaCriada, error: matriculaInsertError } = await admin
+    .from("ead_matriculas")
+    .insert({
+      aluno_id: aluno.id,
+      course_id: curso!.id,
+      curso_nome_snapshot: curso!.title,
+      matricula: matriculaNum,
+      status: "EM_ANDAMENTO",
+      origem: "MATRICULA_DIRETA",
+      matriculado_por: userId,
+    })
+    .select("id")
+    .single();
 
-  if (matriculaInsertError) {
-    fail("Erro ao registrar matrícula: " + matriculaInsertError.message);
+  if (matriculaInsertError || !matriculaCriada) {
+    fail("Erro ao registrar matrícula: " + (matriculaInsertError?.message ?? "desconhecido"));
+  }
+
+  // Pagamento (opcional) — só gera parcelas em Contas a Receber se um
+  // valor total foi informado. Não lança nada no Caixa Diário aqui:
+  // isso só acontece quando a secretaria efetivamente der baixa em
+  // cada parcela (dinheiro na mão, ali na hora ou depois).
+  const valorTotalCentavos = centavosMatricula((formData.get("valor_total") as string) || "");
+  if (valorTotalCentavos > 0) {
+    const totalParcelas = Math.max(1, Number(formData.get("total_parcelas")) || 1);
+    const dataVencimento = (formData.get("data_vencimento") as string) || new Date().toISOString().slice(0, 10);
+    const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "DINHEIRO";
+    const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
+    const churchId = (formData.get("church_id") as string) || null;
+
+    await gerarParcelasContasReceber(admin, {
+      origemTipo: "MATRICULA_DIRETA",
+      origemId: matriculaCriada!.id,
+      alunoId: aluno.id,
+      alunoUserId: aluno.user_id,
+      responsavelPagamento: responsavel,
+      churchId,
+      descricaoBase: `Matrícula — ${curso!.title}`,
+      valorTotalCentavos,
+      totalParcelas,
+      primeiroVencimento: dataVencimento,
+      formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+    });
   }
 
   revalidatePath("/admin/matriculas");
+  revalidatePath("/admin/financeiro/contas-a-receber");
   redirect(
     "/admin/matriculas?msg=" +
       encodeURIComponent(`Matrícula ${matriculaNum} criada para ${nome_completo}.`)

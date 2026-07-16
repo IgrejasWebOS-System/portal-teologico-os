@@ -1,7 +1,49 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { buscarPagamento } from "@/utils/mercadopago/client";
+import { buscarPagamento, calcularLiquidoPagamento, type PagamentoMercadoPago } from "@/utils/mercadopago/client";
 import { enviarConviteParaSerAluno } from "@/utils/email/resend";
+
+// Lança em Financeiro > Contas a Receber uma linha já baixada (PAGO)
+// pra todo pagamento aprovado pelo Checkout Pro — bruto/líquido/taxa
+// vêm de verdade do Mercado Pago (fee_details), sem precisar ninguém
+// digitar percentual manualmente. Nunca toca no Caixa Diário físico:
+// é dinheiro que nunca passou pela mão de ninguém, caiu direto na
+// conta do Mercado Pago. Falha aqui nunca derruba o webhook.
+async function lancarContaReceberOnline(
+  admin: ReturnType<typeof createAdminClient>,
+  params: {
+    origemTipo: "LOJA" | "INSCRICAO_EAD";
+    origemId: string;
+    alunoUserId: string | null;
+    descricao: string;
+    pagamento: PagamentoMercadoPago;
+  }
+) {
+  try {
+    const { brutoCentavos, liquidoCentavos, percentualTaxa } = calcularLiquidoPagamento(params.pagamento);
+    if (brutoCentavos <= 0) return;
+
+    await admin.from("fin_contas_receber").insert({
+      origem_tipo: params.origemTipo,
+      origem_id: params.origemId,
+      aluno_user_id: params.alunoUserId,
+      responsavel_pagamento: "ALUNO",
+      descricao: params.descricao,
+      numero_parcela: 1,
+      total_parcelas: 1,
+      valor_bruto_centavos: brutoCentavos,
+      valor_liquido_centavos: liquidoCentavos,
+      taxa_operadora_percentual: percentualTaxa || null,
+      forma_pagamento_prevista: "CARTAO",
+      data_vencimento: new Date().toISOString().slice(0, 10),
+      status: "PAGO",
+      pago_em: new Date().toISOString(),
+      mercadopago_payment_id: String(params.pagamento.id),
+    });
+  } catch (e) {
+    console.error("[webhook mercadopago] Falha ao lançar conta a receber online:", e);
+  }
+}
 
 // ============================================================
 // POST /api/webhooks/mercadopago
@@ -140,6 +182,14 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error("[webhook mercadopago] Falha ao enviar convite de aluno:", e);
       }
+
+      await lancarContaReceberOnline(admin, {
+        origemTipo: "LOJA",
+        origemId: referenceId,
+        alunoUserId: pedido.user_id,
+        descricao: `Compra na Loja — Pedido #${referenceId.slice(0, 8)}`,
+        pagamento,
+      });
     }
 
     return NextResponse.json({ ok: true });
@@ -148,7 +198,7 @@ export async function POST(request: Request) {
   // Não é pedido da Loja — tenta como inscrição EAD com matrícula paga
   const { data: inscricao } = await admin
     .from("ead_inscricoes")
-    .select("id, status")
+    .select("id, status, curso_pretendido")
     .eq("id", referenceId)
     .single();
 
@@ -179,6 +229,16 @@ export async function POST(request: Request) {
       pago_em: novoStatusInscricao === "PENDENTE" ? new Date().toISOString() : null,
     })
     .eq("id", referenceId);
+
+  if (novoStatusInscricao === "PENDENTE") {
+    await lancarContaReceberOnline(admin, {
+      origemTipo: "INSCRICAO_EAD",
+      origemId: referenceId,
+      alunoUserId: null,
+      descricao: `Matrícula — ${inscricao!.curso_pretendido}`,
+      pagamento,
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

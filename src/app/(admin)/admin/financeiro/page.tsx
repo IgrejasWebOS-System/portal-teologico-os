@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Wallet, ListTree, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, ListTree, ArrowRight, TrendingUp, TrendingDown, Receipt } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
@@ -55,6 +55,13 @@ export default async function FinanceiroPage() {
     .select("id", { count: "exact", head: true })
     .eq("ativo", true);
 
+  const { data: contasAbertas } = await supabase
+    .from("fin_contas_receber")
+    .select("valor_bruto_centavos")
+    .in("status", ["PENDENTE", "ATRASADO"]);
+
+  const totalAReceber = (contasAbertas ?? []).reduce((a, c) => a + c.valor_bruto_centavos, 0);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -89,7 +96,21 @@ export default async function FinanceiroPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link
+          href="/admin/financeiro/contas-a-receber"
+          className="group bg-iw-surface border border-iw-border rounded-2xl p-6 flex items-center justify-between hover:border-iw-gold/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Receipt className="w-6 h-6 text-iw-gold" />
+            <div>
+              <p className="font-bold text-iw-navy">Contas a Receber</p>
+              <p className="text-xs text-iw-muted">{fmt(totalAReceber)} em aberto</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-iw-muted group-hover:text-iw-gold transition-colors" />
+        </Link>
+
         <Link
           href="/admin/financeiro/caixa"
           className="group bg-iw-surface border border-iw-border rounded-2xl p-6 flex items-center justify-between hover:border-iw-gold/50 transition-colors"

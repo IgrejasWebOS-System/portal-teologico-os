@@ -88,10 +88,29 @@ export async function criarPreferenciaCheckout(
   return resposta.json();
 }
 
+// Calcula bruto/líquido/percentual de taxa a partir da resposta real do
+// pagamento — usado para lançar a "conta a receber" já baixada em
+// Financeiro sem precisar a secretaria digitar taxa manualmente pros
+// pagamentos que vieram pelo Checkout Pro (loja + inscrição paga).
+export function calcularLiquidoPagamento(pagamento: PagamentoMercadoPago) {
+  const brutoCentavos = Math.round((pagamento.transaction_amount ?? 0) * 100);
+  const liquidoDecimal =
+    pagamento.transaction_details?.net_received_amount ??
+    (pagamento.transaction_amount ?? 0) -
+      (pagamento.fee_details ?? []).reduce((acc, f) => acc + (f.amount ?? 0), 0);
+  const liquidoCentavos = Math.round(liquidoDecimal * 100);
+  const percentualTaxa = brutoCentavos > 0 ? ((brutoCentavos - liquidoCentavos) / brutoCentavos) * 100 : 0;
+
+  return { brutoCentavos, liquidoCentavos, percentualTaxa: Number(percentualTaxa.toFixed(2)) };
+}
+
 export interface PagamentoMercadoPago {
   id: number;
   status: "approved" | "pending" | "rejected" | "cancelled" | "refunded" | string;
   external_reference: string | null;
+  transaction_amount?: number;
+  fee_details?: { type: string; amount: number; fee_payer?: string }[];
+  transaction_details?: { net_received_amount?: number; total_paid_amount?: number };
 }
 
 export async function buscarPagamento(paymentId: string): Promise<PagamentoMercadoPago> {

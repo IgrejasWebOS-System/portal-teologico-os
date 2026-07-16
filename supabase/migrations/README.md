@@ -33,6 +33,7 @@ do MCP do Supabase — não via Supabase CLI.
 | `024_patrimonio_inventario.sql` | Módulo de patrimônio/inventário adaptado do igrejas-web-system-os: `patrimony_items`, `patrimony_movements`, `patrimony_depreciations` + numeração automática de tombamento (`get_next_tombamento`) + funções de cálculo de depreciação |
 | `025_avaliacoes_simulados_provas.sql` | Simulados e provas — fase sem IA: `avaliacoes_banco_questoes` (banco estático por curso), `avaliacoes` (1 prova por matrícula via índice único parcial), `avaliacao_questoes` (snapshot sorteado/embaralhado por aluno). Seed de 12 questões de exemplo para o Curso Teológico Básico |
 | `026_orders_telefone_comprador.sql` | `orders.telefone_comprador` — snapshot do telefone informado no checkout da loja |
+| `027_financeiro_contas_a_receber.sql` | Tabela `fin_contas_receber` — parcelas de matrícula (presencial ou paga online), responsável pelo pagamento (aluno ou igreja, financiamento interno), baixa com taxa de operadora/antecipação de cartão. Vendas online (Loja/inscrição) entram aqui já baixadas pelo webhook, sem tocar no Caixa Diário físico. + categorias `SANGRIA` e `VENDAS_ONLINE` no plano de contas |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

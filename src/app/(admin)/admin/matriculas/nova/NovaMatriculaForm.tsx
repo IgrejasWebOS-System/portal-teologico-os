@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap } from "lucide-react";
+import { ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { matricularDiretoAction } from "../actions";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
 type SelectItem = { id: string; name: string };
+type Church = { id: string; name: string };
 
 function maskCPF(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 11);
@@ -91,12 +92,16 @@ function SubmitButton() {
 export default function NovaMatriculaForm({
   campos,
   cursos,
+  churches,
   errorMsg,
 }: {
   campos: CampoMinisterio[];
   cursos: Curso[];
+  churches: Church[];
   errorMsg?: string;
 }) {
+  const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
+  const hoje = new Date().toISOString().slice(0, 10);
   const [cpf, setCpf] = useState("");
   const [rg, setRg] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -397,6 +402,64 @@ export default function NovaMatriculaForm({
                 className={`${inputCls} uppercase text-center`}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Pagamento */}
+        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+          <SectionHeader icon={Wallet} label="Pagamento" />
+          <p className="text-xs text-iw-muted -mt-2">
+            Opcional. Deixe o valor em branco se essa matrícula não tiver cobrança. Preenchendo, o sistema gera as
+            parcelas em Financeiro &gt; Contas a Receber (não lança nada no Caixa Diário automaticamente).
+          </p>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-6 md:col-span-3">
+              <label className={labelCls}>Valor total</label>
+              <input name="valor_total" placeholder="Ex: 600,00" className={inputCls} />
+            </div>
+            <div className="col-span-6 md:col-span-2">
+              <label className={labelCls}>Nº de parcelas</label>
+              <input name="total_parcelas" type="number" min={1} defaultValue={1} className={inputCls} />
+            </div>
+            <div className="col-span-6 md:col-span-3">
+              <label className={labelCls}>1º vencimento</label>
+              <input name="data_vencimento" type="date" defaultValue={hoje} className={inputCls} />
+            </div>
+            <div className="col-span-6 md:col-span-4">
+              <label className={labelCls}>Forma de pagamento prevista</label>
+              <select name="forma_pagamento_prevista" defaultValue="DINHEIRO" className={selectCls}>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="PIX">Pix</option>
+                <option value="CARTAO">Cartão</option>
+                <option value="BOLETO">Boleto</option>
+                <option value="TRANSFERENCIA">Transferência</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-6">
+              <label className={labelCls}>Quem paga</label>
+              <select
+                name="responsavel_pagamento"
+                value={responsavelPagamento}
+                onChange={(e) => setResponsavelPagamento(e.target.value)}
+                className={selectCls}
+              >
+                <option value="ALUNO">O próprio aluno</option>
+                <option value="IGREJA">Igreja (financiamento interno)</option>
+              </select>
+            </div>
+            {responsavelPagamento === "IGREJA" && (
+              <div className="col-span-12 md:col-span-6">
+                <label className={labelCls}>Igreja responsável</label>
+                <select name="church_id" defaultValue="" className={selectCls}>
+                  <option value="" disabled>Selecione a igreja</option>
+                  {churches.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 

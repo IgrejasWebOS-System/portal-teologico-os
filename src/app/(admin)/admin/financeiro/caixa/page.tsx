@@ -55,10 +55,12 @@ export default async function CaixaDiarioPage({ searchParams }: PageProps) {
 
   const { data: categorias } = await supabase
     .from("fin_categorias")
-    .select("id, nome, tipo")
+    .select("id, nome, tipo, codigo")
     .eq("ativo", true)
     .order("tipo")
     .order("codigo");
+
+  const categoriaSangriaId = (categorias ?? []).find((c) => c.codigo === "SANGRIA")?.id ?? "";
 
   let lancamentos: {
     id: string;
@@ -191,6 +193,33 @@ export default async function CaixaDiarioPage({ searchParams }: PageProps) {
                   Lançar
                 </button>
               </form>
+
+              {categoriaSangriaId && (
+                <form action={lancarMovimentacaoAction} className="flex flex-wrap items-end gap-3 pt-3 border-t border-iw-border">
+                  <input type="hidden" name="caixa_diario_id" value={caixaHoje.id} />
+                  <input type="hidden" name="tipo" value="SAIDA" />
+                  <input type="hidden" name="categoria_id" value={categoriaSangriaId} />
+                  <input type="hidden" name="descricao" value="Sangria para depósito bancário" />
+                  <input type="hidden" name="forma_pagamento" value="DINHEIRO" />
+                  <div>
+                    <label className="block text-xs font-bold text-iw-navy uppercase tracking-wider mb-1.5">
+                      Sangria (retirada p/ depósito)
+                    </label>
+                    <input
+                      name="valor"
+                      required
+                      placeholder="Valor (ex: 150,00)"
+                      className="bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm w-48 focus:border-iw-gold focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-iw-navy hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+                  >
+                    Registrar sangria
+                  </button>
+                </form>
+              )}
             </div>
           )}
 

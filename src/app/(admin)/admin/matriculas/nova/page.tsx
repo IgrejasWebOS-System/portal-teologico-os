@@ -40,10 +40,13 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     .select("id, title, module")
     .order("title");
 
+  const { data: churches } = await supabase.from("churches").select("id, name").order("name");
+
   return (
     <NovaMatriculaForm
       campos={campos ?? []}
       cursos={cursos ?? []}
+      churches={churches ?? []}
       errorMsg={error ? decodeURIComponent(error) : undefined}
     />
   );
