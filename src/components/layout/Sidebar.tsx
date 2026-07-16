@@ -20,9 +20,11 @@ import {
   UserCheck,
   Wallet,
   Boxes,
+  LayoutDashboard,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
+import Logo from "@/components/Logo";
 
 interface SidebarModule {
   label: string;
@@ -66,6 +68,7 @@ const adminModules: SidebarModule[] = [
     icon: ShieldCheck,
     description: "Conteúdo e trilhas",
     subItems: [
+      { label: "Dashboard",  href: "/admin", icon: LayoutDashboard },
       { label: "Conteúdo",   href: "/admin/conteudo", icon: Library },
       { label: "Trilhas",    href: "/admin/conteudo/trilhas", icon: ListTree },
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
@@ -86,9 +89,7 @@ export default function Sidebar() {
     <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-iw-navy flex flex-col shadow-xl">
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-iw-blue/30 border border-iw-sky/40 shrink-0">
-          <GraduationCap className="w-5 h-5 text-iw-sky" />
-        </div>
+        <Logo size="sm" variant="dark" />
         <div className="min-w-0">
           <p className="text-white font-bold text-sm leading-tight truncate">
             Portal Teológico

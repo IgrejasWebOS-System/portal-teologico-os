@@ -319,6 +319,134 @@ export async function cancelarParcelaAction(formData: FormData) {
   redirect("/admin/financeiro/contas-a-receber?msg=" + encodeURIComponent("Parcela cancelada."));
 }
 
+// ── Contas a pagar ─────────────────────────────────────────────
+
+export async function criarContaPagarAction(formData: FormData) {
+  const { supabase } = await requireStaff();
+
+  const fornecedor = (formData.get("fornecedor") as string)?.trim();
+  const descricao = (formData.get("descricao") as string)?.trim();
+  const categoria_id = (formData.get("categoria_id") as string) || null;
+  const forma_pagamento_prevista = (formData.get("forma_pagamento_prevista") as string) || "TRANSFERENCIA";
+  const data_vencimento = formData.get("data_vencimento") as string;
+  const valor_centavos = centavos((formData.get("valor") as string) || "0");
+
+  if (!fornecedor || !descricao || !data_vencimento || valor_centavos <= 0) {
+    redirect(
+      "/admin/financeiro/contas-a-pagar?error=" +
+        encodeURIComponent("Preencha fornecedor, descrição, valor e vencimento.")
+    );
+  }
+
+  const { error } = await supabase.from("fin_contas_pagar").insert({
+    fornecedor,
+    descricao,
+    categoria_id,
+    forma_pagamento_prevista,
+    data_vencimento,
+    valor_centavos,
+  });
+
+  if (error) {
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao criar conta: " + error.message));
+  }
+
+  revalidatePath("/admin/financeiro/contas-a-pagar");
+  redirect("/admin/financeiro/contas-a-pagar?msg=" + encodeURIComponent("Conta a pagar cadastrada."));
+}
+
+export async function baixarContaPagarAction(formData: FormData) {
+  const { supabase, userId } = await requireStaff();
+
+  const id = formData.get("id") as string;
+  const forma_pagamento = formData.get("forma_pagamento") as string;
+  const caixa_diario_id = (formData.get("caixa_diario_id") as string) || null;
+
+  const { data: conta } = await supabase
+    .from("fin_contas_pagar")
+    .select("id, status, valor_centavos, descricao, fornecedor, categoria_id")
+    .eq("id", id)
+    .single();
+
+  if (!conta) {
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Conta não encontrada."));
+  }
+
+  if (conta!.status === "PAGO") {
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Essa conta já foi paga."));
+  }
+
+  let finLancamentoId: string | null = null;
+
+  if (forma_pagamento === "DINHEIRO") {
+    if (!caixa_diario_id) {
+      redirect(
+        "/admin/financeiro/contas-a-pagar?error=" +
+          encodeURIComponent("Abra o caixa do dia (em Financeiro > Caixa Diário) antes de pagar em dinheiro.")
+      );
+    }
+
+    const { data: lancamento, error: lancamentoError } = await supabase
+      .from("fin_lancamentos")
+      .insert({
+        caixa_diario_id,
+        categoria_id: conta!.categoria_id,
+        tipo: "SAIDA",
+        valor_centavos: conta!.valor_centavos,
+        descricao: `Pagamento — ${conta!.fornecedor}: ${conta!.descricao}`,
+        forma_pagamento: "DINHEIRO",
+        criado_por: userId,
+      })
+      .select("id")
+      .single();
+
+    if (lancamentoError || !lancamento) {
+      redirect(
+        "/admin/financeiro/contas-a-pagar?error=" +
+          encodeURIComponent("Erro ao lançar no caixa: " + (lancamentoError?.message ?? "desconhecido"))
+      );
+    }
+    finLancamentoId = lancamento!.id;
+  }
+
+  const { error } = await supabase
+    .from("fin_contas_pagar")
+    .update({
+      status: "PAGO",
+      forma_pagamento_prevista: forma_pagamento,
+      pago_em: new Date().toISOString(),
+      baixado_por: userId,
+      fin_lancamento_id: finLancamentoId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao dar baixa: " + error.message));
+  }
+
+  revalidatePath("/admin/financeiro/contas-a-pagar");
+  revalidatePath("/admin/financeiro/caixa");
+  redirect("/admin/financeiro/contas-a-pagar?msg=" + encodeURIComponent("Conta paga com sucesso."));
+}
+
+export async function cancelarContaPagarAction(formData: FormData) {
+  const { supabase } = await requireStaff();
+  const id = formData.get("id") as string;
+
+  const { error } = await supabase
+    .from("fin_contas_pagar")
+    .update({ status: "CANCELADO", updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao cancelar: " + error.message));
+  }
+
+  revalidatePath("/admin/financeiro/contas-a-pagar");
+  redirect("/admin/financeiro/contas-a-pagar?msg=" + encodeURIComponent("Conta cancelada."));
+}
+
 export async function fecharCaixaAction(formData: FormData) {
   const { supabase, userId } = await requireStaff();
 

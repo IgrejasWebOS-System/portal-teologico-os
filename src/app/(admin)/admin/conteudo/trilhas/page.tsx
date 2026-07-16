@@ -46,13 +46,41 @@ export default async function TrilhasPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* ── Escola Teológica ── */}
+        {/* ── Escola de Teologia ── */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-iw-blue" />
-            <h2 className="font-bold text-iw-navy">Escola Teológica</h2>
+            <h2 className="font-bold text-iw-navy">Escola de Teologia</h2>
             <span className="text-xs text-iw-muted ml-auto">{escola.length} trilhas</span>
           </div>
+
+          {/* Nova trilha — Escola */}
+          <details className="bg-iw-surface rounded-xl border border-iw-border overflow-hidden">
+            <summary className="px-4 py-3 flex items-center gap-2 text-sm font-semibold text-iw-blue cursor-pointer hover:bg-iw-bg/50 transition-colors list-none">
+              <Plus className="w-4 h-4" /> Nova trilha na Escola de Teologia
+            </summary>
+            <form action={createCourseVoidAction} className="px-4 pb-4 pt-1 space-y-3 border-t border-iw-border">
+              <input type="hidden" name="module" value="escola" />
+              <div><label className={labelCls}>Título</label>
+                <input name="title" type="text" required placeholder="Ex: Teologia Sistemática" className={inputCls} /></div>
+              <div><label className={labelCls}>Descrição</label>
+                <textarea name="description" rows={2} placeholder="Breve descrição..." className={`${inputCls} resize-none`} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={labelCls}>Professor</label>
+                  <input name="instructor_name" type="text" placeholder="Nome do professor" className={inputCls} /></div>
+                <div><label className={labelCls}>Nível</label>
+                  <select name="level" className={inputCls}>
+                    <option value="iniciante">Iniciante</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avancado">Avançado</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-iw-blue text-white text-sm font-semibold hover:bg-iw-navy transition-colors">
+                Criar trilha
+              </button>
+            </form>
+          </details>
 
           {escola.map((c) => (
             <div key={c.id} className="bg-iw-surface rounded-xl border border-iw-border p-4 flex items-center gap-3">
@@ -84,16 +112,24 @@ export default async function TrilhasPage() {
               </Link>
             </div>
           ))}
+        </div>
 
-          {/* Nova trilha — Escola */}
+        {/* ── Cursos & Treinamentos ── */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-iw-gold" />
+            <h2 className="font-bold text-iw-navy">Cursos & Treinamentos</h2>
+            <span className="text-xs text-iw-muted ml-auto">{cursos.length} trilhas</span>
+          </div>
+
           <details className="bg-iw-surface rounded-xl border border-iw-border overflow-hidden">
-            <summary className="px-4 py-3 flex items-center gap-2 text-sm font-semibold text-iw-blue cursor-pointer hover:bg-iw-bg/50 transition-colors list-none">
-              <Plus className="w-4 h-4" /> Nova trilha na Escola Teológica
+            <summary className="px-4 py-3 flex items-center gap-2 text-sm font-semibold text-iw-gold cursor-pointer hover:bg-iw-bg/50 transition-colors list-none">
+              <Plus className="w-4 h-4" /> Novo curso / treinamento
             </summary>
             <form action={createCourseVoidAction} className="px-4 pb-4 pt-1 space-y-3 border-t border-iw-border">
-              <input type="hidden" name="module" value="escola" />
+              <input type="hidden" name="module" value="cursos" />
               <div><label className={labelCls}>Título</label>
-                <input name="title" type="text" required placeholder="Ex: Teologia Sistemática" className={inputCls} /></div>
+                <input name="title" type="text" required placeholder="Ex: Liderança e Ministério" className={inputCls} /></div>
               <div><label className={labelCls}>Descrição</label>
                 <textarea name="description" rows={2} placeholder="Breve descrição..." className={`${inputCls} resize-none`} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -107,20 +143,11 @@ export default async function TrilhasPage() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-iw-blue text-white text-sm font-semibold hover:bg-iw-navy transition-colors">
-                Criar trilha
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-iw-gold text-white text-sm font-semibold hover:bg-iw-navy transition-colors">
+                Criar curso
               </button>
             </form>
           </details>
-        </div>
-
-        {/* ── Cursos & Treinamentos ── */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-iw-gold" />
-            <h2 className="font-bold text-iw-navy">Cursos & Treinamentos</h2>
-            <span className="text-xs text-iw-muted ml-auto">{cursos.length} trilhas</span>
-          </div>
 
           {cursos.map((c) => (
             <div key={c.id} className="bg-iw-surface rounded-xl border border-iw-border p-4 flex items-center gap-3">

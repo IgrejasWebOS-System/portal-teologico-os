@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, Home } from "lucide-react";
 import PublicFooter from "@/components/public/PublicFooter";
+import Logo from "@/components/Logo";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -108,9 +109,7 @@ export default async function PortalHubPage() {
       <header className="bg-iw-navy shadow-lg">
         <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-iw-blue/30 border border-iw-sky/30 flex items-center justify-center shrink-0">
-              <GraduationCap className="w-5 h-5 text-iw-sky" />
-            </div>
+            <Logo size="sm" variant="dark" />
             <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-none truncate">
                 CETADP
@@ -119,7 +118,7 @@ export default async function PortalHubPage() {
             </div>
             <Link
               href="/"
-              className="ml-2 inline-flex items-center gap-1.5 text-xs text-iw-sky/70 hover:text-white border border-white/15 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors shrink-0"
+              className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy bg-iw-gold hover:opacity-90 rounded-lg px-3 py-1.5 transition-opacity shrink-0"
             >
               <Home className="w-3.5 h-3.5" />
               Site institucional
