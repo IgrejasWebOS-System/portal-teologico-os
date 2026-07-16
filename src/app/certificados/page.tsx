@@ -3,6 +3,7 @@ import { BadgeCheck, CheckCircle2, XCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
+import CertificadoVisual from "@/components/certificados/CertificadoVisual";
 
 export const metadata = {
   title: "Validar Certificado",
@@ -51,7 +52,7 @@ export default async function CertificadosPage({ searchParams }: PageProps) {
     <div className="w-full min-h-screen bg-iw-bg flex flex-col">
       <PublicHeader />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-16 gap-6">
         <div className="w-full max-w-md bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-iw-gold/10 flex items-center justify-center mx-auto mb-5">
             <BadgeCheck className="w-7 h-7 text-iw-gold" />
@@ -80,45 +81,19 @@ export default async function CertificadosPage({ searchParams }: PageProps) {
             </button>
           </form>
 
-          {buscado && (
-            <div
-              className={`p-4 rounded-xl border text-left mb-6 ${
-                certificado
-                  ? "bg-iw-success-bg border-iw-success"
-                  : "bg-iw-error-bg border-iw-error"
-              }`}
-            >
-              {certificado ? (
-                <>
-                  <p className="flex items-center gap-2 text-iw-success font-bold text-sm mb-2">
-                    <CheckCircle2 className="w-4 h-4" /> Certificado válido
-                  </p>
-                  <p className="text-iw-navy text-sm">
-                    <strong>{certificado.nome_aluno}</strong>
-                  </p>
-                  <p className="text-iw-muted text-xs mt-0.5">{certificado.nome_curso}</p>
-                  {certificado.carga_horaria && (
-                    <p className="text-iw-muted text-xs">
-                      Carga horária: {certificado.carga_horaria}h
-                    </p>
-                  )}
-                  <p className="text-iw-muted text-xs mt-2">
-                    Emitido em{" "}
-                    {new Date(certificado.emitido_em).toLocaleDateString("pt-BR")}
-                  </p>
-                  <p className="text-iw-muted text-xs mt-2 italic">
-                    {certificado.assinatura_presidente} — Presidente
-                    <br />
-                    {certificado.assinatura_coordenador} — Coordenador Acadêmico
-                  </p>
-                </>
-              ) : (
-                <p className="flex items-center gap-2 text-iw-error font-bold text-sm">
-                  <XCircle className="w-4 h-4" /> Certificado não encontrado. Confira o
-                  número e tente novamente.
-                </p>
-              )}
+          {buscado && !certificado && (
+            <div className="p-4 rounded-xl border text-left mb-6 bg-iw-error-bg border-iw-error">
+              <p className="flex items-center gap-2 text-iw-error font-bold text-sm">
+                <XCircle className="w-4 h-4" /> Certificado não encontrado. Confira o
+                número e tente novamente.
+              </p>
             </div>
+          )}
+
+          {certificado && (
+            <p className="flex items-center justify-center gap-2 text-iw-success font-bold text-sm mb-6">
+              <CheckCircle2 className="w-4 h-4" /> Certificado válido
+            </p>
           )}
 
           <Link
@@ -128,6 +103,20 @@ export default async function CertificadosPage({ searchParams }: PageProps) {
             Voltar para o início
           </Link>
         </div>
+
+        {certificado && (
+          <div className="w-full max-w-3xl px-2">
+            <CertificadoVisual
+              nomeAluno={certificado.nome_aluno}
+              nomeCurso={certificado.nome_curso}
+              numeroCertificado={certificado.numero_certificado}
+              cargaHoraria={certificado.carga_horaria}
+              assinaturaPresidente={certificado.assinatura_presidente}
+              assinaturaCoordenador={certificado.assinatura_coordenador}
+              emitidoEm={certificado.emitido_em}
+            />
+          </div>
+        )}
       </main>
 
       <PublicFooter />

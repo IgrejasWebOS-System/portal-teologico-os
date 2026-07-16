@@ -137,13 +137,13 @@ export async function POST(request: Request) {
     if (novoStatus === "PAGO") {
       const { data: itens } = await admin
         .from("order_items")
-        .select("product_id")
+        .select("product_id, quantidade")
         .eq("order_id", referenceId);
 
       for (const item of itens ?? []) {
         const { data: produto } = await admin
           .from("products")
-          .select("tipo, course_id")
+          .select("tipo, course_id, estoque")
           .eq("id", item.product_id)
           .single();
 
@@ -154,6 +154,28 @@ export async function POST(request: Request) {
               { user_id: pedido.user_id, course_id: produto.course_id },
               { onConflict: "user_id,course_id", ignoreDuplicates: true }
             );
+        }
+
+        // Baixa automática de estoque para material físico vendido,
+        // com o mesmo histórico de movimentações usado na tela de
+        // Produtos — nunca deixa o estoque ficar negativo.
+        if (produto?.tipo === "MATERIAL_FISICO" && produto.estoque != null) {
+          const novoEstoque = Math.max(0, produto.estoque - item.quantidade);
+          try {
+            await admin
+              .from("product_stock_movements")
+              .insert({
+                product_id: item.product_id,
+                tipo: "SAIDA",
+                quantidade: item.quantidade,
+                estoque_resultante: novoEstoque,
+                motivo: `Venda — Pedido #${referenceId.slice(0, 8)}`,
+                order_id: referenceId,
+              });
+            await admin.from("products").update({ estoque: novoEstoque }).eq("id", item.product_id);
+          } catch (e) {
+            console.error("[webhook mercadopago] Falha ao baixar estoque:", e);
+          }
         }
       }
 

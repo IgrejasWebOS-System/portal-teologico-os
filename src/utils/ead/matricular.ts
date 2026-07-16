@@ -154,5 +154,18 @@ export async function matricularAlunoEmCurso(
     return { ok: false, erro: "Erro ao registrar matrícula: " + matriculaInsertError.message };
   }
 
+  // Também garante a matrícula no sistema genérico de aulas (enrollments),
+  // que é quem controla o player de vídeo/progresso em /escola. Sem isso,
+  // quem já tem matrícula oficial (ead_matriculas) ainda cairia na tela
+  // de "Matricular-se nesta disciplina" ao abrir a própria aula.
+  if (courseId && aluno.user_id) {
+    await admin
+      .from("enrollments")
+      .upsert(
+        { user_id: aluno.user_id, course_id: courseId, status: "ENROLLED" },
+        { onConflict: "user_id,course_id", ignoreDuplicates: true }
+      );
+  }
+
   return { ok: true, matricula, alunoId: aluno.id, courseId };
 }

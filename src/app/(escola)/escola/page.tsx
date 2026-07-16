@@ -24,6 +24,74 @@ export default async function EscolaPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Aluno com matrícula oficial (ead_alunos/ead_matriculas) vê só os
+  // próprios cursos matriculados — não o catálogo completo. Staff e
+  // membros sem ficha de aluno continuam vendo o catálogo normal.
+  const { data: aluno } = await supabase
+    .from("ead_alunos")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (aluno) {
+    const { data: matriculas } = await supabase
+      .from("ead_matriculas")
+      .select("id, course_id, curso_nome_snapshot, status, data_matricula")
+      .eq("aluno_id", aluno.id)
+      .in("status", ["EM_ANDAMENTO", "APROVADO"])
+      .not("course_id", "is", null);
+
+    const courseIds = (matriculas ?? []).map((m) => m.course_id).filter((id): id is string => !!id);
+
+    if (courseIds.length > 0) {
+      const { data: meusCourses } = await supabase
+        .from("courses")
+        .select("*")
+        .in("id", courseIds);
+
+      const { data: minhasEnrollments } = await supabase
+        .from("enrollments")
+        .select("course_id, progress_percent, status")
+        .eq("user_id", user.id)
+        .in("course_id", courseIds);
+
+      const { data: minhasLessons } = await supabase
+        .from("lessons")
+        .select("course_id, video_type")
+        .in("course_id", courseIds);
+
+      const enrollMapAluno = new Map((minhasEnrollments ?? []).map((e) => [e.course_id, e]));
+      const countMapAluno = new Map<string, { total: number; video: number }>();
+      for (const l of minhasLessons ?? []) {
+        if (!countMapAluno.has(l.course_id)) countMapAluno.set(l.course_id, { total: 0, video: 0 });
+        const c = countMapAluno.get(l.course_id)!;
+        c.total++;
+        if (l.video_type !== "none") c.video++;
+      }
+
+      const meusCoursesList = (meusCourses ?? []) as Course[];
+
+      return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+          <div>
+            <h1 className="text-2xl font-black text-iw-navy tracking-tight">Meus Cursos</h1>
+            <p className="text-iw-muted text-sm mt-1">Disciplinas em que você está matriculado no CETADP.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {meusCoursesList.map((c) => (
+              <CourseCard
+                key={c.id}
+                course={c}
+                enrollment={enrollMapAluno.get(c.id)}
+                counts={countMapAluno.get(c.id)}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+  }
+
   const { data: courses } = await supabase
     .from("courses")
     .select("*")

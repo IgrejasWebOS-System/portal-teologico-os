@@ -74,6 +74,7 @@ const adminModules: SidebarModule[] = [
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
       { label: "Matrículas", href: "/admin/matriculas", icon: UserCheck },
       { label: "Pedidos (Loja)", href: "/admin/pedidos", icon: Package },
+      { label: "Produtos (Loja)", href: "/admin/produtos", icon: Boxes },
       { label: "Leads (Loja)", href: "/admin/leads-loja", icon: UserPlus },
       { label: "Certificados", href: "/admin/certificados", icon: Award },
       { label: "Financeiro", href: "/admin/financeiro", icon: Wallet },
@@ -82,7 +83,7 @@ const adminModules: SidebarModule[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -179,7 +180,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Admin section */}
+      {/* Admin section — só para staff (Configurações/Admin nunca aparecem para aluno) */}
+      {isStaff && (
       <div className="px-3 pt-2 pb-1">
         <div className="mx-0 border-t border-white/10 mb-3" />
         <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2">
@@ -235,6 +237,7 @@ export default function Sidebar() {
           );
         })}
       </div>
+      )}
 
       {/* Divider */}
       <div className="mx-4 border-t border-white/10" />

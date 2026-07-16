@@ -68,6 +68,11 @@ export default async function PedidosAdminPage({ searchParams }: PageProps) {
     (a, b) => (ORDEM_STATUS[a.fulfillment_status] ?? 9) - (ORDEM_STATUS[b.fulfillment_status] ?? 9)
   );
 
+  const aguardandoEnvio = lista.filter((p) => p.fulfillment_status === "AGUARDANDO_ENVIO").length;
+  const enviados = lista.filter((p) => p.fulfillment_status === "ENVIADO").length;
+  const entregues = lista.filter((p) => p.fulfillment_status === "ENTREGUE").length;
+  const valorTotal = lista.reduce((a, p) => a + p.total_centavos, 0);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -82,6 +87,25 @@ export default async function PedidosAdminPage({ searchParams }: PageProps) {
             Pedidos pagos com item físico da Loja. Marque como enviado e
             depois como entregue conforme o andamento.
           </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
+          <p className="text-[11px] font-bold text-iw-muted uppercase">Aguardando envio</p>
+          <p className="text-lg font-black text-iw-warning">{aguardandoEnvio}</p>
+        </div>
+        <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
+          <p className="text-[11px] font-bold text-iw-muted uppercase">Enviados</p>
+          <p className="text-lg font-black text-iw-blue">{enviados}</p>
+        </div>
+        <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
+          <p className="text-[11px] font-bold text-iw-muted uppercase">Entregues</p>
+          <p className="text-lg font-black text-iw-success">{entregues}</p>
+        </div>
+        <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
+          <p className="text-[11px] font-bold text-iw-muted uppercase">Valor total</p>
+          <p className="text-lg font-black text-iw-navy">R$ {(valorTotal / 100).toFixed(2).replace(".", ",")}</p>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import AutoLogout from "@/components/security/AutoLogout";
 import AreaDoAlunoPainel from "@/components/aluno/AreaDoAlunoPainel";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { checkIsStaff } from "@/utils/staff";
 
 export default async function EscolaLayout({
   children,
@@ -16,6 +17,7 @@ export default async function EscolaLayout({
   } = await supabase.auth.getUser();
 
   let alunoPainel: React.ReactNode = null;
+  const isStaff = user ? await checkIsStaff(supabase, user.id) : false;
 
   if (user) {
     const { data: aluno } = await supabase
@@ -100,7 +102,7 @@ export default async function EscolaLayout({
   return (
     <div className="flex min-h-screen bg-iw-bg">
       <AutoLogout />
-      <Sidebar />
+      <Sidebar isStaff={isStaff} />
       {alunoPainel}
       <main className="flex-1 ml-64 p-8 min-h-screen">
         {children}

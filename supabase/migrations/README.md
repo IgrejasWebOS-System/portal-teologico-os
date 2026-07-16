@@ -36,6 +36,15 @@ do MCP do Supabase — não via Supabase CLI.
 | `027_financeiro_contas_a_receber.sql` | Tabela `fin_contas_receber` — parcelas de matrícula (presencial ou paga online), responsável pelo pagamento (aluno ou igreja, financiamento interno), baixa com taxa de operadora/antecipação de cartão. Vendas online (Loja/inscrição) entram aqui já baixadas pelo webhook, sem tocar no Caixa Diário físico. + categorias `SANGRIA` e `VENDAS_ONLINE` no plano de contas |
 | `028_automatricula_sem_aprovacao_secretaria.sql` | `get_next_matricula_ead()` passa a aceitar chamadas `service_role` (rotinas confiáveis do servidor), além de staff — necessário pra matrícula não depender mais de aprovação manual. `ead_matriculas.origem` ganha o valor `AUTO_MATRICULA` |
 | `029_seed_tabelas_auxiliares_configuracoes.sql` | Popula as tabelas auxiliares do módulo Igreja (Configurações): `settings_gender`, `settings_civil_status`, `settings_schooling`, `settings_professions`, `ecclesiastical_roles`, `departments` e `settings_custom_regions` (regiões administrativas do DF) — todas estavam vazias |
+| `030_financeiro_contas_a_pagar.sql` | Tabela `fin_contas_pagar` — despesas com fornecedor/prestador e vencimento, espelhando `fin_contas_receber`. Baixa em dinheiro gera saída no Caixa Diário. + despesas de demonstração (aluguel, água/luz, professores, gráfica, contabilidade) |
+| `031_curriculo_real_teologico_basico_medio.sql` | Substitui as aulas placeholder de "Curso Teológico Básico" e "Curso Teológico Médio" pelo currículo oficial (10 disciplinas cada, fev-nov com recesso em julho) e publica os dois cursos |
+| `032_matriculas_demo_alunos_teologico.sql` | Matrícula de demonstração completa: 1 aluno no Básico, 1 no Médio — ficha `ead_alunos`/`ead_matriculas`, `enrollments`/`lesson_completions` (progresso parcial), 1 avaliação de exemplo e parcelas de mensalidade (uma delas como financiamento interno de igreja) |
+| `033_caixa_diario_demo.sql` | Abre o Caixa Diário de hoje com lançamentos de exemplo (matrícula em dinheiro, venda avulsa, sangria) |
+| `034_ajuste_contas_receber_maior_que_pagar.sql` | Recebível consolidado de demonstração pra Contas a Receber ficar maior que Contas a Pagar |
+| `035_patrimonio_demo_carro_computador.sql` | 2 bens de demonstração no Patrimônio: 1 veículo e 1 computador, ambos adquiridos em 2020 |
+| `036_certificado_demo_visual.sql` | 1 certificado de demonstração (curso avulso Diaconato) pra testar o novo modelo visual de certificado |
+| `037_estoque_movimentacoes_produtos.sql` | Tabela `product_stock_movements` — histórico de entradas/saídas/ajustes de estoque dos produtos da Loja, com baixa automática nas vendas pagas via webhook |
+| `038_leads_loja_funil_status.sql` | Tabela `loja_leads_crm` — funil de contato simples (Não contatado/Contatado/Convertido/Sem interesse) + observação para os Leads da Loja |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**
