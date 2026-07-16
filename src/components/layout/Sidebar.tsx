@@ -2,16 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
-  Church,
   GraduationCap,
   BookOpen,
   BookMarked,
   LogOut,
-  LayoutDashboard,
-  Users,
-  Building2,
-  CalendarClock,
   ChevronRight,
   ShieldCheck,
   Library,
@@ -28,21 +24,17 @@ import {
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
 
-const modules = [
+interface SidebarModule {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  description: string;
+  subItems?: { label: string; href: string; icon: LucideIcon }[];
+}
+
+const modules: SidebarModule[] = [
   {
-    label: "Igreja",
-    href: "/dashboard",
-    icon: Church,
-    description: "Gestão de membros e igrejas",
-    subItems: [
-      { label: "Visão Geral", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Membros", href: "/dashboard/membros", icon: Users },
-      { label: "Igrejas", href: "/dashboard/igrejas", icon: Building2 },
-      { label: "Ocorrências", href: "/dashboard/ocorrencias", icon: CalendarClock },
-    ],
-  },
-  {
-    label: "Escola Teológica",
+    label: "Escola de Teologia",
     href: "/escola",
     icon: GraduationCap,
     description: "Seminário e formação teológica",
@@ -61,7 +53,7 @@ const modules = [
   },
 ];
 
-const adminModules = [
+const adminModules: SidebarModule[] = [
   {
     label: "Configurações",
     href: "/dashboard/configuracoes",
@@ -95,13 +87,13 @@ export default function Sidebar() {
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
         <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-iw-blue/30 border border-iw-sky/40 shrink-0">
-          <Church className="w-5 h-5 text-iw-sky" />
+          <GraduationCap className="w-5 h-5 text-iw-sky" />
         </div>
         <div className="min-w-0">
           <p className="text-white font-bold text-sm leading-tight truncate">
             Portal Teológico
           </p>
-          <p className="text-iw-sky/60 text-xs truncate">IgrejasWebOS</p>
+          <p className="text-iw-sky/60 text-xs truncate">CETADP</p>
         </div>
       </div>
 

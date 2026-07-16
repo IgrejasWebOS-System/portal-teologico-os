@@ -83,11 +83,12 @@ export default async function InscricoesAdminPage({ searchParams }: PageProps) {
             Inscrições do Portal EAD
           </h1>
           <p className="text-iw-muted text-xs mt-0.5">
-            Aprove ou rejeite candidatos ao CETADP. Ao aprovar, a matrícula é
-            gerada e o acesso é enviado por e-mail. Cursos com matrícula paga
-            só chegam aqui como &quot;PENDENTE&quot; depois que o candidato
-            paga — as que ainda estão &quot;aguardando pagamento&quot;
-            aparecem abaixo, sem ação necessária da secretaria.
+            Histórico de inscrições. Desde 16/07/2026 a matrícula não depende
+            mais de aprovação da secretaria — toda inscrição nova (gratuita ou
+            paga, aqui ou pelo próprio aluno logado) já é habilitada
+            automaticamente. As poucas linhas ainda marcadas
+            &quot;PENDENTE&quot; abaixo são de antes dessa mudança e podem ser
+            resolvidas manualmente.
           </p>
         </div>
       </div>

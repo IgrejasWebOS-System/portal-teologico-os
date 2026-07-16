@@ -175,13 +175,12 @@ export default function HomePage() {
             <div className="lg:col-span-7 flex flex-col gap-4">
               <h2 className="text-2xl font-black tracking-tight">Sobre o CETADP</h2>
               <p className="text-black text-lg leading-relaxed text-justify">
-                O CETADP é a instituição de ensino teológico das Assembleias
-                de Deus em Piracicaba, dedicada à formação de membros,
-                obreiros e líderes para o exercício do ministério com
-                fundamentação bíblica e teológica sólida. O Portal EAD reúne,
-                em um único lugar, a inscrição, a matrícula e o
-                acompanhamento do aluno do primeiro contato até a conclusão
-                do curso.
+                O CETADP Centro Educacional Teológico das Assembleias de Deus
+                Piracicaba, dedicada à formação de membros, obreiros e
+                líderes para o exercício do ministério com fundamentação
+                bíblica e teológica sólida. O Portal CETADP EAD reúne, em um
+                único lugar, a inscrição, a matrícula e o acompanhamento do
+                aluno do primeiro contato até a conclusão do curso.
               </p>
               <Link
                 href="/sobre"
@@ -195,8 +194,8 @@ export default function HomePage() {
               <div className="bg-iw-navy rounded-2xl p-8 text-white sticky top-28">
                 <h3 className="text-xl font-extrabold mb-2">Pronto para começar?</h3>
                 <p className="text-white/60 text-sm leading-relaxed mb-6">
-                  Faça sua inscrição em poucos minutos. A secretaria do
-                  CETADP analisa seus dados e libera sua matrícula.
+                  Faça sua inscrição em poucos minutos e sua matrícula é
+                  confirmada na hora.
                 </p>
                 <div className="flex flex-col gap-3">
                   <Link

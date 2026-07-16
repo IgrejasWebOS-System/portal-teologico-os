@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Church, GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList } from "lucide-react";
+import { GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, Home } from "lucide-react";
+import PublicFooter from "@/components/public/PublicFooter";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -11,21 +12,9 @@ import { Church, GraduationCap, BookOpen, BookMarked, Award, ArrowRight, Clipboa
 
 const modules = [
   {
-    href: "/dashboard",
-    icon: Church,
-    label: "Igreja",
-    description:
-      "Gestão completa de membros, igrejas, setores, ocorrências e finanças.",
-    border: "border-iw-blue/30",
-    iconBg: "bg-iw-blue/10",
-    iconColor: "text-iw-blue",
-    badge: "Ativo",
-    badgeColor: "bg-iw-success/10 text-iw-success",
-  },
-  {
     href: "/escola",
     icon: GraduationCap,
-    label: "Escola Teológica",
+    label: "Escola de Teologia",
     description:
       "Seminário, formação ministerial e disciplinas de teologia aplicada.",
     border: "border-iw-navy/30",
@@ -59,16 +48,16 @@ const modules = [
     badgeColor: "bg-iw-success/10 text-iw-success",
   },
   {
-    href: "/portal/certificados",
-    icon: Award,
-    label: "Meus Certificados",
+    href: "/portal/nova-matricula",
+    icon: UserPlus,
+    label: "Nova Matrícula",
     description:
-      "Certificados emitidos pela secretaria ao concluir cursos, com número de validação pública.",
+      "Matricule-se em um curso oficial do CETADP na hora — sem espera de aprovação.",
     border: "border-iw-gold/30",
     iconBg: "bg-iw-gold/10",
     iconColor: "text-iw-gold",
-    badge: "Ativo",
-    badgeColor: "bg-iw-success/10 text-iw-success",
+    badge: "Novo",
+    badgeColor: "bg-iw-gold/10 text-iw-gold",
   },
   {
     href: "/portal/avaliacoes",
@@ -79,6 +68,18 @@ const modules = [
     border: "border-iw-blue/30",
     iconBg: "bg-iw-blue/10",
     iconColor: "text-iw-blue",
+    badge: "Ativo",
+    badgeColor: "bg-iw-success/10 text-iw-success",
+  },
+  {
+    href: "/portal/certificados",
+    icon: Award,
+    label: "Meus Certificados",
+    description:
+      "Certificados emitidos pela secretaria ao concluir cursos, com número de validação pública.",
+    border: "border-iw-gold/30",
+    iconBg: "bg-iw-gold/10",
+    iconColor: "text-iw-gold",
     badge: "Ativo",
     badgeColor: "bg-iw-success/10 text-iw-success",
   },
@@ -105,19 +106,26 @@ export default async function PortalHubPage() {
     <div className="min-h-screen bg-iw-bg">
       {/* Header */}
       <header className="bg-iw-navy shadow-lg">
-        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-iw-blue/30 border border-iw-sky/30 flex items-center justify-center">
-              <Church className="w-5 h-5 text-iw-sky" />
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-iw-blue/30 border border-iw-sky/30 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-5 h-5 text-iw-sky" />
             </div>
-            <div>
-              <p className="text-white font-bold text-sm leading-none">
+            <div className="min-w-0">
+              <p className="text-white font-bold text-sm leading-none truncate">
                 CETADP
               </p>
-              <p className="text-iw-sky/60 text-xs">Portal do Aluno · IgrejasWebOS</p>
+              <p className="text-iw-sky/60 text-xs truncate">Portal do Aluno</p>
             </div>
+            <Link
+              href="/"
+              className="ml-2 inline-flex items-center gap-1.5 text-xs text-iw-sky/70 hover:text-white border border-white/15 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors shrink-0"
+            >
+              <Home className="w-3.5 h-3.5" />
+              Site institucional
+            </Link>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="text-white text-sm font-medium">{displayName}</p>
             <p className="text-iw-sky/60 text-xs">{profile?.system_role ?? "—"}</p>
           </div>
@@ -126,11 +134,11 @@ export default async function PortalHubPage() {
 
       {/* Main content */}
       <main className="max-w-5xl mx-auto px-6 py-12">
-        <div className="mb-10">
+        <div className="mb-10 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-3xl font-black text-iw-navy">
-            Bem-vindo, {displayName.split(" ")[0]}
+            Bem-vindo, {displayName.split(" ")[0]}.
           </h1>
-          <p className="text-iw-muted mt-2">
+          <p className="text-iw-muted">
             Selecione o módulo que deseja acessar.
           </p>
         </div>
@@ -182,11 +190,9 @@ export default async function PortalHubPage() {
           <div className="w-2 h-2 rounded-full bg-iw-gold" />
           <div className="flex-1 h-px bg-iw-border" />
         </div>
-
-        <p className="text-center text-iw-muted/60 text-xs mt-4">
-          CETADP · Centro Educacional Teológico das Assembleias de Deus Piracicaba · 2026
-        </p>
       </main>
+
+      <PublicFooter minimal />
     </div>
   );
 }

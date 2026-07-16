@@ -34,6 +34,8 @@ do MCP do Supabase — não via Supabase CLI.
 | `025_avaliacoes_simulados_provas.sql` | Simulados e provas — fase sem IA: `avaliacoes_banco_questoes` (banco estático por curso), `avaliacoes` (1 prova por matrícula via índice único parcial), `avaliacao_questoes` (snapshot sorteado/embaralhado por aluno). Seed de 12 questões de exemplo para o Curso Teológico Básico |
 | `026_orders_telefone_comprador.sql` | `orders.telefone_comprador` — snapshot do telefone informado no checkout da loja |
 | `027_financeiro_contas_a_receber.sql` | Tabela `fin_contas_receber` — parcelas de matrícula (presencial ou paga online), responsável pelo pagamento (aluno ou igreja, financiamento interno), baixa com taxa de operadora/antecipação de cartão. Vendas online (Loja/inscrição) entram aqui já baixadas pelo webhook, sem tocar no Caixa Diário físico. + categorias `SANGRIA` e `VENDAS_ONLINE` no plano de contas |
+| `028_automatricula_sem_aprovacao_secretaria.sql` | `get_next_matricula_ead()` passa a aceitar chamadas `service_role` (rotinas confiáveis do servidor), além de staff — necessário pra matrícula não depender mais de aprovação manual. `ead_matriculas.origem` ganha o valor `AUTO_MATRICULA` |
+| `029_seed_tabelas_auxiliares_configuracoes.sql` | Popula as tabelas auxiliares do módulo Igreja (Configurações): `settings_gender`, `settings_civil_status`, `settings_schooling`, `settings_professions`, `ecclesiastical_roles`, `departments` e `settings_custom_regions` (regiões administrativas do DF) — todas estavam vazias |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

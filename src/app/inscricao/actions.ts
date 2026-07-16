@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 import { labelCurso, precoMatriculaCentavos } from "@/utils/cursos-ead";
+import { matricularAlunoEmCurso } from "@/utils/ead/matricular";
 import { redirect } from "next/navigation";
 
 // ============================================================
@@ -11,14 +12,16 @@ import { redirect } from "next/navigation";
 // cliente admin aqui para poder também gerar a cobrança da matrícula
 // sem depender de política extra de UPDATE para "anon").
 //
-// Dois caminhos a partir daqui (decisão do CETADP, 14/07/2026):
-// - Curso SEM preço de matrícula definido (a maioria hoje): segue
-//   igual a sempre — status PENDENTE, aguarda análise da secretaria.
+// Dois caminhos a partir daqui — atualizado em 16/07/2026: matrícula
+// não depende mais de aprovação manual da secretaria, é habilitada
+// na hora em ambos os casos:
+// - Curso SEM preço de matrícula definido: aluno + matrícula são
+//   criados imediatamente (ver matricularAlunoEmCurso), inscrição
+//   já nasce APROVADA.
 // - Curso COM preço de matrícula (ex: Teologia Básico, R$25):
 //   status AGUARDANDO_PAGAMENTO e redireciona para o Checkout Pro do
-//   Mercado Pago. Só quando o webhook confirmar o pagamento é que a
-//   inscrição vira PENDENTE e entra na fila da secretaria — a
-//   aprovação continua 100% manual, só que agora depois do pagamento.
+//   Mercado Pago. Quando o webhook confirmar o pagamento, ele mesmo
+//   cria aluno + matrícula (mesma rotina), sem passar pela secretaria.
 // ============================================================
 
 export async function submitInscricaoAction(formData: FormData) {
@@ -64,7 +67,33 @@ export async function submitInscricaoAction(formData: FormData) {
   }
 
   if (precoCentavos === 0) {
-    redirect("/inscricao/obrigado");
+    // Sem cobrança: matrícula é habilitada na hora, sem passar pela
+    // fila da secretaria (decisão do CETADP de 16/07/2026).
+    const resultado = await matricularAlunoEmCurso(admin, {
+      cursoPretendido: curso_pretendido,
+      nomeCompleto: nome_completo,
+      cpf,
+      email,
+      telefone,
+      campoMinisterioId: campo_ministerio_id,
+      origem: "INSCRICAO_PUBLICA",
+    });
+
+    if (!resultado.ok) {
+      redirect("/inscricao?error=" + encodeURIComponent(resultado.erro));
+    }
+
+    await admin
+      .from("ead_inscricoes")
+      .update({
+        status: "APROVADA",
+        aluno_id: resultado.alunoId,
+        matricula_gerada: resultado.matricula,
+        analisado_em: new Date().toISOString(),
+      })
+      .eq("id", inscricao!.id);
+
+    redirect("/inscricao/obrigado?matricula=" + encodeURIComponent(resultado.matricula));
   }
 
   let preferencia;

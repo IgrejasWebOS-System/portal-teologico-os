@@ -32,8 +32,8 @@ export default async function InscricaoPage({ searchParams }: InscricaoPageProps
               Inscreva-se no CETADP
             </h1>
             <p className="text-iw-muted text-sm mt-2 max-w-md mx-auto">
-              Preencha seus dados. A secretaria analisa sua inscrição e, após
-              aprovada, você recebe sua matrícula e o acesso ao Portal do Aluno.
+              Preencha seus dados e sua matrícula é confirmada na hora — você
+              recebe o número da matrícula e o acesso ao Portal do Aluno por e-mail.
             </p>
           </div>
 

@@ -7,7 +7,13 @@ export const metadata = {
   title: "Inscrição enviada",
 };
 
-export default function InscricaoObrigadoPage() {
+interface PageProps {
+  searchParams: Promise<{ matricula?: string }>;
+}
+
+export default async function InscricaoObrigadoPage({ searchParams }: PageProps) {
+  const { matricula } = await searchParams;
+
   return (
     <div className="w-full min-h-screen bg-iw-bg flex flex-col">
       <PublicHeader />
@@ -18,12 +24,14 @@ export default function InscricaoObrigadoPage() {
             <CheckCircle2 className="w-7 h-7 text-iw-success" />
           </div>
           <h1 className="text-xl font-black text-iw-navy mb-2">
-            Inscrição enviada com sucesso!
+            Matrícula confirmada!
           </h1>
+          {matricula && (
+            <p className="text-iw-gold font-black text-lg mb-2">{matricula}</p>
+          )}
           <p className="text-iw-muted text-sm leading-relaxed mb-6">
-            A secretaria do CETADP vai analisar seus dados. Assim que sua
-            inscrição for aprovada, você receberá sua matrícula e as
-            instruções de acesso no e-mail informado.
+            Sua matrícula já está ativa. Enviamos um e-mail com o link para você
+            definir sua senha e acessar o Portal do Aluno.
           </p>
           <Link
             href="/"
