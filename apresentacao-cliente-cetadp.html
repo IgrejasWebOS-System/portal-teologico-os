@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal EAD de Teologia — CETADP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #111111;
+    --blue: #BCE5FF;
+    --sky: #88CDF6;
+    --gold: #C5A059;
+    --gold-alt: #D4AF37;
+    --bg: #E8E8E8;
+    --surface: #FFFFFF;
+    --muted: #6B7280;
+    --border: #D1D5DB;
+    --success: #059669;
+    --success-bg: #D1FAE5;
+    --error: #DC2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--navy);
+    background: var(--bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Merriweather', Georgia, serif;
+    color: var(--navy);
+  }
+
+  img, svg { display: block; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ===== NAV ===== */
+  .topnav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(17,17,17,0.96);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .topnav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-name { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
+  .brand-name span { display: block; color: var(--sky); font-size: 11px; font-weight: 500; letter-spacing: .04em; }
+  .topnav-links { display: flex; gap: 28px; }
+  .topnav-links a { color: rgba(255,255,255,0.65); font-size: 13.5px; font-weight: 500; transition: color .15s; }
+  .topnav-links a:hover { color: #fff; }
+  .topnav-cta {
+    background: var(--gold); color: var(--navy); font-weight: 700; font-size: 13px;
+    padding: 9px 18px; border-radius: 999px; white-space: nowrap;
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    background: var(--bg);
+    color: var(--navy);
+    padding: 96px 0 96px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero .wrap { position: relative; z-index: 1; }
+  .hero h1 {
+    font-size: 52px; line-height: 1.12; font-weight: 900; max-width: 780px; margin-bottom: 24px;
+  }
+  .hero h1 em { color: var(--gold-alt); font-style: normal; }
+  .hero p.lead {
+    font-family: 'Inter', sans-serif; font-size: 16.5px; color: var(--navy);
+    max-width: 620px; margin-bottom: 32px; font-weight: 400;
+  }
+  .hero-ctas { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; align-items: center; }
+  .btn-primary {
+    background: var(--gold); color: var(--navy); font-weight: 700; font-size: 14.5px;
+    padding: 15px 28px; border-radius: 10px; display: inline-block;
+  }
+  .btn-secondary {
+    border: 1px solid var(--border); background: var(--surface); color: var(--navy); font-weight: 600; font-size: 14.5px;
+    padding: 15px 28px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .hero-address {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+    margin-bottom: 56px;
+  }
+  .hero-address svg { flex-shrink: 0; stroke: var(--muted); }
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    background: var(--navy); border-radius: 16px; padding: 32px 28px; max-width: 780px;
+  }
+  .hero-stats div { border-left: 1px solid rgba(255,255,255,0.15); padding-left: 20px; }
+  .hero-stats div:first-child { border-left: none; padding-left: 0; }
+  .hero-stats .num { font-family: 'Merriweather', serif; font-size: 28px; font-weight: 900; color: var(--gold-alt); }
+  .hero-stats .lbl { font-size: 12.5px; color: #ffffff; margin-top: 4px; }
+
+  /* ===== SECTION shared ===== */
+  section { padding: 88px 0; }
+  .section-head { max-width: 640px; margin-bottom: 56px; }
+  .section-tag {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--gold-alt); margin-bottom: 14px;
+  }
+  .section-head h2 { font-size: 34px; font-weight: 900; line-height: 1.25; margin-bottom: 14px; }
+  .section-head p { color: var(--muted); font-size: 15.5px; }
+  .section-alt { background: var(--surface); }
+
+  /* ===== MODULES GRID ===== */
+  .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .mcard {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 28px; transition: transform .15s, box-shadow .15s;
+  }
+  .mcard:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
+  .mcard .icon {
+    width: 46px; height: 46px; border-radius: 12px; background: var(--blue);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .mcard .icon svg { stroke: var(--navy); }
+  .mcard h3 { font-family: 'Inter', sans-serif; font-size: 16.5px; font-weight: 700; margin-bottom: 8px; }
+  .mcard p { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+  /* ===== MOCKUP: browser chrome ===== */
+  .browser {
+    background: var(--surface); border-radius: 16px; overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.18);
+  }
+  .browser-bar {
+    background: #EDEDED; padding: 12px 16px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .browser-bar .dot:nth-child(1) { background: #FF5F57; }
+  .browser-bar .dot:nth-child(2) { background: #FEBC2E; }
+  .browser-bar .dot:nth-child(3) { background: #28C840; }
+  .browser-bar .url {
+    margin-left: 12px; background: #fff; border-radius: 6px; padding: 5px 14px;
+    font-size: 11.5px; color: var(--muted); flex: 1; max-width: 320px;
+  }
+
+  /* mock aluno layout */
+  .mock-app { display: flex; min-height: 420px; background: #F4F4F4; }
+  .mock-sidebar { width: 190px; background: var(--navy); flex-shrink: 0; padding: 18px 12px; }
+  .mock-sidebar .mbrand { display: flex; align-items: center; gap: 8px; padding: 0 6px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 14px; }
+  .mock-sidebar .mbrand .dotlogo { width: 20px; height: 20px; border-radius: 6px; background: var(--gold); flex-shrink: 0; }
+  .mock-sidebar .mbrand span { color: #fff; font-size: 10.5px; font-weight: 700; }
+  .mock-navitem {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+    font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 3px; font-weight: 500;
+  }
+  .mock-navitem .dotc { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
+  .mock-navitem.active { background: var(--blue); color: var(--navy); }
+  .mock-navlabel { font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,0.3); font-weight: 700; padding: 12px 10px 6px; }
+  .mock-main { flex: 1; padding: 22px 26px; overflow: hidden; }
+  .mock-main h4 { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .mock-main .sub { font-size: 11.5px; color: var(--muted); margin-bottom: 18px; }
+  .mock-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .mock-kpi { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .mock-kpi .l { font-size: 9.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .mock-kpi .v { font-family: 'Merriweather', serif; font-size: 18px; font-weight: 900; margin-top: 2px; }
+  .mock-kpi.gold .v { color: var(--gold-alt); }
+  .mock-kpi.green .v { color: var(--success); }
+  .mock-list { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 6px; }
+  .mock-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border-radius: 7px; font-size: 11px; }
+  .mock-row + .mock-row { border-top: 1px solid #F1F1F1; }
+  .mock-row .name { font-weight: 600; }
+  .mock-row .tag { font-size: 9.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .tag-done { background: var(--success-bg); color: var(--success); }
+  .tag-pending { background: #FEF3C7; color: #D97706; }
+  .tag-info { background: var(--blue); color: var(--navy); }
+  .mock-progress-track { height: 6px; background: #EAEAEA; border-radius: 999px; overflow: hidden; width: 70px; }
+  .mock-progress-fill { height: 100%; background: var(--gold); border-radius: 999px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+
+  .checklist { list-style: none; margin-top: 24px; }
+  .checklist li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; font-size: 14.5px; }
+  .checklist .ck {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--success-bg); color: var(--success);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 900; margin-top: 1px;
+  }
+  .checklist strong { display: block; margin-bottom: 2px; }
+  .checklist span.desc { color: var(--muted); font-size: 13.5px; }
+
+  /* ===== JORNADA (steps) ===== */
+  .journey { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .journey::before {
+    content: ""; position: absolute; top: 22px; left: 60px; right: 60px; height: 2px;
+    background: repeating-linear-gradient(90deg, var(--border) 0 8px, transparent 8px 16px);
+    z-index: 0;
+  }
+  .jstep { position: relative; z-index: 1; padding: 0 16px; text-align: center; }
+  .jstep .jn {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--navy); color: var(--gold-alt);
+    font-family: 'Merriweather', serif; font-weight: 900; font-size: 17px;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;
+    border: 4px solid var(--surface);
+  }
+  .jstep h4 { font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+  .jstep p { font-size: 12.5px; color: var(--muted); }
+
+  /* ===== CURRICULUM ===== */
+  .curric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .curric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 28px; }
+  .curric-card .chip {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 4px 12px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .curric-card.basico .chip { background: var(--blue); color: var(--navy); }
+  .curric-card.medio .chip { background: #111111; color: var(--gold-alt); }
+  .curric-card h3 { font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .curric-card .meta { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .curric-card ol { list-style: none; counter-reset: item; }
+  .curric-card ol li {
+    counter-increment: item; font-size: 12.5px; padding: 6px 0; border-top: 1px solid #F1F1F1;
+    display: flex; gap: 10px;
+  }
+  .curric-card ol li:first-child { border-top: none; }
+  .curric-card ol li::before {
+    content: counter(item); font-weight: 800; color: var(--gold-alt); width: 16px; flex-shrink: 0;
+  }
+
+  /* ===== CTA final ===== */
+  .cta-final {
+    background: linear-gradient(135deg, #111111, #1c1c1c);
+    color: #fff; border-radius: 24px; padding: 64px 56px; text-align: center; position: relative; overflow: hidden;
+  }
+  .cta-final::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(197,160,89,0.18), transparent 60%);
+  }
+  .cta-final * { position: relative; z-index: 1; }
+  .cta-final h2 { color: #fff; font-size: 30px; margin-bottom: 14px; }
+  .cta-final p { color: rgba(255,255,255,0.65); font-size: 15px; max-width: 480px; margin: 0 auto 32px; }
+
+  footer { padding: 48px 0; text-align: center; color: var(--muted); font-size: 12.5px; }
+  footer .brand-name { color: var(--navy); }
+
+  @media (max-width: 860px) {
+    .hero h1 { font-size: 36px; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); row-gap: 20px; }
+    .hero-stats div:nth-child(3) { border-left: none; padding-left: 0; }
+    .modules-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; gap: 36px; }
+    .journey { grid-template-columns: 1fr; gap: 28px; }
+    .journey::before { display: none; }
+    .curric-grid { grid-template-columns: 1fr; }
+    .topnav-links { display: none; }
+    .cta-final { padding: 48px 24px; }
+    .mock-app { flex-direction: column; }
+    .mock-sidebar { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 3 3 6 3s6-1.34 6-3v-5"/></svg>
+      </div>
+      <div class="brand-name">Portal EAD de Teologia<span>CETADP</span></div>
+    </div>
+    <div class="topnav-links">
+      <a href="#modulos">Módulos</a>
+      <a href="#aluno">Área do Aluno</a>
+      <a href="#gestao">Gestão</a>
+      <a href="#curriculo">Currículo</a>
+    </div>
+    <a href="#contato" class="topnav-cta">Falar com a equipe</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Formação teológica <em>presencial e a distância</em>, para todos os campos e ministérios.</h1>
+    <p class="lead">CETADP — Centro Educacional Teológico Assembleias de Deus Piracicaba — capacita membros, obreiros e líderes evangélicos por meio de cursos oficiais, reciclagem e teologia em vários níveis, de forma presencial e a distância.</p>
+    <div class="hero-ctas">
+      <a href="#modulos" class="btn-primary">Fazer minha inscrição</a>
+      <a href="#aluno" class="btn-secondary">Já sou aluno — Entrar →</a>
+    </div>
+    <div class="hero-address">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
+    </div>
+    <div class="hero-stats">
+      <div><div class="num">2</div><div class="lbl">Cursos teológicos oficiais estruturados</div></div>
+      <div><div class="num">9</div><div class="lbl">Cursos preparatórios avulsos</div></div>
+      <div><div class="num">20</div><div class="lbl">Disciplinas já cadastradas</div></div>
+      <div><div class="num">100%</div><div class="lbl">Matrícula e emissão de certificado online</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="modulos" class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Visão geral</span>
+      <h2>Um sistema, todas as frentes do CETADP</h2>
+      <p>Cada área do instituto ganha seu próprio espaço dentro do portal — sem depender de planilhas, grupos de WhatsApp ou controles paralelos.</p>
+    </div>
+    <div class="modules-grid">
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 3 3 6 3s6-1.34 6-3v-5"/></svg></div>
+        <h3>Escola de Teologia</h3>
+        <p>Curso Teológico Básico e Médio, com matrícula automática, aulas em vídeo, progresso por disciplina e avaliações.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <h3>Cursos Preparatórios</h3>
+        <p>Diaconato, Presbitério, Noivos, Tesouraria e outros — cursos avulsos de capacitação, com inscrição direta pela loja.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <h3>EBD</h3>
+        <p>Escola Bíblica Dominical com lições organizadas por trimestre, prontas para consulta pelos professores e alunos.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <h3>Financeiro</h3>
+        <p>Contas a pagar, contas a receber e caixa diário — incluindo mensalidades, financiamento pela igreja e vendas online.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-6-4-6 4V2z"/></svg></div>
+        <h3>Loja &amp; Estoque</h3>
+        <p>Cursos avulsos, materiais físicos e PDFs à venda, com controle de estoque e histórico de movimentações.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M9 14.5 6 22l6-3 6 3-3-7.5"/></svg></div>
+        <h3>Certificados</h3>
+        <p>Emissão automática ao concluir o curso, com número público validável e modelo visual oficial do CETADP.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6"/></svg></div>
+        <h3>Patrimônio</h3>
+        <p>Inventário de bens do instituto — veículos, equipamentos e imóveis — com depreciação calculada automaticamente.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Leads da Loja</h3>
+        <p>Todo comprador avulso que ainda não é aluno vira um lead — com funil de contato para convite à matrícula.</p>
+      </div>
+      <div class="mcard">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <h3>Painel Administrativo</h3>
+        <p>Dashboard único para a secretaria acompanhar matrículas, inscrições, financeiro e conteúdo em um só lugar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="aluno">
+  <div class="wrap">
+    <div class="two-col">
+      <div>
+        <span class="section-tag">Experiência do aluno</span>
+        <h2 style="font-size:32px; font-weight:900; margin-bottom:16px;">O aluno entra e já cai direto na sua turma</h2>
+        <p style="color:var(--muted); font-size:15px;">Sem tela de catálogo confusa, sem precisar procurar onde clicar. Ao se matricular — de forma gratuita ou paga — o aluno já entra automaticamente na sala de aula do seu curso, com tudo que ele precisa a um clique de distância no menu lateral.</p>
+        <ul class="checklist">
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Minha Área</strong><span class="desc">Dados pessoais, senha, informações do curso, financeiro e provas — tudo num menu lateral retrátil, com rótulos claros.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Só o que é dele</strong><span class="desc">O aluno vê apenas o(s) curso(s) em que está matriculado — nunca o catálogo inteiro de outros cursos.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Progresso visível</strong><span class="desc">Cada disciplina mostra o andamento das aulas assistidas, prontas para retomar de onde parou.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Financeiro transparente</strong><span class="desc">Parcelas, vencimentos e status de pagamento visíveis direto na área do aluno.</span></div>
+          </li>
+        </ul>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="url">portal.cetadp.org.br/escola</div>
+        </div>
+        <div class="mock-app">
+          <div class="mock-sidebar">
+            <div class="mbrand"><div class="dotlogo"></div><span>PORTAL CETADP</span></div>
+            <div class="mock-navlabel">Minha Área</div>
+            <div class="mock-navitem active"><div class="dotc"></div>Meus dados</div>
+            <div class="mock-navitem"><div class="dotc"></div>Conta e senha</div>
+            <div class="mock-navitem"><div class="dotc"></div>Meu curso</div>
+            <div class="mock-navitem"><div class="dotc"></div>Financeiro</div>
+            <div class="mock-navitem"><div class="dotc"></div>Provas e testes</div>
+          </div>
+          <div class="mock-main">
+            <h4>Curso Teológico Básico</h4>
+            <div class="sub">Matrícula CETADP-2026-0143 · Em andamento</div>
+            <div class="mock-list">
+              <div class="mock-row"><span class="name">1. Doutrina de Deus</span><span class="tag tag-done">Concluída</span></div>
+              <div class="mock-row"><span class="name">2. Cristologia</span><span class="tag tag-done">Concluída</span></div>
+              <div class="mock-row"><span class="name">3. Pneumatologia</span><div class="mock-progress-track"><div class="mock-progress-fill" style="width:60%"></div></div></div>
+              <div class="mock-row"><span class="name">4. Anjos, Homem e Pecado</span><span class="tag tag-pending">A iniciar</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gestao" class="section-alt">
+  <div class="wrap">
+    <div class="two-col">
+      <div class="browser" style="order:2;">
+        <div class="browser-bar">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="url">portal.cetadp.org.br/admin</div>
+        </div>
+        <div class="mock-app">
+          <div class="mock-sidebar">
+            <div class="mbrand"><div class="dotlogo"></div><span>PORTAL CETADP</span></div>
+            <div class="mock-navlabel">Administração</div>
+            <div class="mock-navitem active"><div class="dotc"></div>Dashboard</div>
+            <div class="mock-navitem"><div class="dotc"></div>Matrículas</div>
+            <div class="mock-navitem"><div class="dotc"></div>Financeiro</div>
+            <div class="mock-navitem"><div class="dotc"></div>Loja &amp; Pedidos</div>
+            <div class="mock-navitem"><div class="dotc"></div>Certificados</div>
+          </div>
+          <div class="mock-main">
+            <h4>Visão geral</h4>
+            <div class="sub">Atualizado agora</div>
+            <div class="mock-kpis">
+              <div class="mock-kpi gold"><div class="l">Alunos ativos</div><div class="v">312</div></div>
+              <div class="mock-kpi green"><div class="l">A receber</div><div class="v">R$ 48,2k</div></div>
+              <div class="mock-kpi"><div class="l">A pagar</div><div class="v">R$ 21,4k</div></div>
+            </div>
+            <div class="mock-list">
+              <div class="mock-row"><span class="name">Matrícula — Curso Básico</span><span class="tag tag-info">Nova</span></div>
+              <div class="mock-row"><span class="name">Pedido — Loja (material físico)</span><span class="tag tag-pending">A enviar</span></div>
+              <div class="mock-row"><span class="name">Certificado — Diaconato</span><span class="tag tag-done">Emitido</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="order:1;">
+        <span class="section-tag">Experiência da secretaria</span>
+        <h2 style="font-size:32px; font-weight:900; margin-bottom:16px;">Gestão sem depender de planilha</h2>
+        <p style="color:var(--muted); font-size:15px;">Um painel único mostra tudo que a secretaria precisa acompanhar no dia a dia — matrículas novas, financeiro, pedidos da loja e certificados — sem abrir cinco arquivos diferentes.</p>
+        <ul class="checklist">
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Matrícula sem fila</strong><span class="desc">Inscrição gratuita aprova na hora; inscrição paga aprova automaticamente após confirmação do pagamento.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Financeiro completo</strong><span class="desc">Contas a pagar, contas a receber e caixa diário — incluindo vendas online já baixadas automaticamente.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Loja com estoque</strong><span class="desc">Cadastro de produtos, controle de estoque com histórico de movimentações e dashboard de pedidos.</span></div>
+          </li>
+          <li>
+            <div class="ck">✓</div>
+            <div><strong>Acesso por nível</strong><span class="desc">Cada pessoa vê só o que pode — de secretaria de setor a administração geral do instituto.</span></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Como funciona</span>
+      <h2>Da inscrição ao certificado, em 4 passos</h2>
+      <p>O fluxo foi desenhado para não depender de aprovação manual demorada nem de retrabalho da secretaria.</p>
+    </div>
+    <div class="journey">
+      <div class="jstep">
+        <div class="jn">1</div>
+        <h4>Inscrição</h4>
+        <p>O interessado se inscreve pelo portal — curso gratuito ou pago, com checkout integrado.</p>
+      </div>
+      <div class="jstep">
+        <div class="jn">2</div>
+        <h4>Matrícula automática</h4>
+        <p>Aprovação imediata (gratuito) ou após confirmação de pagamento — sem fila manual.</p>
+      </div>
+      <div class="jstep">
+        <div class="jn">3</div>
+        <h4>Sala de aula</h4>
+        <p>O aluno já entra direto na turma, com aulas, progresso e provas do seu curso.</p>
+      </div>
+      <div class="jstep">
+        <div class="jn">4</div>
+        <h4>Certificado</h4>
+        <p>Ao concluir, o certificado é emitido com número público validável online.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="curriculo" class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Currículo oficial</span>
+      <h2>Conteúdo real do CETADP, já carregado no sistema</h2>
+      <p>Os dois cursos teológicos oficiais já estão com a grade curricular completa cadastrada.</p>
+    </div>
+    <div class="curric-grid">
+      <div class="curric-card basico">
+        <span class="chip">CURSO TEOLÓGICO</span>
+        <h3>Ensino Básico</h3>
+        <div class="meta">10 disciplinas · Fevereiro a Novembro</div>
+        <ol>
+          <li>Doutrina de Deus</li>
+          <li>Cristologia</li>
+          <li>Pneumatologia — Espírito Santo</li>
+          <li>Anjos, Homem e Pecado</li>
+          <li>Panorama do Antigo Testamento</li>
+          <li>Panorama do Novo Testamento</li>
+          <li>História da Igreja</li>
+          <li>Escatologia</li>
+          <li>Ética Cristã</li>
+          <li>Bibliologia</li>
+        </ol>
+      </div>
+      <div class="curric-card medio">
+        <span class="chip">CURSO TEOLÓGICO</span>
+        <h3>Ensino Médio</h3>
+        <div class="meta">10 disciplinas · Fevereiro a Novembro</div>
+        <ol>
+          <li>Família Cristã</li>
+          <li>Homilética</li>
+          <li>Hermenêutica</li>
+          <li>Teologia do Obreiro</li>
+          <li>Soteriologia — Doutrina da Salvação</li>
+          <li>Eclesiologia — Doutrina da Igreja</li>
+          <li>Educação Cristã</li>
+          <li>Apologética — Defesa da Fé</li>
+          <li>Missiologia</li>
+          <li>Liderança Cristã</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contato">
+  <div class="wrap">
+    <div class="cta-final">
+      <h2>Pronto para ver o portal funcionando ao vivo?</h2>
+      <p>Esta apresentação mostra a visão geral — o sistema já está em desenvolvimento, com módulos reais rodando. Vamos marcar uma demonstração completa.</p>
+      <a href="#" class="btn-primary">Agendar demonstração</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="brand-name">Portal EAD de Teologia · CETADP</span> — apresentação de visão do projeto, sujeita a evolução até o lançamento.
+  </div>
+</footer>
+
+</body>
+</html>

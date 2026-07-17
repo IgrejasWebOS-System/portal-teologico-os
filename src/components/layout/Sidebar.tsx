@@ -101,6 +101,64 @@ export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {/* Admin section - so para staff, sempre primeiro nesta lista */}
+        {isStaff && (
+        <div className="pb-3 mb-3 border-b border-white/10">
+        <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2">
+          Administração
+        </p>
+        {adminModules.map((mod) => {
+          const Icon = mod.icon;
+          const isModuleActive =
+            pathname === mod.href || pathname.startsWith(mod.href + "/");
+
+          return (
+            <div key={mod.href}>
+              <Link
+                href={mod.subItems ? mod.subItems[0].href : mod.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                  isModuleActive
+                    ? "bg-iw-blue text-white shadow-md"
+                    : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+                )}
+              >
+                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isModuleActive ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky")} />
+                <div className="flex-1 min-w-0">
+                  <p className="leading-tight truncate">{mod.label}</p>
+                  {!isModuleActive && (
+                    <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60">{mod.description}</p>
+                  )}
+                </div>
+                {isModuleActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-iw-gold shrink-0" />}
+              </Link>
+
+              {isModuleActive && mod.subItems && (
+                <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-iw-sky/20 space-y-0.5">
+                  {mod.subItems.map((sub) => {
+                    const SubIcon = sub.icon;
+                    const isSubActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
+                    return (
+                      <Link key={sub.href} href={sub.href}
+                        className={cn(
+                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 group",
+                          isSubActive ? "bg-white/15 text-white" : "text-iw-sky/60 hover:bg-white/8 hover:text-iw-sky"
+                        )}
+                      >
+                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{sub.label}</span>
+                        {isSubActive && <ChevronRight className="w-3 h-3 ml-auto text-iw-gold" />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        </div>
+        )}
+
         <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2">
           Módulos
         </p>
@@ -179,65 +237,6 @@ export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
           );
         })}
       </nav>
-
-      {/* Admin section — só para staff (Configurações/Admin nunca aparecem para aluno) */}
-      {isStaff && (
-      <div className="px-3 pt-2 pb-1">
-        <div className="mx-0 border-t border-white/10 mb-3" />
-        <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2">
-          Administração
-        </p>
-        {adminModules.map((mod) => {
-          const Icon = mod.icon;
-          const isModuleActive =
-            pathname === mod.href || pathname.startsWith(mod.href + "/");
-
-          return (
-            <div key={mod.href}>
-              <Link
-                href={mod.subItems ? mod.subItems[0].href : mod.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
-                  isModuleActive
-                    ? "bg-iw-blue text-white shadow-md"
-                    : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
-                )}
-              >
-                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isModuleActive ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky")} />
-                <div className="flex-1 min-w-0">
-                  <p className="leading-tight truncate">{mod.label}</p>
-                  {!isModuleActive && (
-                    <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60">{mod.description}</p>
-                  )}
-                </div>
-                {isModuleActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-iw-gold shrink-0" />}
-              </Link>
-
-              {isModuleActive && mod.subItems && (
-                <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-iw-sky/20 space-y-0.5">
-                  {mod.subItems.map((sub) => {
-                    const SubIcon = sub.icon;
-                    const isSubActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
-                    return (
-                      <Link key={sub.href} href={sub.href}
-                        className={cn(
-                          "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 group",
-                          isSubActive ? "bg-white/15 text-white" : "text-iw-sky/60 hover:bg-white/8 hover:text-iw-sky"
-                        )}
-                      >
-                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
-                        <span>{sub.label}</span>
-                        {isSubActive && <ChevronRight className="w-3 h-3 ml-auto text-iw-gold" />}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      )}
 
       {/* Divider */}
       <div className="mx-4 border-t border-white/10" />
