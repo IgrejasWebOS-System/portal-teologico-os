@@ -1,0 +1,26 @@
+{
+  "workspace": "C:\\Projetos",
+  "onedrive": "C:\\Users\\joaqu\\OneDrive\\Projetos",
+  "external": "E:\\Projetos",
+  "snapshots": "E:\\Projetos\\Snapshots",
+  "github": {
+    "organization": "IgrejasWebOS-System",
+    "defaultBranch": "main"
+  },
+  "excludedDirectories": [
+    "node_modules",
+    ".next",
+    ".git",
+    "out",
+    "build",
+    "coverage",
+    ".vercel",
+    ".turbo"
+  ],
+  "excludedFiles": [
+    ".env*",
+    "*.tsbuildinfo",
+    "next-env.d.ts",
+    "*.log"
+  ]
+}
