@@ -45,6 +45,9 @@ do MCP do Supabase — não via Supabase CLI.
 | `036_certificado_demo_visual.sql` | 1 certificado de demonstração (curso avulso Diaconato) pra testar o novo modelo visual de certificado |
 | `037_estoque_movimentacoes_produtos.sql` | Tabela `product_stock_movements` — histórico de entradas/saídas/ajustes de estoque dos produtos da Loja, com baixa automática nas vendas pagas via webhook |
 | `038_leads_loja_funil_status.sql` | Tabela `loja_leads_crm` — funil de contato simples (Não contatado/Contatado/Convertido/Sem interesse) + observação para os Leads da Loja |
+| `039_limite_simulados_por_matricula.sql` | Trigger `check_limite_simulados` — limita a 2 o número de SIMULADOs por matrícula (antes era ilimitado), rede de segurança no banco além da checagem já feita na Server Action |
+| `040_seed_questoes_curso_medio.sql` | 12 questões de exemplo em `avaliacoes_banco_questoes` para o Curso Teológico Médio (só o Básico tinha, desde a 025) — sem isso não dá pra gerar simulado/prova do Médio |
+| `041_demo_aluno_com_simulados_e_provas.sql` | Novo usuário demo `alunoprova@cetadp.teo.br` — matriculado e aprovado (nota 8,0) em Básico e Médio, 100% das aulas concluídas, 2 simulados + 1 prova já feitos em cada curso |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

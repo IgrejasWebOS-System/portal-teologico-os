@@ -8,12 +8,24 @@ export const metadata = { title: "Avaliação — Portal do Aluno" };
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; voltar?: string }>;
+}
+
+function resolveVoltarHref(voltar: string | undefined): { href: string; label: string } {
+  const isInterno = !!voltar && voltar.startsWith("/") && !voltar.startsWith("//");
+  if (!isInterno) return { href: "/portal/avaliacoes", label: "Voltar" };
+
+  const caminho = voltar as string;
+  if (caminho.startsWith("/escola/") || caminho.startsWith("/cursos/")) {
+    return { href: caminho, label: "Voltar à sala de aula" };
+  }
+  return { href: caminho, label: "Voltar" };
 }
 
 export default async function AvaliacaoPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, voltar } = await searchParams;
+  const { href: voltarHref, label: voltarLabel } = resolveVoltarHref(voltar);
 
   const supabase = await createClient();
   const {
@@ -51,11 +63,11 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
       <header className="bg-iw-navy shadow-lg">
         <div className="max-w-2xl mx-auto px-6 py-5">
           <Link
-            href="/portal/avaliacoes"
+            href={voltarHref}
             className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar
+            {voltarLabel}
           </Link>
         </div>
       </header>

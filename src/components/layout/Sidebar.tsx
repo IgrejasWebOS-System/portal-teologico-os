@@ -25,6 +25,12 @@ import {
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
 import Logo from "@/components/Logo";
+import AreaDoAlunoPainel, {
+  type AlunoResumo,
+  type MatriculaResumo,
+  type ParcelaResumo,
+  type AvaliacaoResumo,
+} from "@/components/aluno/AreaDoAlunoPainel";
 
 interface SidebarModule {
   label: string;
@@ -83,7 +89,20 @@ const adminModules: SidebarModule[] = [
   },
 ];
 
-export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
+export default function Sidebar({
+  isStaff = false,
+  isAlunoOficial = false,
+  alunoPainel = null,
+}: {
+  isStaff?: boolean;
+  isAlunoOficial?: boolean;
+  alunoPainel?: {
+    aluno: AlunoResumo;
+    matriculas: MatriculaResumo[];
+    parcelas: ParcelaResumo[];
+    avaliacoes: AvaliacaoResumo[];
+  } | null;
+}) {
   const pathname = usePathname();
 
   return (
@@ -159,6 +178,17 @@ export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
         </div>
         )}
 
+        {isAlunoOficial && alunoPainel && (
+          <AreaDoAlunoPainel
+            aluno={alunoPainel.aluno}
+            matriculas={alunoPainel.matriculas}
+            parcelas={alunoPainel.parcelas}
+            avaliacoes={alunoPainel.avaliacoes}
+          />
+        )}
+
+        {!isAlunoOficial && (
+        <>
         <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2">
           Módulos
         </p>
@@ -236,6 +266,8 @@ export default function Sidebar({ isStaff = false }: { isStaff?: boolean }) {
             </div>
           );
         })}
+        </>
+        )}
       </nav>
 
       {/* Divider */}

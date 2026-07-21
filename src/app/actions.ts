@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut({ scope: "local" });
-  redirect("/login");
+  redirect("/");
 }
 
 // Deslogar TODOS os dispositivos / sessões ativas

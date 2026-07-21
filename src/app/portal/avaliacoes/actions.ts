@@ -8,19 +8,24 @@ import { revalidatePath } from "next/cache";
 
 // ============================================================
 // Simulados e provas do aluno. Regras (decididas com o CETADP em
-// 15/07/2026):
+// 15/07/2026, ajustadas em 17/07/2026):
 // - Simulado: opcional, múltipla escolha, mínimo 10 questões (com
-//   seletor para mais), sem limite de repetições. Não conta para
-//   aprovação/reprovação da matrícula, mas fica no histórico.
+//   seletor para mais), no máximo 2 tentativas por matrícula
+//   (garantido também por trigger no banco, ver migration 039).
+//   Não conta para aprovação/reprovação da matrícula, mas fica no
+//   histórico.
 // - Prova: só pode ser feita 1 vez por matrícula (garantido também
-//   por índice único no banco). Aviso de "sem volta" confirmado no
-//   formulário antes de gerar a primeira questão. Nota mínima 6,0.
-//   Ao finalizar, atualiza o status da matrícula (ead_matriculas)
-//   para APROVADO/REPROVADO — REPROVADO libera nova matrícula no
-//   mesmo curso, conforme a regra de CPF já aplicada na aprovação.
+//   por índice único no banco), e só fica disponível depois que o
+//   aluno concluir 100% das aulas do curso (enrollments.progress_percent).
+//   Aviso de "sem volta" confirmado no formulário antes de gerar a
+//   primeira questão. Nota mínima 6,0. Ao finalizar, atualiza o
+//   status da matrícula (ead_matriculas) para APROVADO/REPROVADO —
+//   REPROVADO libera nova matrícula no mesmo curso, conforme a
+//   regra de CPF já aplicada na aprovação.
 // ============================================================
 
 const NOTA_MINIMA = 6.0;
+const LIMITE_SIMULADOS = 2;
 
 function fail(message: string): never {
   redirect("/portal/avaliacoes?error=" + encodeURIComponent(message));
@@ -57,7 +62,7 @@ export async function iniciarAvaliacaoAction(formData: FormData) {
 
   if (!matriculaId || !["SIMULADO", "PROVA"].includes(tipo)) fail("Dados inválidos.");
 
-  const { matricula } = await carregarMatriculaDoAluno(matriculaId);
+  const { matricula, userId } = await carregarMatriculaDoAluno(matriculaId);
 
   if (matricula.status !== "EM_ANDAMENTO") {
     fail("Esta matrícula não está em andamento — não é possível fazer simulado/prova.");
@@ -71,6 +76,17 @@ export async function iniciarAvaliacaoAction(formData: FormData) {
 
   const admin = createAdminClient();
 
+  if (tipo === "SIMULADO") {
+    const { count: totalSimulados } = await admin
+      .from("avaliacoes")
+      .select("id", { count: "exact", head: true })
+      .eq("matricula_id", matriculaId)
+      .eq("tipo", "SIMULADO");
+    if ((totalSimulados ?? 0) >= LIMITE_SIMULADOS) {
+      fail(`Você já utilizou os ${LIMITE_SIMULADOS} simulados disponíveis para este curso.`);
+    }
+  }
+
   if (tipo === "PROVA") {
     const { data: provaExistente } = await admin
       .from("avaliacoes")
@@ -79,6 +95,16 @@ export async function iniciarAvaliacaoAction(formData: FormData) {
       .eq("tipo", "PROVA")
       .maybeSingle();
     if (provaExistente) fail("Você já fez a prova deste curso — só é permitida uma tentativa por matrícula.");
+
+    const { data: enrollment } = await admin
+      .from("enrollments")
+      .select("progress_percent")
+      .eq("user_id", userId)
+      .eq("course_id", matricula.course_id)
+      .maybeSingle();
+    if (!enrollment || enrollment.progress_percent !== 100) {
+      fail("Você precisa concluir 100% das aulas do curso antes de fazer a prova.");
+    }
   }
 
   const numQuestoes = tipo === "PROVA" ? 10 : Math.max(10, numQuestoesForm);

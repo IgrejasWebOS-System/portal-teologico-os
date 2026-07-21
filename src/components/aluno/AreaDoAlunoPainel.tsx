@@ -9,22 +9,25 @@ import {
   GraduationCap,
   Wallet,
   ClipboardCheck,
-  ChevronLeft,
   ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
   LogOut,
   KeyRound,
 } from "lucide-react";
 import { signOutGlobalAction } from "@/app/actions";
 import { trocarSenhaAlunoAction } from "@/app/(escola)/aluno-actions";
+import { cn } from "@/utils/cn";
 
 // ============================================================
-// "Área do Aluno" — menu lateral retrátil com 5 seções (Meus
-// Dados, Conta, Curso, Financeiro, Provas e Testes). Colapsado
-// vira uma aba fina; expandido mostra um menu por escrito
-// (ícone + rótulo), e clicar num item abre o conteúdo dele em
-// sanfona logo abaixo, dentro do próprio menu. Renderizado no
-// layout de (escola) para quem tem ficha de aluno oficial
-// (ead_alunos) vinculada ao login.
+// "Minha Área" — bloco embutido no próprio Sidebar (não é mais um
+// painel flutuante à parte) no lugar de "Módulos", para quem tem
+// ficha de aluno oficial (ead_alunos) vinculada ao login. Mesmo
+// cabeçalho e mesmo rodapé (Sair da conta) do Sidebar continuam
+// intactos — só o miolo do menu muda. 5 seções (Meus Dados, Conta,
+// Curso, Financeiro, Provas e Testes); clicar numa seção abre o
+// conteúdo dela em sanfona logo abaixo. Pode ficar aberto (ícone +
+// rótulo) ou recolhido (só ícone) — padrão aberto.
 // ============================================================
 
 export interface AlunoResumo {
@@ -78,7 +81,7 @@ const STATUS_PARCELA_CLS: Record<string, string> = {
   PAGO: "bg-iw-success-bg text-iw-success",
   PENDENTE: "bg-iw-gold/10 text-iw-gold",
   ATRASADO: "bg-iw-error-bg text-iw-error",
-  CANCELADO: "bg-iw-bg text-iw-muted",
+  CANCELADO: "bg-white/10 text-iw-sky/60",
 };
 
 function fmt(centavos: number) {
@@ -107,7 +110,9 @@ export default function AreaDoAlunoPainel({
   const contaError = searchParams.get("contaError") ?? undefined;
   const returnPath = pathname;
 
-  const [expandido, setExpandido] = useState(!!(contaMsg || contaError));
+  // "Aberto" = ícone + rótulo (padrão). "Recolhido" = só ícone,
+  // sem sanfona de conteúdo.
+  const [expandido, setExpandido] = useState(true);
   const [secaoAtiva, setSecaoAtiva] = useState<Secao | null>(contaMsg || contaError ? "conta" : null);
 
   function renderSecao(key: Secao) {
@@ -140,9 +145,9 @@ export default function AreaDoAlunoPainel({
 
             <Campo label="Login" valor={aluno.email} />
 
-            <form action={trocarSenhaAlunoAction} className="space-y-2 pt-2 border-t border-iw-border">
+            <form action={trocarSenhaAlunoAction} className="space-y-2 pt-2 border-t border-white/10">
               <input type="hidden" name="returnPath" value={returnPath} />
-              <p className="text-xs font-bold text-iw-muted uppercase tracking-wider flex items-center gap-1.5">
+              <p className="text-xs font-bold text-iw-sky/50 uppercase tracking-wider flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5" /> Trocar senha
               </p>
               <input
@@ -151,7 +156,7 @@ export default function AreaDoAlunoPainel({
                 placeholder="Nova senha"
                 required
                 minLength={6}
-                className="w-full bg-iw-bg border border-iw-border rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
               />
               <input
                 type="password"
@@ -159,20 +164,20 @@ export default function AreaDoAlunoPainel({
                 placeholder="Confirmar nova senha"
                 required
                 minLength={6}
-                className="w-full bg-iw-bg border border-iw-border rounded-lg px-3 py-2 text-sm"
+                className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
               />
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg bg-iw-blue text-white text-xs font-bold hover:bg-iw-navy transition-colors"
+                className="w-full py-2 rounded-lg bg-iw-blue text-gray-900 text-xs font-bold hover:opacity-90 transition-opacity"
               >
                 Atualizar senha
               </button>
             </form>
 
-            <form action={signOutGlobalAction} className="pt-2 border-t border-iw-border">
+            <form action={signOutGlobalAction} className="pt-2 border-t border-white/10">
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-iw-error hover:bg-iw-error-bg transition-colors"
+                className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-red-300 hover:bg-red-500/10 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" /> Sair de todos os dispositivos
               </button>
@@ -182,16 +187,16 @@ export default function AreaDoAlunoPainel({
 
       case "curso":
         return (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {matriculas.length === 0 ? (
-              <p className="text-xs text-iw-muted">Nenhuma matrícula oficial encontrada.</p>
+              <p className="text-xs text-iw-sky/50">Nenhuma matrícula oficial encontrada.</p>
             ) : (
               matriculas.map((m) => (
-                <div key={m.id} className="bg-iw-bg rounded-xl p-3 space-y-1">
-                  <p className="text-sm font-bold text-iw-navy">{m.cursoNomeSnapshot}</p>
-                  <p className="text-xs text-iw-muted">Matrícula {m.matricula}</p>
-                  <p className="text-xs text-iw-muted">Desde {fmtData(m.dataMatricula)}</p>
-                  <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-iw-blue/10 text-iw-blue mt-1">
+                <div key={m.id} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
+                  <p className="text-sm font-bold text-white">{m.cursoNomeSnapshot}</p>
+                  <p className="text-xs text-iw-sky/60">Matrícula {m.matricula}</p>
+                  <p className="text-xs text-iw-sky/60">Desde {fmtData(m.dataMatricula)}</p>
+                  <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-iw-blue/20 text-iw-blue mt-1">
                     {m.status}
                   </span>
                 </div>
@@ -204,17 +209,17 @@ export default function AreaDoAlunoPainel({
         return (
           <div className="space-y-2">
             {parcelas.length === 0 ? (
-              <p className="text-xs text-iw-muted">Nenhuma parcela lançada ainda.</p>
+              <p className="text-xs text-iw-sky/50">Nenhuma parcela lançada ainda.</p>
             ) : (
               parcelas.map((p, i) => (
-                <div key={i} className="bg-iw-bg rounded-xl p-3 space-y-1">
+                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-iw-navy truncate">{p.descricao}</p>
+                    <p className="text-xs font-semibold text-white truncate">{p.descricao}</p>
                     <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_PARCELA_CLS[p.status] ?? ""}`}>
                       {p.status}
                     </span>
                   </div>
-                  <p className="text-xs text-iw-muted">
+                  <p className="text-xs text-iw-sky/60">
                     Parcela {p.numeroParcela}/{p.totalParcelas} · {fmt(p.valorBrutoCentavos)} · vence {fmtData(p.dataVencimento)}
                   </p>
                   {p.responsavelPagamento === "IGREJA" && (
@@ -230,27 +235,27 @@ export default function AreaDoAlunoPainel({
         return (
           <div className="space-y-2">
             {avaliacoes.length === 0 ? (
-              <p className="text-xs text-iw-muted">Nenhum simulado ou prova realizado ainda.</p>
+              <p className="text-xs text-iw-sky/50">Nenhum simulado ou prova realizado ainda.</p>
             ) : (
               avaliacoes.map((a, i) => (
-                <div key={i} className="bg-iw-bg rounded-xl p-3 space-y-1">
+                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-iw-navy">{a.tipo === "PROVA" ? "Prova final" : "Simulado"}</p>
-                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-iw-blue/10 text-iw-blue">
+                    <p className="text-xs font-bold text-white">{a.tipo === "PROVA" ? "Prova final" : "Simulado"}</p>
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-iw-blue/20 text-iw-blue">
                       {a.status}
                     </span>
                   </div>
                   {a.status === "FINALIZADA" ? (
-                    <p className="text-xs text-iw-muted">
+                    <p className="text-xs text-iw-sky/60">
                       {a.acertos}/{a.numQuestoes} acertos · nota {a.nota?.toFixed(1)} ·{" "}
                       <span className={a.aprovado ? "text-iw-success font-semibold" : "text-iw-error font-semibold"}>
                         {a.aprovado ? "Aprovado" : "Não aprovado"}
                       </span>
                     </p>
                   ) : (
-                    <p className="text-xs text-iw-muted">Em andamento</p>
+                    <p className="text-xs text-iw-sky/60">Em andamento</p>
                   )}
-                  <p className="text-[10px] text-iw-muted">{fmtData(a.finalizadaEm)}</p>
+                  <p className="text-[10px] text-iw-sky/50">{fmtData(a.finalizadaEm)}</p>
                 </div>
               ))
             )}
@@ -260,73 +265,75 @@ export default function AreaDoAlunoPainel({
   }
 
   return (
-    <>
-      {/* Aba colapsada */}
-      {!expandido && (
+    <div className="pb-3 mb-3 border-b border-white/10">
+      <div className="flex items-center justify-between px-3 pb-2">
+        {expandido && (
+          <p className="text-iw-sky/40 text-xs font-semibold uppercase tracking-wider">Minha Área</p>
+        )}
         <button
           type="button"
-          onClick={() => setExpandido(true)}
-          className="fixed left-64 top-1/2 -translate-y-1/2 z-40 flex items-center gap-1.5 bg-iw-navy text-white text-xs font-bold px-2.5 py-3 rounded-r-xl shadow-lg hover:bg-iw-blue transition-colors [writing-mode:vertical-rl]"
-          title="Abrir área do aluno"
+          onClick={() => {
+            setExpandido((v) => !v);
+            if (expandido) setSecaoAtiva(null);
+          }}
+          className={cn(
+            "w-6 h-6 rounded-lg flex items-center justify-center text-iw-sky/50 hover:bg-white/10 hover:text-white transition-colors shrink-0",
+            !expandido && "mx-auto"
+          )}
+          title={expandido ? "Recolher Minha Área" : "Expandir Minha Área"}
         >
-          <User className="w-4 h-4 rotate-90" />
-          Minha Área
+          {expandido ? <ChevronsLeft className="w-3.5 h-3.5" /> : <ChevronsRight className="w-3.5 h-3.5" />}
         </button>
-      )}
+      </div>
 
-      {/* Menu expandido — ícone + rótulo por escrito; o conteúdo da
-          seção ativa abre em sanfona logo abaixo dela */}
-      {expandido && (
-        <div className="fixed left-64 top-0 bottom-0 z-40 w-72 bg-white border-r border-iw-border shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200">
-          <div className="sticky top-0 bg-iw-navy px-4 py-3 flex items-center justify-between z-10">
-            <h3 className="text-sm font-black text-white">Minha Área</h3>
-            <button
-              type="button"
-              onClick={() => {
-                setExpandido(false);
-                setSecaoAtiva(null);
-              }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-iw-sky/70 hover:bg-white/10 hover:text-white transition-colors"
-              title="Recolher"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
+      <nav className="space-y-0.5">
+        {SECOES.map((s) => {
+          const Icon = s.icon;
+          const ativo = expandido && secaoAtiva === s.key;
+          return (
+            <div key={s.key}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!expandido) {
+                    setExpandido(true);
+                    setSecaoAtiva(s.key);
+                  } else {
+                    setSecaoAtiva(ativo ? null : s.key);
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                  !expandido && "justify-center px-0",
+                  ativo
+                    ? "bg-iw-blue text-white shadow-md"
+                    : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+                )}
+                title={!expandido ? s.label : undefined}
+              >
+                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", ativo ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky")} />
+                {expandido && (
+                  <>
+                    <span className="flex-1 text-left leading-tight truncate">{s.label}</span>
+                    <ChevronDown className={cn("w-3.5 h-3.5 shrink-0 transition-transform", ativo && "rotate-180")} />
+                  </>
+                )}
+              </button>
 
-          <nav className="p-2 space-y-0.5">
-            {SECOES.map((s) => {
-              const Icon = s.icon;
-              const ativo = secaoAtiva === s.key;
-              return (
-                <div key={s.key}>
-                  <button
-                    type="button"
-                    onClick={() => setSecaoAtiva(ativo ? null : s.key)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                      ativo ? "bg-iw-gold/10 text-iw-gold" : "text-iw-navy hover:bg-iw-bg"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="flex-1 text-left">{s.label}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${ativo ? "rotate-180" : ""}`} />
-                  </button>
-
-                  {ativo && <div className="px-3 pb-4 pt-1">{renderSecao(s.key)}</div>}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      )}
-    </>
+              {ativo && <div className="px-3 pt-2 pb-1">{renderSecao(s.key)}</div>}
+            </div>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
 function Campo({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
-      <p className="text-[10px] font-bold text-iw-muted uppercase tracking-wider">{label}</p>
-      <p className="text-sm text-iw-navy font-medium">{valor}</p>
+      <p className="text-[10px] font-bold text-iw-sky/50 uppercase tracking-wider">{label}</p>
+      <p className="text-sm text-white font-medium">{valor}</p>
     </div>
   );
 }

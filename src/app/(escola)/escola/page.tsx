@@ -77,7 +77,7 @@ export default async function EscolaPage() {
             <h1 className="text-2xl font-black text-iw-navy tracking-tight">Meus Cursos</h1>
             <p className="text-iw-muted text-sm mt-1">Disciplinas em que você está matriculado no CETADP.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="flex flex-wrap gap-5">
             {meusCoursesList.map((c) => (
               <CourseCard
                 key={c.id}

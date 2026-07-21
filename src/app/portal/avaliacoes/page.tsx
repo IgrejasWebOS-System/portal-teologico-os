@@ -7,7 +7,19 @@ import { iniciarAvaliacaoAction } from "./actions";
 export const metadata = { title: "Simulados e Provas — Portal do Aluno" };
 
 interface PageProps {
-  searchParams: Promise<{ msg?: string; error?: string }>;
+  searchParams: Promise<{ msg?: string; error?: string; voltar?: string }>;
+}
+
+function resolveVoltarHref(voltar: string | undefined): { href: string; label: string } {
+  const isPathInterno =
+    !!voltar &&
+    voltar.startsWith("/") &&
+    !voltar.startsWith("//") &&
+    (voltar.startsWith("/escola/") || voltar.startsWith("/cursos/"));
+
+  return isPathInterno
+    ? { href: voltar as string, label: "Voltar à sala de aula" }
+    : { href: "/portal", label: "Voltar ao Portal" };
 }
 
 const STATUS_MATRICULA_LABEL: Record<string, string> = {
@@ -18,7 +30,8 @@ const STATUS_MATRICULA_LABEL: Record<string, string> = {
 };
 
 export default async function AvaliacoesPage({ searchParams }: PageProps) {
-  const { msg, error } = await searchParams;
+  const { msg, error, voltar } = await searchParams;
+  const { href: voltarHref, label: voltarLabel } = resolveVoltarHref(voltar);
 
   const supabase = await createClient();
   const {
@@ -41,11 +54,11 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
             Você ainda não tem uma matrícula ativa como aluno do CETADP.
           </p>
           <Link
-            href="/portal"
+            href={voltarHref}
             className="inline-flex items-center gap-1.5 text-iw-gold font-semibold text-sm hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao Portal
+            {voltarLabel}
           </Link>
         </div>
       </div>
@@ -59,6 +72,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
     .order("data_matricula", { ascending: false });
 
   const matriculaIds = (matriculas ?? []).map((m) => m.id);
+  const courseIds = [...new Set((matriculas ?? []).map((m) => m.course_id).filter(Boolean))] as string[];
 
   const { data: avaliacoes } = matriculaIds.length
     ? await supabase
@@ -68,16 +82,30 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
         .order("iniciada_em", { ascending: false })
     : { data: [] };
 
+  const { data: enrollments } = courseIds.length
+    ? await supabase
+        .from("enrollments")
+        .select("course_id, progress_percent")
+        .eq("user_id", user.id)
+        .in("course_id", courseIds)
+    : { data: [] };
+
+  const progressoPorCurso = new Map(
+    (enrollments ?? []).map((e) => [e.course_id, e.progress_percent])
+  );
+
+  const LIMITE_SIMULADOS = 2;
+
   return (
     <div className="min-h-screen bg-iw-bg">
       <header className="bg-iw-navy shadow-lg">
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
-            href="/portal"
+            href={voltarHref}
             className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar ao Portal
+            {voltarLabel}
           </Link>
         </div>
       </header>
@@ -90,7 +118,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">Simulados e Provas</h1>
             <p className="text-iw-muted text-xs mt-0.5">
-              O simulado é opcional e pode ser refeito quantas vezes quiser. A prova só pode ser feita uma vez.
+              O simulado é opcional, com até 2 tentativas por curso. A prova libera ao concluir 100% das aulas e só pode ser feita uma vez.
             </p>
           </div>
         </div>
@@ -114,7 +142,13 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
           matriculas.map((m) => {
             const avaliacoesDaMatricula = (avaliacoes ?? []).filter((a) => a.matricula_id === m.id);
             const provaExistente = avaliacoesDaMatricula.find((a) => a.tipo === "PROVA");
-            const podeAvaliar = m.status === "EM_ANDAMENTO" && !!m.course_id;
+            const simuladosFeitos = avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length;
+            const simuladosEsgotados = simuladosFeitos >= LIMITE_SIMULADOS;
+            const progresso = m.course_id ? progressoPorCurso.get(m.course_id) ?? 0 : 0;
+            const provaLiberada = progresso === 100;
+            const matriculaEmAndamento = m.status === "EM_ANDAMENTO";
+            const podeAvaliar =
+              !!m.course_id && (matriculaEmAndamento || !!provaExistente || simuladosFeitos > 0);
 
             return (
               <div key={m.id} className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
@@ -138,33 +172,70 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                 {podeAvaliar && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Simulado */}
-                    <form action={iniciarAvaliacaoAction} className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
-                      <input type="hidden" name="matricula_id" value={m.id} />
-                      <input type="hidden" name="tipo" value="SIMULADO" />
-                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Simulado (opcional)</p>
-                      <label className="block text-[11px] text-iw-muted">
-                        Quantidade de questões
-                        <select name="num_questoes" defaultValue="10" className="mt-1 w-full bg-white border border-iw-border rounded-lg px-2.5 py-2 text-sm cursor-pointer">
-                          <option value="10">10</option>
-                          <option value="15">15</option>
-                          <option value="20">20</option>
-                        </select>
-                      </label>
-                      <button type="submit" className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity">
-                        Fazer simulado
-                      </button>
-                    </form>
+                    <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Simulado</p>
+                        <span className="text-[10px] font-bold text-iw-muted">{simuladosFeitos}/{LIMITE_SIMULADOS} usados</span>
+                      </div>
+
+                      {avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length > 0 && (
+                        <ul className="space-y-1">
+                          {avaliacoesDaMatricula
+                            .filter((a) => a.tipo === "SIMULADO")
+                            .map((a) => (
+                              <li key={a.id}>
+                                <Link
+                                  href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                                  className="block text-xs font-bold text-iw-navy hover:underline"
+                                >
+                                  {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} — {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)}` : "em andamento"}
+                                </Link>
+                              </li>
+                            ))}
+                        </ul>
+                      )}
+
+                      {simuladosEsgotados ? (
+                        <p className="text-[11px] text-iw-muted italic">
+                          Você já utilizou os {LIMITE_SIMULADOS} simulados disponíveis para este curso.
+                        </p>
+                      ) : matriculaEmAndamento ? (
+                        <form action={iniciarAvaliacaoAction} className="space-y-3">
+                          <input type="hidden" name="matricula_id" value={m.id} />
+                          <input type="hidden" name="tipo" value="SIMULADO" />
+                          <label className="block text-[11px] text-iw-muted">
+                            Quantidade de questões
+                            <select name="num_questoes" defaultValue="10" className="mt-1 w-full bg-white border border-iw-border rounded-lg px-2.5 py-2 text-sm cursor-pointer">
+                              <option value="10">10</option>
+                              <option value="15">15</option>
+                              <option value="20">20</option>
+                            </select>
+                          </label>
+                          <button type="submit" className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity">
+                            Fazer simulado
+                          </button>
+                        </form>
+                      ) : (
+                        <p className="text-[11px] text-iw-muted italic">Matrícula não está mais em andamento.</p>
+                      )}
+                    </div>
 
                     {/* Prova */}
                     <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
                       <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (única tentativa)</p>
                       {provaExistente ? (
                         <Link
-                          href={`/portal/avaliacoes/${provaExistente.id}`}
-                          className="block text-center text-xs font-semibold text-iw-blue hover:underline"
+                          href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                          className="block text-center text-xs font-bold text-iw-navy hover:underline"
                         >
                           Ver resultado da prova ({provaExistente.status === "FINALIZADA" ? `nota ${Number(provaExistente.nota).toFixed(1)}` : "em andamento"})
                         </Link>
+                      ) : !matriculaEmAndamento ? (
+                        <p className="text-[11px] text-iw-muted italic">Matrícula não está mais em andamento.</p>
+                      ) : !provaLiberada ? (
+                        <p className="text-[11px] text-iw-muted italic">
+                          Disponível ao concluir 100% das aulas ({progresso}% concluído).
+                        </p>
                       ) : (
                         <form action={iniciarAvaliacaoAction} className="space-y-2">
                           <input type="hidden" name="matricula_id" value={m.id} />
@@ -185,22 +256,6 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length > 0 && (
-                  <div className="pt-2 border-t border-iw-border">
-                    <p className="text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Histórico de simulados</p>
-                    <ul className="space-y-1">
-                      {avaliacoesDaMatricula
-                        .filter((a) => a.tipo === "SIMULADO")
-                        .map((a) => (
-                          <li key={a.id} className="text-xs text-iw-muted flex items-center justify-between">
-                            <Link href={`/portal/avaliacoes/${a.id}`} className="hover:text-iw-navy hover:underline">
-                              {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} — {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)}` : "em andamento"}
-                            </Link>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             );
           })

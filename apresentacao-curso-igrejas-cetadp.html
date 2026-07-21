@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curso Teológico CETADP — Metodologia e Como Estudar pelo Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #111111;
+    --blue: #BCE5FF;
+    --sky: #88CDF6;
+    --gold: #C5A059;
+    --gold-alt: #D4AF37;
+    --bg: #E8E8E8;
+    --surface: #FFFFFF;
+    --muted: #6B7280;
+    --border: #D1D5DB;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--navy);
+    background: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: 'Merriweather', Georgia, serif; color: var(--navy); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+  a { color: inherit; }
+
+  /* topo institucional */
+  .topbar { background: var(--navy); color: #fff; padding: 22px 0; }
+  .topbar .wrap { display: flex; align-items: center; gap: 14px; }
+  .mark { width: 40px; height: 40px; border-radius: 10px; background: var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .topbar-name { font-weight: 700; font-size: 15px; }
+  .topbar-name span { display: block; color: var(--sky); font-size: 11.5px; font-weight: 500; }
+
+  /* capa */
+  .cover { padding: 72px 0 56px; text-align: center; }
+  .cover .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--gold-alt); margin-bottom: 18px;
+  }
+  .cover h1 { font-size: 38px; line-height: 1.25; font-weight: 900; max-width: 680px; margin: 0 auto 18px; }
+  .cover p { font-size: 16px; color: var(--muted); max-width: 560px; margin: 0 auto; }
+
+  section { padding: 48px 0; border-top: 1px solid var(--border); }
+  .section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: var(--gold-alt);
+    font-family: 'Merriweather', serif; font-weight: 900; font-size: 13px; margin-bottom: 16px;
+  }
+  h2 { font-size: 24px; font-weight: 900; margin-bottom: 10px; }
+  section > .wrap > p.intro { color: var(--muted); font-size: 15px; max-width: 620px; margin-bottom: 28px; }
+
+  /* sobre */
+  .about-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; font-size: 14.5px; color: var(--navy);
+  }
+  .about-box strong { color: var(--gold-alt); }
+
+  /* metodologia */
+  .curric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .curric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  .curric-card .chip {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+    padding: 3px 10px; border-radius: 999px; margin-bottom: 10px; background: var(--blue); color: var(--navy);
+  }
+  .curric-card h3 { font-family: 'Inter', sans-serif; font-size: 15.5px; font-weight: 700; margin-bottom: 3px; }
+  .curric-card .meta { font-size: 11.5px; color: var(--muted); margin-bottom: 12px; }
+  .curric-card ol { list-style: none; counter-reset: item; font-size: 12px; }
+  .curric-card ol li { counter-increment: item; padding: 4px 0; border-top: 1px solid #F1F1F1; display: flex; gap: 8px; }
+  .curric-card ol li:first-child { border-top: none; }
+  .curric-card ol li::before { content: counter(item); font-weight: 800; color: var(--gold-alt); width: 14px; flex-shrink: 0; }
+
+  .method-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .method-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
+  .method-item .n { font-family: 'Merriweather', serif; font-weight: 900; font-size: 20px; color: var(--gold-alt); margin-bottom: 6px; }
+  .method-item h4 { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+  .method-item p { font-size: 12px; color: var(--muted); }
+
+  /* passo a passo */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 18px; padding: 18px 0; border-top: 1px solid var(--border); }
+  .step:first-child { border-top: none; padding-top: 0; }
+  .step .sn {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--navy); color: var(--gold-alt);
+    font-family: 'Merriweather', serif; font-weight: 900; font-size: 14.5px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step h4 { font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 700; margin-bottom: 3px; }
+  .step p { font-size: 13.5px; color: var(--muted); }
+
+  /* vantagens */
+  .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .adv-item { display: flex; gap: 12px; align-items: flex-start; }
+  .adv-item .ck {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: var(--navy);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 900; margin-top: 1px;
+  }
+  .adv-item strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .adv-item span { font-size: 13px; color: var(--muted); }
+
+  /* contato final */
+  .cta-box {
+    background: var(--navy); color: #fff; border-radius: 16px; padding: 36px 32px; text-align: center;
+  }
+  .cta-box h2 { color: #fff; font-size: 22px; margin-bottom: 10px; }
+  .cta-box p { color: rgba(255,255,255,0.65); font-size: 14px; max-width: 480px; margin: 0 auto 20px; }
+  .cta-box .addr { font-size: 12.5px; color: var(--sky); }
+
+  footer { padding: 28px 0; text-align: center; color: var(--muted); font-size: 11.5px; }
+
+  @media print {
+    .topbar { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    section { break-inside: avoid; }
+  }
+
+  @media (max-width: 640px) {
+    .cover h1 { font-size: 28px; }
+    .curric-grid, .method-list, .adv-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 3 3 6 3s6-1.34 6-3v-5"/></svg>
+    </div>
+    <div class="topbar-name">CETADP<span>Centro Educacional Teológico Assembleias de Deus Piracicaba</span></div>
+  </div>
+</div>
+
+<div class="cover wrap">
+  <span class="kicker">Material de apresentação para igrejas</span>
+  <h1>Curso Teológico CETADP: metodologia e como estudar pelo portal</h1>
+  <p>Um guia simples para apresentar às igrejas — o que é o curso, como ele funciona e como qualquer membro pode se matricular e estudar, presencialmente ou a distância.</p>
+</div>
+
+<section id="sobre">
+  <div class="wrap">
+    <span class="section-num">1</span>
+    <h2>Sobre o CETADP</h2>
+    <div class="about-box">
+      <strong>CETADP — Centro Educacional Teológico Assembleias de Deus Piracicaba</strong> capacita membros, obreiros e líderes evangélicos por meio de cursos oficiais, reciclagem e teologia em vários níveis, de forma presencial e a distância.
+      <br><br>
+      Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
+    </div>
+  </div>
+</section>
+
+<section id="curriculo">
+  <div class="wrap">
+    <span class="section-num">2</span>
+    <h2>O que o aluno estuda</h2>
+    <p class="intro">O Curso Teológico é dividido em dois níveis, cada um com 10 disciplinas, organizados de fevereiro a novembro.</p>
+    <div class="curric-grid">
+      <div class="curric-card">
+        <span class="chip">ENSINO BÁSICO</span>
+        <h3>10 disciplinas</h3>
+        <div class="meta">Fevereiro a novembro</div>
+        <ol>
+          <li>Doutrina de Deus</li>
+          <li>Cristologia</li>
+          <li>Pneumatologia — Espírito Santo</li>
+          <li>Anjos, Homem e Pecado</li>
+          <li>Panorama do Antigo Testamento</li>
+          <li>Panorama do Novo Testamento</li>
+          <li>História da Igreja</li>
+          <li>Escatologia</li>
+          <li>Ética Cristã</li>
+          <li>Bibliologia</li>
+        </ol>
+      </div>
+      <div class="curric-card">
+        <span class="chip">ENSINO MÉDIO</span>
+        <h3>10 disciplinas</h3>
+        <div class="meta">Fevereiro a novembro</div>
+        <ol>
+          <li>Família Cristã</li>
+          <li>Homilética</li>
+          <li>Hermenêutica</li>
+          <li>Teologia do Obreiro</li>
+          <li>Soteriologia — Doutrina da Salvação</li>
+          <li>Eclesiologia — Doutrina da Igreja</li>
+          <li>Educação Cristã</li>
+          <li>Apologética — Defesa da Fé</li>
+          <li>Missiologia</li>
+          <li>Liderança Cristã</li>
+        </ol>
+      </div>
+    </div>
+    <div class="method-list">
+      <div class="method-item">
+        <div class="n">10</div>
+        <h4>Disciplinas por nível</h4>
+        <p>Uma sequência completa, do fundamento doutrinário à prática pastoral.</p>
+      </div>
+      <div class="method-item">
+        <div class="n">✓</div>
+        <h4>Avaliação por disciplina</h4>
+        <p>Cada disciplina é concluída com uma prova, acompanhando o aprendizado.</p>
+      </div>
+      <div class="method-item">
+        <div class="n">🎓</div>
+        <h4>Certificado ao final</h4>
+        <p>Ao concluir o nível, o aluno recebe certificado oficial do CETADP.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="portal">
+  <div class="wrap">
+    <span class="section-num">3</span>
+    <h2>Como é fácil estudar pelo portal</h2>
+    <p class="intro">O aluno não precisa entender de tecnologia — o caminho é direto, do interesse ao certificado.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="sn">1</div>
+        <div><h4>Inscrição</h4><p>A pessoa se inscreve pelo portal em poucos minutos, direto pelo celular ou computador.</p></div>
+      </div>
+      <div class="step">
+        <div class="sn">2</div>
+        <div><h4>Matrícula automática</h4><p>Sem fila de espera — a matrícula é confirmada assim que a inscrição é aprovada.</p></div>
+      </div>
+      <div class="step">
+        <div class="sn">3</div>
+        <div><h4>Aulas no próprio ritmo</h4><p>O aluno assiste às aulas quando puder, e o sistema guarda o progresso — pode continuar de onde parou.</p></div>
+      </div>
+      <div class="step">
+        <div class="sn">4</div>
+        <div><h4>Provas dentro do portal</h4><p>As avaliações de cada disciplina também são feitas online, sem precisar se deslocar.</p></div>
+      </div>
+      <div class="step">
+        <div class="sn">5</div>
+        <div><h4>Certificado</h4><p>Ao concluir o curso, o certificado é emitido automaticamente, com número oficial validável.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="vantagens">
+  <div class="wrap">
+    <span class="section-num">4</span>
+    <h2>Por que isso facilita a vida do aluno</h2>
+    <div class="adv-grid">
+      <div class="adv-item">
+        <div class="ck">✓</div>
+        <div><strong>Sem deslocamento obrigatório</strong><span>Estuda de casa, da igreja ou de onde estiver — só precisa de internet.</span></div>
+      </div>
+      <div class="adv-item">
+        <div class="ck">✓</div>
+        <div><strong>No tempo de cada um</strong><span>Quem trabalha ou tem família consegue encaixar o estudo na rotina.</span></div>
+      </div>
+      <div class="adv-item">
+        <div class="ck">✓</div>
+        <div><strong>Acompanhamento claro</strong><span>O aluno sempre sabe quantas disciplinas já concluiu e quantas faltam.</span></div>
+      </div>
+      <div class="adv-item">
+        <div class="ck">✓</div>
+        <div><strong>Financeiro transparente</strong><span>Parcelas e vencimentos visíveis no próprio portal, sem surpresa.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contato">
+  <div class="wrap">
+    <div class="cta-box">
+      <h2>Interessado em levar o curso até sua igreja?</h2>
+      <p>Fale com o CETADP para saber como sua congregação pode participar do Curso Teológico Básico ou Médio.</p>
+      <div class="addr">Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">CETADP — Centro Educacional Teológico Assembleias de Deus Piracicaba</div>
+</footer>
+
+</body>
+</html>
