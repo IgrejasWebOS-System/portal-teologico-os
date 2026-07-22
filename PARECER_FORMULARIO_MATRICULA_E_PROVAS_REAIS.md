@@ -114,3 +114,41 @@ não suportam.
 
 Nenhuma dessas perguntas foi respondida neste parecer — fica para quando
 você quiser avançar.
+
+---
+
+## 5. Reavaliação — 22/07/2026
+
+Desde a data deste parecer (21/07), boa parte das lacunas da seção 1 foi fechada. A seção 2 (provas) não mudou nada.
+
+### 5.1 Cadastro — quase tudo resolvido
+
+| Gap original | Status hoje |
+|---|---|
+| Nacionalidade ❌ | ✅ Resolvido — `ead_alunos.nacionalidade`, default "Brasileira", campo editável no formulário (migração 045) |
+| Igreja local separada do Núcleo ❌ | ✅ Resolvido, com um modelo diferente do que o parecer imaginava: em vez de um campo dentro do Campo/Ministério, o vínculo virou Setor → Igreja (`ead_alunos.sector_id`, `ead_alunos.church_id`, migração 044), usando a estrutura real de 15 setores/7 regiões de Piracicaba levantada com você. Campo/Ministério continua existindo à parte, para os campos fora de Piracicaba |
+| Consentimento LGPD ❌ | ✅ Resolvido — checkbox obrigatório com o texto legal do art. 7º/11 da Lei 13.709/2018, `consentimento_lgpd_aceito` + `consentimento_lgpd_data` (migração 045). Bloqueia envio no navegador e a Server Action revalida no servidor antes de gerar a matrícula |
+| Sexo 🟡 (dúvida de nomenclatura) | Rótulo do campo trocado de "Gênero" para "Sexo" no formulário e no painel de configurações — mesma coluna por trás, só ajuste de rótulo |
+| Rastreabilidade financeira por aluno 🟡 | Parcial — `fin_contas_receber` já linkava por `aluno_id`/`origem_id` desde antes deste parecer; agora também aceita cobrança única via link de pagamento do Mercado Pago (mesmo padrão da Loja), com baixa automática pelo webhook quando pago. Ainda não existe uma tela de "ficha financeira do aluno" consolidada — o dado já dá pra consultar, mas não há uma visão dedicada por aluno |
+
+Fora do escopo original do parecer, também foram adicionados: vínculo de Turma (`course_editions`) e Professor na matrícula, e busca de cidade/UF por Naturalidade (API do IBGE).
+
+### 5.2 Provas — gap segue aberto, sem mudança
+
+O motor de avaliações continua só múltipla escolha, um exame por curso inteiro (não por par de lições, sem Certo/Errado nem associação de colunas). Nada mudou aqui desde 21/07 — permanece o maior gap identificado no parecer original.
+
+### 5.3 Riscos priorizados — atualização
+
+1. ~~Consentimento LGPD não registrado~~ — **resolvido**.
+2. Tipo de questão limitado a múltipla escolha — **aberto**, agora o maior risco/gap remanescente do parecer.
+3. Granularidade da avaliação (por curso vs. por par de lições) — **aberto**, decisão de produto ainda pendente.
+4. ~~Campos faltantes no cadastro~~ (nacionalidade, igreja local) — **resolvido**.
+5. Rastreabilidade financeira por aluno — **parcial**: dado já existe e agora cobre também cobrança online, falta a visão consolidada por aluno.
+
+### 5.4 Perguntas em aberto — o que já foi respondido na prática
+
+- Nacionalidade e igreja local: respondidas — foram implementadas.
+- Consentimento LGPD: respondida — virou campo formal, obrigatório.
+- Reproduzir o modelo real de prova (Certo/Errado + associação, por par de lições) vs. manter o simulado/prova atual (múltipla escolha, por curso): **ainda sem resposta** — é a decisão de maior impacto que falta tomar, porque envolve reescrever o banco de questões e a engine de correção.
+- Mais provas reais de outras disciplinas para confirmar se o padrão é geral: **ainda não verificado**.
+- Ficha financeira por aluno como tela dedicada: **ainda sem decisão** — o dado já suporta, falta decidir se vale construir a tela.

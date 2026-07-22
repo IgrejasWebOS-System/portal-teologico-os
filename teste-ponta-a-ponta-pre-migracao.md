@@ -140,7 +140,8 @@ Em `/dashboard/configuracoes`, logado como staff.
 
 ## 5-C. Módulo Nova Matrícula — autosserviço (novo)
 
-- [ ] Logado como MEMBER, sidebar mostra "Matrícula" em Módulos, logo abaixo de EBD → leva para `/portal/nova-matricula`
+- [ ] Logado como MEMBER, sidebar mostra "Matrícula" em Módulos, logo abaixo de EBD → leva para `/portal/nova-matricula` (autosserviço)
+- [ ] Logado como staff, o mesmo item "Matrícula" na sidebar leva direto para `/admin/matriculas/nova` (ficha completa da secretaria) em vez do autosserviço
 - [ ] Selecionar um curso gratuito (Treinamento) + CPF de teste → "Confirmar matrícula" → confirma na hora, sem passar pela secretaria
 - [ ] Selecionar um curso com matrícula paga (Teologia — Nível Básico) → vai para o Checkout Pro do Mercado Pago; pagar com titular `APRO` → matrícula é criada só depois da confirmação do webhook
 

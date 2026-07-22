@@ -67,6 +67,22 @@ const modules: SidebarModule[] = [
   },
 ];
 
+// Item "Matrícula" muda de destino conforme quem está logado: staff
+// (atendimento presencial na secretaria) vai para a ficha completa da
+// Matrícula Direta; aluno/membro comum vai para o autosserviço, que só
+// mostra os cursos disponíveis pra ele escolher.
+function resolverModulos(isStaff: boolean): SidebarModule[] {
+  return modules.map((mod) =>
+    mod.label === "Matrícula"
+      ? {
+          ...mod,
+          href: isStaff ? "/admin/matriculas/nova" : "/portal/nova-matricula",
+          description: isStaff ? "Matrícula direta (atendimento presencial)" : "Inscreva-se em um novo curso",
+        }
+      : mod
+  );
+}
+
 const adminModules: SidebarModule[] = [
   {
     label: "Configurações",
@@ -199,7 +215,7 @@ export default function Sidebar({
           Módulos
         </p>
 
-        {modules.map((mod) => {
+        {resolverModulos(isStaff).map((mod) => {
           const Icon = mod.icon;
           const isModuleActive =
             pathname === mod.href || pathname.startsWith(mod.href + "/");
