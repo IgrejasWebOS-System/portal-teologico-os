@@ -12,7 +12,7 @@
 // Valores reais confirmados na apresentação institucional (PDF
 // 03/04/25): Curso Teológico Básico = matrícula R$25,00. Curso
 // Teológico Médio = sem matrícula. Os demais (Oficial genérico,
-// Reciclagem, Avançado, Treinamento) ainda não têm preço definido
+// Reciclagem, Avançado, Preparatório) ainda não têm preço definido
 // pela instituição — ficam de fora da cobrança até essa decisão.
 // ============================================================
 
@@ -28,7 +28,7 @@ export const CURSOS_EAD: OpcaoCurso[] = [
   { value: "TEOLOGIA_BASICO", label: "Teologia — Nível Básico", precoMatriculaCentavos: 2500 },
   { value: "TEOLOGIA_MEDIO", label: "Teologia — Nível Médio", precoMatriculaCentavos: 0 },
   { value: "TEOLOGIA_AVANCADO", label: "Teologia — Nível Avançado", precoMatriculaCentavos: 0 },
-  { value: "TREINAMENTO", label: "Treinamento / Capacitação", precoMatriculaCentavos: 0 },
+  { value: "TREINAMENTO", label: "Preparatório / Capacitação", precoMatriculaCentavos: 0 },
 ];
 
 export function labelCurso(value: string): string {

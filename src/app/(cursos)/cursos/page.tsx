@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Course } from "@/types";
 
-export const metadata = { title: "Cursos & Treinamentos" };
+export const metadata = { title: "Cursos & Preparatórios" };
 
 const LEVEL_LABEL: Record<string, string> = {
   iniciante:     "Iniciante",
@@ -93,7 +93,7 @@ export default async function CursosPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           <div className="relative z-10 p-8 space-y-4 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-widest">Cursos & Treinamentos</span>
+              <span className="text-xs font-bold text-amber-300 uppercase tracking-widest">Cursos & Preparatórios</span>
               {featured.featured && (
                 <span className="text-xs font-semibold bg-iw-gold text-white px-2 py-0.5 rounded-full">Destaque</span>
               )}

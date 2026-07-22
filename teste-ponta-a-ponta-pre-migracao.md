@@ -1,6 +1,6 @@
 # Roteiro de Teste Ponta a Ponta — Pré-Migração
 
-**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 22/07/2026, após: (1) restruturação de Setores/Regiões (região agora é do Setor, não da Igreja) + cadastro de Professores; (2) reescrita completa da Matrícula Direta (Setor → Igreja → Turma → Professor, naturalidade com busca de cidade IBGE, nacionalidade, consentimento LGPD obrigatório, cobrança manual ou por link Mercado Pago); (3) botão "Matrícula" (autosserviço) na Sidebar, abaixo de EBD.
+**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 22/07/2026, após: (1) restruturação de Setores/Regiões (região agora é do Setor, não da Igreja) + cadastro de Professores; (2) reescrita completa da Matrícula Direta (Setor → Igreja → Turma → Professor, naturalidade com busca de cidade IBGE, nacionalidade, consentimento LGPD obrigatório, cobrança manual ou por link Mercado Pago); (3) botão "Matrícula" (autosserviço) na Sidebar, abaixo de EBD; (4) reestruturação da navegação administrativa — login de staff cai em `/admin`, módulos da sidebar viram atalhos de gestão, novo `/admin/ebd` (CRUD de trimestres/lições) e `/admin/loja` (hub), "Cursos & Treinamentos" renomeado pra "Cursos & Preparatórios".
 
 Este roteiro é para ser seguido manualmente, um item por vez, marcando `[x]` no que passou e anotando o que falhou. Rode-o no ambiente que for migrar (produção Vercel, de preferência — é o estado real que será levado para o novo sistema).
 
@@ -145,6 +145,21 @@ Em `/dashboard/configuracoes`, logado como staff.
 - [ ] Selecionar um curso gratuito (Treinamento) + CPF de teste → "Confirmar matrícula" → confirma na hora, sem passar pela secretaria
 - [ ] Selecionar um curso com matrícula paga (Teologia — Nível Básico) → vai para o Checkout Pro do Mercado Pago; pagar com titular `APRO` → matrícula é criada só depois da confirmação do webhook
 
+## 5-D. Módulo Admin — navegação administrativa reestruturada (novo)
+
+- [ ] Login com conta staff (ex: `igrejaswebos@gmail.com`), sem link de retorno explícito → cai direto em `/admin` (dashboard), não mais em `/portal`
+- [ ] Login com conta MEMBER comum (sem matrícula oficial) → continua caindo em `/portal`, normalmente
+- [ ] Logado como staff, sidebar → "Escola de Teologia" leva para `/admin/conteudo?modulo=escola` (gestão, lista só trilhas do módulo escola); "Cursos" leva para `/admin/conteudo?modulo=cursos` (só trilhas de cursos); nenhum dos dois abre a página pública de navegação de curso
+- [ ] Logado como MEMBER comum, os mesmos botões "Escola de Teologia"/"Cursos" continuam levando pras páginas públicas normais (`/escola`, `/cursos`)
+- [ ] Sidebar → "EBD" (staff) leva para `/admin/ebd`; `/admin/ebd` lista os 19 trimestres já existentes com contagem de lições
+- [ ] `/admin/ebd/nova`: cadastrar um trimestre de teste (ano, trimestre, público, editora, tema) → cria e redireciona pro detalhe do trimestre
+- [ ] No detalhe do trimestre, `/admin/ebd/[id]/nova`: cadastrar uma lição de teste com texto áureo, leitura diária (pelo menos 1 dia), 1 tópico com 1 subtópico, 1 pergunta de revisão → salva e aparece na lista do trimestre
+- [ ] Editar essa lição de teste (link "Editar") → campos vêm preenchidos, alterar o título e salvar → reflete na lista
+- [ ] Excluir a lição e o trimestre de teste ao final
+- [ ] Sidebar → "Admin Loja" (só staff, no rodapé do menu, acima de "Sair da conta") leva para `/admin/loja`: mostra 3 cards (Pedidos, Produtos & Estoque, Leads) com números rápidos, cada um leva pra tela já existente
+- [ ] Acesso restrito a `/admin/ebd*` e `/admin/loja` pra MEMBER e deslogado
+- [ ] Título "Cursos & Treinamentos" não aparece mais em nenhum lugar do sistema — virou "Cursos & Preparatórios" (home pública, `/cursos`, sidebar, matrícula direta, admin de trilhas)
+
 ## 6. Módulo Portal do Aluno (hub)
 
 - [ ] `/portal` carrega com os 6 cards: Escola de Teologia, Cursos & Treinamentos, EBD, **Nova Matrícula**, Simulados e Provas, Meus Certificados
@@ -224,6 +239,8 @@ Use uma matrícula de teste com curso **Teologia — Nível Básico** (único cu
 |---|---|---|
 | `/admin/inscricoes`, `/admin/certificados`, `/admin/pedidos`, `/admin/conteudo` | Acesso restrito | Acessa |
 | `/admin/matriculas`, `/admin/matriculas/nova` | Acesso restrito | Acessa |
+| `/admin/ebd`, `/admin/ebd/*` | Acesso restrito | Acessa |
+| `/admin/loja` | Acesso restrito | Acessa |
 | `/admin/financeiro/*` | Acesso restrito | Acessa |
 | `/admin/patrimonio` | Acesso restrito | Acessa |
 | `/dashboard/*` | **Acesso restrito (corrigido)** | Acessa |

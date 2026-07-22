@@ -51,7 +51,7 @@ const SERVICOS = [
   {
     id: "treinamento",
     icon: BookOpen,
-    titulo: "Treinamentos & Capacitação",
+    titulo: "Preparatórios & Capacitação",
     descricao:
       "Módulos de capacitação prática para departamentos, ministérios e liderança local, sob demanda dos campos.",
   },

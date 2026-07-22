@@ -7,6 +7,7 @@ import {
   ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { validarCPF } from "@/utils/cpf";
 import { matricularDiretoAction, addTurmaAction } from "../actions";
 import MatriculaLookup from "@/app/(igreja)/dashboard/configuracoes/MatriculaLookup";
 import { addProfessorAction, type MembroEncontrado } from "@/app/(igreja)/dashboard/configuracoes/actions";
@@ -368,6 +369,11 @@ export default function NovaMatriculaForm({
 
       <form
         action={(fd: FormData) => {
+          if (!validarCPF(cpf)) {
+            setExtraError("CPF inválido — confira os dígitos digitados.");
+            return;
+          }
+          setExtraError("");
           fd.set("cpf", cpf);
           fd.set("rg", rg);
           fd.set("telefone", telefone);
@@ -408,7 +414,7 @@ export default function NovaMatriculaForm({
                   </optgroup>
                 )}
                 {cursosOutros.length > 0 && (
-                  <optgroup label="Cursos & Treinamentos">
+                  <optgroup label="Cursos & Preparatórios">
                     {cursosOutros.map((c) => (
                       <option key={c.id} value={c.id}>{c.title}</option>
                     ))}
@@ -652,7 +658,7 @@ export default function NovaMatriculaForm({
               onSelect={(nome, uf) => { setNaturalidadeCidade(nome); setNaturalidadeEstado(uf); }}
               municipios={municipios}
             />
-            <Field label="UF naturalidade" span="col-span-3 md:col-span-1">
+            <Field label="UF" span="col-span-3 md:col-span-1">
               <input
                 value={naturalidadeEstado}
                 maxLength={2}
@@ -806,6 +812,7 @@ export default function NovaMatriculaForm({
               type="checkbox"
               name="consentimento_lgpd_aceito"
               value="true"
+              defaultChecked
               required
               className="mt-0.5 w-4 h-4 accent-iw-gold shrink-0"
             />

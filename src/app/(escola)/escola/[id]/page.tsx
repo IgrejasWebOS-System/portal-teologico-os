@@ -187,7 +187,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
               href="/escola"
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-iw-navy border border-iw-border rounded-lg px-2.5 py-1.5 hover:bg-iw-bg transition-colors shrink-0"
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> Escola Teológica
+              <ChevronLeft className="w-3.5 h-3.5" /> Meus Cursos
             </Link>
           </div>
           <div className="divide-y divide-iw-border max-h-[500px] overflow-y-auto">

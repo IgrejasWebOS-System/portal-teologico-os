@@ -114,11 +114,11 @@ export default async function TrilhasPage() {
           ))}
         </div>
 
-        {/* ── Cursos & Treinamentos ── */}
+        {/* ── Cursos & Preparatórios ── */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-iw-gold" />
-            <h2 className="font-bold text-iw-navy">Cursos & Treinamentos</h2>
+            <h2 className="font-bold text-iw-navy">Cursos & Preparatórios</h2>
             <span className="text-xs text-iw-muted ml-auto">{cursos.length} trilhas</span>
           </div>
 

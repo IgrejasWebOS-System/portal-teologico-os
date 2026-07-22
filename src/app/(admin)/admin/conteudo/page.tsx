@@ -9,6 +9,11 @@ import AcessoRestrito from "@/components/admin/AcessoRestrito";
 
 export const metadata = { title: "Admin — Conteúdo" };
 
+const MODULO_LABEL: Record<string, string> = {
+  escola: "Escola de Teologia",
+  cursos: "Cursos & Preparatórios",
+};
+
 const VIDEO_BADGE: Record<VideoType, { label: string; cls: string; Icon: React.ElementType }> = {
   none:     { label: "Sem vídeo",     cls: "bg-gray-100 text-gray-500",   Icon: FileText  },
   youtube:  { label: "YouTube",       cls: "bg-red-50 text-red-600",      Icon: Youtube   },
@@ -23,7 +28,12 @@ function fmtDuration(secs: number | null) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default async function AdminConteudoPage() {
+interface PageProps {
+  searchParams: Promise<{ modulo?: string }>;
+}
+
+export default async function AdminConteudoPage({ searchParams }: PageProps) {
+  const { modulo } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -32,13 +42,14 @@ export default async function AdminConteudoPage() {
     return <AcessoRestrito />;
   }
 
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*")
-    .order("module")
-    .order("created_at");
+  let query = supabase.from("courses").select("*").order("module").order("created_at");
+  if (modulo === "escola" || modulo === "cursos") {
+    query = query.eq("module", modulo);
+  }
+  const { data: courses } = await query;
 
   const courseList = (courses ?? []) as Course[];
+  const moduloLabel = modulo ? MODULO_LABEL[modulo] : null;
 
   const { data: lessonsRaw } = await supabase
     .from("lessons")
@@ -46,15 +57,18 @@ export default async function AdminConteudoPage() {
     .order("course_id")
     .order("order_index");
 
-  const lessons = (lessonsRaw ?? []) as Pick<Lesson, "id" | "course_id" | "title" | "video_type" | "video_duration_secs" | "order_index">[];
+  const lessonsAll = (lessonsRaw ?? []) as Pick<Lesson, "id" | "course_id" | "title" | "video_type" | "video_duration_secs" | "order_index">[];
 
   // Agrupar aulas por course_id
-  const lessonsByCourse = new Map<string, typeof lessons>();
-  for (const l of lessons) {
+  const lessonsByCourse = new Map<string, typeof lessonsAll>();
+  for (const l of lessonsAll) {
     if (!lessonsByCourse.has(l.course_id)) lessonsByCourse.set(l.course_id, []);
     lessonsByCourse.get(l.course_id)!.push(l);
   }
 
+  // Estatísticas do cabeçalho já respeitam o filtro de módulo, se houver.
+  const courseIds = new Set(courseList.map((c) => c.id));
+  const lessons = lessonsAll.filter((l) => courseIds.has(l.course_id));
   const totalWithVideo = lessons.filter((l) => l.video_type !== "none").length;
 
   return (
@@ -63,20 +77,22 @@ export default async function AdminConteudoPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">Gestão de Conteúdo</h1>
+          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+            {moduloLabel ? `Gestão — ${moduloLabel}` : "Gestão de Conteúdo"}
+          </h1>
           <p className="text-iw-muted text-sm">
             {lessons.length} aulas · {totalWithVideo} com vídeo · {courseList.length} trilhas
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/conteudo/trilhas"
+            href={modulo ? `/admin/conteudo/trilhas?modulo=${modulo}` : "/admin/conteudo/trilhas"}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-iw-border text-iw-muted hover:text-iw-navy hover:border-iw-navy/30 transition-colors"
           >
             Gerenciar trilhas
           </Link>
           <Link
-            href="/admin/conteudo/nova"
+            href={modulo ? `/admin/conteudo/nova?modulo=${modulo}` : "/admin/conteudo/nova"}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-iw-blue text-white hover:bg-iw-navy transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
+import { validarCPF } from "@/utils/cpf";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -126,6 +127,10 @@ export async function matricularDiretoAction(formData: FormData) {
 
   if (!nome_completo || !cpf || !email || !course_id) {
     fail("Preencha nome completo, CPF, e-mail e o curso.");
+  }
+
+  if (!validarCPF(cpf)) {
+    fail("CPF inválido — confira os dígitos digitados.");
   }
 
   if (!consentimentoLgpdAceito) {

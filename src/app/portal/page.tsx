@@ -27,7 +27,7 @@ const modules = [
   {
     href: "/cursos",
     icon: BookOpen,
-    label: "Cursos & Treinamentos",
+    label: "Cursos & Preparatórios",
     description:
       "Trilhas de aprendizado, capacitação ministerial e formação continuada.",
     border: "border-iw-gold/30",

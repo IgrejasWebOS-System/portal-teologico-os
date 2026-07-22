@@ -15,12 +15,12 @@ import {
   ShieldAlert,
   Settings2,
   UserPlus,
-  Package,
   Award,
   UserCheck,
   Wallet,
   Boxes,
   LayoutDashboard,
+  Store,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -51,7 +51,7 @@ const modules: SidebarModule[] = [
     label: "Cursos",
     href: "/cursos",
     icon: BookOpen,
-    description: "Treinamentos e capacitação",
+    description: "Preparatórios e capacitação",
   },
   {
     label: "EBD",
@@ -67,23 +67,45 @@ const modules: SidebarModule[] = [
   },
 ];
 
-// Item "Matrícula" muda de destino conforme quem está logado: staff
-// (atendimento presencial na secretaria) vai para a ficha completa da
-// Matrícula Direta; aluno/membro comum vai para o autosserviço, que só
-// mostra os cursos disponíveis pra ele escolher.
+// Pra staff, os módulos viram atalhos de GESTÃO (cadastrar/editar
+// conteúdo, cadastrar aluno), não de navegação/consumo do conteúdo —
+// quem já é aluno oficial continua vendo os módulos normais (ver
+// AreaDoAlunoPainel), e quem não é staff nem aluno oficial (membro
+// comum) continua indo pras páginas públicas de cada módulo.
+const STAFF_MODULE_OVERRIDES: Record<string, { href: string; description: string }> = {
+  "Escola de Teologia": {
+    href: "/admin/conteudo?modulo=escola",
+    description: "Gerenciar cursos e aulas de teologia",
+  },
+  "Cursos": {
+    href: "/admin/conteudo?modulo=cursos",
+    description: "Gerenciar avulsos, preparatórios e capacitação",
+  },
+  "EBD": {
+    href: "/admin/ebd",
+    description: "Gerenciar trimestres e lições",
+  },
+  "Matrícula": {
+    href: "/admin/matriculas/nova",
+    description: "Matrícula direta (atendimento presencial)",
+  },
+};
+
 function resolverModulos(isStaff: boolean): SidebarModule[] {
-  return modules.map((mod) =>
-    mod.label === "Matrícula"
-      ? {
-          ...mod,
-          href: isStaff ? "/admin/matriculas/nova" : "/portal/nova-matricula",
-          description: isStaff ? "Matrícula direta (atendimento presencial)" : "Inscreva-se em um novo curso",
-        }
-      : mod
-  );
+  if (!isStaff) return modules;
+  return modules.map((mod) => {
+    const override = STAFF_MODULE_OVERRIDES[mod.label];
+    return override ? { ...mod, ...override } : mod;
+  });
 }
 
 const adminModules: SidebarModule[] = [
+  {
+    label: "Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard,
+    description: "Visão geral do CETADP",
+  },
   {
     label: "Configurações",
     href: "/dashboard/configuracoes",
@@ -92,18 +114,14 @@ const adminModules: SidebarModule[] = [
   },
   {
     label: "Admin",
-    href: "/admin",
+    href: "/admin/conteudo",
     icon: ShieldCheck,
     description: "Conteúdo e trilhas",
     subItems: [
-      { label: "Dashboard",  href: "/admin", icon: LayoutDashboard },
       { label: "Conteúdo",   href: "/admin/conteudo", icon: Library },
       { label: "Trilhas",    href: "/admin/conteudo/trilhas", icon: ListTree },
       { label: "Inscrições", href: "/admin/inscricoes", icon: UserPlus },
       { label: "Matrículas", href: "/admin/matriculas", icon: UserCheck },
-      { label: "Pedidos (Loja)", href: "/admin/pedidos", icon: Package },
-      { label: "Produtos (Loja)", href: "/admin/produtos", icon: Boxes },
-      { label: "Leads (Loja)", href: "/admin/leads-loja", icon: UserPlus },
       { label: "Certificados", href: "/admin/certificados", icon: Award },
       { label: "Financeiro", href: "/admin/financeiro", icon: Wallet },
       { label: "Patrimônio", href: "/admin/patrimonio", icon: Boxes },
@@ -150,8 +168,13 @@ export default function Sidebar({
         </p>
         {adminModules.map((mod) => {
           const Icon = mod.icon;
-          const isModuleActive =
-            pathname === mod.href || pathname.startsWith(mod.href + "/");
+          // Com subItems, "ativo" (e portanto expandido) segue os próprios
+          // subItems — não o href do item pai — pra "Dashboard" (item
+          // irmão, fora deste grupo) nunca acabar expandindo "Admin" só
+          // por ambos começarem com "/admin".
+          const isModuleActive = mod.subItems
+            ? mod.subItems.some((sub) => pathname === sub.href || pathname.startsWith(sub.href + "/"))
+            : pathname === mod.href || pathname.startsWith(mod.href + "/");
 
           return (
             <div key={mod.href}>
@@ -289,6 +312,33 @@ export default function Sidebar({
           );
         })}
         </>
+        )}
+
+        {/* Admin Loja — atalho fixo pro núcleo administrativo da Loja,
+            sempre visível pra staff no fim do menu, acima do rodapé. */}
+        {isStaff && (
+          <div className="pt-3 mt-3 border-t border-white/10">
+            <Link
+              href="/admin/loja"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                pathname === "/admin/loja" || pathname.startsWith("/admin/loja/")
+                  ? "bg-iw-blue text-white shadow-md"
+                  : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+              )}
+            >
+              <Store className={cn(
+                "w-5 h-5 shrink-0 transition-colors",
+                pathname.startsWith("/admin/loja") ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky"
+              )} />
+              <div className="flex-1 min-w-0">
+                <p className="leading-tight truncate">Admin Loja</p>
+                <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60">
+                  Vendas, produtos, estoque e leads
+                </p>
+              </div>
+            </Link>
+          </div>
         )}
       </nav>
 

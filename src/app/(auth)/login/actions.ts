@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { checkIsStaff } from "@/utils/staff";
 import { redirect } from "next/navigation";
 
 export async function loginAction(formData: FormData) {
@@ -28,6 +29,17 @@ export async function loginAction(formData: FormData) {
         "&redirectTo=" +
         encodeURIComponent(redirectTo)
     );
+  }
+
+  // Sem link de retorno explícito: staff (secretaria/admin) cai direto no
+  // painel administrativo — é o núcleo de trabalho deles, não o hub do
+  // aluno. Checado antes de qualquer coisa de aluno: uma conta de staff
+  // que também seja aluno continua indo pro /admin primeiro.
+  if (!hasExplicitRedirect && signInData.user) {
+    const isStaff = await checkIsStaff(supabase, signInData.user.id);
+    if (isStaff) {
+      redirect("/admin");
+    }
   }
 
   // Sem link de retorno explícito: todo aluno oficial com matrícula em
