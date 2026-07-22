@@ -121,9 +121,9 @@ igreja depois que o piloto estiver validado. Dúvidas?"
 - **"E se o aluno não tiver e-mail ou não souber usar?"** — A secretaria
   aprova e orienta; o fluxo é o mesmo de qualquer sistema acadêmico com
   e-mail e senha.
-- **"Quanto custa manter isso rodando?"** — O banco de dados novo está no
-  plano gratuito do Supabase hoje; hospedagem via Vercel. Custo cresce
-  conforme uso real (alunos, dados).
+- **"Quanto custa manter isso rodando?"** — O banco de dados está num
+  projeto Supabase dedicado, no plano Pro (US$25/mês); hospedagem via
+  Vercel. Custo cresce conforme uso real (alunos, dados, tráfego).
 - **"Quando dá pra abrir pra outra igreja?"** — Depois de validar o
   piloto com o CETADP e migrar para a arquitetura multi-tenant nova —
   não antes, para não repetir o problema de isolamento que já resolvemos
@@ -148,9 +148,9 @@ resolvo) e institucional (o que só o CETADP decide).
 - Conta de envio de e-mail transacional (Resend recomendado — mais
   apropriado que usar um Gmail pessoal, que tem limite baixo e não foi
   feito para esse volume) com o domínio verificado.
-- Definir quem paga e administra Supabase e Vercel daqui pra frente —
-  hoje estão no plano gratuito; com uso real (mais alunos, mais dados,
-  mais tráfego) alguns desses planos podem precisar virar pagos.
+- Definir quem paga e administra Supabase (já no plano Pro, US$25/mês) e
+  Vercel (hoje gratuito) daqui pra frente; com uso real (mais alunos,
+  mais dados, mais tráfego) o custo de Vercel também pode crescer.
 
 **Institucional — decisão do CETADP, não técnica:**
 - Quem é o dono das contas de serviço (Mercado Pago, Supabase, Vercel,

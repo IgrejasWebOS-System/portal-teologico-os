@@ -64,16 +64,18 @@ de uma instituição de ensino oficial.
 - **EBD (Escola Bíblica Dominical)** — lições semanais organizadas por trimestre.
 - **Painel da secretaria** — aprovação de inscrições, geração de matrícula e liberação de acesso.
 
-## 6. Estado atual do projeto (atualizado em 13/07/2026)
+## 6. Estado atual do projeto (atualizado em 21/07/2026)
 
-O Portal EAD já está funcional, com banco de dados próprio e dados de
-demonstração prontos para o piloto:
+O Portal EAD já está funcional, com banco de dados próprio (agora no
+plano Pro do Supabase) e dados de demonstração prontos para o piloto:
 
-- Site institucional público completo (home, "Quem Somos", Biblioteca).
-- Fluxo de inscrição pública → aprovação da secretaria → matrícula → acesso, de ponta a ponta, testado com e-mail real.
+- Site institucional público completo (home, "Quem Somos", Biblioteca, Loja).
+- Fluxo de inscrição/matrícula → acesso, de ponta a ponta, testado com e-mail real.
 - Banco de dados Supabase **isolado e dedicado** a este projeto — não mais compartilhado com outros sistemas internos, com controle de acesso (RLS) corrigido em todas as tabelas administrativas.
-- Controle de papéis (secretaria/admin) aplicado tanto na aprovação de inscrições quanto na gestão de conteúdo (cursos e aulas).
-- 5 cursos e 15 aulas de demonstração já carregados (Escola Teológica e Cursos & Treinamentos), mais um trimestre completo de EBD.
+- Controle de papéis (secretaria/admin) aplicado em todas as rotas administrativas.
+- 14 cursos cadastrados: Curso Teológico Básico e Médio publicados (10 aulas cada), mais 11 cursos preparatórios avulsos (Diaconato, Presbitério, EBOM, Homilética etc.), além de um trimestre completo de EBD.
+- Loja com catálogo, carrinho e pagamento real via Mercado Pago (sandbox); painel financeiro (caixa diário, contas a pagar/receber); controle de patrimônio; matrícula direta pela secretaria; simulados e provas com nota mínima e aprovação/reprovação automática.
+- Área do aluno ("Minha Área") integrada ao menu principal, com painel de matrícula, financeiro e avaliações.
 - Um design system documentado, garantindo que novas telas mantenham o mesmo padrão visual e de qualidade.
 
 ## 7. Decisão de arquitetura: por que este projeto e não o sistema novo

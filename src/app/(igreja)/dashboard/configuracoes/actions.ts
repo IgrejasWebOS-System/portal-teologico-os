@@ -77,6 +77,7 @@ export async function deleteRegiaoDFAction(id: string) {
 export async function addSetorAction(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) return { success: false, message: "Nome obrigatório." };
+  const regiaoId = (formData.get("regiao_id") as string) || null;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -84,7 +85,7 @@ export async function addSetorAction(formData: FormData) {
 
   const { error } = await supabase
     .from("sectors")
-    .insert({ name: name.toUpperCase() });
+    .insert({ name: name.toUpperCase(), regiao_id: regiaoId });
 
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
@@ -97,6 +98,68 @@ export async function deleteSetorAction(id: string) {
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
+}
+
+export async function updateSetorRegiaoAction(formData: FormData) {
+  const setorId = formData.get("setor_id") as string;
+  const regiaoId = (formData.get("regiao_id") as string) || null;
+  if (!setorId) return { success: false, message: "Setor inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sectors")
+    .update({ regiao_id: regiaoId })
+    .eq("id", setorId);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/setores");
+  revalidatePath("/dashboard/configuracoes/regioes");
+  return { success: true };
+}
+
+// ── Busca de membro por matrícula (autofill nome/cargo/telefone) ─
+export type MembroEncontrado = {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  cargo: string | null;
+  church_id: string | null;
+};
+
+export async function buscarMembroPorMatriculaAction(
+  matricula: string
+): Promise<{ success: boolean; data?: MembroEncontrado; message?: string }> {
+  const mat = matricula.trim();
+  if (!mat) return { success: false, message: "Digite uma matrícula." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("members")
+    .select("id, full_name, phone, church_id, ecclesiastical_roles(name)")
+    .eq("registration_number", mat)
+    .maybeSingle();
+
+  if (error) return { success: false, message: error.message };
+  if (!data) return { success: false, message: "Nenhum membro encontrado com essa matrícula." };
+
+  const row = data as unknown as {
+    id: string;
+    full_name: string | null;
+    phone: string | null;
+    church_id: string | null;
+    ecclesiastical_roles: { name: string } | null;
+  };
+
+  return {
+    success: true,
+    data: {
+      id: row.id,
+      full_name: row.full_name ?? "",
+      phone: row.phone,
+      cargo: row.ecclesiastical_roles?.name ?? null,
+      church_id: row.church_id,
+    },
+  };
 }
 
 // ── Departamentos ─────────────────────────────────────────────
@@ -120,4 +183,96 @@ export async function deleteDepartamentoAction(id: string) {
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/departamentos");
   return { success: true };
+}
+
+// ── Região ────────────────────────────────────────────────────
+export async function addRegiaoAction(formData: FormData) {
+  const name = (formData.get("name") as string)?.trim();
+  if (!name) return { success: false, message: "Nome obrigatório." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("regioes")
+    .insert({ name: name.toUpperCase() });
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/regioes");
+  return { success: true };
+}
+
+export async function deleteRegiaoAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("regioes").delete().eq("id", id);
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/regioes");
+  return { success: true };
+}
+
+export async function vincularSetorRegiaoAction(formData: FormData) {
+  return updateSetorRegiaoAction(formData);
+}
+
+export async function desvincularSetorRegiaoAction(setorId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sectors")
+    .update({ regiao_id: null })
+    .eq("id", setorId);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/setores");
+  revalidatePath("/dashboard/configuracoes/regioes");
+  return { success: true };
+}
+
+// ── Professores ───────────────────────────────────────────────
+export async function addProfessorAction(formData: FormData) {
+  const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
+  if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const payload = {
+    sector_id: (formData.get("sector_id") as string) || null,
+    church_id: (formData.get("church_id") as string) || null,
+    member_id: (formData.get("member_id") as string) || null,
+    matricula: (formData.get("matricula") as string) || null,
+    nome_completo: nomeCompleto,
+    cargo: (formData.get("cargo") as string) || null,
+    telefone: (formData.get("telefone") as string) || null,
+  };
+
+  const { data, error } = await supabase
+    .from("professores")
+    .insert(payload)
+    .select("id, nome_completo, church_id")
+    .single();
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true, data };
+}
+
+export async function deleteProfessorAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("professores").delete().eq("id", id);
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
+}
+
+// ── Wrappers void — para uso direto em <form action={...}> sem JS
+//    (o form action do React/Next exige void | Promise<void>) ──────
+export async function deleteProfessorFormAction(id: string): Promise<void> {
+  await deleteProfessorAction(id);
+}
+
+export async function vincularSetorRegiaoFormAction(formData: FormData): Promise<void> {
+  await vincularSetorRegiaoAction(formData);
+}
+
+export async function desvincularSetorRegiaoFormAction(id: string): Promise<void> {
+  await desvincularSetorRegiaoAction(id);
 }

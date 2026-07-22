@@ -17,7 +17,7 @@ export default async function GeneroPage() {
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
         icon={Users}
-        title="Gênero"
+        title="Sexo"
         description="Classificação oficial do sistema"
         iconColor="text-iw-sky"
         iconBg="bg-iw-sky/20"

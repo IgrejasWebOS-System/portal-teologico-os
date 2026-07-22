@@ -29,24 +29,30 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: campos } = await supabase
-    .from("ead_campos_ministerios")
-    .select("id, nome, tipo")
-    .eq("ativo", true)
-    .order("nome");
-
-  const { data: cursos } = await supabase
-    .from("courses")
-    .select("id, title, module")
-    .order("title");
-
-  const { data: churches } = await supabase.from("churches").select("id, name").order("name");
+  const [
+    { data: campos },
+    { data: cursos },
+    { data: churches },
+    { data: setores },
+    { data: turmas },
+    { data: professores },
+  ] = await Promise.all([
+    supabase.from("ead_campos_ministerios").select("id, nome, tipo").eq("ativo", true).order("nome"),
+    supabase.from("courses").select("id, title, module").order("title"),
+    supabase.from("churches").select("id, name, sector_id").order("name"),
+    supabase.from("sectors").select("id, name").order("name"),
+    supabase.from("course_editions").select("id, nome, course_id").order("nome"),
+    supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+  ]);
 
   return (
     <NovaMatriculaForm
       campos={campos ?? []}
       cursos={cursos ?? []}
       churches={churches ?? []}
+      setores={setores ?? []}
+      turmasIniciais={turmas ?? []}
+      professoresIniciais={professores ?? []}
       errorMsg={error ? decodeURIComponent(error) : undefined}
     />
   );

@@ -36,9 +36,9 @@ SUPABASE_SERVICE_ROLE_KEY=...   # necessário para aprovar inscrições (convite
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Aplique as migrações em `supabase/migrations/` (001 a 005, nessa ordem —
-esta é a única pasta ativa desde 13/07/2026) no seu projeto Supabase,
-depois:
+Aplique as migrações em `supabase/migrations/`, na ordem cronológica dos
+arquivos (esta é a única pasta ativa desde 13/07/2026) no seu projeto
+Supabase, depois:
 
 ```bash
 npm run dev
@@ -56,12 +56,12 @@ não aparecem na URL), cada uma com seu próprio layout:
 
 | Grupo/rota | Conteúdo |
 |---|---|
-| `/`, `/sobre`, `/inscricao`, `/biblioteca`, `/certificados` | Site público — sem login, `PublicHeader`/`PublicFooter` |
+| `/`, `/sobre`, `/inscricao`, `/biblioteca`, `/loja`, `/certificados` | Site público — sem login, `PublicHeader`/`PublicFooter` |
 | `(auth)/login` | Login (e-mail + senha) |
-| `/portal` | Hub autenticado — seleção de módulo |
+| `/portal`, `/portal/avaliacoes`, `/portal/certificados` | Hub autenticado, simulados/provas e certificados do aluno |
 | `(igreja)` | Dashboard da igreja: membros, configurações, ocorrências |
 | `(escola)`, `(cursos)`, `(ebd)` | Módulos de conteúdo em vídeo/aula |
-| `(admin)` | Administração de conteúdo e aprovação de inscrições |
+| `(admin)` | Conteúdo, inscrições, matrículas diretas, financeiro (plano de contas/caixa/contas a pagar e a receber), patrimônio, certificados e pedidos da loja |
 
 Rotas públicas x protegidas são decididas em
 `src/utils/supabase/middleware.ts`.
@@ -86,7 +86,7 @@ Detalhes de schema e RLS: `supabase/migrations/001_schema_base_isolado.sql` e `0
 
 ## Pontos em aberto (roadmap)
 
-- RBAC (checagem de `system_role`) está aplicado em `/admin/inscricoes` e `/admin/conteudo` (13/07/2026) — falta estender a `/dashboard/configuracoes`.
-- `/certificados` e o catálogo de `/biblioteca` são páginas-placeholder ("em breve").
-- Popular dados de demonstração (cursos/aulas reais, alunos de teste aprovados) antes do ensaio do pitch de 24/07.
+- RBAC (checagem de `system_role`) está aplicado em todas as rotas `/admin/*` e `/dashboard/*`.
+- Emissão de certificado: schema pronto (`certificates`, numeração automática), mas ainda sem tela/ação que gera o certificado ao concluir um curso.
+- Cadastrar os polos presenciais reais em `ead_campos_ministerios` (hoje só 3 registros de seed).
 - Pós-pitch: migrar este projeto para dentro do `igrejas-web-system-os` (RBAC de 5 níveis via `admin_roles`, Party Pattern, `ministry_id` obrigatório) — ver `ordem-tecnica-isolamento-e-migracao.md`, Fase 4.

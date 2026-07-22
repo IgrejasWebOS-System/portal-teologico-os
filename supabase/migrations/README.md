@@ -13,6 +13,8 @@ do MCP do Supabase — não via Supabase CLI.
 | `004_endurecimento_seguranca.sql` | Correção dos avisos (WARN) do advisor de segurança |
 | `005_seed_campos_ministerios.sql` | Dados de referência (campos/ministérios do CETADP) |
 | `006_dados_demonstracao.sql` | Cursos/aulas, EBD e inscrições pendentes para o ensaio do pitch (conteúdo placeholder) |
+| ... | (demais migrações do módulo EAD/financeiro/loja/avaliações, ver `list_migrations` do MCP do Supabase para o histórico completo) |
+| `042_regioes_professores_matricula.sql` | Tabela `regioes` (+ `churches.regiao_id`), tabela `professores`, `churches.pastor_role` (snapshot de cargo do responsável) |
 | `007_correcao_nome_cetadp.sql` | Correção do prefixo de matrícula: "CETADEP" → "CETADP" |
 | `008_atualizacao_nomes_cursos_reais.sql` | Renomeia 3 dos 5 cursos de demonstração para nomes reais do catálogo (Curso Teológico Básico, Curso Teológico Médio, EBOM), com base na apresentação institucional em PDF |
 | `009_turmas_edicoes_anuais.sql` | Tabela `course_editions` (turmas/edições anuais, ex: "Edição Dezembro 2026") + `enrollments.course_edition_id` (nullable) + RLS |

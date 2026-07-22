@@ -59,6 +59,12 @@ const modules: SidebarModule[] = [
     icon: BookMarked,
     description: "Escola Bíblica Dominical",
   },
+  {
+    label: "Matrícula",
+    href: "/portal/nova-matricula",
+    icon: UserPlus,
+    description: "Inscreva-se em um novo curso",
+  },
 ];
 
 const adminModules: SidebarModule[] = [

@@ -1,6 +1,6 @@
 # Roteiro de Teste Ponta a Ponta — Pré-Migração
 
-**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 15/07/2026, após o pacote de matrícula direta, financeiro, patrimônio, simulados/provas e a rodada de ajustes visuais da home/header/footer.
+**Projeto:** portal-teologico-os · **Objetivo:** validar todos os módulos existentes antes de iniciar a tarefa #28 ([Pós-pitch] Migrar para igrejas-web-system-os). **Atualizado em:** 22/07/2026, após: (1) restruturação de Setores/Regiões (região agora é do Setor, não da Igreja) + cadastro de Professores; (2) reescrita completa da Matrícula Direta (Setor → Igreja → Turma → Professor, naturalidade com busca de cidade IBGE, nacionalidade, consentimento LGPD obrigatório, cobrança manual ou por link Mercado Pago); (3) botão "Matrícula" (autosserviço) na Sidebar, abaixo de EBD.
 
 Este roteiro é para ser seguido manualmente, um item por vez, marcando `[x]` no que passou e anotando o que falhou. Rode-o no ambiente que for migrar (produção Vercel, de preferência — é o estado real que será levado para o novo sistema).
 
@@ -108,17 +108,45 @@ Use só as inscrições `TESTE QA — APAGAR` dos módulos 3 e 4.
 - [ ] "Rejeitar" na inscrição paga-aprovada de teste → status `REJEITADA`
 - [ ] `/admin/inscricoes` bloqueado para MEMBER e para deslogado
 
-## 5-B. Módulo Matrícula Direta (novo)
+## 5-A. Módulo Configurações — Setores, Regiões, Professores (novo)
+
+Em `/dashboard/configuracoes`, logado como staff.
+
+- [ ] `/dashboard/configuracoes/setores` lista os 15 setores reais (nomeados, não mais `SETOR-01`..`15`) com a região de cada um; trocar a região de um setor pela lista inline e confirmar que salva na hora
+- [ ] `/dashboard/configuracoes/regioes` lista as 7 regiões (Centro/Norte, Sul, Leste, Oeste, Noroeste, Nordeste, Sudoeste), cada uma mostrando os setores vinculados; vincular/desvincular um setor por aqui também deve refletir na tela de Setores
+- [ ] `/dashboard/configuracoes/professores`: cadastrar um professor de teste buscando por matrícula (preenche nome/telefone/cargo automaticamente) → aparece na lista com setor/igreja; excluir o professor de teste
+- [ ] `/dashboard/configuracoes` mostra os cards na ordem: Setores, Igrejas, Sub-congregações, Células, Região, Cargos, Departamentos, Professores, Profissões, Escolaridade, Estado Civil, Sexo, Regiões DF, Administração/Acessos
+- [ ] Acesso restrito para MEMBER e deslogado
+
+## 5-B. Módulo Matrícula Direta (reescrito)
+
+`/admin/matriculas/nova` — ficha completa da secretaria, layout em largura total.
 
 - [ ] `/admin/matriculas` lista todas as matrículas (inscrição pública + diretas), com status e origem
-- [ ] `/admin/matriculas/nova`: preencher ficha completa (RG, nascimento, gênero, estado civil, escolaridade, profissão, endereço via CEP, filiação) + CPF de teste novo + selecionar um curso (ex: Diaconato) → "Gerar matrícula" → cria aluno + matrícula direta, convite de acesso enviado
+- [ ] Caixa "Curso e Vínculo": selecionar Curso → Campo/Ministério (opcional) → Setor → Igreja (lista só as igrejas do setor escolhido) → Turma
+- [ ] Turma: se o curso ainda não tem turma cadastrada, usar o botão "+ Turma", preencher nome + Mês/Ano de início e término (seletor nativo de mês) → salva e já seleciona a turma nova
+- [ ] Professor(a): usar o botão "+ Professor(a)", buscar por matrícula (autofill nome/cargo/telefone) → salva e já seleciona
+- [ ] Dados Pessoais: preencher RG/órgão/UF, nascimento, Sexo, estado civil, escolaridade, profissão
+- [ ] Naturalidade — cidade: digitar e escolher uma cidade da lista (busca IBGE) → UF da naturalidade preenche sozinho; Nacionalidade já vem "Brasileira" por padrão (pode editar); Cônjuge na mesma linha
+- [ ] Nome da mãe / Nome do pai na mesma linha, endereço via CEP
+- [ ] Pagamento — Forma de cobrança "Parcelamento manual": preencher valor total, nº de parcelas (máximo 12, tentar digitar 15 e confirmar que trava em 12), 1º vencimento, forma prevista, quem paga (aluno ou igreja) → gera as parcelas em Financeiro > Contas a Receber
+- [ ] Pagamento — Forma de cobrança "Link de pagamento (Mercado Pago)": preencher valor total → ao salvar, `/admin/matriculas` mostra um banner com o link gerado (botões Copiar e Abrir)
+- [ ] Abrir o link gerado em aba anônima, pagar com o cartão de teste titular `APRO` (seção 0.4) → `/matricula/pagamento/[id]` mostra "Pagamento confirmado!"; conferir em Financeiro > Contas a Receber que a linha da matrícula virou `PAGO`
+- [ ] Repetir um link com titular `OTHE` (recusado) → a linha em Contas a Receber deve continuar `PENDENTE` (sem baixa indevida)
+- [ ] Não marcar o checkbox de consentimento LGPD e tentar enviar → navegador deve bloquear o envio (campo obrigatório)
 - [ ] Tentar matricular o **mesmo CPF** no **mesmo curso** de novo → deve bloquear com a mensagem de matrícula já em andamento/aprovada
 - [ ] Tentar matricular o mesmo CPF em **outro** curso → deve funcionar, reaproveitando a identidade (não reenvia convite se o aluno já tem login)
 - [ ] Acesso restrito para MEMBER e deslogado
 
+## 5-C. Módulo Nova Matrícula — autosserviço (novo)
+
+- [ ] Logado como MEMBER, sidebar mostra "Matrícula" em Módulos, logo abaixo de EBD → leva para `/portal/nova-matricula`
+- [ ] Selecionar um curso gratuito (Treinamento) + CPF de teste → "Confirmar matrícula" → confirma na hora, sem passar pela secretaria
+- [ ] Selecionar um curso com matrícula paga (Teologia — Nível Básico) → vai para o Checkout Pro do Mercado Pago; pagar com titular `APRO` → matrícula é criada só depois da confirmação do webhook
+
 ## 6. Módulo Portal do Aluno (hub)
 
-- [ ] `/portal` carrega com os 6 cards: Igreja, Escola Teológica, Cursos & Treinamentos, EBD, Meus Certificados, **Simulados e Provas**
+- [ ] `/portal` carrega com os 6 cards: Escola de Teologia, Cursos & Treinamentos, EBD, **Nova Matrícula**, Simulados e Provas, Meus Certificados
 
 ## 7. Módulo Escola Teológica
 
@@ -199,14 +227,16 @@ Use uma matrícula de teste com curso **Teologia — Nível Básico** (único cu
 | `/admin/patrimonio` | Acesso restrito | Acessa |
 | `/dashboard/*` | **Acesso restrito (corrigido)** | Acessa |
 | `/dashboard/configuracoes/acessos/usuarios` | Acesso restrito | Acessa |
-| `/portal`, `/portal/avaliacoes` | Acessa (dados só do próprio aluno) | Acessa |
+| `/portal`, `/portal/avaliacoes`, `/portal/nova-matricula` | Acessa (dados só do próprio aluno) | Acessa |
+| `/matricula/pagamento/[id]` (destino do link Mercado Pago) | Público, sem login | Público, sem login |
 
 - [ ] Confirmar cada linha acima com as contas da seção 0.3
 
 ## 18. Nota sobre módulos só de schema (sem tela ainda)
 
-- **Turmas/edições anuais (`course_editions`)**: continua sem tela de cadastro — só inspecionável via Supabase direto.
+- **Turmas/edições anuais (`course_editions`)**: agora tem cadastro rápido embutido em "Nova Matrícula Direta" (botão "+ Turma"), mas ainda não tem uma tela própria de listagem/edição — só inspecionável via Supabase direto para editar/excluir.
 - **Provas dissertativas + correção por IA**: arquitetura pronta (`gerarQuestoes()` isolado em `src/utils/avaliacoes/gerador.ts`), mas desativada até a `ANTHROPIC_API_KEY` ser configurada — por enquanto só múltipla escolha.
+- **`/dashboard/configuracoes/acessos/campos`** ("Campos/Ministérios"): tela mostra na verdade a tabela `churches`, não a tabela real `ead_campos_ministerios` usada pelo campo "Campo/Ministério" da Matrícula Direta e da Inscrição. Rótulo enganoso conhecido, corrigido depois — fora do escopo desta rodada.
 
 ## 19. Resumo final
 

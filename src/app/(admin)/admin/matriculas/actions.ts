@@ -6,6 +6,7 @@ import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
+import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -51,6 +52,39 @@ function fail(message: string): never {
   redirect("/admin/matriculas/nova?error=" + encodeURIComponent(message));
 }
 
+// ── Turma (course_editions) — cadastro rápido, sem sair do formulário
+export async function addTurmaAction(formData: FormData) {
+  const { supabase } = await requireStaff();
+
+  const courseId = (formData.get("course_id") as string) || "";
+  const nome = (formData.get("nome") as string)?.trim();
+  const mesAnoInicio = (formData.get("data_inicio") as string) || ""; // "YYYY-MM"
+  const mesAnoFim = (formData.get("data_fim") as string) || ""; // "YYYY-MM"
+
+  if (!courseId) return { success: false, message: "Selecione o curso antes de criar a turma." };
+  if (!nome) return { success: false, message: "Nome da turma é obrigatório." };
+
+  const dataInicio = mesAnoInicio ? `${mesAnoInicio}-01` : null;
+  const ano = mesAnoInicio ? Number(mesAnoInicio.slice(0, 4)) : new Date().getFullYear();
+
+  let dataFim: string | null = null;
+  if (mesAnoFim) {
+    const [anoFim, mesFim] = mesAnoFim.split("-").map(Number);
+    // Último dia do mês de término.
+    dataFim = new Date(anoFim, mesFim, 0).toISOString().slice(0, 10);
+  }
+
+  const { data, error } = await supabase
+    .from("course_editions")
+    .insert({ course_id: courseId, nome, ano, data_inicio: dataInicio, data_fim: dataFim, status: "ABERTA" })
+    .select("id, nome")
+    .single();
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/admin/matriculas/nova");
+  return { success: true, data };
+}
+
 export async function matricularDiretoAction(formData: FormData) {
   const { supabase, userId } = await requireStaff();
   const admin = createAdminClient();
@@ -62,6 +96,10 @@ export async function matricularDiretoAction(formData: FormData) {
   const course_id = (formData.get("course_id") as string) || "";
   const campo_ministerio_id = (formData.get("campo_ministerio_id") as string) || null;
   const campo_ministerio_nome = (formData.get("campo_ministerio_nome") as string) || null;
+  const sector_id = (formData.get("sector_id") as string) || null;
+  const church_id_aluno = (formData.get("church_id_aluno") as string) || null;
+  const course_edition_id = (formData.get("course_edition_id") as string) || null;
+  const professor_id = (formData.get("professor_id") as string) || null;
 
   const rg = (formData.get("rg") as string)?.trim() || null;
   const rg_orgao_emissor = (formData.get("rg_orgao_emissor") as string)?.trim() || null;
@@ -83,9 +121,15 @@ export async function matricularDiretoAction(formData: FormData) {
   const bairro = (formData.get("bairro") as string)?.trim() || null;
   const cidade = (formData.get("cidade") as string)?.trim() || null;
   const estado = (formData.get("estado") as string) || null;
+  const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
+  const consentimentoLgpdAceito = (formData.get("consentimento_lgpd_aceito") as string) === "true";
 
   if (!nome_completo || !cpf || !email || !course_id) {
     fail("Preencha nome completo, CPF, e-mail e o curso.");
+  }
+
+  if (!consentimentoLgpdAceito) {
+    fail("É necessário confirmar o consentimento LGPD para gerar a matrícula.");
   }
 
   const { data: curso } = await admin
@@ -139,6 +183,8 @@ export async function matricularDiretoAction(formData: FormData) {
         telefone,
         campo_ministerio_id,
         campo_ministerio_nome,
+        sector_id,
+        church_id: church_id_aluno,
         matricula: matriculaNum,
         curso_pretendido: curso!.title,
         status: "ATIVO",
@@ -162,6 +208,9 @@ export async function matricularDiretoAction(formData: FormData) {
         bairro,
         cidade,
         estado,
+        nacionalidade,
+        consentimento_lgpd_aceito: consentimentoLgpdAceito,
+        consentimento_lgpd_data: consentimentoLgpdAceito ? new Date().toISOString() : null,
       })
       .select("id, user_id")
       .single();
@@ -202,6 +251,8 @@ export async function matricularDiretoAction(formData: FormData) {
       status: "EM_ANDAMENTO",
       origem: "MATRICULA_DIRETA",
       matriculado_por: userId,
+      course_edition_id,
+      professor_id,
     })
     .select("id")
     .single();
@@ -210,17 +261,23 @@ export async function matricularDiretoAction(formData: FormData) {
     fail("Erro ao registrar matrícula: " + (matriculaInsertError?.message ?? "desconhecido"));
   }
 
-  // Pagamento (opcional) — só gera parcelas em Contas a Receber se um
-  // valor total foi informado. Não lança nada no Caixa Diário aqui:
-  // isso só acontece quando a secretaria efetivamente der baixa em
-  // cada parcela (dinheiro na mão, ali na hora ou depois).
+  // Pagamento (opcional) — só gera cobrança em Contas a Receber se um
+  // valor total foi informado. Duas formas: parcelamento manual (linhas
+  // PENDENTE, baixadas uma a uma pela secretaria — não toca no Caixa
+  // Diário) ou cobrança única via Mercado Pago (mesmo padrão da Loja):
+  // gera um link de pagamento e a linha em Contas a Receber só vira PAGO
+  // quando o webhook confirmar o pagamento de verdade.
   const valorTotalCentavos = centavosMatricula((formData.get("valor_total") as string) || "");
-  if (valorTotalCentavos > 0) {
-    const totalParcelas = Math.max(1, Number(formData.get("total_parcelas")) || 1);
+  const formaCobranca = (formData.get("forma_cobranca") as string) === "MERCADOPAGO" ? "MERCADOPAGO" : "MANUAL";
+  const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
+  const churchId = (formData.get("church_id") as string) || null;
+
+  let linkPagamento: string | null = null;
+
+  if (valorTotalCentavos > 0 && formaCobranca === "MANUAL") {
+    const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
     const dataVencimento = (formData.get("data_vencimento") as string) || new Date().toISOString().slice(0, 10);
     const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "DINHEIRO";
-    const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
-    const churchId = (formData.get("church_id") as string) || null;
 
     await gerarParcelasContasReceber(admin, {
       origemTipo: "MATRICULA_DIRETA",
@@ -235,12 +292,55 @@ export async function matricularDiretoAction(formData: FormData) {
       primeiroVencimento: dataVencimento,
       formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
     });
+  } else if (valorTotalCentavos > 0 && formaCobranca === "MERCADOPAGO") {
+    const { data: contaReceber, error: erroContaReceber } = await admin
+      .from("fin_contas_receber")
+      .insert({
+        origem_tipo: "MATRICULA_DIRETA",
+        origem_id: matriculaCriada!.id,
+        aluno_id: aluno.id,
+        aluno_user_id: aluno.user_id,
+        responsavel_pagamento: responsavel,
+        church_id: responsavel === "IGREJA" ? churchId : null,
+        descricao: `Matrícula — ${curso!.title}`,
+        numero_parcela: 1,
+        total_parcelas: 1,
+        valor_bruto_centavos: valorTotalCentavos,
+        forma_pagamento_prevista: "CARTAO",
+        data_vencimento: new Date().toISOString().slice(0, 10),
+        status: "PENDENTE",
+      })
+      .select("id")
+      .single();
+
+    if (erroContaReceber || !contaReceber) {
+      console.error("[matricula direta] Falha ao criar conta a receber para link Mercado Pago:", erroContaReceber);
+    } else {
+      try {
+        const preferencia = await criarPreferenciaCheckout({
+          orderId: contaReceber.id,
+          itens: [{ titulo: `Matrícula — ${curso!.title}`, quantidade: 1, precoUnitarioCentavos: valorTotalCentavos }],
+          emailComprador: email,
+          backUrlPath: "/matricula/pagamento",
+        });
+
+        await admin
+          .from("fin_contas_receber")
+          .update({ mercadopago_preference_id: preferencia.id })
+          .eq("id", contaReceber.id);
+
+        linkPagamento = preferencia.sandbox_init_point || preferencia.init_point;
+      } catch (e) {
+        console.error("[matricula direta] Falha ao criar preferência no Mercado Pago:", e);
+      }
+    }
   }
 
   revalidatePath("/admin/matriculas");
   revalidatePath("/admin/financeiro/contas-a-receber");
-  redirect(
-    "/admin/matriculas?msg=" +
-      encodeURIComponent(`Matrícula ${matriculaNum} criada para ${nome_completo}.`)
-  );
+
+  const msg = `Matrícula ${matriculaNum} criada para ${nome_completo}.`;
+  const params = new URLSearchParams({ msg });
+  if (linkPagamento) params.set("link", linkPagamento);
+  redirect(`/admin/matriculas?${params.toString()}`);
 }

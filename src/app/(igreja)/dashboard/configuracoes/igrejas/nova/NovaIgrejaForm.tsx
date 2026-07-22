@@ -4,15 +4,23 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Loader2, AlertTriangle,
-  Building2, MapPin, User, Phone, Hash, Map,
+  Building2, MapPin, User, Phone, Map,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import MatriculaLookup from "../../MatriculaLookup";
+import type { MembroEncontrado } from "../../actions";
 
 type SelectItem = { id: string; name: string };
 
 interface Props {
   setores: SelectItem[];
   igrejasMae: SelectItem[];
+  /** Quando informado, trava o tipo de congregação e esconde o seletor
+   *  (usado pelos atalhos de Sub-congregações e Células). */
+  lockedType?: "CHURCH" | "SUB" | "CELL";
+  /** Rótulo do botão de submit e destino de "Cancelar"/redirect pós-submit. */
+  backHref?: string;
+  submitLabel?: string;
 }
 
 const inputCls =
@@ -24,11 +32,32 @@ const labelCls =
 const sectionTitleCls =
   "flex items-center gap-2 text-xs font-black text-iw-navy uppercase tracking-widest mb-4 pb-2 border-b border-iw-border";
 
-export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
+const TYPE_TITLE: Record<string, string> = {
+  CHURCH: "Igreja",
+  SUB: "Sub-congregação",
+  CELL: "Célula",
+};
+
+export default function NovaIgrejaForm({
+  setores,
+  igrejasMae,
+  lockedType,
+  backHref = "/dashboard/configuracoes/igrejas",
+  submitLabel,
+}: Props) {
   const router = useRouter();
-  const [churchType, setChurchType] = useState("CHURCH");
+  const [churchType, setChurchType] = useState<string>(lockedType ?? "CHURCH");
+  const [pastorName, setPastorName] = useState("");
+  const [pastorPhone, setPastorPhone] = useState("");
+  const [pastorRole, setPastorRole] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const handleMembroEncontrado = (membro: MembroEncontrado) => {
+    setPastorName(membro.full_name);
+    setPastorPhone(membro.phone ?? "");
+    setPastorRole(membro.cargo ?? "");
+  };
 
   const handleSubmit = (fd: FormData) => {
     startTransition(async () => {
@@ -40,13 +69,14 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
       const payload: Record<string, unknown> = {
         // Identificação
         name:              (fd.get("name") as string)?.trim().toUpperCase() || null,
-        church_type:       fd.get("church_type") as string,
+        church_type:       lockedType ?? (fd.get("church_type") as string),
         sector_id:         (fd.get("sector_id") as string)  || null,
         parent_id:         (fd.get("parent_id") as string)  || null,
         // Liderança e contato
         pastor_matricula:  (fd.get("pastor_matricula") as string) || null,
-        pastor_name:       (fd.get("pastor_name") as string)?.trim() || null,
-        pastor_phone:      (fd.get("pastor_phone") as string) || null,
+        pastor_name:       pastorName.trim() || null,
+        pastor_role:       pastorRole || null,
+        pastor_phone:      pastorPhone || null,
         church_phone:      (fd.get("church_phone") as string) || null,
         // Localização
         zip_code:          (fd.get("zip_code") as string) || null,
@@ -63,7 +93,7 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
       const { error: dbError } = await supabase.from("churches").insert(payload);
       if (dbError) { setError(dbError.message); return; }
 
-      router.push("/dashboard/configuracoes/igrejas");
+      router.push(backHref);
       router.refresh();
     });
   };
@@ -84,24 +114,30 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
           Identificação
         </h3>
 
-        {/* Tipo */}
-        <div>
-          <label className={labelCls}>Tipo de Congregação</label>
-          <select
-            name="church_type"
-            value={churchType}
-            onChange={(e) => setChurchType(e.target.value)}
-            className={selectCls}
-          >
-            <option value="CHURCH">Igreja / Congregação</option>
-            <option value="SUB">Sub-congregação</option>
-            <option value="CELL">Célula</option>
-          </select>
-        </div>
+        {/* Tipo (travado nos atalhos de Sub-congregações/Células) */}
+        {lockedType ? (
+          <input type="hidden" name="church_type" value={lockedType} />
+        ) : (
+          <div>
+            <label className={labelCls}>Tipo de Congregação</label>
+            <select
+              name="church_type"
+              value={churchType}
+              onChange={(e) => setChurchType(e.target.value)}
+              className={selectCls}
+            >
+              <option value="CHURCH">Igreja / Congregação</option>
+              <option value="SUB">Sub-congregação</option>
+              <option value="CELL">Célula</option>
+            </select>
+          </div>
+        )}
 
         {/* Nome */}
         <div>
-          <label className={labelCls}>Nome da Congregação *</label>
+          <label className={labelCls}>
+            Nome d{lockedType === "CELL" ? "a Célula" : lockedType === "SUB" ? "a Sub-congregação" : "a Congregação"} *
+          </label>
           <input
             name="name"
             type="text"
@@ -145,21 +181,20 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
           Liderança e Contato
         </h3>
 
+        <p className="text-xs text-iw-muted -mt-2">
+          Digite a matrícula e saia do campo (ou tecle Enter) para buscar o
+          responsável no cadastro de membros — nome, cargo e telefone são
+          preenchidos automaticamente.
+        </p>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Matrícula */}
-          <div>
-            <label className={labelCls}>
-              <span className="inline-flex items-center gap-1">
-                <Hash className="w-3 h-3" /> Matrícula
-              </span>
-            </label>
-            <input
-              name="pastor_matricula"
-              type="text"
-              placeholder="Ex: 12345"
-              className={inputCls}
-            />
-          </div>
+          {/* Matrícula (busca real) */}
+          <MatriculaLookup
+            name="pastor_matricula"
+            label="Matrícula"
+            onFound={handleMembroEncontrado}
+            onClear={() => { setPastorName(""); setPastorPhone(""); setPastorRole(""); }}
+          />
 
           {/* Pastor / Dirigente */}
           <div className="sm:col-span-1 lg:col-span-1">
@@ -171,9 +206,14 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
             <input
               name="pastor_name"
               type="text"
+              value={pastorName}
+              onChange={(e) => setPastorName(e.target.value)}
               placeholder="Nome do responsável"
               className={inputCls}
             />
+            {pastorRole && (
+              <p className="mt-1 text-[11px] text-iw-muted">Cargo: {pastorRole}</p>
+            )}
           </div>
 
           {/* Tel. Dirigente */}
@@ -186,6 +226,8 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
             <input
               name="pastor_phone"
               type="text"
+              value={pastorPhone}
+              onChange={(e) => setPastorPhone(e.target.value)}
               placeholder="+55 (00) 00000-0000"
               className={inputCls}
             />
@@ -305,7 +347,7 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
       {/* ── AÇÕES ── */}
       <div className="flex items-center justify-end gap-3 pt-1">
         <a
-          href="/dashboard/configuracoes/igrejas"
+          href={backHref}
           className="px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
         >
           Cancelar
@@ -320,7 +362,7 @@ export default function NovaIgrejaForm({ setores, igrejasMae }: Props) {
           ) : (
             <Plus className="w-4 h-4" />
           )}
-          Cadastrar Igreja
+          {submitLabel ?? `Cadastrar ${TYPE_TITLE[lockedType ?? "CHURCH"]}`}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { GraduationCap, Plus, IdCard, Mail } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import LinkPagamentoBanner from "./LinkPagamentoBanner";
 
 export const metadata = { title: "Matrículas — CETADP" };
 
@@ -20,11 +21,11 @@ const ORIGEM_LABEL: Record<string, string> = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ msg?: string; error?: string }>;
+  searchParams: Promise<{ msg?: string; error?: string; link?: string }>;
 }
 
 export default async function MatriculasPage({ searchParams }: PageProps) {
-  const { msg, error } = await searchParams;
+  const { msg, error, link } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -75,6 +76,7 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
           {decodeURIComponent(msg)}
         </div>
       )}
+      {link && <LinkPagamentoBanner link={decodeURIComponent(link)} />}
       {error && (
         <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
           {decodeURIComponent(error)}

@@ -225,67 +225,104 @@ export async function POST(request: Request) {
     .eq("id", referenceId)
     .single();
 
-  if (!inscricao) {
-    return NextResponse.json({ erro: "Pedido/inscrição não encontrado" }, { status: 404 });
-  }
+  if (inscricao) {
+    if (inscricao.status !== "AGUARDANDO_PAGAMENTO") {
+      return NextResponse.json({ ok: true }); // já processado ou não se aplica — idempotência
+    }
 
-  if (inscricao.status !== "AGUARDANDO_PAGAMENTO") {
-    return NextResponse.json({ ok: true }); // já processado ou não se aplica — idempotência
-  }
+    if (pagamento.status !== "approved" && pagamento.status !== "rejected" && pagamento.status !== "cancelled") {
+      return NextResponse.json({ recebido: true }); // pending/in_process etc. — continua aguardando
+    }
 
-  if (pagamento.status !== "approved" && pagamento.status !== "rejected" && pagamento.status !== "cancelled") {
-    return NextResponse.json({ recebido: true }); // pending/in_process etc. — continua aguardando
-  }
+    if (pagamento.status !== "approved") {
+      await admin
+        .from("ead_inscricoes")
+        .update({ status: "PAGAMENTO_RECUSADO", mercadopago_payment_id: String(pagamento.id), pago_em: null })
+        .eq("id", referenceId);
+      return NextResponse.json({ ok: true });
+    }
 
-  if (pagamento.status !== "approved") {
+    // Pagamento aprovado: matrícula é criada e habilitada na hora, sem
+    // passar pela fila da secretaria (decisão do CETADP de 16/07/2026).
+    const resultado = await matricularAlunoEmCurso(admin, {
+      cursoPretendido: inscricao.curso_pretendido,
+      nomeCompleto: inscricao.nome_completo,
+      cpf: inscricao.cpf,
+      email: inscricao.email,
+      telefone: inscricao.telefone,
+      campoMinisterioId: inscricao.campo_ministerio_id,
+      origem: "INSCRICAO_PUBLICA",
+    });
+
+    if (!resultado.ok) {
+      console.error("[webhook mercadopago] Falha ao auto-matricular após pagamento:", resultado.erro);
+      // Não derruba o webhook — deixa registrado o pagamento pra secretaria resolver manualmente.
+      await admin
+        .from("ead_inscricoes")
+        .update({ mercadopago_payment_id: String(pagamento.id), pago_em: new Date().toISOString() })
+        .eq("id", referenceId);
+      return NextResponse.json({ ok: true, aviso: resultado.erro });
+    }
+
     await admin
       .from("ead_inscricoes")
-      .update({ status: "PAGAMENTO_RECUSADO", mercadopago_payment_id: String(pagamento.id), pago_em: null })
+      .update({
+        status: "APROVADA",
+        aluno_id: resultado.alunoId,
+        matricula_gerada: resultado.matricula,
+        mercadopago_payment_id: String(pagamento.id),
+        pago_em: new Date().toISOString(),
+        analisado_em: new Date().toISOString(),
+      })
       .eq("id", referenceId);
+
+    await lancarContaReceberOnline(admin, {
+      origemTipo: "INSCRICAO_EAD",
+      origemId: referenceId,
+      alunoUserId: null,
+      descricao: `Matrícula — ${inscricao.curso_pretendido}`,
+      pagamento,
+    });
+
     return NextResponse.json({ ok: true });
   }
 
-  // Pagamento aprovado: matrícula é criada e habilitada na hora, sem
-  // passar pela fila da secretaria (decisão do CETADP de 16/07/2026).
-  const resultado = await matricularAlunoEmCurso(admin, {
-    cursoPretendido: inscricao.curso_pretendido,
-    nomeCompleto: inscricao.nome_completo,
-    cpf: inscricao.cpf,
-    email: inscricao.email,
-    telefone: inscricao.telefone,
-    campoMinisterioId: inscricao.campo_ministerio_id,
-    origem: "INSCRICAO_PUBLICA",
-  });
+  // Não é pedido da Loja nem inscrição EAD — tenta como cobrança avulsa
+  // da Matrícula Direta (link de pagamento gerado manualmente pela
+  // secretaria, ver /admin/matriculas/nova). A linha em
+  // fin_contas_receber só vira PAGO quando o pagamento é aprovado de
+  // verdade; recusado/cancelado fica como está (secretaria pode gerar
+  // outro link se precisar).
+  const { data: contaReceber } = await admin
+    .from("fin_contas_receber")
+    .select("id, status")
+    .eq("id", referenceId)
+    .single();
 
-  if (!resultado.ok) {
-    console.error("[webhook mercadopago] Falha ao auto-matricular após pagamento:", resultado.erro);
-    // Não derruba o webhook — deixa registrado o pagamento pra secretaria resolver manualmente.
-    await admin
-      .from("ead_inscricoes")
-      .update({ mercadopago_payment_id: String(pagamento.id), pago_em: new Date().toISOString() })
-      .eq("id", referenceId);
-    return NextResponse.json({ ok: true, aviso: resultado.erro });
+  if (!contaReceber) {
+    return NextResponse.json({ erro: "Pedido/inscrição/conta não encontrado" }, { status: 404 });
   }
 
+  if (contaReceber.status !== "PENDENTE") {
+    return NextResponse.json({ ok: true }); // já processado — idempotência
+  }
+
+  if (pagamento.status !== "approved") {
+    return NextResponse.json({ recebido: true }); // pending/rejected/cancelled — continua pendente
+  }
+
+  const { liquidoCentavos, percentualTaxa } = calcularLiquidoPagamento(pagamento);
+
   await admin
-    .from("ead_inscricoes")
+    .from("fin_contas_receber")
     .update({
-      status: "APROVADA",
-      aluno_id: resultado.alunoId,
-      matricula_gerada: resultado.matricula,
-      mercadopago_payment_id: String(pagamento.id),
+      status: "PAGO",
+      valor_liquido_centavos: liquidoCentavos || null,
+      taxa_operadora_percentual: percentualTaxa || null,
       pago_em: new Date().toISOString(),
-      analisado_em: new Date().toISOString(),
+      mercadopago_payment_id: String(pagamento.id),
     })
     .eq("id", referenceId);
-
-  await lancarContaReceberOnline(admin, {
-    origemTipo: "INSCRICAO_EAD",
-    origemId: referenceId,
-    alunoUserId: null,
-    descricao: `Matrícula — ${inscricao.curso_pretendido}`,
-    pagamento,
-  });
 
   return NextResponse.json({ ok: true });
 }

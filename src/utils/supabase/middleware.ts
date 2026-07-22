@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/biblioteca",
   "/auth/callback",
   "/loja",
+  "/matricula/pagamento",
   "/api/webhooks/mercadopago",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
