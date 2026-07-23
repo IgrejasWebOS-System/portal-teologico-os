@@ -263,6 +263,125 @@ export async function deleteProfessorAction(id: string) {
   return { success: true };
 }
 
+// ── Sedes Regionais ──────────────────────────────────────────
+export async function promoverSedeAction(formData: FormData) {
+  const churchId = (formData.get("church_id") as string) || "";
+  if (!churchId) return { success: false, message: "Selecione uma igreja." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("churches")
+    .update({ is_sede: true })
+    .eq("id", churchId);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/acessos/sedes");
+  return { success: true };
+}
+
+export async function rebaixarSedeAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("churches")
+    .update({ is_sede: false })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/acessos/sedes");
+  return { success: true };
+}
+
+export async function rebaixarSedeFormAction(id: string): Promise<void> {
+  await rebaixarSedeAction(id);
+}
+
+export async function promoverSedeFormAction(formData: FormData): Promise<void> {
+  await promoverSedeAction(formData);
+}
+
+// ── Líderes de Setor ─────────────────────────────────────────
+export async function definirLiderSetorAction(formData: FormData) {
+  const setorId = (formData.get("setor_id") as string) || "";
+  const churchId = (formData.get("church_id") as string) || "";
+  if (!setorId || !churchId) {
+    return { success: false, message: "Selecione o setor e a igreja-mãe." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("sectors")
+    .update({ mother_church_id: churchId })
+    .eq("id", setorId);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  return { success: true };
+}
+
+export async function removerLiderSetorAction(setorId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sectors")
+    .update({ mother_church_id: null })
+    .eq("id", setorId);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  return { success: true };
+}
+
+export async function removerLiderSetorFormAction(setorId: string): Promise<void> {
+  await removerLiderSetorAction(setorId);
+}
+
+export async function definirLiderSetorFormAction(formData: FormData): Promise<void> {
+  await definirLiderSetorAction(formData);
+}
+
+// ── Matriz de Usuários (RBAC) ────────────────────────────────
+// Restrito a GLOBAL_ADMIN via RLS (profiles_update_global_admin) — mesmo
+// critério do aviso já exibido na tela ("Master e Super Master").
+const NIVEIS_VALIDOS = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN", "MEMBER"];
+
+export async function atualizarNivelUsuarioAction(formData: FormData) {
+  const userId = (formData.get("user_id") as string) || "";
+  const novoNivel = (formData.get("system_role") as string) || "";
+
+  if (!userId || !NIVEIS_VALIDOS.includes(novoNivel)) {
+    return { success: false, message: "Dados inválidos." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  if (userId === user.id) {
+    return { success: false, message: "Você não pode alterar o próprio nível por aqui." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ system_role: novoNivel })
+    .eq("id", userId);
+
+  // RLS bloqueia quem não é GLOBAL_ADMIN — o erro do Postgres nesse caso
+  // já é claro o suficiente pra repassar como mensagem.
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+  return { success: true };
+}
+
+export async function atualizarNivelUsuarioFormAction(formData: FormData): Promise<void> {
+  await atualizarNivelUsuarioAction(formData);
+}
+
 // ── Wrappers void — para uso direto em <form action={...}> sem JS
 //    (o form action do React/Next exige void | Promise<void>) ──────
 export async function deleteProfessorFormAction(id: string): Promise<void> {

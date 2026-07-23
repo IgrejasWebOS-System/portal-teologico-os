@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, Users2, Plus } from "lucide-react";
+import { ArrowLeft, Users2, Plus, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { definirLiderSetorFormAction, removerLiderSetorFormAction } from "../../actions";
 
 type SectorLeader = {
   id: string;
@@ -12,12 +13,20 @@ type SectorLeader = {
 export default async function LidereSetorPage() {
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("sectors")
-    .select("id, name, mother_church_id, churches(name)")
-    .order("name");
+  const [sectorsRes, churchesRes] = await Promise.all([
+    supabase
+      .from("sectors")
+      .select("id, name, mother_church_id, churches(name)")
+      .order("name"),
+    supabase
+      .from("churches")
+      .select("id, name")
+      .eq("church_type", "CHURCH")
+      .order("name"),
+  ]);
 
-  const sectors = (data ?? []) as unknown as SectorLeader[];
+  const sectors = (sectorsRes.data ?? []) as unknown as SectorLeader[];
+  const churches = churchesRes.data ?? [];
   const withLeader    = sectors.filter((s) => s.mother_church_id);
   const withoutLeader = sectors.filter((s) => !s.mother_church_id);
 
@@ -42,11 +51,49 @@ export default async function LidereSetorPage() {
             </div>
           </div>
         </div>
-        <button className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm">
-          <Plus className="w-4 h-4" />
-          Definir Líder de Setor
-        </button>
       </div>
+
+      {/* Definir / alterar líder de um setor */}
+      <form
+        action={definirLiderSetorFormAction}
+        className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end"
+      >
+        <div>
+          <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Setor</label>
+          <select
+            name="setor_id"
+            required
+            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+          >
+            <option value="">Selecione um setor...</option>
+            {sectors.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.mother_church_id ? ` (líder: ${s.churches?.name ?? "?"})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Igreja-Mãe</label>
+          <select
+            name="church_id"
+            required
+            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+          >
+            <option value="">Selecione uma igreja...</option>
+            {churches.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Definir
+        </button>
+      </form>
 
       {withLeader.length > 0 && (
         <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
@@ -60,9 +107,16 @@ export default async function LidereSetorPage() {
               <li key={s.id} className="grid grid-cols-[1fr_1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 gap-4">
                 <span className="text-sm font-semibold text-iw-navy">{s.name}</span>
                 <span className="text-sm text-iw-muted">{s.churches?.name ?? "—"}</span>
-                <button className="text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8">
-                  Alterar
-                </button>
+                <form action={removerLiderSetorFormAction.bind(null, s.id)}>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1 text-xs font-semibold text-iw-muted hover:text-iw-error transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-error-bg ml-auto"
+                    title="Remover liderança"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Remover
+                  </button>
+                </form>
               </li>
             ))}
           </ul>
@@ -80,9 +134,6 @@ export default async function LidereSetorPage() {
             {withoutLeader.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-iw-bg/50">
                 <span className="text-sm font-semibold text-iw-navy">{s.name}</span>
-                <button className="text-xs font-semibold text-iw-gold hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-warning-bg">
-                  Definir Líder
-                </button>
               </li>
             ))}
           </ul>

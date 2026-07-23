@@ -1,18 +1,28 @@
 import Link from "next/link";
-import { ArrowLeft, Map, Plus, Lock } from "lucide-react";
+import { ArrowLeft, Map, Plus, Lock, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { promoverSedeFormAction, rebaixarSedeFormAction } from "../../actions";
 
 export default async function SedesPage() {
   const supabase = await createClient();
 
   // Sedes = igrejas marcadas como is_sede = true (ou com church_type específico)
-  const { data } = await supabase
-    .from("churches")
-    .select("id, name, sectors(name)")
-    .or("is_sede.eq.true,is_headquarters.eq.true")
-    .order("name");
+  const [sedesRes, candidatasRes] = await Promise.all([
+    supabase
+      .from("churches")
+      .select("id, name, sectors(name)")
+      .or("is_sede.eq.true,is_headquarters.eq.true")
+      .order("name"),
+    supabase
+      .from("churches")
+      .select("id, name")
+      .eq("church_type", "CHURCH")
+      .or("is_sede.is.null,is_sede.eq.false")
+      .order("name"),
+  ]);
 
-  const sedes = (data ?? []) as unknown as Array<{ id: string; name: string; sectors: { name: string } | null }>;
+  const sedes = (sedesRes.data ?? []) as unknown as Array<{ id: string; name: string; sectors: { name: string } | null }>;
+  const candidatas = candidatasRes.data ?? [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -35,11 +45,38 @@ export default async function SedesPage() {
             </div>
           </div>
         </div>
-        <button className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm">
-          <Plus className="w-4 h-4" />
-          Promover Igreja a Sede
-        </button>
       </div>
+
+      {/* Promover igreja a sede */}
+      {candidatas.length > 0 && (
+        <form
+          action={promoverSedeFormAction}
+          className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 flex flex-col sm:flex-row gap-3 sm:items-end"
+        >
+          <div className="flex-1">
+            <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">
+              Igreja a promover
+            </label>
+            <select
+              name="church_id"
+              required
+              className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+            >
+              <option value="">Selecione uma igreja...</option>
+              {candidatas.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Promover a Sede
+          </button>
+        </form>
+      )}
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
@@ -55,9 +92,6 @@ export default async function SedesPage() {
             <p className="text-iw-muted/60 text-xs mt-1">
               Promova uma Igreja ao status de Sede para que apareça aqui.
             </p>
-            <p className="text-iw-muted/50 text-xs mt-2">
-              (Requer coluna <code className="bg-iw-bg px-1 rounded">is_sede boolean</code> na tabela <code className="bg-iw-bg px-1 rounded">churches</code>)
-            </p>
           </div>
         ) : (
           <ul className="divide-y divide-iw-border">
@@ -70,9 +104,16 @@ export default async function SedesPage() {
                 <span className="text-xs font-medium text-iw-navy bg-iw-bg border border-iw-border px-2.5 py-1 rounded-full w-fit">
                   {sede.sectors?.name ?? "—"}
                 </span>
-                <button className="text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8">
-                  Gerenciar
-                </button>
+                <form action={rebaixarSedeFormAction.bind(null, sede.id)}>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1 text-xs font-semibold text-iw-muted hover:text-iw-error transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-error-bg ml-auto"
+                    title="Remover status de Sede"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Rebaixar
+                  </button>
+                </form>
               </li>
             ))}
           </ul>

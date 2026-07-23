@@ -66,9 +66,13 @@ export default async function CamposPage() {
               >
                 <span className="text-sm font-semibold text-iw-navy">{campo.name}</span>
                 <span className="text-xs text-iw-muted font-mono truncate">{campo.id}</span>
-                <button className="text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8">
-                  Gerenciar
-                </button>
+                <Link
+                  href="/dashboard/configuracoes/igrejas"
+                  className="text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                  title="Ver na listagem de Igrejas — edição individual ainda não existe"
+                >
+                  Ver em Igrejas
+                </Link>
               </li>
             ))}
           </ul>
