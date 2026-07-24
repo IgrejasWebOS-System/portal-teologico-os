@@ -4,6 +4,7 @@ import { BookMarked, BookOpen, Users, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Link from "next/link";
 import type { EbdQuarter, EbdAudience } from "@/types";
+import { checkIsStaff } from "@/utils/staff";
 
 export const metadata = { title: "EBD — Escola Bíblica Dominical" };
 
@@ -19,6 +20,8 @@ export default async function EbdPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (await checkIsStaff(supabase, user.id)) redirect("/admin/ebd");
 
   // Busca todos os trimestres disponíveis
   const { data: allQuarters } = await supabase

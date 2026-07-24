@@ -4,6 +4,7 @@ import { BookOpen, Play, Clock, User, ChevronRight, Award } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Course } from "@/types";
+import { checkIsStaff } from "@/utils/staff";
 
 export const metadata = { title: "Cursos & Preparatórios" };
 
@@ -23,6 +24,8 @@ export default async function CursosPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (await checkIsStaff(supabase, user.id)) redirect("/admin/conteudo?modulo=cursos");
 
   const { data: courses } = await supabase
     .from("courses")

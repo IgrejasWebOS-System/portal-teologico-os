@@ -4,6 +4,7 @@ import Link from "next/link";
 import { GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, Home } from "lucide-react";
 import PublicFooter from "@/components/public/PublicFooter";
 import Logo from "@/components/Logo";
+import { checkIsStaff } from "@/utils/staff";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -93,6 +94,10 @@ export default async function PortalHubPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Staff nunca deveria ficar navegando o hub do aluno — mesmo que caia
+  // aqui por link antigo, back button, etc., manda direto pro /admin.
+  if (await checkIsStaff(supabase, user.id)) redirect("/admin");
 
   // Busca o perfil do usuário para saudação
   const { data: profile } = await supabase

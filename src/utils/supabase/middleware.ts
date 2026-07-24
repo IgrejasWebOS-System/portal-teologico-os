@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { checkIsStaff } from "@/utils/staff";
 
 // Rotas acessíveis sem autenticação (prefixo)
 const PUBLIC_PATHS = [
@@ -50,10 +51,14 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     PUBLIC_EXACT.includes(path) || PUBLIC_PATHS.some((p) => path.startsWith(p));
 
-  // Usuário logado tentando acessar /login → redireciona para o hub do portal
+  // Usuário logado tentando acessar /login → redireciona para o destino certo.
+  // Staff (secretaria/admin) sempre cai em /admin, nunca no hub do aluno —
+  // mesmo critério já usado em loginAction, mas este cobre quem já tinha
+  // sessão ativa e só reabriu /login (o loginAction só roda no submit).
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/portal";
+    const isStaff = await checkIsStaff(supabase, user.id);
+    url.pathname = isStaff ? "/admin" : "/portal";
     return NextResponse.redirect(url);
   }
 

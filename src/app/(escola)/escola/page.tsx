@@ -4,6 +4,7 @@ import { GraduationCap, Play, Clock, User, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Course } from "@/types";
+import { checkIsStaff } from "@/utils/staff";
 
 export const metadata = { title: "Escola Teológica" };
 
@@ -24,9 +25,14 @@ export default async function EscolaPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Staff usa este módulo pra gestão (via Sidebar → /admin/conteudo),
+  // nunca pra navegar como aluno — se cair aqui por link antigo/favorito,
+  // manda pra tela de gestão equivalente.
+  if (await checkIsStaff(supabase, user.id)) redirect("/admin/conteudo?modulo=escola");
+
   // Aluno com matrícula oficial (ead_alunos/ead_matriculas) vê só os
-  // próprios cursos matriculados — não o catálogo completo. Staff e
-  // membros sem ficha de aluno continuam vendo o catálogo normal.
+  // próprios cursos matriculados — não o catálogo completo. Membros sem
+  // ficha de aluno continuam vendo o catálogo normal.
   const { data: aluno } = await supabase
     .from("ead_alunos")
     .select("id")
