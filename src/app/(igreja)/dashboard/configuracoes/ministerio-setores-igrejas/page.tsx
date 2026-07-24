@@ -1,41 +1,68 @@
 import Link from "next/link";
 import {
-  ShieldCheck,
+  Landmark,
+  Building,
   Map,
-  Users2,
-  KeySquare,
+  Church,
+  Building2,
+  GitBranch,
+  Globe2,
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
 
 const PANELS = [
   {
-    href: "/dashboard/configuracoes/acessos/sedes",
+    href: "/dashboard/configuracoes/acessos/campos",
+    icon: Building,
+    title: "Campos / Ministérios",
+    description: "Crie e gerencie os campos principais do sistema",
+    cta: "Gerenciar Campos",
+    accent: "text-iw-blue bg-iw-blue/10",
+  },
+  {
+    href: "/dashboard/configuracoes/setores",
     icon: Map,
-    title: "Sedes Regionais",
-    description: "Eleve igrejas ao status de Sede de Campo",
-    cta: "Gerenciar Sedes",
+    title: "Setores",
+    description: "Organização geográfica e pastoral",
+    cta: "Gerenciar",
     accent: "text-iw-navy bg-iw-sky/20",
   },
   {
-    href: "/dashboard/configuracoes/acessos/lideres-setor",
-    icon: Users2,
-    title: "Líderes de Setor",
-    description: "Defina a Igreja-Mãe responsável por cada setor",
-    cta: "Definir Liderança",
+    href: "/dashboard/configuracoes/igrejas",
+    icon: Church,
+    title: "Igrejas",
+    description: "Congregações e sub-congregações",
+    cta: "Gerenciar",
+    accent: "text-iw-blue bg-iw-blue/10",
+  },
+  {
+    href: "/dashboard/configuracoes/sub-congregacoes",
+    icon: Building2,
+    title: "Sub-congregações",
+    description: "Vinculadas a setor, igreja e responsável",
+    cta: "Gerenciar",
+    accent: "text-iw-gold bg-iw-gold/10",
+  },
+  {
+    href: "/dashboard/configuracoes/celulas",
+    icon: GitBranch,
+    title: "Células",
+    description: "Vinculadas a setor, igreja e responsável",
+    cta: "Gerenciar",
     accent: "text-iw-success bg-iw-success/10",
   },
   {
-    href: "/dashboard/configuracoes/acessos/usuarios",
-    icon: KeySquare,
-    title: "Matriz de Usuários",
-    description: "Gere senhas e distribua acessos por nível (RBAC)",
-    cta: "Gerar Acessos",
-    accent: "text-iw-gold bg-iw-gold/10",
+    href: "/dashboard/configuracoes/regioes",
+    icon: Globe2,
+    title: "Região",
+    description: "Agrupamento de igrejas por região, entre setores",
+    cta: "Gerenciar",
+    accent: "text-iw-blue bg-iw-blue/10",
   },
 ];
 
-export default function AcessosPage() {
+export default function MinisterioSetoresIgrejasPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -48,23 +75,18 @@ export default function AcessosPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-error-bg flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5 text-iw-error" />
+          <div className="w-10 h-10 rounded-xl bg-iw-sky/20 flex items-center justify-center shrink-0">
+            <Landmark className="w-5 h-5 text-iw-navy" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              Administração Global e Acessos
+              Ministério · Setores · Igrejas
             </h1>
             <p className="text-iw-muted text-xs mt-0.5">
-              Gestão de Sedes Regionais, Líderes de Setor e Permissões (RBAC).
+              Campos, setores, igrejas, sub-congregações, células e região.
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Warning */}
-      <div className="bg-iw-error-bg border border-iw-error/20 rounded-xl px-4 py-3 text-sm text-iw-error font-medium">
-        ⚠ Área restrita. Apenas administradores Master e Super Master têm acesso completo.
       </div>
 
       {/* Grid */}

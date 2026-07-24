@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // Tabelas simples suportadas
 type SimpleTable =
@@ -380,6 +381,111 @@ export async function atualizarNivelUsuarioAction(formData: FormData) {
 
 export async function atualizarNivelUsuarioFormAction(formData: FormData): Promise<void> {
   await atualizarNivelUsuarioAction(formData);
+}
+
+// ── Turmas (course_editions) ─────────────────────────────────
+// Segue o mesmo padrão redirect-based de admin/patrimonio/actions.ts
+// (em vez de retornar {success,message}) porque esta action é usada
+// direto em <form action={...}> num Server Component — o tipo do
+// action de <form> exige void | Promise<void>, e uma função que só
+// termina em redirect() (never) satisfaz isso.
+export async function addTurmaConfigAction(formData: FormData) {
+  const courseId = (formData.get("course_id") as string) || "";
+  const nome = (formData.get("nome") as string)?.trim();
+  const dataInicio = (formData.get("data_inicio") as string) || null;
+  const dataFim = (formData.get("data_fim") as string) || null;
+
+  if (!courseId || !nome) {
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" +
+        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+    );
+  }
+
+  const ano = dataInicio ? Number(dataInicio.slice(0, 4)) : new Date().getFullYear();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.from("course_editions").insert({
+    course_id: courseId,
+    nome: nome!.toUpperCase(),
+    ano,
+    data_inicio: dataInicio,
+    data_fim: dataFim,
+    status: "ABERTA",
+  });
+
+  if (error) {
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent(error.message)
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" +
+      encodeURIComponent(`Turma "${nome}" cadastrada.`)
+  );
+}
+
+export async function updateTurmaConfigAction(formData: FormData) {
+  const id = (formData.get("id") as string) || "";
+  const courseId = (formData.get("course_id") as string) || "";
+  const nome = (formData.get("nome") as string)?.trim();
+  const dataInicio = (formData.get("data_inicio") as string) || null;
+  const dataFim = (formData.get("data_fim") as string) || null;
+  const status = (formData.get("status") as string) || "ABERTA";
+
+  if (!id || !courseId || !nome) {
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" +
+        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+    );
+  }
+
+  const ano = dataInicio ? Number(dataInicio.slice(0, 4)) : new Date().getFullYear();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("course_editions")
+    .update({
+      course_id: courseId,
+      nome: nome!.toUpperCase(),
+      ano,
+      data_inicio: dataInicio,
+      data_fim: dataFim,
+      status,
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent(error.message)
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" +
+      encodeURIComponent(`Turma "${nome}" atualizada.`)
+  );
+}
+
+export async function deleteTurmaAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("course_editions").delete().eq("id", id);
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  return { success: true };
+}
+
+export async function deleteTurmaFormAction(id: string): Promise<void> {
+  await deleteTurmaAction(id);
 }
 
 // ── Wrappers void — para uso direto em <form action={...}> sem JS

@@ -1,41 +1,41 @@
 import Link from "next/link";
 import {
-  ShieldCheck,
-  Map,
-  Users2,
-  KeySquare,
+  Users,
+  UserRound,
+  Briefcase,
+  LayoutGrid,
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
 
 const PANELS = [
   {
-    href: "/dashboard/configuracoes/acessos/sedes",
-    icon: Map,
-    title: "Sedes Regionais",
-    description: "Eleve igrejas ao status de Sede de Campo",
-    cta: "Gerenciar Sedes",
-    accent: "text-iw-navy bg-iw-sky/20",
+    href: "/dashboard/membros",
+    icon: UserRound,
+    title: "Membros",
+    description: "Rol de membros ativos da igreja",
+    cta: "Gerenciar",
+    accent: "text-iw-blue bg-iw-blue/10",
   },
   {
-    href: "/dashboard/configuracoes/acessos/lideres-setor",
-    icon: Users2,
-    title: "Líderes de Setor",
-    description: "Defina a Igreja-Mãe responsável por cada setor",
-    cta: "Definir Liderança",
-    accent: "text-iw-success bg-iw-success/10",
-  },
-  {
-    href: "/dashboard/configuracoes/acessos/usuarios",
-    icon: KeySquare,
-    title: "Matriz de Usuários",
-    description: "Gere senhas e distribua acessos por nível (RBAC)",
-    cta: "Gerar Acessos",
+    href: "/dashboard/configuracoes/cargos",
+    icon: Briefcase,
+    title: "Cargos",
+    description: "Funções eclesiásticas e administrativas",
+    cta: "Cadastrar",
     accent: "text-iw-gold bg-iw-gold/10",
+  },
+  {
+    href: "/dashboard/configuracoes/departamentos",
+    icon: LayoutGrid,
+    title: "Departamentos",
+    description: "CIBEPI, EBD, Jovens, Mocidade…",
+    cta: "Cadastrar",
+    accent: "text-purple-600 bg-purple-50",
   },
 ];
 
-export default function AcessosPage() {
+export default function MembrasiaPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -48,23 +48,18 @@ export default function AcessosPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-error-bg flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5 text-iw-error" />
+          <div className="w-10 h-10 rounded-xl bg-iw-blue/10 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-iw-blue" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              Administração Global e Acessos
+              Membrasia
             </h1>
             <p className="text-iw-muted text-xs mt-0.5">
-              Gestão de Sedes Regionais, Líderes de Setor e Permissões (RBAC).
+              Membros, cargos e departamentos.
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Warning */}
-      <div className="bg-iw-error-bg border border-iw-error/20 rounded-xl px-4 py-3 text-sm text-iw-error font-medium">
-        ⚠ Área restrita. Apenas administradores Master e Super Master têm acesso completo.
       </div>
 
       {/* Grid */}

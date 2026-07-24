@@ -1,41 +1,59 @@
 import Link from "next/link";
 import {
-  ShieldCheck,
-  Map,
-  Users2,
-  KeySquare,
+  SlidersHorizontal,
+  Heart,
+  Users,
+  User,
+  GraduationCap,
+  MapPin,
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
 
 const PANELS = [
   {
-    href: "/dashboard/configuracoes/acessos/sedes",
-    icon: Map,
-    title: "Sedes Regionais",
-    description: "Eleve igrejas ao status de Sede de Campo",
-    cta: "Gerenciar Sedes",
-    accent: "text-iw-navy bg-iw-sky/20",
+    href: "/dashboard/configuracoes/estado-civil",
+    icon: Heart,
+    title: "Estado Civil",
+    description: "Situação conjugal dos membros",
+    cta: "Cadastrar",
+    accent: "text-pink-600 bg-pink-50",
   },
   {
-    href: "/dashboard/configuracoes/acessos/lideres-setor",
-    icon: Users2,
-    title: "Líderes de Setor",
-    description: "Defina a Igreja-Mãe responsável por cada setor",
-    cta: "Definir Liderança",
+    href: "/dashboard/configuracoes/genero",
+    icon: Users,
+    title: "Sexo",
+    description: "Classificação oficial do sistema",
+    cta: "Cadastrar",
+    accent: "text-iw-sky bg-iw-sky/20",
+  },
+  {
+    href: "/dashboard/configuracoes/profissoes",
+    icon: User,
+    title: "Profissões",
+    description: "Cadastro de ocupações profissionais",
+    cta: "Cadastrar",
+    accent: "text-iw-blue bg-iw-blue/10",
+  },
+  {
+    href: "/dashboard/configuracoes/escolaridades",
+    icon: GraduationCap,
+    title: "Escolaridade",
+    description: "Níveis de formação acadêmica",
+    cta: "Cadastrar",
     accent: "text-iw-success bg-iw-success/10",
   },
   {
-    href: "/dashboard/configuracoes/acessos/usuarios",
-    icon: KeySquare,
-    title: "Matriz de Usuários",
-    description: "Gere senhas e distribua acessos por nível (RBAC)",
-    cta: "Gerar Acessos",
-    accent: "text-iw-gold bg-iw-gold/10",
+    href: "/dashboard/configuracoes/regioes-df",
+    icon: MapPin,
+    title: "Regiões DF",
+    description: "Substitui a lista de cidades quando o membro é do DF",
+    cta: "Cadastrar",
+    accent: "text-iw-warning bg-iw-warning-bg",
   },
 ];
 
-export default function AcessosPage() {
+export default function ComplementosPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
@@ -48,23 +66,18 @@ export default function AcessosPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-error-bg flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5 text-iw-error" />
+          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+            <SlidersHorizontal className="w-5 h-5 text-purple-600" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              Administração Global e Acessos
+              Complementos
             </h1>
             <p className="text-iw-muted text-xs mt-0.5">
-              Gestão de Sedes Regionais, Líderes de Setor e Permissões (RBAC).
+              Estado civil, sexo, profissões, escolaridade e regiões DF.
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Warning */}
-      <div className="bg-iw-error-bg border border-iw-error/20 rounded-xl px-4 py-3 text-sm text-iw-error font-medium">
-        ⚠ Área restrita. Apenas administradores Master e Super Master têm acesso completo.
       </div>
 
       {/* Grid */}

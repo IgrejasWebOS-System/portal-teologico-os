@@ -1,132 +1,60 @@
 import Link from "next/link";
 import {
-  Church,
-  Map,
-  Briefcase,
-  User,
-  GraduationCap,
-  Heart,
+  Landmark,
   Users,
-  MapPin,
-  LayoutGrid,
+  Contact,
+  SlidersHorizontal,
   ShieldCheck,
   ChevronRight,
   Settings2,
-  Building2,
-  GitBranch,
-  Globe2,
 } from "lucide-react";
+
+// ============================================================
+// Configurações do Sistema — grade reorganizada em grupos
+// (Ministério-Setores-Igrejas / Membrasia / Persona / Complementos)
+// pra descongestionar a tela. Cada grupo é um hub próprio que lista
+// os cards individuais (mesmo padrão já usado em "Administração
+// Acessos"). Regiões DF e Administração Acessos seguem soltos.
+// ============================================================
 
 const CONFIG_CARDS = [
   {
-    href: "/dashboard/configuracoes/setores",
-    icon: Map,
-    title: "Setores",
-    description: "Organização geográfica e pastoral",
+    href: "/dashboard/configuracoes/ministerio-setores-igrejas",
+    icon: Landmark,
+    title: "Ministério · Setores · Igrejas",
+    description: "Campos, setores, igrejas, sub-congregações, células e região",
     cta: "Gerenciar",
     accent: "text-iw-navy bg-iw-sky/20",
   },
   {
-    href: "/dashboard/configuracoes/igrejas",
-    icon: Church,
-    title: "Igrejas",
-    description: "Congregações e sub-congregações",
-    cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
-  },
-  {
-    href: "/dashboard/configuracoes/sub-congregacoes",
-    icon: Building2,
-    title: "Sub-congregações",
-    description: "Vinculadas a setor, igreja e responsável",
-    cta: "Gerenciar",
-    accent: "text-iw-gold bg-iw-gold/10",
-  },
-  {
-    href: "/dashboard/configuracoes/celulas",
-    icon: GitBranch,
-    title: "Células",
-    description: "Vinculadas a setor, igreja e responsável",
-    cta: "Gerenciar",
-    accent: "text-iw-success bg-iw-success/10",
-  },
-  {
-    href: "/dashboard/configuracoes/regioes",
-    icon: Globe2,
-    title: "Região",
-    description: "Agrupamento de igrejas por região, entre setores",
-    cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
-  },
-  {
-    href: "/dashboard/configuracoes/cargos",
-    icon: Briefcase,
-    title: "Cargos",
-    description: "Funções eclesiásticas e administrativas",
-    cta: "Cadastrar",
-    accent: "text-iw-gold bg-iw-gold/10",
-  },
-  {
-    href: "/dashboard/configuracoes/departamentos",
-    icon: LayoutGrid,
-    title: "Departamentos",
-    description: "CIBEPI, EBD, Jovens, Mocidade…",
-    cta: "Cadastrar",
-    accent: "text-purple-600 bg-purple-50",
-  },
-  {
-    href: "/dashboard/configuracoes/professores",
-    icon: GraduationCap,
-    title: "Professores",
-    description: "Membro responsável, por setor e igreja",
-    cta: "Gerenciar",
-    accent: "text-iw-gold bg-iw-gold/10",
-  },
-  {
-    href: "/dashboard/configuracoes/profissoes",
-    icon: User,
-    title: "Profissões",
-    description: "Cadastro de ocupações profissionais",
-    cta: "Cadastrar",
-    accent: "text-iw-blue bg-iw-blue/10",
-  },
-  {
-    href: "/dashboard/configuracoes/escolaridades",
-    icon: GraduationCap,
-    title: "Escolaridade",
-    description: "Níveis de formação acadêmica",
-    cta: "Cadastrar",
-    accent: "text-iw-success bg-iw-success/10",
-  },
-  {
-    href: "/dashboard/configuracoes/estado-civil",
-    icon: Heart,
-    title: "Estado Civil",
-    description: "Situação conjugal dos membros",
-    cta: "Cadastrar",
-    accent: "text-pink-600 bg-pink-50",
-  },
-  {
-    href: "/dashboard/configuracoes/genero",
+    href: "/dashboard/configuracoes/membrasia",
     icon: Users,
-    title: "Sexo",
-    description: "Classificação oficial do sistema",
-    cta: "Cadastrar",
-    accent: "text-iw-sky bg-iw-sky/20",
+    title: "Membrasia",
+    description: "Membros, cargos e departamentos",
+    cta: "Gerenciar",
+    accent: "text-iw-blue bg-iw-blue/10",
   },
   {
-    href: "/dashboard/configuracoes/regioes-df",
-    icon: MapPin,
-    title: "Regiões DF",
-    description: "Substitui a lista de cidades quando o membro é do DF",
-    cta: "Cadastrar",
-    accent: "text-iw-warning bg-iw-warning-bg",
+    href: "/dashboard/configuracoes/persona",
+    icon: Contact,
+    title: "Persona",
+    description: "Professor, aluno e turmas",
+    cta: "Gerenciar",
+    accent: "text-iw-gold bg-iw-gold/10",
+  },
+  {
+    href: "/dashboard/configuracoes/complementos",
+    icon: SlidersHorizontal,
+    title: "Complementos",
+    description: "Estado civil, sexo, profissões e escolaridade",
+    cta: "Gerenciar",
+    accent: "text-purple-600 bg-purple-50",
   },
   {
     href: "/dashboard/configuracoes/acessos",
     icon: ShieldCheck,
     title: "Administração Acessos",
-    description: "Gestão de campos, sedes e permissões",
+    description: "Gestão de sedes, líderes de setor e permissões",
     cta: "Acessar Painel",
     accent: "text-iw-error bg-iw-error-bg",
   },
@@ -151,7 +79,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {CONFIG_CARDS.map((card) => {
           const Icon = card.icon;
           return (
@@ -173,7 +101,7 @@ export default function ConfiguracoesPage() {
               </div>
 
               {/* Description */}
-              <p className="text-xs text-iw-muted leading-relaxed flex-1">
+              <p className="text-xs text-black leading-relaxed flex-1 text-center">
                 {card.description}
               </p>
 
