@@ -90,6 +90,50 @@ export default function NovaIgrejaForm({
 
       if (!payload.name) { setError("Nome da congregação é obrigatório."); return; }
 
+      // M10a: cria a unit correspondente (IGREJA / SUB_CONGREGACAO /
+      // CELULA) junto, ligada ao pai certo, pra já nascer com escopo
+      // territorial real. Se não achar o pai (setor/igreja-mãe não
+      // selecionado, ou sem unit_id ainda), segue sem unit_id — igual
+      // ao comportamento de antes deste módulo, não bloqueia o cadastro.
+      let unitId: string | null = null;
+      const churchType = payload.church_type as string;
+
+      if (churchType === "CHURCH" && payload.sector_id) {
+        const { data: setorRow } = await supabase
+          .from("sectors")
+          .select("unit_id")
+          .eq("id", payload.sector_id as string)
+          .single();
+        if (setorRow?.unit_id) {
+          const { data: newUnit } = await supabase
+            .from("units")
+            .insert({ type: "IGREJA", name: payload.name, parent_id: setorRow.unit_id })
+            .select("id")
+            .single();
+          unitId = newUnit?.id ?? null;
+        }
+      } else if ((churchType === "SUB" || churchType === "CELL") && payload.parent_id) {
+        const { data: igrejaRow } = await supabase
+          .from("churches")
+          .select("unit_id")
+          .eq("id", payload.parent_id as string)
+          .single();
+        if (igrejaRow?.unit_id) {
+          const { data: newUnit } = await supabase
+            .from("units")
+            .insert({
+              type: churchType === "SUB" ? "SUB_CONGREGACAO" : "CELULA",
+              name: payload.name,
+              parent_id: igrejaRow.unit_id,
+            })
+            .select("id")
+            .single();
+          unitId = newUnit?.id ?? null;
+        }
+      }
+
+      payload.unit_id = unitId;
+
       const { error: dbError } = await supabase.from("churches").insert(payload);
       if (dbError) { setError(dbError.message); return; }
 

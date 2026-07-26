@@ -86,9 +86,27 @@ export async function addSetorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
+  // M10a: cria a unit SETOR junto, pra já nascer com escopo territorial
+  // real (sem isso, só GLOBAL_ADMIN/Super-Master enxergariam o setor
+  // depois). Só resolve a Sede automaticamente porque hoje existe uma
+  // única — se um dia houver mais de uma, isso vai precisar de um
+  // seletor de Sede no formulário. Se a criação da unit falhar por
+  // qualquer motivo, não bloqueia o cadastro do setor — só fica sem
+  // unit_id, do jeito que era antes deste módulo.
+  let unitId: string | null = null;
+  const { data: sedes } = await supabase.from("units").select("id").eq("type", "SEDE");
+  if (sedes && sedes.length === 1) {
+    const { data: newUnit } = await supabase
+      .from("units")
+      .insert({ type: "SETOR", name: name.toUpperCase(), parent_id: sedes[0].id })
+      .select("id")
+      .single();
+    unitId = newUnit?.id ?? null;
+  }
+
   const { error } = await supabase
     .from("sectors")
-    .insert({ name: name.toUpperCase(), regiao_id: regiaoId });
+    .insert({ name: name.toUpperCase(), regiao_id: regiaoId, unit_id: unitId });
 
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
