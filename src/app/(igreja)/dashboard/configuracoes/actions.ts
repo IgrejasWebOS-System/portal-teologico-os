@@ -570,26 +570,50 @@ export async function inviteStaffAction(formData: FormData) {
 
   const admin = createAdminClient();
 
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: fullName ? { full_name: fullName } : undefined,
-  });
+  // Alguém com esse e-mail já pode existir (ex: já é aluno de um curso
+  // avulso) — inviteUserByEmail falha nesse caso ("e-mail já cadastrado"),
+  // e o cenário certo não é erro, é PROMOVER a conta existente: só
+  // adiciona o nível de acesso, sem reenviar convite nem mexer na senha
+  // que a pessoa já tem.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
 
-  if (inviteError || !invited?.user) {
-    return {
-      success: false,
-      message: inviteError?.message ?? "Não foi possível enviar o convite.",
-    };
+  let targetUserId: string;
+  let promovendoExistente = false;
+
+  if (existingProfile?.id) {
+    targetUserId = existingProfile.id;
+    promovendoExistente = true;
+    if (fullName) {
+      await admin.from("profiles").update({ full_name: fullName }).eq("id", targetUserId);
+    }
+  } else {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: fullName ? { full_name: fullName } : undefined,
+    });
+
+    if (inviteError || !invited?.user) {
+      return {
+        success: false,
+        message: inviteError?.message ?? "Não foi possível enviar o convite.",
+      };
+    }
+
+    targetUserId = invited.user.id;
+
+    // handle_new_user() (trigger em auth.users) já criou a linha em
+    // profiles — só completa com nome e a flag de troca de senha.
+    await admin
+      .from("profiles")
+      .update({ full_name: fullName || null, must_change_password: true })
+      .eq("id", targetUserId);
   }
 
-  // handle_new_user() (trigger em auth.users) já criou a linha em
-  // profiles — só completa com nome e a flag de troca de senha.
-  await admin
-    .from("profiles")
-    .update({ full_name: fullName || null, must_change_password: true })
-    .eq("id", invited.user.id);
-
   const { error: roleError } = await admin.from("admin_roles").insert({
-    user_id: invited.user.id,
+    user_id: targetUserId,
     level,
     unit_id: level === 0 ? null : unitId,
     role_title: roleTitle,
@@ -599,12 +623,19 @@ export async function inviteStaffAction(formData: FormData) {
   if (roleError) {
     return {
       success: false,
-      message: `Convite enviado, mas houve um erro ao gravar o nível de acesso: ${roleError.message}`,
+      message: promovendoExistente
+        ? `Falha ao gravar o nível de acesso: ${roleError.message}`
+        : `Convite enviado, mas houve um erro ao gravar o nível de acesso: ${roleError.message}`,
     };
   }
 
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
-  return { success: true, message: `Convite enviado para ${email}.` };
+  return {
+    success: true,
+    message: promovendoExistente
+      ? `${email} já tinha conta — nível de acesso adicionado.`
+      : `Convite enviado para ${email}.`,
+  };
 }
 
 export async function inviteStaffFormAction(formData: FormData): Promise<void> {
