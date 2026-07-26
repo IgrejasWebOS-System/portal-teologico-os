@@ -1,4 +1,7 @@
-import { Building, MapPin, Phone, User, Mail } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Building, MapPin, Phone, User, Mail, Loader2 } from "lucide-react";
 import { criarCampoAction, atualizarCampoAction } from "./actions";
 
 const inputCls =
@@ -32,6 +35,38 @@ interface Props {
 
 export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }: Props) {
   const action = existing ? atualizarCampoAction : criarCampoAction;
+
+  const [cep, setCep] = useState(existing?.cep ?? "");
+  const [endereco, setEndereco] = useState(existing?.endereco ?? "");
+  const [bairro, setBairro] = useState(existing?.bairro ?? "");
+  const [cidade, setCidade] = useState(existing?.cidade ?? "");
+  const [uf, setUf] = useState(existing?.uf ?? "");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepErro, setCepErro] = useState("");
+
+  const buscarCep = async (valor: string) => {
+    const limpo = valor.replace(/\D/g, "");
+    if (limpo.length !== 8) return;
+
+    setBuscandoCep(true);
+    setCepErro("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepErro("CEP não encontrado.");
+        return;
+      }
+      setEndereco(data.logradouro || "");
+      setBairro(data.bairro || "");
+      setCidade(data.localidade || "");
+      setUf(data.uf || "");
+    } catch {
+      setCepErro("Não foi possível buscar o CEP agora — preencha manualmente.");
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
 
   return (
     <form action={action} className="space-y-6">
@@ -82,12 +117,30 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelCls}>CEP</label>
-            <input name="cep" type="text" defaultValue={existing?.cep ?? ""} placeholder="00000-000" className={inputCls} />
+            <label className={labelCls}>
+              CEP {buscandoCep && <Loader2 className="w-3 h-3 inline animate-spin ml-1" />}
+            </label>
+            <input
+              name="cep"
+              type="text"
+              value={cep}
+              onChange={(e) => setCep(e.target.value)}
+              onBlur={(e) => buscarCep(e.target.value)}
+              placeholder="00000-000"
+              className={inputCls}
+            />
+            {cepErro && <p className="text-[11px] text-iw-error mt-1">{cepErro}</p>}
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>Endereço</label>
-            <input name="endereco" type="text" defaultValue={existing?.endereco ?? ""} placeholder="Rua, Avenida..." className={inputCls} />
+            <input
+              name="endereco"
+              type="text"
+              value={endereco}
+              onChange={(e) => setEndereco(e.target.value)}
+              placeholder="Rua, Avenida..."
+              className={inputCls}
+            />
           </div>
         </div>
 
@@ -102,17 +155,37 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           </div>
           <div>
             <label className={labelCls}>Bairro</label>
-            <input name="bairro" type="text" defaultValue={existing?.bairro ?? ""} className={inputCls} />
+            <input
+              name="bairro"
+              type="text"
+              value={bairro}
+              onChange={(e) => setBairro(e.target.value)}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>UF</label>
-            <input name="uf" type="text" maxLength={2} defaultValue={existing?.uf ?? ""} placeholder="SP" className={inputCls} />
+            <input
+              name="uf"
+              type="text"
+              maxLength={2}
+              value={uf}
+              onChange={(e) => setUf(e.target.value.toUpperCase())}
+              placeholder="SP"
+              className={inputCls}
+            />
           </div>
         </div>
 
         <div>
           <label className={labelCls}>Cidade</label>
-          <input name="cidade" type="text" defaultValue={existing?.cidade ?? ""} className={inputCls} />
+          <input
+            name="cidade"
+            type="text"
+            value={cidade}
+            onChange={(e) => setCidade(e.target.value)}
+            className={inputCls}
+          />
         </div>
       </div>
 
