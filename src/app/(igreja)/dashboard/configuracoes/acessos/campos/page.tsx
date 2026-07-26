@@ -36,7 +36,7 @@ export default async function CamposPage() {
           </div>
         </div>
         <Link
-          href="/dashboard/configuracoes/igrejas/nova"
+          href="/dashboard/configuracoes/acessos/campos/nova"
           className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
         >
           <Plus className="w-4 h-4" />
