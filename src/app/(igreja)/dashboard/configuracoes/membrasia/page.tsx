@@ -4,6 +4,7 @@ import {
   UserRound,
   Briefcase,
   LayoutGrid,
+  UserCog,
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
@@ -33,6 +34,14 @@ const PANELS = [
     cta: "Cadastrar",
     accent: "text-purple-600 bg-purple-50",
   },
+  {
+    href: "/dashboard/configuracoes/funcoes",
+    icon: UserCog,
+    title: "Função",
+    description: "Líder, Secretário, Tesoureiro… por departamento e escopo",
+    cta: "Cadastrar",
+    accent: "text-iw-sky bg-iw-sky/20",
+  },
 ];
 
 export default function MembrasiaPage() {
@@ -56,7 +65,7 @@ export default function MembrasiaPage() {
               Membrasia
             </h1>
             <p className="text-iw-muted text-xs mt-0.5">
-              Membros, cargos e departamentos.
+              Membros, cargos, departamentos e função.
             </p>
           </div>
         </div>
