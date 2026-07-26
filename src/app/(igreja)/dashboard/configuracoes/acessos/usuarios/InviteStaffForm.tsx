@@ -44,16 +44,16 @@ export default function InviteStaffForm({ units }: { units: UnitOption[] }) {
 
       {result && (
         <div
-          className={`flex items-start gap-2 text-xs px-3 py-2.5 rounded-xl border mb-4 ${
+          className={`flex items-start gap-2 text-sm font-bold px-3.5 py-3 rounded-xl border-2 mb-4 ${
             result.success
-              ? "bg-iw-blue/8 text-iw-navy border-iw-blue/20"
-              : "bg-iw-error-bg text-iw-error border-iw-error/30"
+              ? "bg-iw-blue/10 text-iw-blue border-iw-blue/40"
+              : "bg-iw-error-bg text-iw-error border-iw-error/50"
           }`}
         >
           {result.success ? (
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           )}
           <span>{result.message ?? (result.success ? "Feito." : "Não foi possível concluir.")}</span>
         </div>
