@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { Building, MapPin, Phone, User, Mail, Loader2 } from "lucide-react";
 import { criarCampoAction, atualizarCampoAction } from "./actions";
+import MatriculaLookup from "../../MatriculaLookup";
+import type { MembroEncontrado } from "../../actions";
+
+function formatarTelefone(valor: string): string {
+  const digits = valor.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
 
 const inputCls =
   "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
@@ -43,6 +53,13 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
   const [uf, setUf] = useState(existing?.uf ?? "");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cepErro, setCepErro] = useState("");
+  const [contato, setContato] = useState(existing?.contato ?? "");
+  const [telefone, setTelefone] = useState(formatarTelefone(existing?.telefone ?? ""));
+
+  const handleMembroEncontrado = (membro: MembroEncontrado) => {
+    setContato(membro.full_name);
+    if (membro.phone) setTelefone(formatarTelefone(membro.phone));
+  };
 
   const buscarCep = async (valor: string) => {
     const limpo = valor.replace(/\D/g, "");
@@ -195,17 +212,33 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Contato
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_1fr] gap-4">
+          <MatriculaLookup onFound={handleMembroEncontrado} onClear={() => {}} />
           <div>
             <label className={labelCls}>
               <User className="w-3 h-3 inline mr-1" />
               Contato / Responsável
             </label>
-            <input name="contato" type="text" defaultValue={existing?.contato ?? ""} placeholder="Nome do responsável" className={inputCls} />
+            <input
+              name="contato"
+              type="text"
+              value={contato}
+              onChange={(e) => setContato(e.target.value)}
+              placeholder="Nome do responsável"
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>Telefone</label>
-            <input name="telefone" type="text" defaultValue={existing?.telefone ?? ""} placeholder="+55 (00) 00000-0000" className={inputCls} />
+            <input
+              name="telefone"
+              type="text"
+              value={telefone}
+              onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+              placeholder="(11) 99999-9999"
+              maxLength={15}
+              className={inputCls}
+            />
           </div>
         </div>
 
