@@ -17,6 +17,7 @@ import {
   Hash,
   Wand2,
   AlertTriangle,
+  Flag,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -35,6 +36,21 @@ function calculateTimeBaptized(ddmmyyyy: string): string {
   let years = now.getFullYear() - baptism.getFullYear();
   let months = now.getMonth() - baptism.getMonth();
   if (months < 0 || (months === 0 && now.getDate() < baptism.getDate())) {
+    years--;
+    months += 12;
+  }
+  return `${years} ano${years !== 1 ? "s" : ""} e ${months} mês${months !== 1 ? "es" : ""}`;
+}
+
+function calculateAge(ddmmyyyy: string): string {
+  if (ddmmyyyy.length !== 10) return "---";
+  const [d, m, y] = ddmmyyyy.split("/").map(Number);
+  const birth = new Date(y, m - 1, d);
+  if (isNaN(birth.getTime())) return "---";
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
     years--;
     months += 12;
   }
@@ -128,6 +144,7 @@ export default function NovoMembroForm() {
 
   // Core form values managed in state (controlled by masks)
   const [formData, setFormData] = useState({
+    full_name: "",
     birth_date: "",
     phone: "",
     cpf: "",
@@ -136,6 +153,7 @@ export default function NovoMembroForm() {
     rg_state: "SP",
     nationality_state: "SP",
     nationality_city: "",
+    nationality: "Brasileira",
     ecclesiastical_status: "ACTIVE",
     photo_url: "",
     marriage_date: "",
@@ -152,7 +170,9 @@ export default function NovoMembroForm() {
     schooling: "",
   });
 
+  const [igrejaNome, setIgrejaNome] = useState("");
   const [timeBaptized, setTimeBaptized] = useState("---");
+  const [memberAge, setMemberAge] = useState("---");
   const [addressData, setAddressData] = useState({
     zip_code: "",
     address: "",
@@ -187,6 +207,24 @@ export default function NovoMembroForm() {
       if (schoolRes.data) setSchoolings(schoolRes.data as SelectItem[]);
       if (civilRes.data) setCivilStatuses(civilRes.data as SelectItem[]);
       if (genderRes.data) setGenders(genderRes.data as SelectItem[]);
+
+      // Igreja do usuário logado (somente leitura)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("church_id")
+          .eq("id", user.id)
+          .single();
+        if (profile?.church_id) {
+          const { data: church } = await supabase
+            .from("churches")
+            .select("name")
+            .eq("id", profile.church_id)
+            .single();
+          if (church?.name) setIgrejaNome(church.name);
+        }
+      }
 
       // IBGE states
       try {
@@ -343,24 +381,29 @@ export default function NovoMembroForm() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
       {/* ── Cabeçalho ── */}
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <ArrowLeft className="w-5 h-5 text-iw-navy shrink-0" />
+          <h2 className="text-2xl font-black text-black tracking-tight">
+            Vínculo Eclesiástico
+          </h2>
+          <span className="text-iw-border text-sm select-none">·</span>
+          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+            Novo Membro
+          </h1>
+          <p className="text-iw-muted text-sm">
+            Preencha a ficha cadastral completa.
+          </p>
+        </div>
         <Link
           href="/dashboard/membros"
-          className="inline-flex items-center gap-1 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors shrink-0"
+          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Gestão de Membros
+          Voltar
         </Link>
-        <span className="text-iw-border text-sm select-none">·</span>
-        <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-          Novo Membro
-        </h1>
-        <p className="text-iw-muted text-sm">
-          Preencha a ficha cadastral completa.
-        </p>
       </div>
 
       {/* ── Erro do servidor ── */}
@@ -378,6 +421,7 @@ export default function NovoMembroForm() {
 
           // Inject state-managed values that aren't native inputs
           const fields: [string, string][] = [
+            ["full_name", formData.full_name],
             ["photo_url", formData.photo_url],
             ["baptism_date", formData.baptism_date],
             ["marriage_date", formData.marriage_date],
@@ -389,6 +433,7 @@ export default function NovoMembroForm() {
             ["rg_state", formData.rg_state],
             ["nationality_state", formData.nationality_state],
             ["nationality_city", formData.nationality_city],
+            ["nationality", formData.nationality],
             ["role_id", formData.role_id],
             ["registration_number", formData.registration_number],
             ["ecclesiastical_status", formData.ecclesiastical_status],
@@ -418,182 +463,206 @@ export default function NovoMembroForm() {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
         }}
-        className="space-y-8"
+        className="space-y-1.5"
       >
         {/* ══════════════════════════════════════════════════
             CARD 1 — Vínculo eclesiástico
         ══════════════════════════════════════════════════ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
-          <SectionHeader icon={Church} label="Vínculo Eclesiástico" />
-
-          <div className="grid grid-cols-12 gap-4 items-end">
-            {/* Cargo */}
-            <div className="col-span-12 md:col-span-4">
-              <label className={labelCls}>
-                <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
-                Cargo
-              </label>
-              <select
-                className={selectCls}
-                value={formData.role_id}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, role_id: e.target.value }))
-                }
-              >
-                <option value="">Sem cargo</option>
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Matrícula */}
-            <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>
-                <Hash className="inline w-3.5 h-3.5 mr-1 text-iw-gold" />
-                Matrícula
-              </label>
-              <div className="relative flex items-center">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-6">
+            {/* Foto — à esquerda de Nome/Data Nascimento, rente às bordas superior/inferior/esquerda */}
+            <div className="flex flex-col items-center justify-center gap-2 shrink-0 sm:w-40 px-4 py-6 sm:py-0">
+              <div className="w-[115px] h-[115px] rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors shrink-0">
+                {formData.photo_url ? (
+                  <img
+                    src={formData.photo_url}
+                    alt="Foto"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                    {uploading ? (
+                      <Loader2 className="w-7 h-7 animate-spin" />
+                    ) : (
+                      <Camera className="w-7 h-7" />
+                    )}
+                    <span className="text-[10px] font-semibold uppercase">
+                      Foto
+                    </span>
+                  </div>
+                )}
                 <input
-                  type="text"
-                  placeholder="Auto ou manual..."
-                  value={formData.registration_number}
-                  onChange={(e) => {
-                    setFormData((p) => ({
-                      ...p,
-                      registration_number: e.target.value,
-                    }));
-                    if (matriculaError) setMatriculaError("");
-                  }}
-                  onBlur={() =>
-                    checkMatriculaExists(formData.registration_number)
-                  }
-                  className={`${matriculaError ? inputErrCls : inputCls} pr-9 font-mono text-center`}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <button
-                  type="button"
-                  onClick={handleGenerateMatricula}
-                  disabled={generatingMatricula}
-                  title="Gerar próximo número livre"
-                  className="absolute right-2.5 text-iw-muted hover:text-iw-gold transition-colors disabled:opacity-40"
-                >
-                  {generatingMatricula ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Wand2 className="w-3.5 h-3.5" />
-                  )}
-                </button>
               </div>
-              {matriculaError && (
-                <p className="text-iw-error text-xs mt-1 font-medium">
-                  {matriculaError}
-                </p>
-              )}
+              <p className="text-[10px] text-iw-muted text-center leading-tight">
+                JPG, PNG, WEBP.
+              </p>
             </div>
 
-            {/* Data de Batismo */}
-            <div className="col-span-6 md:col-span-3">
-              <label className={labelCls}>
-                <Droplets className="inline w-3.5 h-3.5 mr-1 text-iw-sky" />
-                Batismo
-              </label>
-              <input
-                type="text"
-                placeholder="DD/MM/AAAA"
-                value={formData.baptism_date}
-                maxLength={10}
-                onChange={(e) => {
-                  const v = maskDate(e.target.value);
-                  setFormData((p) => ({ ...p, baptism_date: v }));
-                  if (v.length === 10) setTimeBaptized(calculateTimeBaptized(v));
-                  else setTimeBaptized("---");
-                }}
-                className={`${inputCls} text-center`}
-              />
-            </div>
-
-            {/* Tempo como membro */}
-            <div className="col-span-6 md:col-span-2">
-              <label className={labelCls}>Tempo</label>
-              <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-sky font-semibold truncate">
-                {timeBaptized}
-              </div>
-            </div>
-          </div>
-
-          {/* Foto */}
-          <div className="flex items-center gap-5">
-            <div className="w-24 h-24 rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors shrink-0">
-              {formData.photo_url ? (
-                <img
-                  src={formData.photo_url}
-                  alt="Foto"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
-                  {uploading ? (
-                    <Loader2 className="w-7 h-7 animate-spin" />
-                  ) : (
-                    <Camera className="w-7 h-7" />
+            {/* Campos — grid único: Matrícula/Igreja/Cargo/Batismo, depois Nome/Data Nasc. */}
+            <div className="flex-1 pt-6 pr-6 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-[130px_356px_224px_270px] gap-4 items-end">
+                {/* Matrícula */}
+                <div>
+                  <label className={labelCls}>
+                    <Hash className="inline w-3.5 h-3.5 mr-1 text-iw-gold" />
+                    Matrícula
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Auto ou manual..."
+                      value={formData.registration_number}
+                      onChange={(e) => {
+                        setFormData((p) => ({
+                          ...p,
+                          registration_number: e.target.value,
+                        }));
+                        if (matriculaError) setMatriculaError("");
+                      }}
+                      onBlur={() =>
+                        checkMatriculaExists(formData.registration_number)
+                      }
+                      className={`${matriculaError ? inputErrCls : inputCls} pr-9 font-mono text-center`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateMatricula}
+                      disabled={generatingMatricula}
+                      title="Gerar próximo número livre"
+                      className="absolute right-2.5 text-iw-muted hover:text-iw-gold transition-colors disabled:opacity-40"
+                    >
+                      {generatingMatricula ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                  {matriculaError && (
+                    <p className="text-iw-error text-xs mt-1 font-medium">
+                      {matriculaError}
+                    </p>
                   )}
-                  <span className="text-[10px] font-semibold uppercase">
-                    Foto
-                  </span>
                 </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
+
+                {/* Igreja (somente leitura) */}
+                <div>
+                  <label className={labelCls}>
+                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Igreja
+                  </label>
+                  <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-muted truncate">
+                    {igrejaNome || "—"}
+                  </div>
+                </div>
+
+                {/* Cargo */}
+                <div>
+                  <label className={labelCls}>
+                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Cargo
+                  </label>
+                  <select
+                    className={selectCls}
+                    value={formData.role_id}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, role_id: e.target.value }))
+                    }
+                  >
+                    <option value="">Sem cargo</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Data de Batismo + tempo */}
+                <div>
+                  <label className={labelCls}>
+                    <Droplets className="inline w-3.5 h-3.5 mr-1 text-iw-sky" />
+                    Batismo
+                  </label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      placeholder="DD/MM/AAAA"
+                      value={formData.baptism_date}
+                      maxLength={10}
+                      onChange={(e) => {
+                        const v = maskDate(e.target.value);
+                        setFormData((p) => ({ ...p, baptism_date: v }));
+                        if (v.length === 10) setTimeBaptized(calculateTimeBaptized(v));
+                        else setTimeBaptized("---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {timeBaptized}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nome completo — começa alinhado com Matrícula, ocupa 3 colunas */}
+                <div className="md:col-span-3">
+                  <label className={labelCls}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome do membro"
+                    value={formData.full_name}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, full_name: e.target.value }))
+                    }
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Data de Nascimento + idade — alinhada com Batismo acima */}
+                <div>
+                  <label className={labelCls}>Data Nasc. *</label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="DD/MM/AAAA"
+                      value={formData.birth_date}
+                      maxLength={10}
+                      onChange={(e) => {
+                        const v = maskDate(e.target.value);
+                        setFormData((p) => ({ ...p, birth_date: v }));
+                        setMemberAge(v.length === 10 ? calculateAge(v) : "---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {memberAge}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-iw-muted">
-              Clique no círculo para enviar uma foto. Formatos aceitos: JPG, PNG, WEBP.
-            </p>
           </div>
         </div>
 
         {/* ══════════════════════════════════════════════════
             CARD 2 — Dados Pessoais
         ══════════════════════════════════════════════════ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
           <SectionHeader icon={User} label="Dados Pessoais" />
 
-          {/* Row 1: nome, nascimento, sexo, estado civil, profissão */}
+          {/* Row 1: sexo, estado civil, profissão, escolaridade */}
           <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12 md:col-span-5">
-              <label className={labelCls}>Nome Completo *</label>
-              <input
-                name="full_name"
-                type="text"
-                required
-                placeholder="Nome do membro"
-                className={inputCls}
-              />
-            </div>
-
-            <div className="col-span-6 md:col-span-2">
-              <label className={labelCls}>Data Nasc.</label>
-              <input
-                type="text"
-                placeholder="DD/MM/AAAA"
-                value={formData.birth_date}
-                maxLength={10}
-                onChange={(e) => {
-                  const v = maskDate(e.target.value);
-                  setFormData((p) => ({ ...p, birth_date: v }));
-                }}
-                className={`${inputCls} text-center`}
-              />
-            </div>
-
-            <div className="col-span-6 md:col-span-1">
-              <label className={labelCls}>Sexo</label>
+            <div className="col-span-6 md:col-span-3">
+              <label className={labelCls}>Sexo *</label>
               <select
+                required
                 className={selectCls}
                 value={formData.gender}
                 onChange={(e) =>
@@ -609,9 +678,10 @@ export default function NovoMembroForm() {
               </select>
             </div>
 
-            <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>Estado Civil</label>
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Estado Civil *</label>
               <select
+                required
                 className={selectCls}
                 value={formData.civil_status}
                 onChange={(e) =>
@@ -627,7 +697,7 @@ export default function NovoMembroForm() {
               </select>
             </div>
 
-            <div className="col-span-12 md:col-span-2">
+            <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>Profissão</label>
               <select
                 className={selectCls}
@@ -643,73 +713,6 @@ export default function NovoMembroForm() {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          {/* Row 2: e-mail, telefone, naturalidade, escolaridade */}
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>E-mail</label>
-              <input
-                name="email"
-                type="email"
-                placeholder="email@exemplo.com"
-                className={inputCls}
-              />
-            </div>
-
-            <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Telefone</label>
-              <input
-                type="text"
-                placeholder="(00) 00000-0000"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, phone: maskPhone(e.target.value) }))
-                }
-                className={inputCls}
-              />
-            </div>
-
-            <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Naturalidade (UF / Cidade)</label>
-              <div className="flex gap-2">
-                <select
-                  className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
-                  value={formData.nationality_state}
-                  onChange={(e) => {
-                    const uf = e.target.value;
-                    setFormData((p) => ({
-                      ...p,
-                      nationality_state: uf,
-                      nationality_city: "",
-                    }));
-                    fetchCities(uf);
-                  }}
-                >
-                  <option value="">UF</option>
-                  {states.map((s) => (
-                    <option key={s.id} value={s.sigla}>
-                      {s.sigla}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
-                  value={formData.nationality_city}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, nationality_city: e.target.value }))
-                  }
-                >
-                  <option value="">Cidade</option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.nome}>
-                      {c.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             <div className="col-span-12 md:col-span-3">
@@ -731,12 +734,99 @@ export default function NovoMembroForm() {
             </div>
           </div>
 
+          {/* Row 2: e-mail, telefone, naturalidade, nacionalidade */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>E-mail</label>
+              <input
+                name="email"
+                type="email"
+                placeholder="email@exemplo.com"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Telefone *</label>
+              <input
+                type="text"
+                required
+                placeholder="(00) 00000-0000"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, phone: maskPhone(e.target.value) }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Naturalidade (UF / Cidade) *</label>
+              <div className="flex gap-2">
+                <select
+                  required
+                  className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  value={formData.nationality_state}
+                  onChange={(e) => {
+                    const uf = e.target.value;
+                    setFormData((p) => ({
+                      ...p,
+                      nationality_state: uf,
+                      nationality_city: "",
+                    }));
+                    fetchCities(uf);
+                  }}
+                >
+                  <option value="">UF</option>
+                  {states.map((s) => (
+                    <option key={s.id} value={s.sigla}>
+                      {s.sigla}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  required
+                  className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  value={formData.nationality_city}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, nationality_city: e.target.value }))
+                  }
+                >
+                  <option value="">Cidade</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.nome}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>
+                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                Nacionalidade *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.nationality}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, nationality: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+          </div>
+
           {/* Row 3: CPF, RG, órgão, UF RG, igreja origem */}
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>CPF</label>
+              <label className={labelCls}>CPF *</label>
               <input
                 type="text"
+                required
                 placeholder="000.000.000-00"
                 value={formData.cpf}
                 maxLength={14}
@@ -753,9 +843,10 @@ export default function NovoMembroForm() {
             </div>
 
             <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>RG</label>
+              <label className={labelCls}>RG *</label>
               <input
                 type="text"
+                required
                 placeholder="00.000.000-0"
                 value={formData.rg}
                 maxLength={12}
@@ -818,9 +909,10 @@ export default function NovoMembroForm() {
           {/* Row 4: mãe, pai, cônjuge, data casamento */}
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Nome da Mãe</label>
+              <label className={labelCls}>Nome da Mãe *</label>
               <input
                 type="text"
+                required
                 value={formData.mother_name}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, mother_name: e.target.value }))
@@ -830,9 +922,10 @@ export default function NovoMembroForm() {
             </div>
 
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Nome do Pai</label>
+              <label className={labelCls}>Nome do Pai *</label>
               <input
                 type="text"
+                required
                 value={formData.father_name}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, father_name: e.target.value }))
@@ -873,7 +966,7 @@ export default function NovoMembroForm() {
         {/* ══════════════════════════════════════════════════
             CARD 3 — Endereço
         ══════════════════════════════════════════════════ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
           <SectionHeader icon={MapPin} label="Endereço Residencial" />
 
           <div className="grid grid-cols-12 gap-4">
@@ -977,7 +1070,7 @@ export default function NovoMembroForm() {
         {/* ══════════════════════════════════════════════════
             RODAPÉ — Status + Financeiro + Salvar
         ══════════════════════════════════════════════════ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 flex flex-col sm:flex-row items-center gap-5 justify-between">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-5 flex flex-col sm:flex-row items-center gap-5 justify-between">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             {/* Status eclesiástico */}
             <div className="flex-1 min-w-40">
