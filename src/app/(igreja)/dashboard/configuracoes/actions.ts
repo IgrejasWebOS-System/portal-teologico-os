@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -10,7 +11,8 @@ type SimpleTable =
   | "settings_professions"
   | "settings_schooling"
   | "settings_civil_status"
-  | "settings_gender";
+  | "settings_gender"
+  | "function_roles";
 
 // ── Adicionar item simples ────────────────────────────────────
 export async function addSettingItemAction(
@@ -500,4 +502,93 @@ export async function vincularSetorRegiaoFormAction(formData: FormData): Promise
 
 export async function desvincularSetorRegiaoFormAction(id: string): Promise<void> {
   await desvincularSetorRegiaoAction(id);
+}
+
+// ── Convite de novo operador (M9 — substitui a senha padrão
+//    compartilhada por convite via e-mail do próprio Supabase Auth
+//    + admin_roles com nível/unidade real) ─────────────────────
+//
+// Restrito a GLOBAL_ADMIN por enquanto (mesma regra da RLS de
+// admin_roles — ver 059_admin_roles_e_escopo.sql). Usa o cliente
+// admin (service_role) porque criar usuário de auth e popular
+// admin_roles em nome de outra pessoa legitimamente exige
+// privilégio que o usuário comum não tem — a checagem de "quem
+// pode convidar" é feita ANTES, aqui embaixo, com o cliente normal.
+export async function inviteStaffAction(formData: FormData) {
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  const fullName = ((formData.get("full_name") as string) || "").trim();
+  const levelRaw = (formData.get("level") as string) || "";
+  const unitId = ((formData.get("unit_id") as string) || "").trim() || null;
+  const roleTitle = ((formData.get("role_title") as string) || "").trim() || null;
+
+  const level = Number.parseInt(levelRaw, 10);
+
+  if (!email || !email.includes("@")) {
+    return { success: false, message: "E-mail inválido." };
+  }
+  if (Number.isNaN(level) || level < 0 || level > 4) {
+    return { success: false, message: "Nível inválido." };
+  }
+  if (level === 0 && unitId) {
+    return { success: false, message: "Super-Master (nível 0) não deve ter unidade selecionada." };
+  }
+  if (level > 0 && !unitId) {
+    return { success: false, message: "Selecione a unidade para esse nível." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  if (!currentUser) return { success: false, message: "Não autenticado." };
+
+  const { data: meProfile } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (meProfile?.system_role !== "GLOBAL_ADMIN") {
+    return { success: false, message: "Apenas GLOBAL_ADMIN pode convidar novos operadores." };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    data: fullName ? { full_name: fullName } : undefined,
+  });
+
+  if (inviteError || !invited?.user) {
+    return {
+      success: false,
+      message: inviteError?.message ?? "Não foi possível enviar o convite.",
+    };
+  }
+
+  // handle_new_user() (trigger em auth.users) já criou a linha em
+  // profiles — só completa com nome e a flag de troca de senha.
+  await admin
+    .from("profiles")
+    .update({ full_name: fullName || null, must_change_password: true })
+    .eq("id", invited.user.id);
+
+  const { error: roleError } = await admin.from("admin_roles").insert({
+    user_id: invited.user.id,
+    level,
+    unit_id: level === 0 ? null : unitId,
+    role_title: roleTitle,
+    invited_by: currentUser.id,
+  });
+
+  if (roleError) {
+    return {
+      success: false,
+      message: `Convite enviado, mas houve um erro ao gravar o nível de acesso: ${roleError.message}`,
+    };
+  }
+
+  revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+  return { success: true, message: `Convite enviado para ${email}.` };
+}
+
+export async function inviteStaffFormAction(formData: FormData): Promise<void> {
+  await inviteStaffAction(formData);
 }

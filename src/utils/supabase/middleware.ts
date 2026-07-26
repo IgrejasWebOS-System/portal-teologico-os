@@ -69,5 +69,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Usuário recém-convidado (M9 — inviteStaffAction) precisa trocar a
+  // senha temporária antes de acessar qualquer outra rota protegida.
+  if (user && !isPublic && path !== "/trocar-senha") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("must_change_password")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.must_change_password) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/trocar-senha";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
