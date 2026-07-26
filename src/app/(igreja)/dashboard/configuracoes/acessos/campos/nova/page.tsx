@@ -1,16 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, Building } from "lucide-react";
-import { createClient } from "@/utils/supabase/server";
-import NovaIgrejaForm from "../../../igrejas/nova/NovaIgrejaForm";
+import CampoForm from "../CampoForm";
 
-export default async function NovoCampoPage() {
-  const supabase = await createClient();
-
-  const [setoresRes, igrejasRes] = await Promise.all([
-    supabase.from("sectors").select("id, name").order("name"),
-    supabase.from("churches").select("id, name").eq("church_type", "CHURCH").order("name"),
-  ]);
-
+export default function NovoCampoPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
@@ -27,18 +19,12 @@ export default async function NovoCampoPage() {
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">Novo Campo</h1>
-            <p className="text-iw-muted text-xs mt-0.5">Cadastro direto — sem passar pela tela genérica de Igrejas.</p>
+            <p className="text-iw-muted text-xs mt-0.5">Cria o Campo, a Sede e a igreja da Sede juntos.</p>
           </div>
         </div>
       </div>
 
-      <NovaIgrejaForm
-        setores={setoresRes.data ?? []}
-        igrejasMae={igrejasRes.data ?? []}
-        lockedType="CHURCH"
-        backHref="/dashboard/configuracoes/acessos/campos"
-        submitLabel="Cadastrar Campo"
-      />
+      <CampoForm submitLabel="Cadastrar Campo" />
     </div>
   );
 }
