@@ -145,6 +145,45 @@ export async function matricularDiretoAction(formData: FormData) {
 
   if (!curso) fail("Curso inválido.");
 
+  // M10c: a unidade do aluno vem da igreja selecionada (churches.unit_id,
+  // ver M4/058). Se a turma escolhida for restrita a uma unidade
+  // (course_editions.unit_id, ver M8/062), o aluno só pode ser
+  // matriculado se pertencer a essa unidade ou a uma descendente dela
+  // (unit_is_within, também do M8) — turma sem unit_id continua aberta
+  // a qualquer aluno, como sempre foi.
+  let alunoUnitId: string | null = null;
+  if (church_id_aluno) {
+    const { data: churchRow } = await admin
+      .from("churches")
+      .select("unit_id")
+      .eq("id", church_id_aluno)
+      .single();
+    alunoUnitId = churchRow?.unit_id ?? null;
+  }
+
+  if (course_edition_id) {
+    const { data: turma } = await admin
+      .from("course_editions")
+      .select("unit_id, nome")
+      .eq("id", course_edition_id)
+      .single();
+
+    if (turma?.unit_id) {
+      if (!alunoUnitId) {
+        fail(
+          `A turma "${turma.nome}" é restrita a uma unidade específica. Selecione a igreja do aluno (vinculada à árvore de unidades) ou escolha outra turma.`
+        );
+      }
+      const { data: dentroDaUnidade } = await admin.rpc("unit_is_within", {
+        p_unit_id: alunoUnitId,
+        p_ancestor_id: turma.unit_id,
+      });
+      if (!dentroDaUnidade) {
+        fail(`A turma "${turma.nome}" é restrita a outra unidade — este aluno não pertence a ela.`);
+      }
+    }
+  }
+
   // Identidade por CPF: reaproveita se a pessoa já existir
   let aluno: { id: string; user_id: string | null } | null = null;
   const { data: existente } = await admin
@@ -190,6 +229,8 @@ export async function matricularDiretoAction(formData: FormData) {
         campo_ministerio_nome,
         sector_id,
         church_id: church_id_aluno,
+        unit_id: alunoUnitId,
+        tipo_aluno: church_id_aluno ? "IGREJA" : null,
         matricula: matriculaNum,
         curso_pretendido: curso!.title,
         status: "ATIVO",
