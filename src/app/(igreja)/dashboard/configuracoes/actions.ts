@@ -143,6 +143,7 @@ export type MembroEncontrado = {
   id: string;
   full_name: string;
   phone: string | null;
+  email: string | null;
   cargo: string | null;
   church_id: string | null;
 };
@@ -156,7 +157,7 @@ export async function buscarMembroPorMatriculaAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("members")
-    .select("id, full_name, phone, church_id, ecclesiastical_roles(name)")
+    .select("id, full_name, phone, email, church_id, ecclesiastical_roles(name)")
     .eq("registration_number", mat)
     .maybeSingle();
 
@@ -167,6 +168,7 @@ export async function buscarMembroPorMatriculaAction(
     id: string;
     full_name: string | null;
     phone: string | null;
+    email: string | null;
     church_id: string | null;
     ecclesiastical_roles: { name: string } | null;
   };
@@ -177,6 +179,7 @@ export async function buscarMembroPorMatriculaAction(
       id: row.id,
       full_name: row.full_name ?? "",
       phone: row.phone,
+      email: row.email,
       cargo: row.ecclesiastical_roles?.name ?? null,
       church_id: row.church_id,
     },

@@ -53,12 +53,15 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
   const [uf, setUf] = useState(existing?.uf ?? "");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cepErro, setCepErro] = useState("");
+  const [numero, setNumero] = useState(existing?.numero ?? "");
   const [contato, setContato] = useState(existing?.contato ?? "");
   const [telefone, setTelefone] = useState(formatarTelefone(existing?.telefone ?? ""));
+  const [email, setEmail] = useState(existing?.email ?? "");
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setContato(membro.full_name);
     if (membro.phone) setTelefone(formatarTelefone(membro.phone));
+    if (membro.email) setEmail(membro.email);
   };
 
   const buscarCep = async (valor: string) => {
@@ -132,8 +135,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Endereço da Sede
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div className="sm:col-span-3">
             <label className={labelCls}>
               CEP {buscandoCep && <Loader2 className="w-3 h-3 inline animate-spin ml-1" />}
             </label>
@@ -148,7 +151,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
             />
             {cepErro && <p className="text-[11px] text-iw-error mt-1">{cepErro}</p>}
           </div>
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-6">
             <label className={labelCls}>Endereço</label>
             <input
               name="endereco"
@@ -159,18 +162,18 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               className={inputCls}
             />
           </div>
+          <div className="sm:col-span-3">
+            <label className={labelCls}>Número</label>
+            <input name="numero" type="text" value={numero} onChange={(e) => setNumero(e.target.value)} className={inputCls} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div>
-            <label className={labelCls}>Número</label>
-            <input name="numero" type="text" defaultValue={existing?.numero ?? ""} className={inputCls} />
-          </div>
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div className="sm:col-span-3">
             <label className={labelCls}>Complemento</label>
             <input name="complemento" type="text" defaultValue={existing?.complemento ?? ""} className={inputCls} />
           </div>
-          <div>
+          <div className="sm:col-span-3">
             <label className={labelCls}>Bairro</label>
             <input
               name="bairro"
@@ -180,7 +183,17 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               className={inputCls}
             />
           </div>
-          <div>
+          <div className="sm:col-span-4">
+            <label className={labelCls}>Cidade</label>
+            <input
+              name="cidade"
+              type="text"
+              value={cidade}
+              onChange={(e) => setCidade(e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div className="sm:col-span-2">
             <label className={labelCls}>UF</label>
             <input
               name="uf"
@@ -194,15 +207,33 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           </div>
         </div>
 
-        <div>
-          <label className={labelCls}>Cidade</label>
-          <input
-            name="cidade"
-            type="text"
-            value={cidade}
-            onChange={(e) => setCidade(e.target.value)}
-            className={inputCls}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Telefone</label>
+            <input
+              name="telefone"
+              type="text"
+              value={telefone}
+              onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+              placeholder="(11) 99999-9999"
+              maxLength={15}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>
+              <Mail className="w-3 h-3 inline mr-1" />
+              E-mail
+            </label>
+            <input
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contato@campo.org"
+              className={inputCls}
+            />
+          </div>
         </div>
       </div>
 
@@ -212,7 +243,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Contato
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_1fr] gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <MatriculaLookup onFound={handleMembroEncontrado} onClear={() => {}} />
           <div>
             <label className={labelCls}>
@@ -228,27 +259,10 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               className={inputCls}
             />
           </div>
-          <div>
-            <label className={labelCls}>Telefone</label>
-            <input
-              name="telefone"
-              type="text"
-              value={telefone}
-              onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
-              placeholder="(11) 99999-9999"
-              maxLength={15}
-              className={inputCls}
-            />
-          </div>
         </div>
-
-        <div>
-          <label className={labelCls}>
-            <Mail className="w-3 h-3 inline mr-1" />
-            E-mail
-          </label>
-          <input name="email" type="email" defaultValue={existing?.email ?? ""} placeholder="contato@campo.org" className={inputCls} />
-        </div>
+        <p className="text-[11px] text-iw-muted">
+          Ao buscar por matrícula, o telefone e o e-mail acima (em Endereço da Sede) são preenchidos automaticamente.
+        </p>
       </div>
 
       <button
