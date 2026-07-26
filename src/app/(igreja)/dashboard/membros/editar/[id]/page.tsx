@@ -29,7 +29,7 @@ export default async function EditarMembroPage({ params, searchParams }: PagePro
   if (error || !member) notFound();
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       <EditarMembroForm member={member as any} />
       <div className="mt-8 pb-20">
         <MemberFunctionsCard

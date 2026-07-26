@@ -17,6 +17,7 @@ import {
   Hash,
   Wand2,
   AlertTriangle,
+  Flag,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -41,6 +42,21 @@ function calculateTimeBaptized(ddmmyyyy: string): string {
   let years = now.getFullYear() - baptism.getFullYear();
   let months = now.getMonth() - baptism.getMonth();
   if (months < 0 || (months === 0 && now.getDate() < baptism.getDate())) {
+    years--;
+    months += 12;
+  }
+  return `${years} ano${years !== 1 ? "s" : ""} e ${months} mês${months !== 1 ? "es" : ""}`;
+}
+
+function calculateAge(ddmmyyyy: string): string {
+  if (ddmmyyyy.length !== 10) return "---";
+  const [d, m, y] = ddmmyyyy.split("/").map(Number);
+  const birth = new Date(y, m - 1, d);
+  if (isNaN(birth.getTime())) return "---";
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
     years--;
     months += 12;
   }
@@ -124,6 +140,7 @@ type MemberData = {
   photo_url: string | null;
   nationality_city: string | null;
   nationality_state: string | null;
+  nationality: string | null;
   schooling: string | null;
   origin_church: string | null;
   cpf: string | null;
@@ -146,7 +163,9 @@ type MemberData = {
   state: string | null;
   financial_status: string;
   status: string;
+  church_id?: string | null;
   ecclesiastical_roles?: { id: string; name: string } | null;
+  churches?: { name: string } | { name: string }[] | null;
 };
 
 export default function EditarMembroForm({ member }: { member: MemberData }) {
@@ -158,7 +177,13 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
   const [states, setStates]           = useState<{ id: number; sigla: string; nome: string }[]>([]);
   const [cities, setCities]           = useState<{ id: string | number; nome: string }[]>([]);
 
+  const igrejaNome =
+    (Array.isArray(member.churches)
+      ? member.churches[0]?.name
+      : (member.churches as unknown as { name: string } | null)?.name) ?? "—";
+
   const [formData, setFormData] = useState({
+    full_name:            member.full_name ?? "",
     birth_date:           isoToBR(member.birth_date),
     phone:                member.phone ?? "",
     cpf:                  member.cpf ?? "",
@@ -167,6 +192,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
     rg_state:             member.rg_state ?? "SP",
     nationality_state:    member.nationality_state ?? "SP",
     nationality_city:     member.nationality_city ?? "",
+    nationality:          member.nationality ?? "Brasileira",
     ecclesiastical_status: member.ecclesiastical_status ?? "ACTIVE",
     photo_url:            member.photo_url ?? "",
     marriage_date:        isoToBR(member.marriage_date),
@@ -185,6 +211,9 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
 
   const [timeBaptized, setTimeBaptized] = useState(
     member.baptism_date ? calculateTimeBaptized(isoToBR(member.baptism_date)) : "---"
+  );
+  const [memberAge, setMemberAge] = useState(
+    member.birth_date ? calculateAge(isoToBR(member.birth_date)) : "---"
   );
   const [addressData, setAddressData] = useState({
     zip_code:     member.zip_code ?? "",
@@ -333,18 +362,16 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
       {/* ── Cabeçalho ── */}
-      <div>
-        <Link
-          href="/dashboard/membros"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Gestão de Membros
-        </Link>
-        <div className="flex flex-wrap items-baseline gap-x-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-6">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <ArrowLeft className="w-5 h-5 text-iw-navy shrink-0" />
+          <h2 className="text-2xl font-black text-black tracking-tight">
+            Vínculo Eclesiástico
+          </h2>
+          <span className="text-iw-border text-sm select-none">·</span>
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
             Editar Membro
           </h1>
@@ -352,6 +379,12 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             {member.full_name} — Matrícula #{member.registration_number ?? "—"}
           </p>
         </div>
+        <Link
+          href="/dashboard/membros"
+          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm"
+        >
+          Voltar
+        </Link>
       </div>
 
       {/* ── Erro do servidor ── */}
@@ -370,6 +403,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
           // Inject state-managed values
           const fields: [string, string][] = [
             ["id",                   member.id],
+            ["full_name",            formData.full_name],
             ["photo_url",            formData.photo_url],
             ["baptism_date",         formData.baptism_date],
             ["marriage_date",        formData.marriage_date],
@@ -381,6 +415,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             ["rg_state",             formData.rg_state],
             ["nationality_state",    formData.nationality_state],
             ["nationality_city",     formData.nationality_city],
+            ["nationality",          formData.nationality],
             ["role_id",              formData.role_id],
             ["registration_number",  formData.registration_number],
             ["ecclesiastical_status",formData.ecclesiastical_status],
@@ -410,146 +445,187 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }
         }}
-        className="space-y-8"
+        className="space-y-1.5"
       >
         {/* ══ CARD 1 — Vínculo eclesiástico ══ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
-          <SectionHeader icon={Church} label="Vínculo Eclesiástico" />
-
-          <div className="grid grid-cols-12 gap-4 items-end">
-            {/* Cargo */}
-            <div className="col-span-12 md:col-span-4">
-              <label className={labelCls}>
-                <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
-                Cargo
-              </label>
-              <select
-                className={selectCls}
-                value={formData.role_id}
-                onChange={e => setFormData(p => ({ ...p, role_id: e.target.value }))}
-              >
-                <option value="">Sem cargo</option>
-                {roles.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Matrícula */}
-            <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>
-                <Hash className="inline w-3.5 h-3.5 mr-1 text-iw-gold" />
-                Matrícula
-              </label>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="Auto ou manual..."
-                  value={formData.registration_number}
-                  onChange={e => {
-                    setFormData(p => ({ ...p, registration_number: e.target.value }));
-                    if (matriculaError) setMatriculaError("");
-                  }}
-                  onBlur={() => checkMatriculaExists(formData.registration_number)}
-                  className={`${matriculaError ? inputErrCls : inputCls} pr-9 font-mono text-center`}
-                />
-                <button
-                  type="button"
-                  onClick={handleGenerateMatricula}
-                  disabled={generatingMatricula}
-                  title="Gerar próximo número livre"
-                  className="absolute right-2.5 text-iw-muted hover:text-iw-gold transition-colors disabled:opacity-40"
-                >
-                  {generatingMatricula ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                </button>
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-6">
+            {/* Foto — rente às bordas superior/inferior/esquerda */}
+            <div className="flex flex-col items-center justify-center gap-2 shrink-0 sm:w-40 px-4 py-6 sm:py-0">
+              <div className="w-[115px] h-[115px] rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors shrink-0">
+                {formData.photo_url ? (
+                  <img src={formData.photo_url} alt="Foto" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                    {uploading ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
+                    <span className="text-[10px] font-semibold uppercase">Foto</span>
+                  </div>
+                )}
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
               </div>
-              {matriculaError && <p className="text-iw-error text-xs mt-1 font-medium">{matriculaError}</p>}
+              <p className="text-[10px] text-iw-muted text-center leading-tight">JPG, PNG, WEBP.</p>
             </div>
 
-            {/* Data de Batismo */}
-            <div className="col-span-6 md:col-span-3">
-              <label className={labelCls}>
-                <Droplets className="inline w-3.5 h-3.5 mr-1 text-iw-sky" />
-                Batismo
-              </label>
-              <input
-                type="text"
-                placeholder="DD/MM/AAAA"
-                value={formData.baptism_date}
-                maxLength={10}
-                onChange={e => {
-                  const v = maskDate(e.target.value);
-                  setFormData(p => ({ ...p, baptism_date: v }));
-                  if (v.length === 10) setTimeBaptized(calculateTimeBaptized(v));
-                  else setTimeBaptized("---");
-                }}
-                className={`${inputCls} text-center`}
-              />
-            </div>
-
-            {/* Tempo */}
-            <div className="col-span-6 md:col-span-2">
-              <label className={labelCls}>Tempo</label>
-              <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-sky font-semibold truncate">
-                {timeBaptized}
-              </div>
-            </div>
-          </div>
-
-          {/* Foto */}
-          <div className="flex items-center gap-5">
-            <div className="w-24 h-24 rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors shrink-0">
-              {formData.photo_url ? (
-                <img src={formData.photo_url} alt="Foto" className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
-                  {uploading ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
-                  <span className="text-[10px] font-semibold uppercase">Foto</span>
+            {/* Campos — grid único: Matrícula/Igreja/Cargo/Batismo, depois Nome/Data Nasc. */}
+            <div className="flex-1 pt-6 pr-6 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-[130px_356px_224px_270px] gap-4 items-end">
+                {/* Matrícula */}
+                <div>
+                  <label className={labelCls}>
+                    <Hash className="inline w-3.5 h-3.5 mr-1 text-iw-gold" />
+                    Matrícula
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Auto ou manual..."
+                      value={formData.registration_number}
+                      onChange={e => {
+                        setFormData(p => ({ ...p, registration_number: e.target.value }));
+                        if (matriculaError) setMatriculaError("");
+                      }}
+                      onBlur={() => checkMatriculaExists(formData.registration_number)}
+                      className={`${matriculaError ? inputErrCls : inputCls} pr-9 font-mono text-center`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateMatricula}
+                      disabled={generatingMatricula}
+                      title="Gerar próximo número livre"
+                      className="absolute right-2.5 text-iw-muted hover:text-iw-gold transition-colors disabled:opacity-40"
+                    >
+                      {generatingMatricula ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  {matriculaError && <p className="text-iw-error text-xs mt-1 font-medium">{matriculaError}</p>}
                 </div>
-              )}
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+
+                {/* Igreja (somente leitura) */}
+                <div>
+                  <label className={labelCls}>
+                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Igreja
+                  </label>
+                  <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-muted truncate">
+                    {igrejaNome}
+                  </div>
+                </div>
+
+                {/* Cargo */}
+                <div>
+                  <label className={labelCls}>
+                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Cargo
+                  </label>
+                  <select
+                    className={selectCls}
+                    value={formData.role_id}
+                    onChange={e => setFormData(p => ({ ...p, role_id: e.target.value }))}
+                  >
+                    <option value="">Sem cargo</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Data de Batismo + tempo */}
+                <div>
+                  <label className={labelCls}>
+                    <Droplets className="inline w-3.5 h-3.5 mr-1 text-iw-sky" />
+                    Batismo
+                  </label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      placeholder="DD/MM/AAAA"
+                      value={formData.baptism_date}
+                      maxLength={10}
+                      onChange={e => {
+                        const v = maskDate(e.target.value);
+                        setFormData(p => ({ ...p, baptism_date: v }));
+                        if (v.length === 10) setTimeBaptized(calculateTimeBaptized(v));
+                        else setTimeBaptized("---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {timeBaptized}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nome completo — começa alinhado com Matrícula, ocupa 3 colunas */}
+                <div className="md:col-span-3">
+                  <label className={labelCls}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome do membro"
+                    value={formData.full_name}
+                    onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))}
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Data de Nascimento + idade — alinhada com Batismo acima */}
+                <div>
+                  <label className={labelCls}>Data Nasc. *</label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="DD/MM/AAAA"
+                      value={formData.birth_date}
+                      maxLength={10}
+                      onChange={e => {
+                        const v = maskDate(e.target.value);
+                        setFormData(p => ({ ...p, birth_date: v }));
+                        setMemberAge(v.length === 10 ? calculateAge(v) : "---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {memberAge}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-iw-muted">Clique para trocar a foto. Formatos aceitos: JPG, PNG, WEBP.</p>
           </div>
         </div>
 
         {/* ══ CARD 2 — Dados Pessoais ══ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
           <SectionHeader icon={User} label="Dados Pessoais" />
 
           <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12 md:col-span-5">
-              <label className={labelCls}>Nome Completo *</label>
-              <input name="full_name" type="text" required defaultValue={member.full_name} placeholder="Nome do membro" className={inputCls} />
-            </div>
-            <div className="col-span-6 md:col-span-2">
-              <label className={labelCls}>Data Nasc.</label>
-              <input
-                type="text" placeholder="DD/MM/AAAA"
-                value={formData.birth_date} maxLength={10}
-                onChange={e => setFormData(p => ({ ...p, birth_date: maskDate(e.target.value) }))}
-                className={`${inputCls} text-center`}
-              />
-            </div>
-            <div className="col-span-6 md:col-span-1">
-              <label className={labelCls}>Sexo</label>
-              <select className={selectCls} value={formData.gender} onChange={e => setFormData(p => ({ ...p, gender: e.target.value }))}>
+            <div className="col-span-6 md:col-span-3">
+              <label className={labelCls}>Sexo *</label>
+              <select required className={selectCls} value={formData.gender} onChange={e => setFormData(p => ({ ...p, gender: e.target.value }))}>
                 <option value="">...</option>
                 {genders.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
               </select>
             </div>
-            <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>Estado Civil</label>
-              <select className={selectCls} value={formData.civil_status} onChange={e => setFormData(p => ({ ...p, civil_status: e.target.value }))}>
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Estado Civil *</label>
+              <select required className={selectCls} value={formData.civil_status} onChange={e => setFormData(p => ({ ...p, civil_status: e.target.value }))}>
                 <option value="">Selecione...</option>
                 {civilStatuses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </div>
-            <div className="col-span-12 md:col-span-2">
+            <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>Profissão</label>
               <select className={selectCls} value={formData.profession} onChange={e => setFormData(p => ({ ...p, profession: e.target.value }))}>
                 <option value="">Selecione...</option>
                 {professions.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+              </select>
+            </div>
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Escolaridade</label>
+              <select className={selectCls} value={formData.schooling} onChange={e => setFormData(p => ({ ...p, schooling: e.target.value }))}>
+                <option value="">Selecione...</option>
+                {schoolings.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
             </div>
           </div>
@@ -560,18 +636,19 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
               <input name="email" type="email" defaultValue={member.email ?? ""} placeholder="email@exemplo.com" className={inputCls} />
             </div>
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Telefone</label>
+              <label className={labelCls}>Telefone *</label>
               <input
-                type="text" placeholder="(00) 00000-0000"
+                type="text" required placeholder="(00) 00000-0000"
                 value={formData.phone}
                 onChange={e => setFormData(p => ({ ...p, phone: maskPhone(e.target.value) }))}
                 className={inputCls}
               />
             </div>
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Naturalidade (UF / Cidade)</label>
+              <label className={labelCls}>Naturalidade (UF / Cidade) *</label>
               <div className="flex gap-2">
                 <select
+                  required
                   className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
                   value={formData.nationality_state}
                   onChange={e => {
@@ -584,6 +661,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                   {states.map(s => <option key={s.id} value={s.sigla}>{s.sigla}</option>)}
                 </select>
                 <select
+                  required
                   className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
                   value={formData.nationality_city}
                   onChange={e => setFormData(p => ({ ...p, nationality_city: e.target.value }))}
@@ -594,19 +672,25 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
               </div>
             </div>
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Escolaridade</label>
-              <select className={selectCls} value={formData.schooling} onChange={e => setFormData(p => ({ ...p, schooling: e.target.value }))}>
-                <option value="">Selecione...</option>
-                {schoolings.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-              </select>
+              <label className={labelCls}>
+                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                Nacionalidade *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.nationality}
+                onChange={e => setFormData(p => ({ ...p, nationality: e.target.value }))}
+                className={inputCls}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>CPF</label>
+              <label className={labelCls}>CPF *</label>
               <input
-                type="text" placeholder="000.000.000-00"
+                type="text" required placeholder="000.000.000-00"
                 value={formData.cpf} maxLength={14}
                 onChange={e => { setFormData(p => ({ ...p, cpf: maskCPF(e.target.value) })); if (cpfError) setCpfError(""); }}
                 onBlur={() => checkCpfExists(formData.cpf)}
@@ -615,9 +699,9 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
               {cpfError && <p className="text-iw-error text-xs mt-1 font-medium">{cpfError}</p>}
             </div>
             <div className="col-span-12 md:col-span-2">
-              <label className={labelCls}>RG</label>
+              <label className={labelCls}>RG *</label>
               <input
-                type="text" placeholder="00.000.000-0"
+                type="text" required placeholder="00.000.000-0"
                 value={formData.rg} maxLength={12}
                 onChange={e => setFormData(p => ({ ...p, rg: maskRG(e.target.value) }))}
                 className={inputCls}
@@ -646,13 +730,13 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
 
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Nome da Mãe</label>
-              <input type="text" value={formData.mother_name}
+              <label className={labelCls}>Nome da Mãe *</label>
+              <input type="text" required value={formData.mother_name}
                 onChange={e => setFormData(p => ({ ...p, mother_name: e.target.value }))} className={inputCls} />
             </div>
             <div className="col-span-12 md:col-span-3">
-              <label className={labelCls}>Nome do Pai</label>
-              <input type="text" value={formData.father_name}
+              <label className={labelCls}>Nome do Pai *</label>
+              <input type="text" required value={formData.father_name}
                 onChange={e => setFormData(p => ({ ...p, father_name: e.target.value }))} className={inputCls} />
             </div>
             <div className="col-span-12 md:col-span-4">
@@ -670,7 +754,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
         </div>
 
         {/* ══ CARD 3 — Endereço ══ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
           <SectionHeader icon={MapPin} label="Endereço Residencial" />
 
           <div className="grid grid-cols-12 gap-4">
@@ -724,7 +808,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
         </div>
 
         {/* ══ RODAPÉ — Status + Salvar ══ */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 flex flex-col sm:flex-row items-center gap-5 justify-between">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-5 flex flex-col sm:flex-row items-center gap-5 justify-between">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <div className="flex-1 min-w-40">
               <label className={labelCls}>Situação</label>
