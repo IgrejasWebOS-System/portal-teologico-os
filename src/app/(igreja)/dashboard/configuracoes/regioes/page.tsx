@@ -106,7 +106,7 @@ export default async function RegioesPage() {
           </h3>
           <form action={vincularSetorRegiaoFormAction} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
             <div>
-              <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Setor</label>
+              <label className="block text-[11px] font-bold text-black uppercase tracking-wider mb-1.5">Setor</label>
               <select
                 name="setor_id"
                 required
@@ -121,7 +121,7 @@ export default async function RegioesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Região</label>
+              <label className="block text-[11px] font-bold text-black uppercase tracking-wider mb-1.5">Região</label>
               <select
                 name="regiao_id"
                 required
@@ -141,7 +141,7 @@ export default async function RegioesPage() {
             </button>
           </form>
           {semRegiao.length > 0 && (
-            <p className="text-xs text-iw-muted">
+            <p className="text-xs text-black">
               {semRegiao.length} setor(es) ainda sem região.
             </p>
           )}
@@ -154,16 +154,16 @@ export default async function RegioesPage() {
         return (
           <div key={regiao.id} className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
             <div className="px-5 py-3 bg-iw-bg border-b border-iw-border flex items-center justify-between">
-              <span className="text-sm font-bold text-iw-navy">{regiao.name}</span>
-              <span className="text-xs text-iw-muted">{membrosRegiao.length} setor(es)</span>
+              <span className="text-sm font-bold text-black">{regiao.name}</span>
+              <span className="text-xs text-black">{membrosRegiao.length} setor(es)</span>
             </div>
             {membrosRegiao.length === 0 ? (
-              <p className="px-5 py-4 text-xs text-iw-muted">Nenhum setor vinculado ainda.</p>
+              <p className="px-5 py-4 text-xs text-black">Nenhum setor vinculado ainda.</p>
             ) : (
               <ul className="divide-y divide-iw-border">
                 {membrosRegiao.map((s) => (
                   <li key={s.id} className="flex items-center justify-between px-5 py-2.5">
-                    <span className="text-sm text-iw-navy">{s.name}</span>
+                    <span className="text-sm text-black">{s.name}</span>
                     <form action={desvincularSetorRegiaoFormAction.bind(null, s.id)}>
                       <button
                         type="submit"

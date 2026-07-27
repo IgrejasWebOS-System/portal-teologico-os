@@ -143,7 +143,7 @@ export default async function TrilhasPage() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-iw-gold text-white text-sm font-semibold hover:bg-iw-navy transition-colors">
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors">
                 Criar curso
               </button>
             </form>
@@ -193,7 +193,7 @@ export default async function TrilhasPage() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-iw-gold text-white text-sm font-semibold hover:bg-iw-navy transition-colors">
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors">
                 Criar curso
               </button>
             </form>

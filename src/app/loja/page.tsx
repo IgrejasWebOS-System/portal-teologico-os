@@ -46,15 +46,15 @@ export default async function LojaPage({
   }, {});
 
   return (
-    <div className="w-full min-h-screen bg-iw-surface text-iw-navy flex flex-col">
+    <div className="w-full min-h-screen bg-iw-surface text-iw-navy flex flex-col iw-scope-preto">
       <PublicHeader />
 
       <main className="flex-1">
         <section className="bg-iw-bg">
           <div className="max-w-5xl mx-auto px-6 pt-6 pb-10 flex flex-col items-center gap-3">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-iw-gold/10 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-7 h-7 text-iw-gold" />
+              <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-7 h-7 text-black" />
               </div>
               <h1 className="text-3xl md:text-4xl font-black tracking-tight">
                 Loja CETADP

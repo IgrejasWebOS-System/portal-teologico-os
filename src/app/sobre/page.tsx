@@ -55,7 +55,7 @@ const PILARES = [
 
 export default function SobrePage() {
   return (
-    <div className="w-full bg-iw-surface text-iw-navy">
+    <div className="w-full bg-iw-surface text-iw-navy iw-scope-preto">
       <PublicHeader />
 
       <main>
@@ -79,8 +79,8 @@ export default function SobrePage() {
             const Icon = p.icon;
             return (
               <div key={p.titulo} className="bg-iw-surface border border-iw-border rounded-2xl p-6 shadow-sm">
-                <div className="w-12 h-12 rounded-xl bg-iw-gold/10 flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-iw-gold" />
+                <div className="w-12 h-12 rounded-xl bg-[#E88D0C] flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-black" />
                 </div>
                 <h3 className="font-extrabold text-lg mb-2">{p.titulo}</h3>
                 <p className="text-iw-muted text-sm leading-relaxed">{p.texto}</p>
@@ -134,7 +134,7 @@ export default function SobrePage() {
             </p>
             <Link
               href="/inscricao"
-              className="inline-block bg-iw-gold hover:opacity-90 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-opacity"
+              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-opacity"
             >
               Fazer minha inscrição
             </Link>

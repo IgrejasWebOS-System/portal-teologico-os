@@ -121,7 +121,7 @@ export default async function CertificadosAdminPage({ searchParams }: PageProps)
                     <input type="hidden" name="enrollment_id" value={e.id} />
                     <button
                       type="submit"
-                      className="bg-iw-gold text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                      className="bg-[#E88D0C] text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
                     >
                       Emitir certificado
                     </button>

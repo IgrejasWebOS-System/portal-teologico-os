@@ -15,34 +15,34 @@ export default function FloatingSocialIcons() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Instagram do CETADP"
-        className="w-10 h-10 rounded-full bg-iw-navy text-white hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
+        className="w-10 h-10 rounded-full bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
       >
-        <Instagram className="w-4 h-4" />
+        <Instagram className="w-4 h-4 text-black" />
       </a>
       <a
         href="https://facebook.com/cetadp"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Facebook do CETADP"
-        className="w-10 h-10 rounded-full bg-iw-navy text-white hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
+        className="w-10 h-10 rounded-full bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
       >
-        <Facebook className="w-4 h-4" />
+        <Facebook className="w-4 h-4 text-black" />
       </a>
       <a
         href="https://wa.me/5519998121950"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp do CETADP"
-        className="w-10 h-10 rounded-full bg-black text-[#25D366] hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
+        className="w-10 h-10 rounded-full bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
       >
-        <WhatsAppIcon className="w-4 h-4" />
+        <WhatsAppIcon className="w-4 h-4 text-black" />
       </a>
       <a
         href="mailto:cetadp@gmail.com"
         aria-label="E-mail do CETADP"
-        className="w-10 h-10 rounded-full bg-iw-navy text-white hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
+        className="w-10 h-10 rounded-full bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
       >
-        <Mail className="w-4 h-4" />
+        <Mail className="w-4 h-4 text-black" />
       </a>
     </div>
   );

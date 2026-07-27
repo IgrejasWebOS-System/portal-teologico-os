@@ -247,7 +247,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                               Estou ciente de que, a partir do início, não poderei desistir e só terei esta tentativa.
                             </span>
                           </label>
-                          <button type="submit" className="w-full bg-iw-gold hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity">
+                          <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity">
                             Iniciar prova
                           </button>
                         </form>

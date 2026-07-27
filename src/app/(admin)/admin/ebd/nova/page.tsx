@@ -106,7 +106,7 @@ export default async function NovoTrimestrePage({ searchParams }: PageProps) {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
+            className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
           >
             Criar trimestre
           </button>

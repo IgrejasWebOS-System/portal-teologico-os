@@ -50,7 +50,7 @@ export default function Logo({
         shape === "circle" ? "rounded-full" : "rounded-lg",
         BOX_SIZE[size],
         variant === "dark"
-          ? "bg-iw-gold"
+          ? "bg-[#E88D0C]"
           : "bg-white/30 border-2 border-white/60",
         className
       )}

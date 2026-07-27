@@ -354,8 +354,8 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
 
   const SectionHeader = ({ icon: Icon, label }: { icon: React.ElementType; label: string }) => (
     <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
-      <div className="w-6 h-6 rounded-lg bg-iw-blue/10 flex items-center justify-center shrink-0">
-        <Icon className="w-3.5 h-3.5 text-iw-blue" />
+      <div className="w-6 h-6 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
+        <Icon className="w-3.5 h-3.5 text-black" />
       </div>
       <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">{label}</h2>
     </div>

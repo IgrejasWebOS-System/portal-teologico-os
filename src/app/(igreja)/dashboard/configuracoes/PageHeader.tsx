@@ -5,6 +5,9 @@ interface Props {
   icon: LucideIcon;
   title: string;
   description: string;
+  // M24: fundo/ícone agora são fixos (dourado/preto) em todas as telas —
+  // iconColor/iconBg deixaram de ser usados, mas ficam no tipo pra não
+  // quebrar quem ainda passa esses props.
   iconColor?: string;
   iconBg?: string;
 }
@@ -13,8 +16,6 @@ export default function PageHeader({
   icon: Icon,
   title,
   description,
-  iconColor = "text-iw-blue",
-  iconBg = "bg-iw-blue/10",
 }: Props) {
   return (
     <div className="flex items-start gap-4">
@@ -27,8 +28,8 @@ export default function PageHeader({
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
-            <Icon className={`w-5 h-5 ${iconColor}`} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#E88D0C]">
+            <Icon className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

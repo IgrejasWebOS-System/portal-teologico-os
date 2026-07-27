@@ -51,13 +51,13 @@ export default async function PagamentoInscricaoPage({ params, searchParams }: P
             <p className="text-iw-muted text-sm">Inscrição não encontrada.</p>
           ) : (
             <>
-              <div className="w-14 h-14 rounded-full bg-iw-gold/10 flex items-center justify-center mx-auto mb-5">
+              <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center mx-auto mb-5">
                 {inscricao.status === "PAGAMENTO_RECUSADO" ? (
-                  <XCircle className="w-7 h-7 text-iw-error" />
+                  <XCircle className="w-7 h-7 text-black" />
                 ) : inscricao.status === "AGUARDANDO_PAGAMENTO" ? (
-                  <Clock className="w-7 h-7 text-iw-gold" />
+                  <Clock className="w-7 h-7 text-black" />
                 ) : (
-                  <CheckCircle2 className="w-7 h-7 text-iw-success" />
+                  <CheckCircle2 className="w-7 h-7 text-black" />
                 )}
               </div>
 
@@ -89,7 +89,7 @@ export default async function PagamentoInscricaoPage({ params, searchParams }: P
                   </p>
                   <Link
                     href="/inscricao"
-                    className="inline-block bg-iw-gold hover:opacity-90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-opacity"
+                    className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-opacity"
                   >
                     Tentar novamente
                   </Link>

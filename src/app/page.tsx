@@ -59,7 +59,7 @@ const SERVICOS = [
 
 export default function HomePage() {
   return (
-    <div className="w-full bg-iw-surface text-iw-navy">
+    <div className="w-full bg-iw-surface text-iw-navy iw-scope-preto">
       <PublicHeader />
 
       <main>
@@ -82,7 +82,7 @@ export default function HomePage() {
             <div className="lg:col-span-6 flex flex-col gap-6">
               <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                 Formação teológica{" "}
-                <span className="text-iw-gold">presencial e a distância</span>, para
+                <span className="text-[#E88D0C]">presencial e a distância</span>, para
                 todos os campos e ministérios.
               </h1>
 
@@ -96,7 +96,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Link
                   href="/inscricao"
-                  className="bg-iw-gold hover:opacity-90 text-white font-bold px-7 py-3.5 rounded-xl text-sm transition-opacity"
+                  className="bg-[#E88D0C] hover:opacity-90 text-white font-bold px-7 py-3.5 rounded-xl text-sm transition-opacity"
                 >
                   Fazer minha inscrição
                 </Link>
@@ -156,8 +156,8 @@ export default function HomePage() {
                   id={servico.id}
                   className="bg-iw-surface border border-iw-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col gap-4 scroll-mt-40"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-iw-gold/10 flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-iw-gold" />
+                  <div className="w-12 h-12 rounded-xl bg-[#E88D0C] flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-black" />
                   </div>
                   <div className="flex flex-col gap-2 flex-1">
                     <h3 className="font-extrabold text-lg leading-tight">{servico.titulo}</h3>
@@ -200,7 +200,7 @@ export default function HomePage() {
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/inscricao"
-                    className="w-full text-center bg-iw-gold hover:opacity-90 text-white font-bold py-3 rounded-xl text-sm transition-opacity"
+                    className="w-full text-center bg-[#E88D0C] hover:opacity-90 text-white font-bold py-3 rounded-xl text-sm transition-opacity"
                   >
                     Fazer minha inscrição
                   </Link>

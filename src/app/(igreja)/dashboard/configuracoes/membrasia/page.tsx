@@ -16,7 +16,7 @@ const PANELS = [
     title: "Membros",
     description: "Rol de membros ativos da igreja",
     cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/cargos",
@@ -24,7 +24,7 @@ const PANELS = [
     title: "Cargos",
     description: "Funções eclesiásticas e administrativas",
     cta: "Cadastrar",
-    accent: "text-iw-gold bg-iw-gold/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/departamentos",
@@ -32,7 +32,7 @@ const PANELS = [
     title: "Departamentos",
     description: "CIBEPI, EBD, Jovens, Mocidade…",
     cta: "Cadastrar",
-    accent: "text-purple-600 bg-purple-50",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/funcoes",
@@ -40,7 +40,7 @@ const PANELS = [
     title: "Função",
     description: "Líder, Secretário, Tesoureiro… por departamento e escopo",
     cta: "Cadastrar",
-    accent: "text-iw-sky bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -57,8 +57,8 @@ export default function MembrasiaPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-blue/10 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 text-iw-blue" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

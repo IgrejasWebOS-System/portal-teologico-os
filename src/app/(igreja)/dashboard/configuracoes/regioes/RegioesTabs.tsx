@@ -16,10 +16,8 @@ export default function RegioesTabs({ internas, nacional }: Props) {
         <button
           type="button"
           onClick={() => setAba("internas")}
-          className={`px-3.5 py-2 text-sm transition-colors ${
-            aba === "internas"
-              ? "font-semibold text-iw-blue border-b-2 border-iw-blue"
-              : "text-iw-muted hover:text-iw-navy"
+          className={`px-3.5 py-2 text-sm text-black transition-colors ${
+            aba === "internas" ? "font-semibold border-b-2 border-iw-blue" : "hover:font-semibold"
           }`}
         >
           Regiões internas do Setor
@@ -27,10 +25,8 @@ export default function RegioesTabs({ internas, nacional }: Props) {
         <button
           type="button"
           onClick={() => setAba("nacional")}
-          className={`px-3.5 py-2 text-sm transition-colors ${
-            aba === "nacional"
-              ? "font-semibold text-iw-blue border-b-2 border-iw-blue"
-              : "text-iw-muted hover:text-iw-navy"
+          className={`px-3.5 py-2 text-sm text-black transition-colors ${
+            aba === "nacional" ? "font-semibold border-b-2 border-iw-blue" : "hover:font-semibold"
           }`}
         >
           Cobertura nacional

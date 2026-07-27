@@ -232,7 +232,7 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
           />
           <button
             type="submit"
-            className="sm:col-span-2 bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+            className="sm:col-span-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
           >
             Gerar parcelas
           </button>

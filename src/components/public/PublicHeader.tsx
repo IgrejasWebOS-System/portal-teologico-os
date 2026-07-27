@@ -114,7 +114,7 @@ export default function PublicHeader() {
                 </Link>
                 <Link
                   href="/inscricao"
-                  className="bg-iw-gold hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-md transition-all"
+                  className="bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-md transition-all"
                 >
                   Inscreva-se
                 </Link>
@@ -138,10 +138,10 @@ export default function PublicHeader() {
 
           <button
             onClick={() => setMenuAberto(!menuAberto)}
-            className="md:hidden p-2 rounded-md text-iw-navy hover:bg-iw-bg transition-colors"
+            className="md:hidden w-9 h-9 rounded-lg bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
             aria-label="Abrir menu"
           >
-            {menuAberto ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {menuAberto ? <X className="w-5 h-5 text-black" /> : <Menu className="w-5 h-5 text-black" />}
           </button>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function PublicHeader() {
                   <Link
                     href="/inscricao"
                     onClick={() => setMenuAberto(false)}
-                    className="w-full text-center bg-iw-gold text-white font-bold py-2.5 rounded-md text-sm"
+                    className="w-full text-center bg-[#E88D0C] text-white font-bold py-2.5 rounded-md text-sm"
                   >
                     Inscreva-se
                   </Link>

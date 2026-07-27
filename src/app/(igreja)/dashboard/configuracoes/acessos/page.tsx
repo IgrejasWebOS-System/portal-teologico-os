@@ -15,7 +15,7 @@ const PANELS = [
     title: "Sedes Regionais",
     description: "Eleve igrejas ao status de Sede de Campo",
     cta: "Gerenciar Sedes",
-    accent: "text-iw-navy bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/acessos/lideres-setor",
@@ -23,7 +23,7 @@ const PANELS = [
     title: "Líderes de Setor",
     description: "Defina a Igreja-Mãe responsável por cada setor",
     cta: "Definir Liderança",
-    accent: "text-iw-success bg-iw-success/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/acessos/usuarios",
@@ -31,7 +31,7 @@ const PANELS = [
     title: "Matriz de Usuários",
     description: "Gere senhas e distribua acessos por nível (RBAC)",
     cta: "Gerar Acessos",
-    accent: "text-iw-gold bg-iw-gold/10",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -48,8 +48,8 @@ export default function AcessosPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-error-bg flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5 text-iw-error" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

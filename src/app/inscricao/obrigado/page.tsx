@@ -20,8 +20,8 @@ export default async function InscricaoObrigadoPage({ searchParams }: PageProps)
 
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-8 text-center">
-          <div className="w-14 h-14 rounded-full bg-iw-success-bg flex items-center justify-center mx-auto mb-5">
-            <CheckCircle2 className="w-7 h-7 text-iw-success" />
+          <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 className="w-7 h-7 text-black" />
           </div>
           <h1 className="text-xl font-black text-iw-navy mb-2">
             Matrícula confirmada!
@@ -35,7 +35,7 @@ export default async function InscricaoObrigadoPage({ searchParams }: PageProps)
           </p>
           <Link
             href="/"
-            className="inline-block bg-iw-gold hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity"
+            className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity"
           >
             Voltar para o início
           </Link>

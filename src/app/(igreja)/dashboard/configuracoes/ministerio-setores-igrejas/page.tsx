@@ -18,7 +18,7 @@ const PANELS = [
     title: "Campos / Ministérios",
     description: "Crie e gerencie os campos principais do sistema",
     cta: "Gerenciar Campos",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/setores",
@@ -26,7 +26,7 @@ const PANELS = [
     title: "Setores",
     description: "Organização geográfica e pastoral",
     cta: "Gerenciar",
-    accent: "text-iw-navy bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/igrejas",
@@ -34,7 +34,7 @@ const PANELS = [
     title: "Igrejas",
     description: "Congregações e sub-congregações",
     cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/sub-congregacoes",
@@ -42,7 +42,7 @@ const PANELS = [
     title: "Sub-congregações",
     description: "Vinculadas a setor, igreja e responsável",
     cta: "Gerenciar",
-    accent: "text-iw-gold bg-iw-gold/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/celulas",
@@ -50,7 +50,7 @@ const PANELS = [
     title: "Células",
     description: "Vinculadas a setor, igreja e responsável",
     cta: "Gerenciar",
-    accent: "text-iw-success bg-iw-success/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/regioes",
@@ -58,7 +58,7 @@ const PANELS = [
     title: "Região",
     description: "Agrupamento de igrejas por região, entre setores",
     cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -75,8 +75,8 @@ export default function MinisterioSetoresIgrejasPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-sky/20 flex items-center justify-center shrink-0">
-            <Landmark className="w-5 h-5 text-iw-navy" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <Landmark className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

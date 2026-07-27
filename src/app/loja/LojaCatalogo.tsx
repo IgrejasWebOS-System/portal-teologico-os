@@ -59,7 +59,7 @@ export default function LojaCatalogo({ porTipo }: { porTipo: Record<string, Prod
                 onClick={() => setAtivo(tipo)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-left whitespace-nowrap transition-colors ${
                   selecionado
-                    ? "bg-iw-gold text-white"
+                    ? "bg-[#E88D0C] text-white"
                     : "bg-iw-bg border border-iw-border text-iw-navy hover:border-iw-gold"
                 }`}
               >
@@ -76,8 +76,8 @@ export default function LojaCatalogo({ porTipo }: { porTipo: Record<string, Prod
 
       <div className="lg:col-span-9">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center">
-            <IconAtiva className="w-5 h-5 text-iw-gold" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center">
+            <IconAtiva className="w-5 h-5 text-black" />
           </div>
           <h2 className="text-xl font-black tracking-tight">{secaoAtiva.titulo}</h2>
         </div>
@@ -109,7 +109,7 @@ export default function LojaCatalogo({ porTipo }: { porTipo: Record<string, Prod
                     href={`/api/biblioteca/${produto.id}?modo=${
                       produto.tipo === "PDF_DOWNLOAD" ? "download" : "ler"
                     }`}
-                    className="text-center bg-iw-gold hover:opacity-90 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-opacity"
+                    className="text-center bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-opacity"
                   >
                     {produto.tipo === "PDF_DOWNLOAD" ? "Baixar grátis" : "Ler grátis"}
                   </Link>

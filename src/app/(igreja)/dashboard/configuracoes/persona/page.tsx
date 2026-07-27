@@ -15,7 +15,7 @@ const PANELS = [
     title: "Professor",
     description: "Membro responsável, por setor e igreja",
     cta: "Gerenciar",
-    accent: "text-iw-gold bg-iw-gold/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/persona/alunos",
@@ -23,7 +23,7 @@ const PANELS = [
     title: "Aluno",
     description: "Alunos matriculados na Escola de Teologia",
     cta: "Visualizar",
-    accent: "text-iw-success bg-iw-success/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/persona/turmas",
@@ -31,7 +31,7 @@ const PANELS = [
     title: "Turmas",
     description: "Edições de turma por curso e período",
     cta: "Gerenciar",
-    accent: "text-iw-navy bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -48,8 +48,8 @@ export default function PersonaPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-            <Contact className="w-5 h-5 text-iw-gold" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <Contact className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

@@ -17,7 +17,7 @@ const PANELS = [
     title: "Estado Civil",
     description: "Situação conjugal dos membros",
     cta: "Cadastrar",
-    accent: "text-pink-600 bg-pink-50",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/genero",
@@ -25,7 +25,7 @@ const PANELS = [
     title: "Sexo",
     description: "Classificação oficial do sistema",
     cta: "Cadastrar",
-    accent: "text-iw-sky bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/profissoes",
@@ -33,7 +33,7 @@ const PANELS = [
     title: "Profissões",
     description: "Cadastro de ocupações profissionais",
     cta: "Cadastrar",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/escolaridades",
@@ -41,7 +41,7 @@ const PANELS = [
     title: "Escolaridade",
     description: "Níveis de formação acadêmica",
     cta: "Cadastrar",
-    accent: "text-iw-success bg-iw-success/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/regioes-df",
@@ -49,7 +49,7 @@ const PANELS = [
     title: "Regiões DF",
     description: "Substitui a lista de cidades quando o membro é do DF",
     cta: "Cadastrar",
-    accent: "text-iw-warning bg-iw-warning-bg",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -66,8 +66,8 @@ export default function ComplementosPage() {
           Voltar para Configurações
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-            <SlidersHorizontal className="w-5 h-5 text-purple-600" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <SlidersHorizontal className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">

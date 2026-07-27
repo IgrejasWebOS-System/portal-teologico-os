@@ -32,9 +32,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-iw-blue text-white border-transparent " +
-    "hover:bg-iw-navy shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] " +
-    "focus-visible:ring-2 focus-visible:ring-iw-blue/50 focus-visible:ring-offset-1",
+    "bg-[#E88D0C] text-white border-transparent " +
+    "hover:opacity-90 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] " +
+    "focus-visible:ring-2 focus-visible:ring-[#E88D0C]/50 focus-visible:ring-offset-1",
 
   secondary:
     "bg-iw-gold/15 text-iw-navy border border-iw-gold/35 " +

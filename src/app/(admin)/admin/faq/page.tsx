@@ -114,7 +114,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
           />
           <button
             type="submit"
-            className="sm:col-span-1 bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+            className="sm:col-span-1 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
           >
             Criar
           </button>
@@ -211,7 +211,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
                     />
                     <button
                       type="submit"
-                      className="bg-iw-gold hover:opacity-90 text-white font-bold text-xs px-4 py-2 rounded-xl transition-opacity"
+                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2 rounded-xl transition-opacity"
                     >
                       Cadastrar pergunta
                     </button>

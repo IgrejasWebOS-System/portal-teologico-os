@@ -142,7 +142,7 @@ export default async function EbdLessonPage({ params }: Props) {
               className={`w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-colors ${
                 isAdultos
                   ? "bg-iw-blue hover:bg-iw-navy"
-                  : "bg-iw-gold hover:bg-iw-gold-alt"
+                  : "bg-[#E88D0C] hover:opacity-90"
               }`}
             >
               Marcar como lida
@@ -331,7 +331,7 @@ export default async function EbdLessonPage({ params }: Props) {
               className={`w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors ${
                 isAdultos
                   ? "bg-iw-blue hover:bg-iw-navy"
-                  : "bg-iw-gold hover:bg-iw-gold-alt"
+                  : "bg-[#E88D0C] hover:opacity-90"
               }`}
             >
               Concluí a leitura desta lição

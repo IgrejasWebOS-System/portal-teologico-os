@@ -24,7 +24,7 @@ const CONFIG_CARDS = [
     title: "Ministério · Setores · Igrejas",
     description: "Campos, setores, igrejas, sub-congregações, células e região",
     cta: "Gerenciar",
-    accent: "text-iw-navy bg-iw-sky/20",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/membrasia",
@@ -32,7 +32,7 @@ const CONFIG_CARDS = [
     title: "Membrasia",
     description: "Membros, cargos e departamentos",
     cta: "Gerenciar",
-    accent: "text-iw-blue bg-iw-blue/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/persona",
@@ -40,7 +40,7 @@ const CONFIG_CARDS = [
     title: "Persona",
     description: "Professor, aluno e turmas",
     cta: "Gerenciar",
-    accent: "text-iw-gold bg-iw-gold/10",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/complementos",
@@ -48,7 +48,7 @@ const CONFIG_CARDS = [
     title: "Complementos",
     description: "Estado civil, sexo, profissões e escolaridade",
     cta: "Gerenciar",
-    accent: "text-purple-600 bg-purple-50",
+    accent: "text-black bg-[#E88D0C]",
   },
   {
     href: "/dashboard/configuracoes/acessos",
@@ -56,7 +56,7 @@ const CONFIG_CARDS = [
     title: "Administração Acessos",
     description: "Gestão de sedes, líderes de setor e permissões",
     cta: "Acessar Painel",
-    accent: "text-iw-error bg-iw-error-bg",
+    accent: "text-black bg-[#E88D0C]",
   },
 ];
 
@@ -65,8 +65,8 @@ export default function ConfiguracoesPage() {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-iw-navy flex items-center justify-center shrink-0">
-          <Settings2 className="w-6 h-6 text-iw-sky" />
+        <div className="w-12 h-12 rounded-2xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+          <Settings2 className="w-6 h-6 text-black" />
         </div>
         <div className="flex flex-wrap items-baseline gap-x-3">
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">

@@ -136,7 +136,7 @@ export default async function CaixaDiarioPage({ searchParams }: PageProps) {
             </div>
             <button
               type="submit"
-              className="bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+              className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
             >
               Abrir caixa
             </button>

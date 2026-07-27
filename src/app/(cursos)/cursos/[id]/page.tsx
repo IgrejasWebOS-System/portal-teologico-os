@@ -322,7 +322,7 @@ export default async function CursosDetailPage({ params, searchParams }: Props) 
                 <input type="hidden" name="courseId"   value={course.id} />
                 <input type="hidden" name="returnPath" value={returnPath} />
                 <button type="submit"
-                  className="w-full py-3 rounded-xl bg-iw-gold text-white text-sm font-semibold hover:bg-amber-500 transition-colors">
+                  className="w-full py-3 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors">
                   Inscrever-se neste curso
                 </button>
               </form>
@@ -356,7 +356,7 @@ export default async function CursosDetailPage({ params, searchParams }: Props) 
                         <input type="hidden" name="matricula_id" value={matricula!.id} />
                         <input type="hidden" name="tipo" value="SIMULADO" />
                         <input type="hidden" name="num_questoes" value="10" />
-                        <button type="submit" className="w-full bg-iw-gold hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity">
+                        <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity">
                           Fazer simulado
                         </button>
                       </form>

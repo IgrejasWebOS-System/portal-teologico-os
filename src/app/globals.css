@@ -85,6 +85,39 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 
+/* ===== TEXTO PRETO ESCOPADO (Configurações + Membros) =====
+   Sobrescreve só os tokens usados como cor de texto "neutro"
+   (navy/muted/text) dentro do escopo — NÃO mexe em --color-iw-blue,
+   --color-iw-gold, --color-iw-success/error/warning porque esses
+   também são usados como cor de FUNDO de botões/badges (bg-iw-blue
+   etc.); zerar esses quebraria a aparência dos botões. Aplicado via
+   layout.tsx só no conteúdo das páginas — o Sidebar fica de fora
+   porque é renderizado fora do {children} desses layouts. */
+.iw-scope-preto {
+  --color-iw-navy: #000000;
+  --color-iw-muted: #000000;
+  --color-iw-text: #000000;
+}
+.iw-scope-preto h1,
+.iw-scope-preto h2,
+.iw-scope-preto h3,
+.iw-scope-preto h4,
+.iw-scope-preto h5,
+.iw-scope-preto h6 {
+  color: #000000;
+}
+/* Exceção: títulos que já são brancos de propósito (sobre fundo escuro,
+   ex. seção CTA final de /sobre) continuam brancos — a regra acima não
+   deve apagar um text-white explícito. */
+.iw-scope-preto h1.text-white,
+.iw-scope-preto h2.text-white,
+.iw-scope-preto h3.text-white,
+.iw-scope-preto h4.text-white,
+.iw-scope-preto h5.text-white,
+.iw-scope-preto h6.text-white {
+  color: #ffffff;
+}
+
 /* ===== SCROLLBAR CUSTOMIZADA ===== */
 ::-webkit-scrollbar {
   width: 6px;

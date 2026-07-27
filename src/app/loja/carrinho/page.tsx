@@ -149,7 +149,7 @@ export default function CarrinhoPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-iw-surface text-iw-navy flex flex-col">
+    <div className="w-full min-h-screen bg-iw-surface text-iw-navy flex flex-col iw-scope-preto">
       <PublicHeader />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
@@ -203,7 +203,7 @@ export default function CarrinhoPage() {
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/cadastro?redirectTo=%2Floja%2Fcarrinho"
-                      className="bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition-opacity"
+                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition-opacity"
                     >
                       Criar conta
                     </Link>
@@ -354,7 +354,7 @@ export default function CarrinhoPage() {
                           atualizarQuantidade(item.productId, Number(e.target.value));
                           recarregar();
                         }}
-                        className="w-12 text-center border border-iw-border rounded-lg py-1 text-sm"
+                        className="w-12 text-center border border-black rounded-lg py-1 text-sm"
                       />
                       <button
                         onClick={() => {

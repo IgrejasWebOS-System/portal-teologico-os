@@ -154,7 +154,7 @@ export default async function PatrimonioPage({ searchParams }: PageProps) {
             </select>
           </div>
           <div className="sm:col-span-2 flex justify-end">
-            <button type="submit" className="bg-iw-gold hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity">
+            <button type="submit" className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity">
               Cadastrar
             </button>
           </div>

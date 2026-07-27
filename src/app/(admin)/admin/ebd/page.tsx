@@ -62,7 +62,7 @@ export default async function AdminEbdPage({ searchParams }: PageProps) {
         </div>
         <Link
           href="/admin/ebd/nova"
-          className="inline-flex items-center gap-2 bg-iw-gold hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity"
+          className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity"
         >
           <Plus className="w-4 h-4" />
           Novo trimestre

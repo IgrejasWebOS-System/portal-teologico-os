@@ -75,7 +75,7 @@ export default async function CertificadosPage({ searchParams }: PageProps) {
             />
             <button
               type="submit"
-              className="bg-iw-gold hover:opacity-90 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-opacity"
+              className="bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-opacity"
             >
               Validar
             </button>

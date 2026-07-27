@@ -412,7 +412,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                             Só terei esta tentativa.
                           </span>
                         </label>
-                        <button type="submit" className="w-full bg-iw-gold hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity">
+                        <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity">
                           Iniciar prova
                         </button>
                       </form>

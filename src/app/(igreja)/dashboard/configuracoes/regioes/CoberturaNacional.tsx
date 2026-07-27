@@ -43,20 +43,20 @@ export default function CoberturaNacional({ cobertura }: Props) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-iw-bg rounded-xl p-3">
-          <p className="text-[11px] text-iw-muted uppercase tracking-wider font-bold">Estados com Campo</p>
-          <p className="text-xl font-black text-iw-navy mt-1">{totais.estadosComCobertura}<span className="text-sm text-iw-muted font-medium"> / 27</span></p>
+          <p className="text-[11px] text-black uppercase tracking-wider font-bold">Estados com Campo</p>
+          <p className="text-xl font-black text-black mt-1">{totais.estadosComCobertura}<span className="text-sm text-black font-medium"> / 27</span></p>
         </div>
         <div className="bg-iw-bg rounded-xl p-3">
-          <p className="text-[11px] text-iw-muted uppercase tracking-wider font-bold">Campos</p>
-          <p className="text-xl font-black text-iw-navy mt-1">{totais.campos}</p>
+          <p className="text-[11px] text-black uppercase tracking-wider font-bold">Campos</p>
+          <p className="text-xl font-black text-black mt-1">{totais.campos}</p>
         </div>
         <div className="bg-iw-bg rounded-xl p-3">
-          <p className="text-[11px] text-iw-muted uppercase tracking-wider font-bold">Setores</p>
-          <p className="text-xl font-black text-iw-navy mt-1">{totais.setores}</p>
+          <p className="text-[11px] text-black uppercase tracking-wider font-bold">Setores</p>
+          <p className="text-xl font-black text-black mt-1">{totais.setores}</p>
         </div>
         <div className="bg-iw-bg rounded-xl p-3">
-          <p className="text-[11px] text-iw-muted uppercase tracking-wider font-bold">Igrejas / sub-unidades</p>
-          <p className="text-xl font-black text-iw-navy mt-1">{totais.igrejas}</p>
+          <p className="text-[11px] text-black uppercase tracking-wider font-bold">Igrejas / sub-unidades</p>
+          <p className="text-xl font-black text-black mt-1">{totais.igrejas}</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function CoberturaNacional({ cobertura }: Props) {
         <button
           type="button"
           onClick={() => setMostrarMapa((v) => !v)}
-          className="inline-flex items-center gap-1.5 bg-white border border-iw-border hover:border-iw-blue text-iw-navy text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
+          className="inline-flex items-center gap-1.5 bg-white border border-iw-border hover:border-iw-blue text-black text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
         >
           <Map className="w-3.5 h-3.5" />
           {mostrarMapa ? "Ocultar mapa" : "Ver mapa"}
@@ -73,7 +73,7 @@ export default function CoberturaNacional({ cobertura }: Props) {
           <button
             type="button"
             onClick={() => setUfSelecionada(null)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-muted hover:text-iw-error transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-black hover:text-iw-error transition-colors"
           >
             <X className="w-3.5 h-3.5" />
             Limpar filtro ({ufSelecionada})
@@ -89,18 +89,18 @@ export default function CoberturaNacional({ cobertura }: Props) {
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1fr_auto_auto_auto_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Estado</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Região</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Campos</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Setores</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Igrejas</span>
+          <span className="text-xs font-bold text-black uppercase tracking-wider">Estado</span>
+          <span className="text-xs font-bold text-black uppercase tracking-wider">Região</span>
+          <span className="text-xs font-bold text-black uppercase tracking-wider">Campos</span>
+          <span className="text-xs font-bold text-black uppercase tracking-wider">Setores</span>
+          <span className="text-xs font-bold text-black uppercase tracking-wider">Igrejas</span>
         </div>
         {REGIOES_BR.map((regiao) => {
           const estadosDaRegiao = estadosFiltrados.filter((e) => e.regiao === regiao);
           if (estadosDaRegiao.length === 0) return null;
           return (
             <div key={regiao}>
-              <div className="px-5 py-1.5 bg-iw-bg/60 text-[11px] font-black text-iw-muted uppercase tracking-widest">
+              <div className="px-5 py-1.5 bg-iw-bg/60 text-[11px] font-black text-black uppercase tracking-widest">
                 {REGIAO_LABEL[regiao]}
               </div>
               <ul className="divide-y divide-iw-border">
@@ -111,14 +111,14 @@ export default function CoberturaNacional({ cobertura }: Props) {
                     <li
                       key={e.uf}
                       className={`grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-2.5 gap-4 ${
-                        temCobertura ? "" : "opacity-50"
+                        temCobertura ? "" : "bg-iw-bg/40"
                       }`}
                     >
-                      <span className="text-sm font-semibold text-iw-navy">{e.nome} <span className="text-iw-muted font-normal">({e.uf})</span></span>
-                      <span className="text-xs text-iw-muted">{REGIAO_LABEL[e.regiao]}</span>
-                      <span className="text-sm text-iw-navy text-center">{d?.campos ?? 0}</span>
-                      <span className="text-sm text-iw-navy text-center">{d?.setores ?? 0}</span>
-                      <span className="text-sm text-iw-navy text-center">{d?.igrejas ?? 0}</span>
+                      <span className="text-sm font-semibold text-black">{e.nome} <span className="text-black font-normal">({e.uf})</span></span>
+                      <span className="text-xs text-black">{REGIAO_LABEL[e.regiao]}</span>
+                      <span className="text-sm text-black text-center">{d?.campos ?? 0}</span>
+                      <span className="text-sm text-black text-center">{d?.setores ?? 0}</span>
+                      <span className="text-sm text-black text-center">{d?.igrejas ?? 0}</span>
                     </li>
                   );
                 })}

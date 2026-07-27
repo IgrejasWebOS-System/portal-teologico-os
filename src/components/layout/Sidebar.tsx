@@ -189,7 +189,9 @@ export default function Sidebar({
                     : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
                 )}
               >
-                <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isModuleActive ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky")} />
+                <div className="w-7 h-7 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-black" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="leading-tight truncate">{mod.label}</p>
                   {!isModuleActive && (
@@ -211,7 +213,9 @@ export default function Sidebar({
                           isSubActive ? "bg-white/15 text-white" : "text-iw-sky/60 hover:bg-white/8 hover:text-iw-sky"
                         )}
                       >
-                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                        <div className="w-5 h-5 rounded-md bg-[#E88D0C] flex items-center justify-center shrink-0">
+                          <SubIcon className="w-3 h-3 text-black" />
+                        </div>
                         <span>{sub.label}</span>
                         {isSubActive && <ChevronRight className="w-3 h-3 ml-auto text-iw-gold" />}
                       </Link>
@@ -257,14 +261,9 @@ export default function Sidebar({
                     : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
                 )}
               >
-                <Icon
-                  className={cn(
-                    "w-5 h-5 shrink-0 transition-colors",
-                    isModuleActive
-                      ? "text-gray-800"
-                      : "text-iw-sky/60 group-hover:text-iw-sky"
-                  )}
-                />
+                <div className="w-7 h-7 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-black" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="leading-tight truncate">{mod.label}</p>
                   {!isModuleActive && (
@@ -300,7 +299,9 @@ export default function Sidebar({
                             : "text-iw-sky/60 hover:bg-white/8 hover:text-iw-sky"
                         )}
                       >
-                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                        <div className="w-5 h-5 rounded-md bg-[#E88D0C] flex items-center justify-center shrink-0">
+                          <SubIcon className="w-3 h-3 text-black" />
+                        </div>
                         <span>{sub.label}</span>
                         {isSubActive && (
                           <ChevronRight className="w-3 h-3 ml-auto text-iw-gold" />
@@ -329,10 +330,9 @@ export default function Sidebar({
                   : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
               )}
             >
-              <Store className={cn(
-                "w-5 h-5 shrink-0 transition-colors",
-                pathname.startsWith("/admin/loja") ? "text-gray-800" : "text-iw-sky/60 group-hover:text-iw-sky"
-              )} />
+              <div className="w-7 h-7 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
+                <Store className="w-4 h-4 text-black" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="leading-tight truncate">Admin Loja</p>
                 <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60">
@@ -355,7 +355,9 @@ export default function Sidebar({
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-iw-sky/70 hover:bg-white/8 hover:text-white transition-all duration-150 group"
           >
-            <LogOut className="w-5 h-5 shrink-0 text-iw-sky/50 group-hover:text-iw-error transition-colors" />
+            <div className="w-7 h-7 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
+              <LogOut className="w-4 h-4 text-black" />
+            </div>
             <span>Sair da conta</span>
           </button>
         </form>
@@ -366,7 +368,9 @@ export default function Sidebar({
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-iw-sky/40 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150 group"
           >
-            <ShieldAlert className="w-4 h-4 shrink-0 text-iw-sky/30 group-hover:text-red-400 transition-colors" />
+            <div className="w-6 h-6 rounded-md bg-[#E88D0C] flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-3.5 h-3.5 text-black" />
+            </div>
             <span>Sair de todos os dispositivos</span>
           </button>
         </form>

@@ -378,7 +378,7 @@ export default function LicaoForm({
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-2 bg-iw-gold hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
+            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
             {lesson ? "Salvar alterações" : "Criar lição"}

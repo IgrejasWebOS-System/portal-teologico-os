@@ -21,7 +21,7 @@ const INPUT_BASE =
   "focus:ring-2 focus:ring-iw-blue/30 focus:border-iw-blue " +
   "disabled:opacity-50 disabled:cursor-not-allowed";
 
-const INPUT_NORMAL  = "border-iw-border hover:border-iw-sky";
+const INPUT_NORMAL  = "border-black hover:border-black";
 const INPUT_ERROR   = "border-iw-error focus:ring-iw-error/25 focus:border-iw-error";
 
 // ── Label ─────────────────────────────────────────────────────

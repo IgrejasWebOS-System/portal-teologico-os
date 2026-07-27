@@ -53,8 +53,8 @@ export default async function TurmasPage({ searchParams }: PageProps) {
           Voltar para Persona
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-sky/20 flex items-center justify-center shrink-0">
-            <CalendarRange className="w-5 h-5 text-iw-navy" />
+          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
+            <CalendarRange className="w-5 h-5 text-black" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">Turmas</h1>

@@ -123,7 +123,7 @@ export default async function PortalHubPage() {
             </div>
             <Link
               href="/"
-              className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy bg-iw-gold hover:opacity-90 rounded-lg px-3 py-1.5 transition-opacity shrink-0"
+              className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-black bg-[#E88D0C] hover:opacity-90 rounded-lg px-3 py-1.5 transition-opacity shrink-0"
             >
               <Home className="w-3.5 h-3.5" />
               Site institucional
