@@ -2,7 +2,7 @@ import { GraduationCap } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
-import { addSettingItemAction, deleteSettingItemAction } from "../actions";
+import { addSettingItemAction, deleteSettingItemAction, updateSettingItemAction } from "../actions";
 
 export default async function EscolaridadesPage() {
   const supabase = await createClient();
@@ -27,6 +27,7 @@ export default async function EscolaridadesPage() {
         placeholder="Ex: ENSINO SUPERIOR"
         onAdd={addSettingItemAction.bind(null, "settings_schooling")}
         onDelete={deleteSettingItemAction.bind(null, "settings_schooling")}
+        onUpdate={updateSettingItemAction.bind(null, "settings_schooling")}
       />
     </div>
   );

@@ -1,4 +1,5 @@
-import { Instagram, Facebook, Phone, Mail } from "lucide-react";
+import { Instagram, Facebook, Mail } from "lucide-react";
+import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 
 // ============================================================
 // FloatingSocialIcons — ícones de redes sociais fixos no lado
@@ -8,7 +9,7 @@ import { Instagram, Facebook, Phone, Mail } from "lucide-react";
 
 export default function FloatingSocialIcons() {
   return (
-    <div className="fixed left-4 top-1/2 translate-y-[calc(-50%-160px)] z-40 flex flex-col items-center gap-3">
+    <div className="fixed left-4 top-1/2 translate-y-[calc(-50%-88px)] z-40 flex flex-col items-center gap-3">
       <a
         href="https://instagram.com/cetadp"
         target="_blank"
@@ -32,9 +33,9 @@ export default function FloatingSocialIcons() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp do CETADP"
-        className="w-10 h-10 rounded-full bg-iw-navy text-white hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
+        className="w-10 h-10 rounded-full bg-black text-[#25D366] hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors shadow-lg"
       >
-        <Phone className="w-4 h-4" />
+        <WhatsAppIcon className="w-4 h-4" />
       </a>
       <a
         href="mailto:cetadp@gmail.com"

@@ -85,5 +85,37 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Gate mobile PROVAS/PORTAL — piloto restrito a quem tem
+  // profiles.pode_escanear_provas = true, só quando acessa por
+  // dispositivo mobile e ainda não escolheu nesta sessão (cookie
+  // "modo_acesso"). Quem não tem a flag, ou acessa pelo desktop,
+  // nunca vê essa tela — segue reto para onde já ia.
+  if (
+    user &&
+    !isPublic &&
+    path !== "/trocar-senha" &&
+    path !== "/escolher-modo" &&
+    !path.startsWith("/provas")
+  ) {
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(
+      request.headers.get("user-agent") ?? ""
+    );
+    const jaEscolheu = request.cookies.get("modo_acesso");
+
+    if (isMobile && !jaEscolheu) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pode_escanear_provas")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.pode_escanear_provas) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/escolher-modo";
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   return supabaseResponse;
 }

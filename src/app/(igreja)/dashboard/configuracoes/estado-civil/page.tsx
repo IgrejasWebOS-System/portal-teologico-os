@@ -2,7 +2,7 @@ import { Heart } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
-import { addSettingItemAction, deleteSettingItemAction } from "../actions";
+import { addSettingItemAction, deleteSettingItemAction, updateSettingItemAction } from "../actions";
 
 export default async function EstadoCivilPage() {
   const supabase = await createClient();
@@ -27,6 +27,7 @@ export default async function EstadoCivilPage() {
         placeholder="Ex: CASADO(A)"
         onAdd={addSettingItemAction.bind(null, "settings_civil_status")}
         onDelete={deleteSettingItemAction.bind(null, "settings_civil_status")}
+        onUpdate={updateSettingItemAction.bind(null, "settings_civil_status")}
       />
     </div>
   );

@@ -49,6 +49,26 @@ export async function deleteSettingItemAction(
   return { success: true };
 }
 
+// ── Renomear item simples ──────────────────────────────────────
+export async function updateSettingItemAction(
+  table: SimpleTable,
+  id: string,
+  name: string
+) {
+  const trimmed = name.trim().toUpperCase();
+  if (!trimmed) return { success: false, message: "Nome obrigatório." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const { error } = await supabase.from(table).update({ name: trimmed }).eq("id", id);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/dashboard/configuracoes");
+  return { success: true };
+}
+
 // ── Regiões DF ────────────────────────────────────────────────
 export async function addRegiaoDFAction(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
@@ -76,37 +96,61 @@ export async function deleteRegiaoDFAction(id: string) {
   return { success: true };
 }
 
+export async function updateRegiaoDFAction(id: string, name: string) {
+  const trimmed = name.trim().toUpperCase();
+  if (!trimmed) return { success: false, message: "Nome obrigatório." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("settings_custom_regions")
+    .update({ name: trimmed })
+    .eq("id", id);
+
+  if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/regioes-df");
+  return { success: true };
+}
+
 // ── Setores ───────────────────────────────────────────────────
+// M18: agora exige campo_id — com múltiplos Campos/Sedes cadastrados
+// (ver migração 070), a antiga regra "só resolve a Sede se existir
+// uma única" deixou de funcionar e todo setor criado pela tela nascia
+// órfão (unit_id nulo, invisível pra quem depende da hierarquia
+// units, como os seletores de Professores e Nova Matrícula Direta).
 export async function addSetorAction(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) return { success: false, message: "Nome obrigatório." };
   const regiaoId = (formData.get("regiao_id") as string) || null;
+  const campoId = (formData.get("campo_id") as string) || "";
+  if (!campoId) return { success: false, message: "Selecione o Campo." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  // M10a: cria a unit SETOR junto, pra já nascer com escopo territorial
-  // real (sem isso, só GLOBAL_ADMIN/Super-Master enxergariam o setor
-  // depois). Só resolve a Sede automaticamente porque hoje existe uma
-  // única — se um dia houver mais de uma, isso vai precisar de um
-  // seletor de Sede no formulário. Se a criação da unit falhar por
-  // qualquer motivo, não bloqueia o cadastro do setor — só fica sem
-  // unit_id, do jeito que era antes deste módulo.
-  let unitId: string | null = null;
-  const { data: sedes } = await supabase.from("units").select("id").eq("type", "SEDE");
-  if (sedes && sedes.length === 1) {
-    const { data: newUnit } = await supabase
-      .from("units")
-      .insert({ type: "SETOR", name: name.toUpperCase(), parent_id: sedes[0].id })
-      .select("id")
-      .single();
-    unitId = newUnit?.id ?? null;
+  const { data: sede } = await supabase
+    .from("units")
+    .select("id")
+    .eq("type", "SEDE")
+    .eq("parent_id", campoId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!sede) {
+    return { success: false, message: "Esse Campo não tem uma Sede cadastrada em Units." };
   }
+
+  const { data: newUnit, error: unitError } = await supabase
+    .from("units")
+    .insert({ type: "SETOR", name: name.toUpperCase(), parent_id: sede.id })
+    .select("id")
+    .single();
+
+  if (unitError) return { success: false, message: unitError.message };
 
   const { error } = await supabase
     .from("sectors")
-    .insert({ name: name.toUpperCase(), regiao_id: regiaoId, unit_id: unitId });
+    .insert({ name: name.toUpperCase(), regiao_id: regiaoId, unit_id: newUnit.id });
 
   if (error) return { success: false, message: error.message };
   revalidatePath("/dashboard/configuracoes/setores");
@@ -117,6 +161,29 @@ export async function deleteSetorAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("sectors").delete().eq("id", id);
   if (error) return { success: false, message: error.message };
+  revalidatePath("/dashboard/configuracoes/setores");
+  return { success: true };
+}
+
+export async function renameSetorAction(formData: FormData) {
+  const setorId = (formData.get("setor_id") as string) || "";
+  const name = (formData.get("name") as string)?.trim();
+  const unitId = (formData.get("unit_id") as string) || "";
+  if (!setorId) return { success: false, message: "Setor inválido." };
+  if (!name) return { success: false, message: "Nome obrigatório." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const upper = name.toUpperCase();
+  const { error } = await supabase.from("sectors").update({ name: upper }).eq("id", setorId);
+  if (error) return { success: false, message: error.message };
+
+  if (unitId) {
+    await supabase.from("units").update({ name: upper }).eq("id", unitId);
+  }
+
   revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
@@ -518,6 +585,54 @@ export async function atualizarNivelUsuarioAction(formData: FormData) {
 
 export async function atualizarNivelUsuarioFormAction(formData: FormData): Promise<void> {
   await atualizarNivelUsuarioAction(formData);
+}
+
+// Nome/e-mail de um operador. O e-mail é a credencial de login real
+// (auth.users), não só um campo de exibição em profiles — por isso usa
+// o client admin (service role) pra corrigir os dois em conjunto e não
+// deixar login e cadastro dessincronizados.
+export async function atualizarPerfilUsuarioAction(formData: FormData) {
+  const userId = (formData.get("user_id") as string) || "";
+  const fullName = ((formData.get("full_name") as string) || "").trim();
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+
+  if (!userId) return { success: false, message: "Usuário inválido." };
+  if (!email || !email.includes("@")) return { success: false, message: "E-mail inválido." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const { data: meuPerfil } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", user.id)
+    .single();
+  if (meuPerfil?.system_role !== "GLOBAL_ADMIN") {
+    return { success: false, message: "Apenas GLOBAL_ADMIN pode editar outros operadores." };
+  }
+  if (userId === user.id) {
+    return { success: false, message: "Você não pode alterar seu próprio cadastro por aqui." };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: atual } = await admin.from("profiles").select("email").eq("id", userId).single();
+
+  if (atual?.email && atual.email.toLowerCase() !== email) {
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, { email });
+    if (authError) return { success: false, message: authError.message };
+  }
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ full_name: fullName || null, email })
+    .eq("id", userId);
+
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+  return { success: true };
 }
 
 // ── Turmas (course_editions) ─────────────────────────────────

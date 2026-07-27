@@ -5,13 +5,14 @@ import SetoresManager from "./SetoresManager";
 
 export default async function SetoresPage() {
   const supabase = await createClient();
-  const [setoresRes, regioesRes] = await Promise.all([
-    supabase.from("sectors").select("id, name, regiao_id").order("name"),
+  const [setoresRes, regioesRes, unitsRes] = await Promise.all([
+    supabase.from("sectors").select("id, name, regiao_id, unit_id").order("name"),
     supabase.from("regioes").select("id, name").order("name"),
+    supabase.from("units").select("id, type, name, parent_id").order("name"),
   ]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
         icon={Map}
         title="Setores"
@@ -22,6 +23,7 @@ export default async function SetoresPage() {
       <SetoresManager
         setores={setoresRes.data ?? []}
         regioes={regioesRes.data ?? []}
+        units={unitsRes.data ?? []}
       />
     </div>
   );

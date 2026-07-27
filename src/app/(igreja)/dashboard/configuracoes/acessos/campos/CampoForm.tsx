@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Building, MapPin, Phone, User, Mail, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Building, MapPin, Phone, User, Mail, Loader2, Globe2 } from "lucide-react";
 import { criarCampoAction, atualizarCampoAction } from "./actions";
 import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
+import { regiaoPorUf } from "@/utils/estadosBrasil";
 
 function formatarTelefone(valor: string): string {
   const digits = valor.replace(/\D/g, "").slice(0, 11);
@@ -57,6 +58,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
   const [contato, setContato] = useState(existing?.contato ?? "");
   const [telefone, setTelefone] = useState(formatarTelefone(existing?.telefone ?? ""));
   const [email, setEmail] = useState(existing?.email ?? "");
+
+  const regiaoIbge = useMemo(() => regiaoPorUf(uf), [uf]);
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setContato(membro.full_name);
@@ -206,6 +209,13 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
             />
           </div>
         </div>
+
+        {regiaoIbge && (
+          <div className="inline-flex items-center gap-1.5 bg-iw-blue/10 text-iw-blue text-xs font-bold px-3 py-1.5 rounded-lg">
+            <Globe2 className="w-3.5 h-3.5" />
+            Região: {regiaoIbge.charAt(0) + regiaoIbge.slice(1).toLowerCase()}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

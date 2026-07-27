@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { MapPin, Instagram, Facebook, Mail, Phone } from "lucide-react";
+import { MapPin, Instagram, Facebook, Mail } from "lucide-react";
 import Logo from "@/components/Logo";
+import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 
 // ============================================================
 // PublicFooter — rodapé institucional.
@@ -47,7 +48,7 @@ export default function PublicFooter({ minimal = false }: { minimal?: boolean })
             Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
           </a>
 
-          <div className="flex items-center gap-3 mt-4">
+          <div className="flex items-center gap-3 mt-[4.5rem]">
             <a
               href="https://instagram.com/cetadp"
               target="_blank"
@@ -71,9 +72,9 @@ export default function PublicFooter({ minimal = false }: { minimal?: boolean })
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp do CETADP"
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-full bg-black text-[#25D366] hover:bg-iw-gold hover:text-iw-navy flex items-center justify-center transition-colors"
             >
-              <Phone className="w-4 h-4" />
+              <WhatsAppIcon className="w-4 h-4" />
             </a>
             <a
               href="mailto:cetadp@gmail.com"

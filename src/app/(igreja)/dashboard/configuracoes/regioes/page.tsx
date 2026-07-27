@@ -2,6 +2,9 @@ import { Globe2, Link2, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
+import RegioesTabs from "./RegioesTabs";
+import CoberturaNacional from "./CoberturaNacional";
+import type { CoberturaPorUf } from "./BrasilCartograma";
 import {
   addRegiaoAction,
   deleteRegiaoAction,
@@ -15,28 +18,78 @@ type SectorRow = {
   regiao_id: string | null;
 };
 
+type UnitRow = {
+  id: string;
+  type: string;
+  parent_id: string | null;
+  legacy_church_id: string | null;
+};
+
+const SETOR_TIPO = "SETOR";
+const IGREJA_TIPOS = ["IGREJA", "SUB_CONGREGACAO", "PONTO_PREGACAO", "CELULA"];
+
+function computarCoberturaNacional(units: UnitRow[], estadoPorChurchId: Map<string, string>): CoberturaPorUf {
+  const filhosPorPai = new Map<string, UnitRow[]>();
+  for (const u of units) {
+    if (!u.parent_id) continue;
+    const lista = filhosPorPai.get(u.parent_id) ?? [];
+    lista.push(u);
+    filhosPorPai.set(u.parent_id, lista);
+  }
+
+  const cobertura: CoberturaPorUf = {};
+
+  const campos = units.filter((u) => u.type === "CAMPO");
+  for (const campo of campos) {
+    const sede = (filhosPorPai.get(campo.id) ?? []).find((u) => u.type === "SEDE");
+    if (!sede) continue;
+    const uf = sede.legacy_church_id ? estadoPorChurchId.get(sede.legacy_church_id) : undefined;
+    if (!uf) continue;
+
+    let setoresCount = 0;
+    let igrejasCount = 0;
+    const fila = [...(filhosPorPai.get(sede.id) ?? [])];
+    while (fila.length > 0) {
+      const atual = fila.shift()!;
+      if (atual.type === SETOR_TIPO) setoresCount++;
+      if (IGREJA_TIPOS.includes(atual.type)) igrejasCount++;
+      const filhos = filhosPorPai.get(atual.id);
+      if (filhos) fila.push(...filhos);
+    }
+
+    const atual = cobertura[uf] ?? { campos: 0, setores: 0, igrejas: 0 };
+    cobertura[uf] = {
+      campos: atual.campos + 1,
+      setores: atual.setores + setoresCount,
+      igrejas: atual.igrejas + igrejasCount,
+    };
+  }
+
+  return cobertura;
+}
+
 export default async function RegioesPage() {
   const supabase = await createClient();
 
-  const [regioesRes, setoresRes] = await Promise.all([
+  const [regioesRes, setoresRes, unitsRes, churchesRes] = await Promise.all([
     supabase.from("regioes").select("id, name").order("name"),
     supabase.from("sectors").select("id, name, regiao_id").order("name"),
+    supabase.from("units").select("id, type, parent_id, legacy_church_id"),
+    supabase.from("churches").select("id, state"),
   ]);
 
   const regioes = (regioesRes.data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
   const setores = (setoresRes.data ?? []) as unknown as SectorRow[];
   const semRegiao = setores.filter((s) => !s.regiao_id);
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <PageHeader
-        icon={Globe2}
-        title="Região"
-        description="Agrupamento geográfico de setores — cada setor pertence a 1 região"
-        iconColor="text-iw-blue"
-        iconBg="bg-iw-blue/10"
-      />
+  const estadoPorChurchId = new Map<string, string>();
+  for (const c of churchesRes.data ?? []) {
+    if (c.state) estadoPorChurchId.set(c.id as string, (c.state as string).toUpperCase());
+  }
+  const cobertura = computarCoberturaNacional((unitsRes.data ?? []) as UnitRow[], estadoPorChurchId);
 
+  const regioesInternas = (
+    <div className="space-y-6">
       <SimpleSettingsCRUD
         items={regioes}
         placeholder="Ex: REGIÃO SUL, GRANDE PIRACICABA..."
@@ -127,6 +180,23 @@ export default async function RegioesPage() {
           </div>
         );
       })}
+    </div>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <PageHeader
+        icon={Globe2}
+        title="Região"
+        description="Agrupamento geográfico de setores — cada setor pertence a 1 região"
+        iconColor="text-iw-blue"
+        iconBg="bg-iw-blue/10"
+      />
+
+      <RegioesTabs
+        internas={regioesInternas}
+        nacional={<CoberturaNacional cobertura={cobertura} />}
+      />
     </div>
   );
 }

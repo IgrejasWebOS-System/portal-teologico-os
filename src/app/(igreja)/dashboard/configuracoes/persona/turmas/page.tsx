@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarRange, Plus, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, CalendarRange, Plus, Trash2, Pencil, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import {
   addTurmaConfigAction,
@@ -139,7 +139,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
               <details key={r.id} className="group/row">
                 <summary className="cursor-pointer list-none grid grid-cols-[1.2fr_1fr_1fr_0.8fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
                   <span className="text-sm font-semibold text-iw-navy truncate inline-flex items-center gap-1.5">
-                    <Pencil className="w-3 h-3 text-iw-muted shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity" />
+                    <Pencil className="w-3 h-3 text-iw-blue shrink-0" />
                     {r.nome}
                   </span>
                   <span className="text-xs text-iw-muted truncate">{r.courses?.title ?? "—"}</span>
@@ -155,7 +155,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
                   >
                     {r.status}
                   </span>
-                  <span></span>
+                  <ChevronRight className="w-4 h-4 text-iw-muted transition-transform group-open/row:rotate-90" />
                 </summary>
 
                 <div className="px-5 pb-5 pt-1 bg-iw-bg/40 border-t border-iw-border">

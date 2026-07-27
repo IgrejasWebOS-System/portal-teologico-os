@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { Trash2, Plus, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Pencil, Check, X, Loader2, AlertTriangle } from "lucide-react";
 
 type Item = { id: string; name: string };
 
@@ -10,6 +10,7 @@ interface Props {
   placeholder?: string;
   onAdd: (fd: FormData) => Promise<{ success: boolean; message?: string }>;
   onDelete: (id: string) => Promise<{ success: boolean; message?: string }>;
+  onUpdate?: (id: string, name: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 export default function SimpleSettingsCRUD({
@@ -17,12 +18,44 @@ export default function SimpleSettingsCRUD({
   placeholder = "Ex: NOVO ITEM...",
   onAdd,
   onDelete,
+  onUpdate,
 }: Props) {
   const [list, setList] = useState<Item[]>(items);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+
+  const startEdit = (item: Item) => {
+    setEditingId(item.id);
+    setEditValue(item.name);
+    setError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (!onUpdate) return;
+    const trimmed = editValue.trim();
+    if (!trimmed) { setError("Digite um nome antes de salvar."); return; }
+    setError("");
+    startTransition(async () => {
+      const res = await onUpdate(id, trimmed);
+      if (!res.success) { setError(res.message ?? "Erro ao salvar."); return; }
+      setList((prev) =>
+        prev
+          .map((i) => (i.id === id ? { ...i, name: trimmed.toUpperCase() } : i))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setEditingId(null);
+      setEditValue("");
+    });
+  };
 
   const handleAdd = (fd: FormData) => {
     const name = (fd.get("name") as string)?.trim();
@@ -110,29 +143,83 @@ export default function SimpleSettingsCRUD({
           </div>
         ) : (
           <ul className="divide-y divide-iw-border">
-            {list.map((item) => (
-              <li
-                key={item.id}
-                className="grid grid-cols-[1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors group"
-              >
-                <span className="text-sm font-semibold text-iw-navy">
-                  {item.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deletingId === item.id || isPending}
-                  className="p-1.5 text-iw-muted hover:text-iw-error disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-error-bg"
-                  title="Remover"
+            {list.map((item) => {
+              const isEditing = editingId === item.id;
+              return (
+                <li
+                  key={item.id}
+                  className="grid grid-cols-[1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors group"
                 >
-                  {deletingId === item.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(item.id); }
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      className="bg-white border border-iw-blue rounded-lg px-2.5 py-1 text-sm font-semibold text-iw-navy uppercase focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+                    />
                   ) : (
-                    <Trash2 className="w-4 h-4" />
+                    <span className="text-sm font-semibold text-iw-navy">
+                      {item.name}
+                    </span>
                   )}
-                </button>
-              </li>
-            ))}
+
+                  <div className="flex items-center gap-1">
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(item.id)}
+                          disabled={isPending}
+                          className="p-1.5 text-iw-blue hover:text-iw-navy disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-blue/8"
+                          title="Salvar"
+                        >
+                          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          disabled={isPending}
+                          className="p-1.5 text-iw-muted hover:text-iw-navy disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-bg"
+                          title="Cancelar"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {onUpdate && (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item)}
+                            className="p-1.5 text-iw-muted hover:text-iw-blue transition-colors rounded-lg hover:bg-iw-blue/8"
+                            title="Editar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          disabled={deletingId === item.id || isPending}
+                          className="p-1.5 text-iw-muted hover:text-iw-error disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-error-bg"
+                          title="Remover"
+                        >
+                          {deletingId === item.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

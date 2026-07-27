@@ -2,7 +2,7 @@ import { User } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
-import { addSettingItemAction, deleteSettingItemAction } from "../actions";
+import { addSettingItemAction, deleteSettingItemAction, updateSettingItemAction } from "../actions";
 
 export default async function ProfissoesPage() {
   const supabase = await createClient();
@@ -25,6 +25,7 @@ export default async function ProfissoesPage() {
         placeholder="Ex: ENGENHEIRO CIVIL"
         onAdd={addSettingItemAction.bind(null, "settings_professions")}
         onDelete={deleteSettingItemAction.bind(null, "settings_professions")}
+        onUpdate={updateSettingItemAction.bind(null, "settings_professions")}
       />
     </div>
   );

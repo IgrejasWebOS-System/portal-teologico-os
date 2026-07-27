@@ -2,7 +2,7 @@ import { MapPin } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
-import { addRegiaoDFAction, deleteRegiaoDFAction } from "../actions";
+import { addRegiaoDFAction, deleteRegiaoDFAction, updateRegiaoDFAction } from "../actions";
 
 export default async function RegioesDFPage() {
   const supabase = await createClient();
@@ -31,6 +31,7 @@ export default async function RegioesDFPage() {
         placeholder="Ex: TAGUATINGA SUL"
         onAdd={addRegiaoDFAction}
         onDelete={deleteRegiaoDFAction}
+        onUpdate={updateRegiaoDFAction}
       />
     </div>
   );
