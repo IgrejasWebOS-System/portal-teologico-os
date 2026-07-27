@@ -12,12 +12,13 @@ type Profile = {
   church_id: string | null;
 };
 
-type UnitOption = { id: string; type: string; name: string };
+type UnitOption = { id: string; type: string; name: string; parent_id: string | null };
+type ChurchLink = { id: string; unit_id: string | null };
 
 export default async function UsuariosPage() {
   const supabase = await createClient();
 
-  const [{ data }, { data: { user: currentUser } }, unitsRes] = await Promise.all([
+  const [{ data }, { data: { user: currentUser } }, unitsRes, churchesRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, system_role, church_id")
@@ -25,17 +26,19 @@ export default async function UsuariosPage() {
     supabase.auth.getUser(),
     supabase
       .from("units")
-      .select("id, type, name")
+      .select("id, type, name, parent_id")
       .order("type")
       .order("name"),
+    supabase.from("churches").select("id, unit_id"),
   ]);
 
   const users = (data ?? []) as Profile[];
   const units = (unitsRes.data ?? []) as UnitOption[];
+  const churches = (churchesRes.data ?? []) as ChurchLink[];
   const souGlobalAdmin = users.find((u) => u.id === currentUser?.id)?.system_role === "GLOBAL_ADMIN";
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <Link
           href="/dashboard/configuracoes/acessos"
@@ -61,7 +64,7 @@ export default async function UsuariosPage() {
         </p>
       )}
 
-      {souGlobalAdmin && <InviteStaffForm units={units} />}
+      {souGlobalAdmin && <InviteStaffForm units={units} churches={churches} />}
 
       <UsersList users={users} currentUserId={currentUser?.id} souGlobalAdmin={souGlobalAdmin} />
     </div>

@@ -146,6 +146,7 @@ export type MembroEncontrado = {
   email: string | null;
   cargo: string | null;
   church_id: string | null;
+  registration_number: string | null;
 };
 
 export async function buscarMembroPorMatriculaAction(
@@ -157,7 +158,7 @@ export async function buscarMembroPorMatriculaAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("members")
-    .select("id, full_name, phone, email, church_id, ecclesiastical_roles(name)")
+    .select("id, full_name, phone, email, church_id, registration_number, ecclesiastical_roles(name)")
     .eq("registration_number", mat)
     .maybeSingle();
 
@@ -170,6 +171,7 @@ export async function buscarMembroPorMatriculaAction(
     phone: string | null;
     email: string | null;
     church_id: string | null;
+    registration_number: string | null;
     ecclesiastical_roles: { name: string } | null;
   };
 
@@ -182,7 +184,50 @@ export async function buscarMembroPorMatriculaAction(
       email: row.email,
       cargo: row.ecclesiastical_roles?.name ?? null,
       church_id: row.church_id,
+      registration_number: row.registration_number,
     },
+  };
+}
+
+// ── Busca de membro por nome (retorna vários — nome não é único) ──
+export async function buscarMembroPorNomeAction(
+  nome: string
+): Promise<{ success: boolean; data?: MembroEncontrado[]; message?: string }> {
+  const termo = nome.trim();
+  if (termo.length < 3) return { success: false, message: "Digite pelo menos 3 letras." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("members")
+    .select("id, full_name, phone, email, church_id, registration_number, ecclesiastical_roles(name)")
+    .ilike("full_name", `%${termo}%`)
+    .order("full_name")
+    .limit(8);
+
+  if (error) return { success: false, message: error.message };
+  if (!data || data.length === 0) return { success: false, message: "Nenhum membro encontrado com esse nome." };
+
+  const rows = data as unknown as {
+    id: string;
+    full_name: string | null;
+    phone: string | null;
+    email: string | null;
+    church_id: string | null;
+    registration_number: string | null;
+    ecclesiastical_roles: { name: string } | null;
+  }[];
+
+  return {
+    success: true,
+    data: rows.map((row) => ({
+      id: row.id,
+      full_name: row.full_name ?? "",
+      phone: row.phone,
+      email: row.email,
+      cargo: row.ecclesiastical_roles?.name ?? null,
+      church_id: row.church_id,
+      registration_number: row.registration_number,
+    })),
   };
 }
 
@@ -250,6 +295,37 @@ export async function desvincularSetorRegiaoAction(setorId: string) {
 }
 
 // ── Professores ───────────────────────────────────────────────
+
+// Resolve os IDs legados (sector_id/church_id) a partir dos units
+// escolhidos na cascata, para não quebrar telas que ainda leem
+// professores.sector_id/church_id diretamente.
+async function resolverBridgeUnits(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  unitId: string | null,
+  setorUnitId: string | null
+): Promise<{ church_id: string | null; sector_id: string | null }> {
+  let church_id: string | null = null;
+  let sector_id: string | null = null;
+
+  if (unitId) {
+    const { data: church } = await supabase
+      .from("churches")
+      .select("id")
+      .eq("unit_id", unitId)
+      .maybeSingle();
+    church_id = church?.id ?? null;
+  }
+  if (setorUnitId) {
+    const { data: sector } = await supabase
+      .from("sectors")
+      .select("id")
+      .eq("unit_id", setorUnitId)
+      .maybeSingle();
+    sector_id = sector?.id ?? null;
+  }
+  return { church_id, sector_id };
+}
+
 export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
@@ -258,9 +334,14 @@ export async function addProfessorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
+  const unitId = (formData.get("unit_id") as string) || null;
+  const setorUnitId = (formData.get("setor_unit_id") as string) || null;
+  const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
+
   const payload = {
-    sector_id: (formData.get("sector_id") as string) || null,
-    church_id: (formData.get("church_id") as string) || null,
+    unit_id: unitId,
+    sector_id,
+    church_id,
     member_id: (formData.get("member_id") as string) || null,
     matricula: (formData.get("matricula") as string) || null,
     nome_completo: nomeCompleto,
@@ -277,6 +358,39 @@ export async function addProfessorAction(formData: FormData) {
 
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true, data };
+}
+
+export async function updateProfessorAction(formData: FormData) {
+  const id = (formData.get("id") as string) || "";
+  if (!id) return { success: false, message: "ID obrigatório." };
+
+  const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
+  if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+
+  const unitId = (formData.get("unit_id") as string) || null;
+  const setorUnitId = (formData.get("setor_unit_id") as string) || null;
+  const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
+
+  const payload = {
+    unit_id: unitId,
+    sector_id,
+    church_id,
+    member_id: (formData.get("member_id") as string) || null,
+    matricula: (formData.get("matricula") as string) || null,
+    nome_completo: nomeCompleto,
+    cargo: (formData.get("cargo") as string) || null,
+    telefone: (formData.get("telefone") as string) || null,
+  };
+
+  const { error } = await supabase.from("professores").update(payload).eq("id", id);
+  if (error) return { success: false, message: error.message };
+
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
 }
 
 export async function deleteProfessorAction(id: string) {

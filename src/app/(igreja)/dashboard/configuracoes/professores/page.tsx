@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, Plus, Trash2 } from "lucide-react";
+import { GraduationCap, Plus, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import { deleteProfessorFormAction } from "../actions";
@@ -24,7 +24,7 @@ export default async function ProfessoresPage() {
   const rows = (data ?? []) as unknown as Row[];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
           icon={GraduationCap}
@@ -42,7 +42,7 @@ export default async function ProfessoresPage() {
         </Link>
       </div>
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Cargo</span>
@@ -69,11 +69,20 @@ export default async function ProfessoresPage() {
                   {r.churches?.name ?? "—"} {r.sectors?.name ? `· ${r.sectors.name}` : ""}
                 </span>
                 <span className="text-xs text-iw-muted truncate">{r.telefone ?? "—"}</span>
-                <form action={deleteProfessorFormAction.bind(null, r.id)}>
-                  <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </form>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/dashboard/configuracoes/professores/editar/${r.id}`}
+                    className="text-iw-muted hover:text-iw-blue transition-colors"
+                    title="Editar"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Link>
+                  <form action={deleteProfessorFormAction.bind(null, r.id)}>
+                    <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
