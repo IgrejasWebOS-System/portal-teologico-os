@@ -138,10 +138,10 @@ export default function PublicHeader() {
 
           <button
             onClick={() => setMenuAberto(!menuAberto)}
-            className="md:hidden w-9 h-9 rounded-lg bg-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
+            className="md:hidden w-9 h-9 rounded-lg bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
             aria-label="Abrir menu"
           >
-            {menuAberto ? <X className="w-5 h-5 text-black" /> : <Menu className="w-5 h-5 text-black" />}
+            {menuAberto ? <X className="w-5 h-5 text-[#E88D0C]" /> : <Menu className="w-5 h-5 text-[#E88D0C]" />}
           </button>
         </div>
       </div>

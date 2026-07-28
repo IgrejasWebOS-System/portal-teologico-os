@@ -51,13 +51,13 @@ export default async function PagamentoInscricaoPage({ params, searchParams }: P
             <p className="text-iw-muted text-sm">Inscrição não encontrada.</p>
           ) : (
             <>
-              <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center mx-auto mb-5">
+              <div className="w-14 h-14 rounded-full bg-black border-2 border-[#E88D0C] flex items-center justify-center mx-auto mb-5">
                 {inscricao.status === "PAGAMENTO_RECUSADO" ? (
-                  <XCircle className="w-7 h-7 text-black" />
+                  <XCircle className="w-7 h-7 text-[#E88D0C]" />
                 ) : inscricao.status === "AGUARDANDO_PAGAMENTO" ? (
-                  <Clock className="w-7 h-7 text-black" />
+                  <Clock className="w-7 h-7 text-[#E88D0C]" />
                 ) : (
-                  <CheckCircle2 className="w-7 h-7 text-black" />
+                  <CheckCircle2 className="w-7 h-7 text-[#E88D0C]" />
                 )}
               </div>
 

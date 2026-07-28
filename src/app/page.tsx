@@ -156,8 +156,8 @@ export default function HomePage() {
                   id={servico.id}
                   className="bg-iw-surface border border-iw-border rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col gap-4 scroll-mt-40"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#E88D0C] flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-black" />
+                  <div className="w-12 h-12 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-[#E88D0C]" />
                   </div>
                   <div className="flex flex-col gap-2 flex-1">
                     <h3 className="font-extrabold text-lg leading-tight">{servico.titulo}</h3>

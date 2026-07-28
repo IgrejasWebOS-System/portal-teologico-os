@@ -79,8 +79,8 @@ export default function SobrePage() {
             const Icon = p.icon;
             return (
               <div key={p.titulo} className="bg-iw-surface border border-iw-border rounded-2xl p-6 shadow-sm">
-                <div className="w-12 h-12 rounded-xl bg-[#E88D0C] flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-black" />
+                <div className="w-12 h-12 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center mb-4">
+                  <Icon className="w-6 h-6 text-[#E88D0C]" />
                 </div>
                 <h3 className="font-extrabold text-lg mb-2">{p.titulo}</h3>
                 <p className="text-iw-muted text-sm leading-relaxed">{p.texto}</p>

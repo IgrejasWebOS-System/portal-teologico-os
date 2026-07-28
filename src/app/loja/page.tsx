@@ -53,8 +53,8 @@ export default async function LojaPage({
         <section className="bg-iw-bg">
           <div className="max-w-5xl mx-auto px-6 pt-6 pb-10 flex flex-col items-center gap-3">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-7 h-7 text-black" />
+              <div className="w-14 h-14 rounded-full bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-7 h-7 text-[#E88D0C]" />
               </div>
               <h1 className="text-3xl md:text-4xl font-black tracking-tight">
                 Loja CETADP

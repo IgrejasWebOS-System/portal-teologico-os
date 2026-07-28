@@ -71,8 +71,8 @@ export default function BibliotecaPage() {
                 id={s.id}
                 className="bg-iw-surface border border-iw-border rounded-2xl p-6 shadow-sm scroll-mt-32 flex flex-col gap-4"
               >
-                <div className="w-12 h-12 rounded-xl bg-[#E88D0C] flex items-center justify-center">
-                  <Icon className="w-6 h-6 text-black" />
+                <div className="w-12 h-12 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center">
+                  <Icon className="w-6 h-6 text-[#E88D0C]" />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-lg mb-1">{s.titulo}</h3>

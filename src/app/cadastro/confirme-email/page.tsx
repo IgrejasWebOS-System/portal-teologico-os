@@ -15,8 +15,8 @@ export default function ConfirmeEmailPage() {
         </div>
 
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-[var(--shadow-lg)] p-8">
-          <div className="w-14 h-14 rounded-full bg-[#E88D0C] flex items-center justify-center mx-auto mb-5">
-            <MailCheck className="w-7 h-7 text-black" />
+          <div className="w-14 h-14 rounded-full bg-black border-2 border-[#E88D0C] flex items-center justify-center mx-auto mb-5">
+            <MailCheck className="w-7 h-7 text-[#E88D0C]" />
           </div>
           <h1 className="text-xl font-black text-iw-navy mb-2">
             Confirme seu e-mail
