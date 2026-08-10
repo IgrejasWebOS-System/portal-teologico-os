@@ -38,7 +38,8 @@ export async function atualizarStatusLeadAction(formData: FormData) {
   );
 
   if (error) {
-    redirect("/admin/leads-loja?error=" + encodeURIComponent("Erro ao atualizar lead: " + error.message));
+    console.error("[leads-loja/actions]", error);
+    redirect("/admin/leads-loja?error=" + encodeURIComponent("Erro ao atualizar lead. Tente novamente."));
   }
 
   revalidatePath("/admin/leads-loja");

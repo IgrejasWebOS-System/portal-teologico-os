@@ -60,8 +60,8 @@ export default async function MemberFunctionsCard({
   return (
     <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-5">
       <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
-        <div className="w-6 h-6 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
-          <UserCog className="w-3.5 h-3.5 text-black" />
+        <div className="w-6 h-6 rounded-lg bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
+          <UserCog className="w-3.5 h-3.5 text-[#E88D0C]" />
         </div>
         <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">Funções</h2>
       </div>

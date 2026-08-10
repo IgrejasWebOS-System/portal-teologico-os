@@ -81,7 +81,10 @@ export async function addTurmaAction(formData: FormData) {
     .select("id, nome")
     .single();
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[matriculas/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/admin/matriculas/nova");
   return { success: true, data };
 }

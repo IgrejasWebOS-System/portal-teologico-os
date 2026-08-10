@@ -46,7 +46,8 @@ export async function addMemberFunctionAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(voltar + "?error=" + encodeURIComponent(error.message));
+    console.error("[funcoes-actions]", error);
+    redirect(voltar + "?error=" + encodeURIComponent("Erro ao salvar. Tente novamente."));
   }
 
   revalidatePath(voltar);
@@ -56,7 +57,10 @@ export async function addMemberFunctionAction(formData: FormData) {
 export async function deleteMemberFunctionAction(id: string, memberId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("member_functions").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[funcoes-actions]", error);
+    return { success: false, message: "Erro ao excluir. Tente novamente." };
+  }
   revalidatePath(`/dashboard/membros/editar/${memberId}`);
   return { success: true };
 }

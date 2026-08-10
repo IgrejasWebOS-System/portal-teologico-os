@@ -112,8 +112,8 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
   return (
     <div className="bg-iw-surface rounded-2xl border border-iw-gold p-5 shadow-sm">
       <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
-          <UserPlus className="w-4 h-4 text-black" />
+        <div className="w-8 h-8 rounded-lg bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+          <UserPlus className="w-4 h-4 text-[#E88D0C]" />
         </div>
         <div>
           <h2 className="text-sm font-black text-iw-navy">Convidar novo operador</h2>

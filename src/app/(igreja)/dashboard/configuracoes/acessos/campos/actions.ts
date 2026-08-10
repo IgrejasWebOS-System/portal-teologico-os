@@ -132,7 +132,10 @@ export async function atualizarCampoAction(formData: FormData) {
 
   if (churchId) {
     const { error } = await supabase.from("churches").update(churchPayload).eq("id", churchId);
-    if (error) fail("Erro ao atualizar a igreja da Sede: " + error.message);
+    if (error) {
+      console.error("[campos/actions]", error);
+      fail("Erro ao atualizar a igreja da Sede. Tente novamente.");
+    }
   } else {
     // Campo criado direto via SQL (M11), sem igreja da Sede ainda — cria agora.
     const { data: igreja, error } = await supabase

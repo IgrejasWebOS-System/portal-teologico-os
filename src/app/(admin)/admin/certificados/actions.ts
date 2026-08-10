@@ -97,8 +97,9 @@ export async function emitirCertificadoAction(formData: FormData) {
   });
 
   if (error) {
+    console.error("[certificados/actions]", error);
     redirect(
-      "/admin/certificados?error=" + encodeURIComponent("Erro ao emitir certificado: " + error.message)
+      "/admin/certificados?error=" + encodeURIComponent("Erro ao emitir certificado. Tente novamente.")
     );
   }
 

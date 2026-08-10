@@ -60,7 +60,8 @@ export async function criarCategoriaAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/admin/financeiro/plano-de-contas?error=" + encodeURIComponent("Erro ao criar categoria: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/plano-de-contas?error=" + encodeURIComponent("Erro ao criar categoria. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/plano-de-contas");
@@ -104,7 +105,8 @@ export async function abrirCaixaAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao abrir caixa: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao abrir caixa. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/caixa");
@@ -136,7 +138,8 @@ export async function lancarMovimentacaoAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao lançar: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao lançar. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/caixa");
@@ -206,7 +209,7 @@ export async function gerarParcelamentoAvulsoAction(formData: FormData) {
 
   if (error) {
     redirect(
-      "/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao gerar parcelamento: " + error.message)
+      "/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao gerar parcelamento. Tente novamente.")
     );
   }
 
@@ -294,7 +297,8 @@ export async function baixarParcelaAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao dar baixa: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao dar baixa. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/contas-a-receber");
@@ -312,7 +316,8 @@ export async function cancelarParcelaAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao cancelar: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao cancelar. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/contas-a-receber");
@@ -348,7 +353,8 @@ export async function criarContaPagarAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao criar conta: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao criar conta. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/contas-a-pagar");
@@ -422,7 +428,8 @@ export async function baixarContaPagarAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao dar baixa: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao dar baixa. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/contas-a-pagar");
@@ -440,7 +447,8 @@ export async function cancelarContaPagarAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao cancelar: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-pagar?error=" + encodeURIComponent("Erro ao cancelar. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/contas-a-pagar");
@@ -487,7 +495,8 @@ export async function fecharCaixaAction(formData: FormData) {
     .eq("id", caixa_diario_id);
 
   if (error) {
-    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao fechar caixa: " + error.message));
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/caixa?error=" + encodeURIComponent("Erro ao fechar caixa. Tente novamente."));
   }
 
   revalidatePath("/admin/financeiro/caixa");

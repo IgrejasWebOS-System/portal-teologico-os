@@ -371,8 +371,8 @@ export default function NovoMembroForm() {
     label: string;
   }) => (
     <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
-      <div className="w-6 h-6 rounded-lg bg-[#E88D0C] flex items-center justify-center shrink-0">
-        <Icon className="w-3.5 h-3.5 text-black" />
+      <div className="w-6 h-6 rounded-lg bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
+        <Icon className="w-3.5 h-3.5 text-[#E88D0C]" />
       </div>
       <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">
         {label}

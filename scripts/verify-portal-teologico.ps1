@@ -48,10 +48,18 @@ try {
     exit 1
 }
 
+# Ver nota em backup-portal-teologico.ps1: Join-Path valida a unidade e
+# lanca DriveNotFoundException se ela nao estiver conectada. Join-PathSafe
+# so concatena string, sem essa validacao antecipada.
+function Join-PathSafe {
+    param([string]$Base, [string]$Child)
+    return ($Base.TrimEnd('\', '/') + '\' + $Child)
+}
+
 $Origem = $ProjectRoot
 $OneDriveDestino = Join-Path $Config.onedrive $ProjectName
-$ExternoDestino = Join-Path $Config.external $ProjectName
-$SnapshotDir = Join-Path $Config.snapshots $ProjectName
+$ExternoDestino = Join-PathSafe $Config.external $ProjectName
+$SnapshotDir = Join-PathSafe $Config.snapshots $ProjectName
 $GitRemote = "https://github.com/$($Config.github.organization)/$ProjectName.git"
 
 Check "Pasta principal existe: $Origem" (Test-Path $Origem)

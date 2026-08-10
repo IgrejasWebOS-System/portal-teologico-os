@@ -131,7 +131,8 @@ export async function registrarMovimentacaoAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/admin/patrimonio?error=" + encodeURIComponent("Erro ao registrar movimentação: " + error.message));
+    console.error("[patrimonio/actions]", error);
+    redirect("/admin/patrimonio?error=" + encodeURIComponent("Erro ao registrar movimentação. Tente novamente."));
   }
 
   revalidatePath("/admin/patrimonio");

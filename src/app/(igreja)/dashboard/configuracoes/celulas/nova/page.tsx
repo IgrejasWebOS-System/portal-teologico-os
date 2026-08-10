@@ -26,8 +26,8 @@ export default async function NovaCelulaPage() {
           Voltar para Células
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#E88D0C] flex items-center justify-center shrink-0">
-            <GitBranch className="w-5 h-5 text-black" />
+          <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+            <GitBranch className="w-5 h-5 text-[#E88D0C]" />
           </div>
           <div>
             <h1 className="text-xl font-black text-iw-navy tracking-tight">Nova Célula</h1>

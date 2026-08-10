@@ -758,8 +758,8 @@ export default function HistoricoRelatorio() {
 function SectionDivider({ icon: Icon, label }: { icon: ElementType; label: string }) {
   return (
     <div className="flex items-center gap-2 pt-1">
-      <div className="w-5 h-5 rounded-md bg-[#E88D0C] flex items-center justify-center shrink-0">
-        <Icon className="w-3 h-3 text-black" />
+      <div className="w-5 h-5 rounded-md bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
+        <Icon className="w-3 h-3 text-[#E88D0C]" />
       </div>
       <span className="text-[10px] font-bold uppercase tracking-wider text-iw-muted">{label}</span>
       <div className="flex-1 h-px bg-iw-border" />

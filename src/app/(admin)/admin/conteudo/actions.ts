@@ -54,7 +54,10 @@ export async function createLessonAction(formData: FormData) {
     created_at:       new Date().toISOString(),
   });
 
-  if (error) return { success: false, message: "Erro ao criar aula: " + error.message };
+  if (error) {
+    console.error("[conteudo/actions]", error);
+    return { success: false, message: "Erro ao criar aula. Tente novamente." };
+  }
 
   revalidatePath("/admin/conteudo");
   redirect("/admin/conteudo");
@@ -84,7 +87,10 @@ export async function updateLessonVideoAction(formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) return { success: false, message: "Erro ao atualizar: " + error.message };
+  if (error) {
+    console.error("[conteudo/actions]", error);
+    return { success: false, message: "Erro ao atualizar. Tente novamente." };
+  }
 
   revalidatePath("/admin/conteudo");
   return { success: true };
@@ -117,7 +123,10 @@ export async function createCourseAction(formData: FormData) {
     updated_at:       new Date().toISOString(),
   });
 
-  if (error) return { success: false, message: "Erro ao criar curso: " + error.message };
+  if (error) {
+    console.error("[conteudo/actions]", error);
+    return { success: false, message: "Erro ao criar curso. Tente novamente." };
+  }
 
   revalidatePath("/admin/conteudo");
   redirect("/admin/conteudo/trilhas");

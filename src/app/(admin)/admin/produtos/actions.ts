@@ -96,7 +96,8 @@ export async function atualizarProdutoAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect("/admin/produtos?error=" + encodeURIComponent("Erro ao atualizar: " + error.message));
+    console.error("[produtos/actions]", error);
+    redirect("/admin/produtos?error=" + encodeURIComponent("Erro ao atualizar. Tente novamente."));
   }
 
   revalidatePath("/admin/produtos");
@@ -154,7 +155,8 @@ export async function movimentarEstoqueAction(formData: FormData) {
     .eq("id", productId);
 
   if (error) {
-    redirect("/admin/produtos?error=" + encodeURIComponent("Erro ao atualizar estoque: " + error.message));
+    console.error("[produtos/actions]", error);
+    redirect("/admin/produtos?error=" + encodeURIComponent("Erro ao atualizar estoque. Tente novamente."));
   }
 
   revalidatePath("/admin/produtos");

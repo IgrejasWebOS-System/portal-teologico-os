@@ -25,24 +25,35 @@ portal.
 
 ```bash
 npm install
+cp .env.example .env.local
 ```
 
-Crie um `.env.local` na raiz com:
+Preencha `.env.local` com os valores reais do seu projeto Supabase (e, se for
+testar pagamentos, do Mercado Pago) — ver [`.env.example`](./.env.example)
+para a lista completa de variáveis, com explicação de cada uma. Nunca commitar
+`.env.local` nem colar valores reais em `.env.example`.
 
-```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...   # necessário para aprovar inscrições (convite de aluno)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+Aplique as migrações em `supabase/migrations/` no SQL Editor do seu projeto
+Supabase, na ordem numérica dos arquivos (esta é a única pasta ativa desde
+13/07/2026) — não há Supabase CLI configurado neste projeto, o fluxo é
+manual: abrir o SQL Editor, colar o conteúdo do `.sql` mais recente ainda não
+aplicado, rodar, conferir o resultado antes de seguir para o próximo.
 
-Aplique as migrações em `supabase/migrations/`, na ordem cronológica dos
-arquivos (esta é a única pasta ativa desde 13/07/2026) no seu projeto
-Supabase, depois:
+**Atenção com RLS:** uma policy que consulta a própria tabela em que está
+definida (ex: uma policy em `profiles` que faz `select ... from profiles`)
+causa erro de recursão infinita em produção, sem nenhum aviso do `tsc`. Ver
+`AGENTS.md` para o padrão correto.
 
 ```bash
 npm run dev
 ```
+
+Scripts disponíveis: `npm run dev`, `npm run build`, `npm run start`,
+`npm run lint` (ESLint) e `npm run type-check` (`tsc --noEmit` — rodar sempre
+antes de commitar).
+
+Pull requests para `main` rodam lint + type-check + build automaticamente
+(`.github/workflows/ci.yml`).
 
 > Este projeto usa um Supabase **isolado e dedicado** (`toduvwtzklntyptcodkf`,
 > criado em 13/07/2026), separado do banco antigo que era compartilhado com

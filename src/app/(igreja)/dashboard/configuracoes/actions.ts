@@ -27,7 +27,10 @@ export async function addSettingItemAction(
   if (!user) return { success: false, message: "Não autenticado." };
 
   const { error } = await supabase.from(table).insert({ name });
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes");
   return { success: true };
@@ -43,7 +46,10 @@ export async function deleteSettingItemAction(
   if (!user) return { success: false, message: "Não autenticado." };
 
   const { error } = await supabase.from(table).delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes");
   return { success: true };
@@ -63,7 +69,10 @@ export async function updateSettingItemAction(
   if (!user) return { success: false, message: "Não autenticado." };
 
   const { error } = await supabase.from(table).update({ name: trimmed }).eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes");
   return { success: true };
@@ -79,7 +88,10 @@ export async function addRegiaoDFAction(formData: FormData) {
     .from("settings_custom_regions")
     .insert({ name: name.toUpperCase(), state_uf: "DF" });
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/regioes-df");
   return { success: true };
 }
@@ -91,7 +103,10 @@ export async function deleteRegiaoDFAction(id: string) {
     .delete()
     .eq("id", id);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/regioes-df");
   return { success: true };
 }
@@ -106,7 +121,10 @@ export async function updateRegiaoDFAction(id: string, name: string) {
     .update({ name: trimmed })
     .eq("id", id);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/regioes-df");
   return { success: true };
 }
@@ -152,7 +170,10 @@ export async function addSetorAction(formData: FormData) {
     .from("sectors")
     .insert({ name: name.toUpperCase(), regiao_id: regiaoId, unit_id: newUnit.id });
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
@@ -160,7 +181,10 @@ export async function addSetorAction(formData: FormData) {
 export async function deleteSetorAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("sectors").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
@@ -178,7 +202,10 @@ export async function renameSetorAction(formData: FormData) {
 
   const upper = name.toUpperCase();
   const { error } = await supabase.from("sectors").update({ name: upper }).eq("id", setorId);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   if (unitId) {
     await supabase.from("units").update({ name: upper }).eq("id", unitId);
@@ -199,7 +226,10 @@ export async function updateSetorRegiaoAction(formData: FormData) {
     .update({ regiao_id: regiaoId })
     .eq("id", setorId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/setores");
   revalidatePath("/dashboard/configuracoes/regioes");
   return { success: true };
@@ -229,7 +259,10 @@ export async function buscarMembroPorMatriculaAction(
     .eq("registration_number", mat)
     .maybeSingle();
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   if (!data) return { success: false, message: "Nenhum membro encontrado com essa matrícula." };
 
   const row = data as unknown as {
@@ -271,7 +304,10 @@ export async function buscarMembroPorNomeAction(
     .order("full_name")
     .limit(8);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   if (!data || data.length === 0) return { success: false, message: "Nenhum membro encontrado com esse nome." };
 
   const rows = data as unknown as {
@@ -308,7 +344,10 @@ export async function addDepartamentoAction(formData: FormData) {
     .from("departments")
     .insert({ name: name.toUpperCase() });
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/departamentos");
   return { success: true };
 }
@@ -316,7 +355,10 @@ export async function addDepartamentoAction(formData: FormData) {
 export async function deleteDepartamentoAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("departments").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/departamentos");
   return { success: true };
 }
@@ -331,7 +373,10 @@ export async function addRegiaoAction(formData: FormData) {
     .from("regioes")
     .insert({ name: name.toUpperCase() });
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/regioes");
   return { success: true };
 }
@@ -339,7 +384,10 @@ export async function addRegiaoAction(formData: FormData) {
 export async function deleteRegiaoAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("regioes").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/regioes");
   return { success: true };
 }
@@ -355,7 +403,10 @@ export async function desvincularSetorRegiaoAction(setorId: string) {
     .update({ regiao_id: null })
     .eq("id", setorId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/setores");
   revalidatePath("/dashboard/configuracoes/regioes");
   return { success: true };
@@ -421,7 +472,10 @@ export async function addProfessorAction(formData: FormData) {
     .insert(payload)
     .select("id, nome_completo, church_id")
     .single();
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true, data };
@@ -454,7 +508,10 @@ export async function updateProfessorAction(formData: FormData) {
   };
 
   const { error } = await supabase.from("professores").update(payload).eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true };
@@ -463,7 +520,10 @@ export async function updateProfessorAction(formData: FormData) {
 export async function deleteProfessorAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("professores").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true };
 }
@@ -482,7 +542,10 @@ export async function promoverSedeAction(formData: FormData) {
     .update({ is_sede: true })
     .eq("id", churchId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/acessos/sedes");
   return { success: true };
 }
@@ -494,7 +557,10 @@ export async function rebaixarSedeAction(id: string) {
     .update({ is_sede: false })
     .eq("id", id);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/acessos/sedes");
   return { success: true };
 }
@@ -524,7 +590,10 @@ export async function definirLiderSetorAction(formData: FormData) {
     .update({ mother_church_id: churchId })
     .eq("id", setorId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
   return { success: true };
 }
@@ -536,7 +605,10 @@ export async function removerLiderSetorAction(setorId: string) {
     .update({ mother_church_id: null })
     .eq("id", setorId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
   return { success: true };
 }
@@ -577,7 +649,10 @@ export async function atualizarNivelUsuarioAction(formData: FormData) {
 
   // RLS bloqueia quem não é GLOBAL_ADMIN — o erro do Postgres nesse caso
   // já é claro o suficiente pra repassar como mensagem.
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
   return { success: true };
@@ -629,7 +704,10 @@ export async function atualizarPerfilUsuarioAction(formData: FormData) {
     .update({ full_name: fullName || null, email })
     .eq("id", userId);
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
 
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
   return { success: true };
@@ -670,8 +748,9 @@ export async function addTurmaConfigAction(formData: FormData) {
   });
 
   if (error) {
+    console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent(error.message)
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
     );
   }
 
@@ -716,8 +795,9 @@ export async function updateTurmaConfigAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
+    console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent(error.message)
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
     );
   }
 
@@ -731,7 +811,10 @@ export async function updateTurmaConfigAction(formData: FormData) {
 export async function deleteTurmaAction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("course_editions").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/dashboard/configuracoes/persona/turmas");
   return { success: true };
 }

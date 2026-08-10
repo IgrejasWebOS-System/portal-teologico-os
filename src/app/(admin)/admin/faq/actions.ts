@@ -56,7 +56,8 @@ export async function addFaqCategoriaAction(formData: FormData) {
   const { error } = await supabase.from("faq_categories").insert({ nome, slug, ordem });
 
   if (error) {
-    const msg = error.code === "23505" ? "Já existe uma categoria parecida com esse nome." : error.message;
+    if (error.code !== "23505") console.error("[faq/actions]", error);
+    const msg = error.code === "23505" ? "Já existe uma categoria parecida com esse nome." : "Erro ao salvar. Tente novamente.";
     redirect(BASE + "?error=" + encodeURIComponent(msg));
   }
 
@@ -82,7 +83,8 @@ export async function updateFaqCategoriaAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect(BASE + "?error=" + encodeURIComponent(error.message));
+    console.error("[faq/actions]", error);
+    redirect(BASE + "?error=" + encodeURIComponent("Erro ao salvar. Tente novamente."));
   }
 
   revalidatePath(BASE);
@@ -92,7 +94,10 @@ export async function updateFaqCategoriaAction(formData: FormData) {
 export async function deleteFaqCategoriaAction(id: string) {
   const { supabase } = await requireStaff();
   const { error } = await supabase.from("faq_categories").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[faq/actions]", error);
+    return { success: false, message: "Erro ao excluir. Tente novamente." };
+  }
   revalidatePath(BASE);
   return { success: true };
 }
@@ -120,7 +125,8 @@ export async function addFaqItemAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(BASE + "?error=" + encodeURIComponent(error.message));
+    console.error("[faq/actions]", error);
+    redirect(BASE + "?error=" + encodeURIComponent("Erro ao salvar. Tente novamente."));
   }
 
   revalidatePath(BASE);
@@ -152,7 +158,8 @@ export async function updateFaqItemAction(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    redirect(BASE + "?error=" + encodeURIComponent(error.message));
+    console.error("[faq/actions]", error);
+    redirect(BASE + "?error=" + encodeURIComponent("Erro ao salvar. Tente novamente."));
   }
 
   revalidatePath(BASE);
@@ -162,7 +169,10 @@ export async function updateFaqItemAction(formData: FormData) {
 export async function deleteFaqItemAction(id: string) {
   const { supabase } = await requireStaff();
   const { error } = await supabase.from("faq_items").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[faq/actions]", error);
+    return { success: false, message: "Erro ao excluir. Tente novamente." };
+  }
   revalidatePath(BASE);
   return { success: true };
 }

@@ -47,10 +47,20 @@ if (!(Test-Path $ConfigPath)) {
 }
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 
+# Join-Path valida a unidade antes de montar o caminho e lanca
+# DriveNotFoundException se a letra (ex: E:) nao estiver conectada no
+# momento - isso derrubava o script inteiro antes mesmo da logica de
+# "disco nao acessivel, pular etapa" ter a chance de rodar. Join-PathSafe
+# faz so concatenacao de string, sem validar a unidade.
+function Join-PathSafe {
+    param([string]$Base, [string]$Child)
+    return ($Base.TrimEnd('\', '/') + '\' + $Child)
+}
+
 $Origem = $ProjectRoot
 $OneDriveDestino = Join-Path $Config.onedrive $ProjectName
-$ExternoDestino = Join-Path $Config.external $ProjectName
-$SnapshotDir = Join-Path $Config.snapshots $ProjectName
+$ExternoDestino = Join-PathSafe $Config.external $ProjectName
+$SnapshotDir = Join-PathSafe $Config.snapshots $ProjectName
 $GitRemote = "https://github.com/$($Config.github.organization)/$ProjectName.git"
 $BranchPadrao = $Config.github.defaultBranch
 $ExcluidosDir = $Config.excludedDirectories

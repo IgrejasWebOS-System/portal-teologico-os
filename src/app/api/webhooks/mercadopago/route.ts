@@ -3,6 +3,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { buscarPagamento, calcularLiquidoPagamento, type PagamentoMercadoPago } from "@/utils/mercadopago/client";
 import { enviarConviteParaSerAluno } from "@/utils/email/resend";
 import { matricularAlunoEmCurso } from "@/utils/ead/matricular";
+import { obterIpRequest, validarAssinaturaWebhook, verificarRateLimit } from "@/utils/mercadopago/webhookSecurity";
 
 // Lança em Financeiro > Contas a Receber uma linha já baixada (PAGO)
 // pra todo pagamento aprovado pelo Checkout Pro — bruto/líquido/taxa
@@ -69,10 +70,24 @@ async function lancarContaReceberOnline(
 // ============================================================
 
 export async function POST(request: Request) {
+  const ip = obterIpRequest(request);
+  if (!verificarRateLimit(ip)) {
+    return NextResponse.json({ erro: "Muitas requisições." }, { status: 429 });
+  }
+
   const url = new URL(request.url);
 
   let type = url.searchParams.get("type") ?? url.searchParams.get("topic");
   let paymentId = url.searchParams.get("data.id") ?? url.searchParams.get("id");
+
+  // Confere que a notificação realmente veio do Mercado Pago (header
+  // x-signature) antes de processar qualquer coisa. Ver utils/mercadopago/
+  // webhookSecurity.ts — fica fail-open (loga aviso) enquanto
+  // MERCADOPAGO_WEBHOOK_SECRET não estiver configurado.
+  if (paymentId && !validarAssinaturaWebhook(request, paymentId)) {
+    console.error("[webhook mercadopago] Assinatura inválida — requisição rejeitada.");
+    return NextResponse.json({ erro: "Assinatura inválida" }, { status: 401 });
+  }
 
   try {
     const body = await request.json();

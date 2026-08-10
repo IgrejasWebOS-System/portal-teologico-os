@@ -64,7 +64,10 @@ export async function addTrimestreAction(formData: FormData) {
 export async function deleteTrimestreAction(id: string) {
   const { supabase } = await requireStaff();
   const { error } = await supabase.from("ebd_quarters").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[ebd/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath("/admin/ebd");
   return { success: true };
 }
@@ -164,13 +167,19 @@ export async function salvarLicaoAction(
 
   if (payload.id) {
     const { error } = await supabase.from("ebd_lessons").update(row).eq("id", payload.id);
-    if (error) return { success: false, message: error.message };
+    if (error) {
+      console.error("[ebd/actions]", error);
+      return { success: false, message: "Erro ao salvar. Tente novamente." };
+    }
     revalidatePath(`/admin/ebd/${payload.quarter_id}`);
     return { success: true, id: payload.id };
   }
 
   const { data, error } = await supabase.from("ebd_lessons").insert(row).select("id").single();
-  if (error || !data) return { success: false, message: error?.message ?? "Erro ao salvar lição." };
+  if (error || !data) {
+    if (error) console.error("[ebd/actions]", error);
+    return { success: false, message: "Erro ao salvar lição. Tente novamente." };
+  }
   revalidatePath(`/admin/ebd/${payload.quarter_id}`);
   return { success: true, id: data.id };
 }
@@ -178,7 +187,10 @@ export async function salvarLicaoAction(
 export async function deleteLicaoAction(id: string, quarterId: string) {
   const { supabase } = await requireStaff();
   const { error } = await supabase.from("ebd_lessons").delete().eq("id", id);
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    console.error("[ebd/actions]", error);
+    return { success: false, message: "Erro ao salvar. Tente novamente." };
+  }
   revalidatePath(`/admin/ebd/${quarterId}`);
   return { success: true };
 }
