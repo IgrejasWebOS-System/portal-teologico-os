@@ -353,7 +353,8 @@ function Sync-GitHub {
         }
 
         Write-Log "[GIT] Enviando para GitHub ($GitRemote)..." Cyan -LogType git
-        git push -u origin HEAD 2>$null | Out-Null
+        $PushOutput = git push -u origin HEAD 2>&1
+        foreach ($linha in $PushOutput) { Write-Log "[GIT-DETALHE] $linha" DarkGray -LogType git }
 
         if ($LASTEXITCODE -eq 0) {
             $hash = git rev-parse --short HEAD 2>$null
