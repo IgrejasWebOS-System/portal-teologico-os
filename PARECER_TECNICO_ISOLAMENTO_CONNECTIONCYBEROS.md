@@ -39,4 +39,4 @@ O `MERCADOPAGO_ACCESS_TOKEN` em `.env.local` está comentado como "SANDBOX/teste
 
 ## 6. O que muda no plano anterior
 
-Nada na arquitetura recomendada muda. As confirmações de hoje removem incerteza, não alteram direção: Fase 0 (congelamento até 14/08) e Fase 1 (reestruturação a partir de 18/08) continuam valendo como estavam. Duas adições à checklist da Fase 0: confirmar a grafia `connectioncyberos` vs. `connection-cyber-os` (seção 4) e verificar a credencial do Mercado Pago (seção 5).
+Nada na arquitetura recomendada muda. **Correção de data:** o lançamento real é 21/08/2026, não 14/08 como assumido nas primeiras versões deste plano — isso dá 11 dias em vez de 4. Sequência revisada: reestruturação com cuidado normal de 10 a 17/08, congelamento total de 18 a 21/08, e o que sobrar do plano a partir de 22/08. Duas adições à checklist: confirmar a grafia `connectioncyberos` vs. `connection-cyber-os` (seção 4) e verificar a credencial do Mercado Pago (seção 5, já confirmada como sandbox de fato).

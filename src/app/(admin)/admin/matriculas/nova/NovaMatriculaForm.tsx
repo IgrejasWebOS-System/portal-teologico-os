@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import {
-  ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck,
+  ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
@@ -61,17 +61,21 @@ function dateBrToIso(br: string): string {
 // ── Campo compacto: rótulo em caixa alta dentro da própria caixa ──
 const boxCls =
   "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
+// Variante compacta — usada no card "Curso e Vínculo" desde que ele ficou
+// mais estreito (foi pro lado direito, dividindo espaço com a foto do aluno).
+const boxClsCompact =
+  "border border-iw-border rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
 
 function Field({
-  label, required, span, className, children,
+  label, required, span, className, compact, children,
 }: {
-  label: string; required?: boolean; span?: string; className?: string; children: React.ReactNode;
+  label: string; required?: boolean; span?: string; className?: string; compact?: boolean; children: React.ReactNode;
 }) {
   return (
-    <div className={`${boxCls} ${span ?? "col-span-12 md:col-span-3"} ${className ?? ""}`}>
+    <div className={`${compact ? boxClsCompact : boxCls} ${span ?? "col-span-12 md:col-span-3"} ${className ?? ""}`}>
       <label className={boxLabelCls}>{label}{required && " *"}</label>
       {children}
     </div>
@@ -178,6 +182,8 @@ export default function NovaMatriculaForm({
 }) {
   const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
   const [formaCobranca, setFormaCobranca] = useState("MANUAL");
+  const [fotoUrl, setFotoUrl] = useState("");
+  const [uploadingFoto, setUploadingFoto] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
   const [cpf, setCpf] = useState("");
   const [rg, setRg] = useState("");
@@ -317,6 +323,27 @@ export default function NovaMatriculaForm({
     });
   };
 
+  // ── Upload da foto do aluno — mesmo bucket "avatars" usado no
+  // cadastro de membros (dashboard/membros/novo). ──
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const fileName = `aluno-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      setFotoUrl(data.publicUrl);
+    } catch {
+      setExtraError("Erro no upload da foto.");
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
+
   const handleCriarProfessor = () => {
     if (!novoProfNome.trim()) { setExtraError("Digite o nome do professor(a)."); return; }
     setExtraError("");
@@ -340,18 +367,21 @@ export default function NovaMatriculaForm({
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6 pb-16 px-2">
-      <div>
+      {/* Header — fixo no topo ao rolar a página, com linha laranja padrão */}
+      <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C]">
         <Link
           href="/admin/matriculas"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
+          className="inline-flex items-center gap-1.5 text-xs text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity mb-2"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Voltar para Matrículas
         </Link>
-        <h1 className="text-xl font-black text-iw-navy tracking-tight">Nova Matrícula Direta</h1>
-        <p className="text-iw-navy text-xs font-bold mt-0.5">
-          Cadastro completo do aluno + matrícula gerada na hora, sem passar pela inscrição pública nem pelo pagamento online.
-        </p>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h1 className="text-xl font-black text-black tracking-tight">Nova Matrícula Direta</h1>
+          <p className="text-black text-xs">
+            Cadastro completo do aluno + matrícula gerada na hora, sem passar pela inscrição pública nem pelo pagamento online.
+          </p>
+        </div>
       </div>
 
       {errorMsg && (
@@ -389,182 +419,212 @@ export default function NovaMatriculaForm({
           fd.set("professor_id", professorId);
           fd.set("naturalidade_cidade", naturalidadeCidade);
           fd.set("naturalidade_estado", naturalidadeEstado);
+          fd.set("foto_url", fotoUrl);
           return matricularDiretoAction(fd);
         }}
         className="space-y-6"
       >
-        {/* Curso e vínculo */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
-          <SectionHeader icon={GraduationCap} label="Curso e Vínculo" />
-          <div className="grid grid-cols-12 gap-3">
-            <Field label="Curso" required span="col-span-12 md:col-span-4">
-              <select
-                name="course_id"
-                required
-                value={courseId}
-                onChange={(e) => { setCourseId(e.target.value); setTurmaId(""); }}
-                className={bareSelectCls}
-              >
-                <option value="" disabled>Selecione o curso</option>
-                {cursosEscola.length > 0 && (
-                  <optgroup label="Escola Teológica">
-                    {cursosEscola.map((c) => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
-                    ))}
-                  </optgroup>
-                )}
-                {cursosOutros.length > 0 && (
-                  <optgroup label="Cursos & Preparatórios">
-                    {cursosOutros.map((c) => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-            </Field>
-
-            <Field label="Campo / Ministério" span="col-span-12 md:col-span-4">
-              <select name="campo_ministerio_id" className={bareSelectCls} defaultValue="">
-                <option value="">Selecione (opcional)</option>
-                {campos.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Setor" span="col-span-6 md:col-span-2">
-              <select
-                value={sectorId}
-                onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
-                className={bareSelectCls}
-              >
-                <option value="">Selecione...</option>
-                {setores.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Igreja" span="col-span-6 md:col-span-2">
-              <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className={bareSelectCls}>
-                <option value="">Selecione...</option>
-                {igrejasDoSetor.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </Field>
+        {/* Foto do aluno + Curso e vínculo — foto à esquerda, quadro à direita */}
+        <div className="grid grid-cols-12 gap-4 items-stretch">
+          {/* Foto do aluno */}
+          <div className="col-span-12 md:col-span-3 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-4 flex flex-col items-center justify-center gap-2">
+            <div className="w-full max-w-[150px] aspect-square rounded-xl bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
+              {fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                  {uploadingFoto ? (
+                    <Loader2 className="w-7 h-7 animate-spin" />
+                  ) : (
+                    <Camera className="w-7 h-7" />
+                  )}
+                  <span className="text-[10px] font-semibold uppercase text-center px-2">Foto do aluno</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFotoUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </div>
+            <input type="hidden" name="foto_url" value={fotoUrl} />
           </div>
 
-          <div className="grid grid-cols-12 gap-3 items-start">
-            <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
-              <Field label="Turma" span="">
-                <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={bareSelectCls}>
-                  <option value="">
-                    {courseId ? "Selecione..." : "Selecione o curso primeiro"}
-                  </option>
-                  {turmasDoCurso.map((t) => (
-                    <option key={t.id} value={t.id}>{t.nome}</option>
+          {/* Curso e vínculo */}
+          <div className="col-span-12 md:col-span-9 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+            <SectionHeader icon={GraduationCap} label="Curso e Vínculo" />
+            <div className="grid grid-cols-12 gap-2.5">
+              <Field compact label="Curso" required span="col-span-12 md:col-span-4">
+                <select
+                  name="course_id"
+                  required
+                  value={courseId}
+                  onChange={(e) => { setCourseId(e.target.value); setTurmaId(""); }}
+                  className={bareSelectCls}
+                >
+                  <option value="" disabled>Selecione o curso</option>
+                  {cursosEscola.length > 0 && (
+                    <optgroup label="Escola Teológica">
+                      {cursosEscola.map((c) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {cursosOutros.length > 0 && (
+                    <optgroup label="Cursos & Preparatórios">
+                      {cursosOutros.map((c) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </Field>
+
+              <Field compact label="Campo / Ministério" span="col-span-12 md:col-span-4">
+                <select name="campo_ministerio_id" className={bareSelectCls} defaultValue="">
+                  <option value="">Selecione (opcional)</option>
+                  {campos.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
                 </select>
               </Field>
-              <button
-                type="button"
-                onClick={() => setShowNovaTurma((v) => !v)}
-                className="shrink-0 h-full px-3 border border-iw-border rounded-xl bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
-              >
-                {showNovaTurma ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Turma
-              </button>
-            </div>
 
-            <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
-              <Field label="Professor(a)" span="">
-                <select value={professorId} onChange={(e) => setProfessorId(e.target.value)} className={bareSelectCls}>
+              <Field compact label="Setor" span="col-span-6 md:col-span-2">
+                <select
+                  value={sectorId}
+                  onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
+                  className={bareSelectCls}
+                >
                   <option value="">Selecione...</option>
-                  {professores.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nome_completo}</option>
+                  {setores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </Field>
-              <button
-                type="button"
-                onClick={() => setShowNovoProfessor((v) => !v)}
-                className="shrink-0 h-full px-3 border border-iw-border rounded-xl bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
-              >
-                {showNovoProfessor ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Professor(a)
-              </button>
-            </div>
-          </div>
 
-          {showNovaTurma && (
-            <div className="bg-iw-bg rounded-xl p-4 grid grid-cols-12 gap-3 items-end">
-              <Field label="Nome da turma" span="col-span-12 md:col-span-4">
-                <input
-                  value={novaTurmaNome}
-                  onChange={(e) => setNovaTurmaNome(e.target.value)}
-                  placeholder="Ex: Edição 2026"
-                  className={bareCls}
-                />
+              <Field compact label="Igreja" span="col-span-6 md:col-span-2">
+                <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className={bareSelectCls}>
+                  <option value="">Selecione...</option>
+                  {igrejasDoSetor.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </Field>
-              <Field label="Mês/Ano — Início" span="col-span-6 md:col-span-3">
-                <input
-                  type="month"
-                  value={novaTurmaInicio}
-                  onChange={(e) => setNovaTurmaInicio(e.target.value)}
-                  className={bareCls}
-                />
-              </Field>
-              <Field label="Mês/Ano — Término" span="col-span-6 md:col-span-3">
-                <input
-                  type="month"
-                  value={novaTurmaFim}
-                  onChange={(e) => setNovaTurmaFim(e.target.value)}
-                  className={bareCls}
-                />
-              </Field>
-              <button
-                type="button"
-                onClick={handleCriarTurma}
-                disabled={isPendingExtra}
-                className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
-              >
-                Salvar turma
-              </button>
             </div>
-          )}
 
-          {showNovoProfessor && (
-            <div className="bg-iw-bg rounded-xl p-4 grid grid-cols-12 gap-3 items-end">
-              <div className="col-span-12 md:col-span-3">
-                <MatriculaLookup
-                  label="Matrícula"
-                  onFound={(m: MembroEncontrado) => {
-                    setNovoProfMemberId(m.id);
-                    setNovoProfNome(m.full_name);
-                    setNovoProfCargo(m.cargo ?? "");
-                    setNovoProfTelefone(m.phone ?? "");
-                  }}
-                  onClear={() => setNovoProfMemberId("")}
-                />
+            <div className="grid grid-cols-12 gap-2.5 items-start">
+              <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
+                <Field compact label="Turma" span="">
+                  <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={bareSelectCls}>
+                    <option value="">
+                      {courseId ? "Selecione..." : "Selecione o curso primeiro"}
+                    </option>
+                    {turmasDoCurso.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nome}</option>
+                    ))}
+                  </select>
+                </Field>
+                <button
+                  type="button"
+                  onClick={() => setShowNovaTurma((v) => !v)}
+                  className="shrink-0 h-full px-3 border border-iw-border rounded-lg bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
+                >
+                  {showNovaTurma ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Turma
+                </button>
               </div>
-              <Field label="Nome completo" span="col-span-12 md:col-span-3">
-                <input value={novoProfNome} onChange={(e) => setNovoProfNome(e.target.value)} className={bareCls} />
-              </Field>
-              <Field label="Cargo" span="col-span-6 md:col-span-2">
-                <input value={novoProfCargo} onChange={(e) => setNovoProfCargo(e.target.value)} className={bareCls} />
-              </Field>
-              <Field label="Telefone" span="col-span-6 md:col-span-2">
-                <input value={novoProfTelefone} onChange={(e) => setNovoProfTelefone(e.target.value)} className={bareCls} />
-              </Field>
-              <button
-                type="button"
-                onClick={handleCriarProfessor}
-                disabled={isPendingExtra}
-                className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
-              >
-                Salvar professor(a)
-              </button>
+
+              <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
+                <Field compact label="Professor(a)" span="">
+                  <select value={professorId} onChange={(e) => setProfessorId(e.target.value)} className={bareSelectCls}>
+                    <option value="">Selecione...</option>
+                    {professores.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nome_completo}</option>
+                    ))}
+                  </select>
+                </Field>
+                <button
+                  type="button"
+                  onClick={() => setShowNovoProfessor((v) => !v)}
+                  className="shrink-0 h-full px-3 border border-iw-border rounded-lg bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
+                >
+                  {showNovoProfessor ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Professor(a)
+                </button>
+              </div>
             </div>
-          )}
+
+            {showNovaTurma && (
+              <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5 items-end">
+                <Field compact label="Nome da turma" span="col-span-12 md:col-span-4">
+                  <input
+                    value={novaTurmaNome}
+                    onChange={(e) => setNovaTurmaNome(e.target.value)}
+                    placeholder="Ex: Edição 2026"
+                    className={bareCls}
+                  />
+                </Field>
+                <Field compact label="Mês/Ano — Início" span="col-span-6 md:col-span-3">
+                  <input
+                    type="month"
+                    value={novaTurmaInicio}
+                    onChange={(e) => setNovaTurmaInicio(e.target.value)}
+                    className={bareCls}
+                  />
+                </Field>
+                <Field compact label="Mês/Ano — Término" span="col-span-6 md:col-span-3">
+                  <input
+                    type="month"
+                    value={novaTurmaFim}
+                    onChange={(e) => setNovaTurmaFim(e.target.value)}
+                    className={bareCls}
+                  />
+                </Field>
+                <button
+                  type="button"
+                  onClick={handleCriarTurma}
+                  disabled={isPendingExtra}
+                  className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  Salvar turma
+                </button>
+              </div>
+            )}
+
+            {showNovoProfessor && (
+              <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5 items-end">
+                <div className="col-span-12 md:col-span-3">
+                  <MatriculaLookup
+                    label="Matrícula"
+                    onFound={(m: MembroEncontrado) => {
+                      setNovoProfMemberId(m.id);
+                      setNovoProfNome(m.full_name);
+                      setNovoProfCargo(m.cargo ?? "");
+                      setNovoProfTelefone(m.phone ?? "");
+                    }}
+                    onClear={() => setNovoProfMemberId("")}
+                  />
+                </div>
+                <Field compact label="Nome completo" span="col-span-12 md:col-span-3">
+                  <input value={novoProfNome} onChange={(e) => setNovoProfNome(e.target.value)} className={bareCls} />
+                </Field>
+                <Field compact label="Cargo" span="col-span-6 md:col-span-2">
+                  <input value={novoProfCargo} onChange={(e) => setNovoProfCargo(e.target.value)} className={bareCls} />
+                </Field>
+                <Field compact label="Telefone" span="col-span-6 md:col-span-2">
+                  <input value={novoProfTelefone} onChange={(e) => setNovoProfTelefone(e.target.value)} className={bareCls} />
+                </Field>
+                <button
+                  type="button"
+                  onClick={handleCriarProfessor}
+                  disabled={isPendingExtra}
+                  className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  Salvar professor(a)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Dados pessoais */}

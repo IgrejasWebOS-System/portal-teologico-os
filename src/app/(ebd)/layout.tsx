@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Sidebar from "@/components/layout/Sidebar";
+import SidebarShell from "@/components/layout/SidebarShell";
 import AutoLogout from "@/components/security/AutoLogout";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
@@ -15,12 +15,13 @@ export default async function EbdLayout({ children }: { children: React.ReactNod
   const isAlunoOficial = !!alunoPainel;
 
   return (
-    <div className="flex min-h-screen bg-iw-bg">
+    <>
       <AutoLogout />
       <Suspense fallback={null}>
-        <Sidebar isStaff={isStaff} isAlunoOficial={isAlunoOficial} alunoPainel={alunoPainel} />
+        <SidebarShell isStaff={isStaff} isAlunoOficial={isAlunoOficial} alunoPainel={alunoPainel}>
+          {children}
+        </SidebarShell>
       </Suspense>
-      <main className="flex-1 ml-64 p-8 min-h-screen">{children}</main>
-    </div>
+    </>
   );
 }

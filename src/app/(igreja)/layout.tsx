@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Sidebar from "@/components/layout/Sidebar";
+import SidebarShell from "@/components/layout/SidebarShell";
 import AutoLogout from "@/components/security/AutoLogout";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import { createClient } from "@/utils/supabase/server";
@@ -43,12 +43,9 @@ export default async function IgrejaLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-iw-bg">
+    <>
       <AutoLogout />
-      <Sidebar isStaff={isStaff} />
-      <main className="flex-1 ml-64 p-8 min-h-screen">
-        {children}
-      </main>
-    </div>
+      <SidebarShell isStaff={isStaff}>{children}</SidebarShell>
+    </>
   );
 }

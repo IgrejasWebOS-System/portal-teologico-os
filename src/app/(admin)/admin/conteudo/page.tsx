@@ -74,13 +74,13 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Header — fixo no topo ao rolar a página, com linha laranja padrão */}
+      <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C] flex items-start justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+          <h1 className="text-2xl font-black text-black tracking-tight">
             {moduloLabel ? `Gestão — ${moduloLabel}` : "Gestão de Conteúdo"}
           </h1>
-          <p className="text-iw-muted text-sm">
+          <p className="text-black text-sm">
             {lessons.length} aulas · {totalWithVideo} com vídeo · {courseList.length} trilhas
           </p>
         </div>
@@ -167,31 +167,33 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
                     </Link>
                   </div>
                 ) : (
-                  <div className="divide-y divide-iw-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-6 py-4">
                     {courseLessons.map((lesson) => {
                       const badge = VIDEO_BADGE[lesson.video_type as VideoType] ?? VIDEO_BADGE.none;
                       const BadgeIcon = badge.Icon;
                       return (
-                        <div key={lesson.id} className="grid grid-cols-[32px_1fr_130px_80px_80px] gap-4 px-6 py-3 items-center hover:bg-iw-bg/40 transition-colors">
+                        <div key={lesson.id} className="grid grid-cols-[28px_1fr_auto] gap-3 px-3 py-2.5 items-center rounded-xl border border-iw-border hover:bg-iw-bg/40 transition-colors min-w-0">
                           <span className="text-xs text-iw-muted font-mono text-right">
                             {String(lesson.order_index).padStart(2, "0")}
                           </span>
-                          <span className="text-sm font-medium text-iw-navy truncate">
+                          <span className="text-sm font-medium text-iw-navy truncate min-w-0">
                             {lesson.title}
                           </span>
-                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full w-fit ${badge.cls}`}>
-                            <BadgeIcon className="w-3 h-3" />
-                            {badge.label}
-                          </span>
-                          <span className="text-xs text-iw-muted font-mono">
-                            {fmtDuration(lesson.video_duration_secs)}
-                          </span>
-                          <Link
-                            href={`/admin/conteudo/nova?edit=${lesson.id}`}
-                            className="flex items-center gap-1 text-xs text-iw-blue font-semibold hover:text-iw-navy transition-colors"
-                          >
-                            <Pencil className="w-3 h-3" /> Editar
-                          </Link>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit whitespace-nowrap ${badge.cls}`}>
+                              <BadgeIcon className="w-3 h-3" />
+                              {badge.label}
+                            </span>
+                            <span className="text-xs text-iw-muted font-mono w-10 text-right">
+                              {fmtDuration(lesson.video_duration_secs)}
+                            </span>
+                            <Link
+                              href={`/admin/conteudo/nova?edit=${lesson.id}`}
+                              className="flex items-center gap-1 text-xs text-iw-blue font-semibold hover:text-iw-navy transition-colors"
+                            >
+                              <Pencil className="w-3 h-3" /> Editar
+                            </Link>
+                          </div>
                         </div>
                       );
                     })}

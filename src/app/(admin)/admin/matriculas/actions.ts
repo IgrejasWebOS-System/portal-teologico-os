@@ -94,6 +94,7 @@ export async function matricularDiretoAction(formData: FormData) {
   const admin = createAdminClient();
 
   const nome_completo = (formData.get("nome_completo") as string)?.trim();
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
   const cpf = (formData.get("cpf") as string)?.trim();
   const email = (formData.get("email") as string)?.trim();
   const telefone = (formData.get("telefone") as string)?.trim() || null;
@@ -225,6 +226,7 @@ export async function matricularDiretoAction(formData: FormData) {
       .insert({
         user_id: null,
         nome_completo,
+        foto_url,
         cpf,
         email,
         telefone,

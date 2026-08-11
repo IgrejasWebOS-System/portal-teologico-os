@@ -135,6 +135,7 @@ export default function Sidebar({
   isStaff = false,
   isAlunoOficial = false,
   alunoPainel = null,
+  isOpen = true,
 }: {
   isStaff?: boolean;
   isAlunoOficial?: boolean;
@@ -144,11 +145,19 @@ export default function Sidebar({
     parcelas: ParcelaResumo[];
     avaliacoes: AvaliacaoResumo[];
   } | null;
+  // Controla o efeito "off-canvas": recolhido pra fora da borda
+  // esquerda por padrão, só aparece quando acionado (SidebarShell).
+  isOpen?: boolean;
 }) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-iw-navy flex flex-col shadow-xl">
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-iw-navy flex flex-col shadow-xl transition-transform duration-300 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
         <Logo size="sm" variant="dark" />
