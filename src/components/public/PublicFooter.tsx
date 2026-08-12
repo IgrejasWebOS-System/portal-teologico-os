@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { MapPin, Instagram, Facebook, Mail } from "lucide-react";
+import { MapPin } from "lucide-react";
 import Logo from "@/components/Logo";
-import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 
 // ============================================================
 // PublicFooter — rodapé institucional.
@@ -48,42 +47,6 @@ export default function PublicFooter({ minimal = false }: { minimal?: boolean })
             Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080
           </a>
 
-          <div className="flex items-center gap-3 mt-[4.5rem]">
-            <a
-              href="https://instagram.com/cetadp"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram do CETADP"
-              className="w-9 h-9 rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
-            >
-              <Instagram className="w-4 h-4 text-[#E88D0C]" />
-            </a>
-            <a
-              href="https://facebook.com/cetadp"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook do CETADP"
-              className="w-9 h-9 rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
-            >
-              <Facebook className="w-4 h-4 text-[#E88D0C]" />
-            </a>
-            <a
-              href="https://wa.me/5519998121950"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="WhatsApp do CETADP"
-              className="w-9 h-9 rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
-            >
-              <WhatsAppIcon className="w-4 h-4 text-[#E88D0C]" />
-            </a>
-            <a
-              href="mailto:cetadp@gmail.com"
-              aria-label="E-mail do CETADP"
-              className="w-9 h-9 rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity"
-            >
-              <Mail className="w-4 h-4 text-[#E88D0C]" />
-            </a>
-          </div>
         </div>
 
         <div>

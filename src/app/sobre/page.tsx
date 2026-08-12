@@ -134,7 +134,7 @@ export default function SobrePage() {
             </p>
             <Link
               href="/inscricao"
-              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-opacity"
+              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-opacity border border-black"
             >
               Fazer minha inscrição
             </Link>

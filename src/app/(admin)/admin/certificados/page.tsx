@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import { marcarComoConcluidoAction, emitirCertificadoAction } from "./actions";
 
 interface PageProps {
@@ -69,18 +70,11 @@ export default async function CertificadosAdminPage({ searchParams }: PageProps)
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-          <Award className="w-5 h-5 text-iw-gold" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-iw-navy tracking-tight">Certificados</h1>
-          <p className="text-iw-muted text-xs mt-0.5">
-            Marque matrículas como concluídas e emita o certificado — o número
-            gerado já pode ser validado publicamente em /certificados.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Award}
+        title="Certificados"
+        description="Marque matrículas como concluídas e emita o certificado — o número gerado já pode ser validado publicamente em /certificados."
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
@@ -121,7 +115,7 @@ export default async function CertificadosAdminPage({ searchParams }: PageProps)
                     <input type="hidden" name="enrollment_id" value={e.id} />
                     <button
                       type="submit"
-                      className="bg-[#E88D0C] text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                      className="bg-[#E88D0C] text-white text-xs font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity border border-black"
                     >
                       Emitir certificado
                     </button>

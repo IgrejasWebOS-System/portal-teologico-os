@@ -156,7 +156,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] xl:grid-rows-[auto_auto] gap-6">
+      <div className="max-w-6xl grid grid-cols-1 xl:grid-cols-[1fr_360px] xl:grid-rows-[auto_auto] gap-6">
 
         {/* Video Player — linha 1, coluna 1 */}
         <div className="xl:col-start-1 xl:row-start-1">
@@ -167,7 +167,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
               returnPath={returnPath}
             />
           ) : activeLesson && !isEnrolled ? (
-            <div className="aspect-video rounded-2xl bg-iw-navy/5 border border-iw-border flex flex-col items-center justify-center gap-3 text-iw-muted">
+            <div className="aspect-video -mr-[5px] rounded-2xl bg-iw-navy/5 border border-[#E88D0C]/40 flex flex-col items-center justify-center gap-3 text-iw-muted">
               <Lock className="w-8 h-8 opacity-30" />
               <p className="text-sm font-medium">Matricule-se para assistir</p>
             </div>
@@ -175,17 +175,17 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
         </div>
 
         {/* ── Aulas da disciplina — linha 1, coluna 2 ── */}
-        <div className="xl:col-start-2 xl:row-start-1 bg-iw-surface rounded-2xl border border-iw-border shadow-sm overflow-hidden">
+        <div className="xl:col-start-2 xl:row-start-1 bg-iw-surface rounded-2xl border border-[#E88D0C]/40 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-iw-border flex items-center justify-between gap-2">
             <div>
-              <h2 className="font-bold text-iw-navy text-sm">Aulas da disciplina</h2>
+              <h2 className="font-bold text-iw-navy text-sm md:text-base md:text-black">Aulas da disciplina</h2>
               {!isEnrolled && (
-                <p className="text-xs text-iw-muted mt-0.5">Matricule-se para acompanhar.</p>
+                <p className="text-xs text-iw-muted mt-0.5 md:text-sm md:text-black">Matricule-se para acompanhar.</p>
               )}
             </div>
             <Link
               href="/escola"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-iw-navy border border-iw-border rounded-lg px-2.5 py-1.5 hover:bg-iw-bg transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-iw-navy border border-iw-border rounded-lg px-2.5 py-1.5 hover:bg-iw-bg transition-colors shrink-0 md:text-xs md:text-black"
             >
               <ChevronLeft className="w-3.5 h-3.5" /> Meus Cursos
             </Link>
@@ -225,10 +225,10 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-semibold truncate ${
+                      <p className={`text-xs md:text-sm font-semibold truncate ${
                         isActive ? "text-iw-blue"
                         : isDone ? "line-through text-iw-muted"
-                        : canPlay ? "text-iw-navy" : "text-iw-muted/60"
+                        : canPlay ? "text-iw-navy md:text-black" : "text-iw-muted/60"
                       }`}>
                         <span className="text-iw-muted/50 font-normal mr-1">
                           {String(lesson.order_index).padStart(2, "0")}.
@@ -236,7 +236,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                         {lesson.title}
                       </p>
                       {fmtDuration(lesson.video_duration_secs) && (
-                        <p className="text-[10px] text-iw-muted mt-0.5 flex items-center gap-1">
+                        <p className="text-[10px] md:text-xs text-iw-muted mt-0.5 flex items-center gap-1 md:text-black">
                           <Clock className="w-3 h-3" />
                           {fmtDuration(lesson.video_duration_secs)}
                         </p>
@@ -269,35 +269,35 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
         </div>
 
         {/* Course info — linha 2, coluna 1 */}
-        <div className="xl:col-start-1 xl:row-start-2 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6">
+        <div className="xl:col-start-1 xl:row-start-2 bg-iw-surface rounded-2xl border border-[#E88D0C]/40 shadow-sm p-6">
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-iw-navy/10 flex items-center justify-center shrink-0">
                   <GraduationCap className="w-5 h-5 text-iw-navy" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-black text-iw-navy">{course.title}</h1>
+                  <h1 className="text-xl md:text-2xl font-black text-iw-navy md:text-black">{course.title}</h1>
                   {activeLesson && (
-                    <p className="text-xs text-iw-muted mt-0.5">
+                    <p className="text-xs md:text-sm text-iw-muted mt-0.5 md:text-black">
                       Aula {activeLesson.order_index}: {activeLesson.title}
                     </p>
                   )}
                 </div>
               </div>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                isCompleted ? "bg-iw-success/10 text-iw-success"
-                : isEnrolled ? "bg-iw-blue/10 text-iw-blue"
-                : "bg-iw-muted/10 text-iw-muted"
+              <span className={`text-xs md:text-sm font-semibold px-2.5 py-1 rounded-full shrink-0 md:text-black ${
+                isCompleted ? "bg-iw-success/10"
+                : isEnrolled ? "bg-iw-blue/10"
+                : "bg-iw-muted/10"
               }`}>
                 {isCompleted ? "Concluído" : isEnrolled ? "Em andamento" : "Disponível"}
               </span>
             </div>
 
             {course.description && (
-              <p className="text-iw-muted text-sm leading-relaxed mb-4">{course.description}</p>
+              <p className="text-iw-muted text-sm md:text-base leading-relaxed mb-4 md:text-black">{course.description}</p>
             )}
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-iw-muted">
+            <div className="flex flex-wrap items-center gap-4 text-xs md:text-sm text-iw-muted md:text-black">
               {course.instructor_name && (
                 <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{course.instructor_name}</span>
               )}
@@ -319,8 +319,8 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-iw-muted">Progresso</span>
-                      <span className="text-xs font-bold text-iw-navy">
+                      <span className="text-xs md:text-sm font-semibold text-iw-muted md:text-black">Progresso</span>
+                      <span className="text-xs md:text-sm font-bold text-iw-navy md:text-black">
                         {completedIds.size}/{lessonList.length} · {enrollment.progress_percent}%
                       </span>
                     </div>
@@ -347,13 +347,13 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
 
           {/* Simulados e prova — linha 2, coluna 2 */}
           {podeAvaliar && (
-            <div className="xl:col-start-2 xl:row-start-2 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 flex flex-col justify-center gap-3">
+            <div className="xl:col-start-2 xl:row-start-2 bg-iw-surface rounded-2xl border border-[#E88D0C]/40 shadow-sm p-5 flex flex-col justify-center gap-3">
               <div className="grid grid-cols-2 gap-3">
                 {/* Simulado */}
                 {simuladosEsgotados ? (
                   <Link
                     href={`/portal/avaliacoes?voltar=${encodeURIComponent(returnPath)}`}
-                    className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center hover:bg-iw-blue/5 hover:border-iw-blue/30 transition-colors"
+                    className="bg-iw-bg border border-[#E88D0C]/40 rounded-xl p-3 space-y-2 text-center hover:bg-iw-blue/5 hover:border-iw-blue/30 transition-colors"
                   >
                     <div>
                       <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Simulado</p>
@@ -362,7 +362,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                     <p className="text-[10.5px] text-iw-muted italic">Você já usou os {LIMITE_SIMULADOS} simulados.</p>
                   </Link>
                 ) : (
-                  <div className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center">
+                  <div className="bg-iw-bg border border-[#E88D0C]/40 rounded-xl p-3 space-y-2 text-center">
                     <div>
                       <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Simulado</p>
                       <p className="text-[9.5px] font-bold text-iw-muted mt-0.5">{simuladosFeitos}/{LIMITE_SIMULADOS}</p>
@@ -384,7 +384,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                 {provaExistente ? (
                   <Link
                     href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(returnPath)}`}
-                    className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center hover:bg-iw-blue/5 hover:border-iw-blue/30 transition-colors"
+                    className="bg-iw-bg border border-[#E88D0C]/40 rounded-xl p-3 space-y-2 text-center hover:bg-iw-blue/5 hover:border-iw-blue/30 transition-colors"
                   >
                     <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Prova</p>
                     <p className="text-[11px] font-bold text-iw-navy">
@@ -392,7 +392,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                     </p>
                   </Link>
                 ) : (
-                  <div className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center">
+                  <div className="bg-iw-bg border border-[#E88D0C]/40 rounded-xl p-3 space-y-2 text-center">
                     <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Prova</p>
                     {!matriculaEmAndamento ? (
                       <p className="text-[10.5px] text-iw-muted italic">Matrícula não está mais em andamento.</p>
@@ -412,7 +412,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                             Só terei esta tentativa.
                           </span>
                         </label>
-                        <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity">
+                        <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-[11px] px-3 py-2 rounded-lg transition-opacity border border-black">
                           Iniciar prova
                         </button>
                       </form>

@@ -3,6 +3,7 @@ import { Boxes, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import { cadastrarBemAction, registrarMovimentacaoAction } from "./actions";
 
 export const metadata = { title: "Patrimônio — CETADP" };
@@ -69,19 +70,11 @@ export default async function PatrimonioPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-            <Boxes className="w-5 h-5 text-iw-gold" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Patrimônio / Inventário</h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              {itens?.length ?? 0} bens cadastrados · valor total (ativos): {fmt(valorTotal)}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Boxes}
+        title="Patrimônio / Inventário"
+        description={`${itens?.length ?? 0} bens cadastrados · valor total (ativos): ${fmt(valorTotal)}`}
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
@@ -154,7 +147,7 @@ export default async function PatrimonioPage({ searchParams }: PageProps) {
             </select>
           </div>
           <div className="sm:col-span-2 flex justify-end">
-            <button type="submit" className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity">
+            <button type="submit" className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity border border-black">
               Cadastrar
             </button>
           </div>

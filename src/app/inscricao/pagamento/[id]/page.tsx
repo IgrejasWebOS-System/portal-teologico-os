@@ -89,7 +89,7 @@ export default async function PagamentoInscricaoPage({ params, searchParams }: P
                   </p>
                   <Link
                     href="/inscricao"
-                    className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-opacity"
+                    className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-opacity border border-black"
                   >
                     Tentar novamente
                   </Link>

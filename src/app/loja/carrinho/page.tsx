@@ -203,7 +203,7 @@ export default function CarrinhoPage() {
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/cadastro?redirectTo=%2Floja%2Fcarrinho"
-                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition-opacity"
+                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition-opacity border border-black"
                     >
                       Criar conta
                     </Link>

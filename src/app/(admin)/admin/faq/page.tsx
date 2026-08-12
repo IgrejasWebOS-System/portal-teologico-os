@@ -3,6 +3,7 @@ import { HelpCircle, Plus, Trash2, FolderPlus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   addFaqCategoriaAction,
   updateFaqCategoriaAction,
@@ -69,17 +70,11 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-          <HelpCircle className="w-5 h-5 text-iw-gold" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-iw-navy tracking-tight">FAQ — Central de Ajuda</h1>
-          <p className="text-iw-muted text-xs mt-0.5">
-            Perguntas e respostas exibidas no widget flutuante, por categoria (módulo, curso, departamento, etc).
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={HelpCircle}
+        title="FAQ — Central de Ajuda"
+        description="Perguntas e respostas exibidas no widget flutuante, por categoria (módulo, curso, departamento, etc)."
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
@@ -114,7 +109,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
           />
           <button
             type="submit"
-            className="sm:col-span-1 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+            className="sm:col-span-1 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity border border-black"
           >
             Criar
           </button>
@@ -211,7 +206,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
                     />
                     <button
                       type="submit"
-                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2 rounded-xl transition-opacity"
+                      className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2 rounded-xl transition-opacity border border-black"
                     >
                       Cadastrar pergunta
                     </button>

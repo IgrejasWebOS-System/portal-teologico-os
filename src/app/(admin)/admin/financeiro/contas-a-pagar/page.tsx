@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Banknote, Plus, Check, Ban } from "lucide-react";
+import { Banknote, Plus, Check, Ban } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   baixarContaPagarAction,
   cancelarContaPagarAction,
@@ -110,26 +111,13 @@ export default async function ContasAPagarPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
-      <div>
-        <Link
-          href="/admin/financeiro"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Financeiro
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-error/10 flex items-center justify-center shrink-0">
-            <Banknote className="w-5 h-5 text-iw-error" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Contas a Pagar</h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              Despesas com fornecedores, professores e serviços — aluguel, contas, material, honorários.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Banknote}
+        title="Contas a Pagar"
+        description="Despesas com fornecedores, professores e serviços — aluguel, contas, material, honorários."
+        backHref="/admin/financeiro"
+        backLabel="Voltar para Financeiro"
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">

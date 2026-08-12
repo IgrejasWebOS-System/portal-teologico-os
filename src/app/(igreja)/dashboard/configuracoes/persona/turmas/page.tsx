@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarRange, Plus, Trash2, Pencil, ChevronRight } from "lucide-react";
+import { CalendarRange, Plus, Trash2, Pencil, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   addTurmaConfigAction,
   updateTurmaConfigAction,
@@ -44,24 +45,13 @@ export default async function TurmasPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <Link
-          href="/dashboard/configuracoes/persona"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Persona
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-            <CalendarRange className="w-5 h-5 text-[#E88D0C]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Turmas</h1>
-            <p className="text-iw-muted text-xs mt-0.5">Edições de turma por curso e período.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={CalendarRange}
+        title="Turmas"
+        description="Edições de turma por curso e período."
+        backHref="/dashboard/configuracoes/persona"
+        backLabel="Voltar para Persona"
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">

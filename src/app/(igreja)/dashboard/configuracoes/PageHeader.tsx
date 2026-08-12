@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ArrowLeft, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 
 interface Props {
   icon: LucideIcon;
@@ -12,33 +12,20 @@ interface Props {
   iconBg?: string;
 }
 
-export default function PageHeader({
-  icon: Icon,
-  title,
-  description,
-}: Props) {
+/**
+ * Wrapper fino: mantém a assinatura antiga (icon/title/description) usada
+ * pelas ~14 páginas de Configurações, mas renderiza com o componente
+ * compartilhado novo (cabeçalho sticky, borda laranja, link "Voltar"
+ * padronizado). Nenhuma dessas páginas precisa mudar.
+ */
+export default function ConfiguracoesPageHeader({ icon, title, description }: Props) {
   return (
-    <div className="flex items-start gap-4">
-      <div className="flex-1 min-w-0">
-        <Link
-          href="/dashboard/configuracoes"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Configurações
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-black border-2 border-[#E88D0C]">
-            <Icon className="w-5 h-5 text-[#E88D0C]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              {title}
-            </h1>
-            <p className="text-iw-muted text-xs mt-0.5">{description}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PageHeader
+      icon={icon}
+      title={title}
+      description={description}
+      backHref="/dashboard/configuracoes"
+      backLabel="Voltar para Configurações"
+    />
   );
 }

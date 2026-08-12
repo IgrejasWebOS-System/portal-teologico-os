@@ -12,11 +12,12 @@ import type {
 } from "@/components/aluno/AreaDoAlunoPainel";
 
 // ============================================================
-// SidebarShell — envelope client-side que dá ao Sidebar o
-// comportamento "off-canvas": recolhido pra fora da borda
-// esquerda por padrão em toda página, só aparece ao clicar no
-// botão flutuante (ou no overlay pra fechar). Conteúdo principal
-// sempre ocupa a largura cheia, sem margem reservada pro menu.
+// SidebarShell — responsivo: no desktop (md+) o menu fica sempre
+// fixo e visível, sem toggle nenhum (o Sidebar já força isso via
+// "md:translate-x-0", ignorando o isOpen daqui pra cima de 768px).
+// No mobile continua off-canvas: recolhido por padrão, aparece só
+// com o botão flutuante, e fecha sozinho ao navegar. O botão e o
+// overlay só existem visualmente no mobile ("md:hidden").
 // ============================================================
 
 export default function SidebarShell({
@@ -38,30 +39,30 @@ export default function SidebarShell({
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  // Fecha o menu automaticamente ao navegar — evita ter que clicar
-  // no overlay depois de escolher uma opção no menu.
+  // Fecha o menu do mobile ao navegar. No desktop isso não tem efeito
+  // visual — o menu fica sempre visível via CSS, independente de isOpen.
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-iw-bg">
-      {/* Overlay escurecido — clicar fora fecha o menu */}
+      {/* Overlay escurecido — só no mobile, clicar fora fecha o menu */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+          className="md:hidden fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Botão flutuante — sempre visível, alterna abrir/fechar */}
+      {/* Botão flutuante — só no mobile, no desktop o menu já está fixo */}
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
         aria-expanded={isOpen}
-        className="fixed top-4 left-4 z-[60] w-10 h-10 rounded-full bg-iw-navy border-2 border-[#E88D0C] flex items-center justify-center shadow-lg hover:opacity-85 transition-opacity"
+        className="md:hidden fixed top-4 left-4 z-[60] w-10 h-10 rounded-full bg-iw-navy border-2 border-[#E88D0C] flex items-center justify-center shadow-lg hover:opacity-85 transition-opacity"
       >
         {isOpen ? (
           <X className="w-5 h-5 text-[#E88D0C]" />
@@ -77,7 +78,7 @@ export default function SidebarShell({
         isOpen={isOpen}
       />
 
-      <main className="flex-1 p-8 pl-20 min-h-screen">{children}</main>
+      <main className="flex-1 p-8 pl-20 md:pl-8 md:ml-64 min-h-screen">{children}</main>
     </div>
   );
 }

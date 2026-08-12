@@ -4,6 +4,7 @@ import { GraduationCap, Plus, IdCard, Mail } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import LinkPagamentoBanner from "./LinkPagamentoBanner";
 
 export const metadata = { title: "Matrículas — CETADP" };
@@ -50,26 +51,20 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-            <GraduationCap className="w-5 h-5 text-iw-gold" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Matrículas</h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              Todas as matrículas por curso — vindas da inscrição pública ou lançadas direto pela secretaria.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/admin/matriculas/nova"
-          className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          Nova matrícula direta
-        </Link>
-      </div>
+      <PageHeader
+        icon={GraduationCap}
+        title="Matrículas"
+        description="Todas as matrículas por curso — vindas da inscrição pública ou lançadas direto pela secretaria."
+        actions={
+          <Link
+            href="/admin/matriculas/nova"
+            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity border border-black"
+          >
+            <Plus className="w-4 h-4" />
+            Nova matrícula direta
+          </Link>
+        }
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">

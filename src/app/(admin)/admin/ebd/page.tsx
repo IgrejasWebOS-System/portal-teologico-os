@@ -4,6 +4,7 @@ import { BookMarked, Plus, ChevronRight, BookOpen } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import type { EbdQuarter } from "@/types";
 
 export const metadata = { title: "Admin — EBD" };
@@ -48,26 +49,20 @@ export default async function AdminEbdPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-iw-navy flex items-center justify-center shrink-0">
-            <BookMarked className="w-6 h-6 text-iw-sky" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-iw-navy tracking-tight">Admin — EBD</h1>
-            <p className="text-iw-muted text-sm">
-              {quarters.length} trimestres cadastrados · Escola Bíblica Dominical
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/admin/ebd/nova"
-          className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          Novo trimestre
-        </Link>
-      </div>
+      <PageHeader
+        icon={BookMarked}
+        title="Admin — EBD"
+        description={`${quarters.length} trimestres cadastrados · Escola Bíblica Dominical`}
+        actions={
+          <Link
+            href="/admin/ebd/nova"
+            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity border border-black"
+          >
+            <Plus className="w-4 h-4" />
+            Novo trimestre
+          </Link>
+        }
+      />
 
       {error && (
         <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">

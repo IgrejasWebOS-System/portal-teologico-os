@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Landmark,
   Building,
@@ -65,29 +66,13 @@ const PANELS = [
 export default function MinisterioSetoresIgrejasPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div>
-        <Link
-          href="/dashboard/configuracoes"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Configurações
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-            <Landmark className="w-5 h-5 text-[#E88D0C]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              Ministério · Setores · Igrejas
-            </h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              Campos, setores, igrejas, sub-congregações, células e região.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Landmark}
+        title="Ministério · Setores · Igrejas"
+        description="Campos, setores, igrejas, sub-congregações, células e região."
+        backHref="/dashboard/configuracoes"
+        backLabel="Voltar para Configurações"
+      />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

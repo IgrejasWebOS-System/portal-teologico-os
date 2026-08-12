@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { ArrowLeft, Video, Youtube, Bot, Loader2, Save, AlertTriangle, Play } from "lucide-react";
+import { Video, Youtube, Bot, Loader2, Save, AlertTriangle, Play } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { createLessonAction, updateLessonVideoAction } from "@/app/(admin)/admin/conteudo/actions";
 import type { Course, Lesson, VideoType } from "@/types";
 
@@ -63,21 +64,12 @@ export default function NovaAulaForm({ courses, defaultCourseId, existingLesson 
   return (
     <div className="max-w-3xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
-      <div>
-        <Link
-          href="/admin/conteudo"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-3"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Biblioteca
-        </Link>
-        <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-          {isEdit ? "Editar aula" : "Inserir nova aula"}
-        </h1>
-        <p className="text-iw-muted text-sm mt-0.5">
-          {isEdit ? `Editando: ${existingLesson?.title}` : "Preencha os dados e escolha o formato do vídeo."}
-        </p>
-      </div>
+      <PageHeader
+        title={isEdit ? "Editar aula" : "Inserir nova aula"}
+        description={isEdit ? `Editando: ${existingLesson?.title}` : "Preencha os dados e escolha o formato do vídeo."}
+        backHref="/admin/conteudo"
+        backLabel="Voltar para Biblioteca"
+      />
 
       {serverError && (
         <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">

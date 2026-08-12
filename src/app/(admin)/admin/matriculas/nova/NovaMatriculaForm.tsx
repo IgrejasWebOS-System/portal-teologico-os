@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import Link from "next/link";
 import {
-  ArrowLeft, Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera,
+  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
+import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, addTurmaAction } from "../actions";
 import MatriculaLookup from "@/app/(igreja)/dashboard/configuracoes/MatriculaLookup";
 import { addProfessorAction, type MembroEncontrado } from "@/app/(igreja)/dashboard/configuracoes/actions";
@@ -146,7 +146,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity"
+      className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
     >
       {pending ? (
         <>
@@ -367,22 +367,12 @@ export default function NovaMatriculaForm({
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6 pb-16 px-2">
-      {/* Header — fixo no topo ao rolar a página, com linha laranja padrão */}
-      <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C]">
-        <Link
-          href="/admin/matriculas"
-          className="inline-flex items-center gap-1.5 text-xs text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Matrículas
-        </Link>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-xl font-black text-black tracking-tight">Nova Matrícula Direta</h1>
-          <p className="text-black text-xs">
-            Cadastro completo do aluno + matrícula gerada na hora, sem passar pela inscrição pública nem pelo pagamento online.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Nova Matrícula Direta"
+        description="Cadastro completo do aluno + matrícula gerada na hora, sem passar pela inscrição pública nem pelo pagamento online."
+        backHref="/admin/matriculas"
+        backLabel="Voltar para Matrículas"
+      />
 
       {errorMsg && (
         <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
@@ -426,9 +416,9 @@ export default function NovaMatriculaForm({
       >
         {/* Foto do aluno + Curso e vínculo — foto à esquerda, quadro à direita */}
         <div className="grid grid-cols-12 gap-4 items-stretch">
-          {/* Foto do aluno */}
-          <div className="col-span-12 md:col-span-3 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-4 flex flex-col items-center justify-center gap-2">
-            <div className="w-full max-w-[150px] aspect-square rounded-xl bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
+          {/* Foto do aluno — só o espaço de inserção, sem card/fundo ao redor */}
+          <div className="col-span-12 md:col-span-2 flex flex-col items-start justify-start gap-2">
+            <div className="w-full aspect-square rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
               {fotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
@@ -453,7 +443,7 @@ export default function NovaMatriculaForm({
           </div>
 
           {/* Curso e vínculo */}
-          <div className="col-span-12 md:col-span-9 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+          <div className="col-span-12 md:col-span-10 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
             <SectionHeader icon={GraduationCap} label="Curso e Vínculo" />
             <div className="grid grid-cols-12 gap-2.5">
               <Field compact label="Curso" required span="col-span-12 md:col-span-4">

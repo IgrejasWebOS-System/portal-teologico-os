@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, BookOpen, Plus, X, Loader2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Plus, X, Loader2 } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { salvarLicaoAction, type DailyReadingInput, type TopicInput, type ReviewQuestionInput } from "../../actions";
 import type { EbdQuarter, EbdLesson } from "@/types";
 
@@ -162,21 +163,12 @@ export default function LicaoForm({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
-      <div>
-        <Link
-          href={`/admin/ebd/${quarter.id}`}
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para o trimestre
-        </Link>
-        <h1 className="text-xl font-black text-iw-navy tracking-tight">
-          {lesson ? "Editar Lição" : "Nova Lição"}
-        </h1>
-        <p className="text-iw-muted text-xs mt-0.5">
-          {["1°", "2°", "3°", "4°"][quarter.quarter - 1]} Trimestre {quarter.year} — {quarter.theme ?? "Sem tema"}
-        </p>
-      </div>
+      <PageHeader
+        title={lesson ? "Editar Lição" : "Nova Lição"}
+        description={`${["1°", "2°", "3°", "4°"][quarter.quarter - 1]} Trimestre ${quarter.year} — ${quarter.theme ?? "Sem tema"}`}
+        backHref={`/admin/ebd/${quarter.id}`}
+        backLabel="Voltar para o trimestre"
+      />
 
       {error && (
         <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
@@ -378,7 +370,7 @@ export default function LicaoForm({
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
+            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity border border-black"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
             {lesson ? "Salvar alterações" : "Criar lição"}

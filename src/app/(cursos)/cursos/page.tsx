@@ -118,7 +118,7 @@ export default async function CursosPage() {
             </div>
             <div className="flex items-center gap-3 pt-2">
               <Link href={`/cursos/${featured.id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E88D0C] text-white font-bold text-sm hover:opacity-90 transition-colors shadow">
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E88D0C] text-white font-bold text-sm hover:opacity-90 transition-colors shadow border border-black">
                 <Play className="w-4 h-4 fill-white" /> Ver curso
               </Link>
               {enrollMap.has(featured.id) && (

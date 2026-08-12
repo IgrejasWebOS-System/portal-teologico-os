@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Receipt, Plus, Check, Ban } from "lucide-react";
+import { Receipt, Plus, Check, Ban } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   baixarParcelaAction,
   cancelarParcelaAction,
@@ -112,26 +113,13 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
-      <div>
-        <Link
-          href="/admin/financeiro"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Financeiro
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-            <Receipt className="w-5 h-5 text-iw-gold" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Contas a Receber</h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              Mensalidades, matrículas parceladas e vendas online — separado do Caixa Diário físico.
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Receipt}
+        title="Contas a Receber"
+        description="Mensalidades, matrículas parceladas e vendas online — separado do Caixa Diário físico."
+        backHref="/admin/financeiro"
+        backLabel="Voltar para Financeiro"
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
@@ -232,7 +220,7 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
           />
           <button
             type="submit"
-            className="sm:col-span-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+            className="sm:col-span-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity border border-black"
           >
             Gerar parcelas
           </button>

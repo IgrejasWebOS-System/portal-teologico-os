@@ -114,7 +114,7 @@ export default function PublicHeader() {
                 </Link>
                 <Link
                   href="/inscricao"
-                  className="bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-md transition-all"
+                  className="bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-md transition-all border border-black"
                 >
                   Inscreva-se
                 </Link>
@@ -197,7 +197,7 @@ export default function PublicHeader() {
                   <Link
                     href="/inscricao"
                     onClick={() => setMenuAberto(false)}
-                    className="w-full text-center bg-[#E88D0C] text-white font-bold py-2.5 rounded-md text-sm"
+                    className="w-full text-center bg-[#E88D0C] text-white font-bold py-2.5 rounded-md text-sm border border-black"
                   >
                     Inscreva-se
                   </Link>

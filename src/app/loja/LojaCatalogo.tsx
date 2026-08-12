@@ -59,7 +59,7 @@ export default function LojaCatalogo({ porTipo }: { porTipo: Record<string, Prod
                 onClick={() => setAtivo(tipo)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-left whitespace-nowrap transition-colors ${
                   selecionado
-                    ? "bg-[#E88D0C] text-white"
+                    ? "bg-[#E88D0C] text-white border border-black"
                     : "bg-iw-bg border border-iw-border text-iw-navy hover:border-iw-gold"
                 }`}
               >
@@ -109,7 +109,7 @@ export default function LojaCatalogo({ porTipo }: { porTipo: Record<string, Prod
                     href={`/api/biblioteca/${produto.id}?modo=${
                       produto.tipo === "PDF_DOWNLOAD" ? "download" : "ler"
                     }`}
-                    className="text-center bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-opacity"
+                    className="text-center bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-opacity border border-black"
                   >
                     {produto.tipo === "PDF_DOWNLOAD" ? "Baixar grátis" : "Ler grátis"}
                   </Link>

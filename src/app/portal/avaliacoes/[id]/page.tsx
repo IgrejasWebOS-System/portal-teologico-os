@@ -168,7 +168,7 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
               })}
               <button
                 type="submit"
-                className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity"
+                className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity border border-black"
               >
                 Finalizar {avaliacao.tipo === "PROVA" ? "prova" : "simulado"}
               </button>

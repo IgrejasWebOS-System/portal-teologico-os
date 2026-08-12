@@ -61,7 +61,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
             </p>
             <Link
               href="/portal"
-              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity"
+              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
             >
               Voltar ao Portal
             </Link>

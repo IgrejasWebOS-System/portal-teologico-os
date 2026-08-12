@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft, Users2, Plus, X } from "lucide-react";
+import { Users2, Plus, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import PageHeader from "@/components/layout/PageHeader";
 import { definirLiderSetorFormAction, removerLiderSetorFormAction } from "../../actions";
 
 type SectorLeader = {
@@ -32,26 +32,13 @@ export default async function LidereSetorPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard/configuracoes/acessos"
-            className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-              <Users2 className="w-5 h-5 text-[#E88D0C]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-iw-navy tracking-tight">Líderes de Setor</h1>
-              <p className="text-iw-muted text-xs mt-0.5">Defina a Igreja-Mãe responsável por cada setor</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Users2}
+        title="Líderes de Setor"
+        description="Defina a Igreja-Mãe responsável por cada setor"
+        backHref="/dashboard/configuracoes/acessos"
+        backLabel="Voltar"
+      />
 
       {/* Definir / alterar líder de um setor */}
       <form

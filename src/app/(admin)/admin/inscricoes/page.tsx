@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { UserPlus, ShieldAlert, Mail, Phone, IdCard } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { approveInscricaoAction, rejectInscricaoAction } from "./actions";
 import { labelCurso } from "@/utils/cursos-ead";
 
@@ -74,24 +75,11 @@ export default async function InscricoesAdminPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-          <UserPlus className="w-5 h-5 text-iw-gold" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-iw-navy tracking-tight">
-            Inscrições do Portal EAD
-          </h1>
-          <p className="text-iw-muted text-xs mt-0.5">
-            Histórico de inscrições. Desde 16/07/2026 a matrícula não depende
-            mais de aprovação da secretaria — toda inscrição nova (gratuita ou
-            paga, aqui ou pelo próprio aluno logado) já é habilitada
-            automaticamente. As poucas linhas ainda marcadas
-            &quot;PENDENTE&quot; abaixo são de antes dessa mudança e podem ser
-            resolvidas manualmente.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={UserPlus}
+        title="Inscrições do Portal EAD"
+        description={`Histórico de inscrições. Desde 16/07/2026 a matrícula não depende mais de aprovação da secretaria — toda inscrição nova (gratuita ou paga, aqui ou pelo próprio aluno logado) já é habilitada automaticamente. As poucas linhas ainda marcadas "PENDENTE" abaixo são de antes dessa mudança e podem ser resolvidas manualmente.`}
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">

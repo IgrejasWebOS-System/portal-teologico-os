@@ -35,7 +35,7 @@ export default async function InscricaoObrigadoPage({ searchParams }: PageProps)
           </p>
           <Link
             href="/"
-            className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity"
+            className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
           >
             Voltar para o início
           </Link>

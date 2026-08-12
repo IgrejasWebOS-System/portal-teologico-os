@@ -145,8 +145,10 @@ export default function Sidebar({
     parcelas: ParcelaResumo[];
     avaliacoes: AvaliacaoResumo[];
   } | null;
-  // Controla o efeito "off-canvas": recolhido pra fora da borda
-  // esquerda por padrão, só aparece quando acionado (SidebarShell).
+  // Controla o efeito "off-canvas" só no mobile: recolhido pra fora da
+  // borda esquerda por padrão, só aparece quando acionado (SidebarShell).
+  // No desktop (md+) o menu fica sempre fixo e visível — "md:translate-x-0"
+  // sobrepõe esse estado independente de isOpen.
   isOpen?: boolean;
 }) {
   const pathname = usePathname();
@@ -155,7 +157,8 @@ export default function Sidebar({
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-iw-navy flex flex-col shadow-xl transition-transform duration-300 ease-in-out",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        isOpen ? "translate-x-0" : "-translate-x-full",
+        "md:translate-x-0"
       )}
     >
       {/* Logo / Brand */}

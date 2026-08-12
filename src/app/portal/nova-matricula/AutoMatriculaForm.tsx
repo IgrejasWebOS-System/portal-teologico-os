@@ -35,7 +35,7 @@ function SubmitButton({ pago }: { pago: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full flex items-center justify-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-opacity"
+      className="w-full flex items-center justify-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-opacity border border-black"
     >
       {pending ? (
         <>

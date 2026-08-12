@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { ArrowLeft, KeySquare } from "lucide-react";
+import { KeySquare } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import InviteStaffForm from "./InviteStaffForm";
 import UsersList from "./UsersList";
+import PageHeader from "@/components/layout/PageHeader";
 
 type Profile = {
   id: string;
@@ -39,24 +39,13 @@ export default async function UsuariosPage() {
 
   return (
     <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <Link
-          href="/dashboard/configuracoes/acessos"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Administração de Acessos
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-            <KeySquare className="w-5 h-5 text-[#E88D0C]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Matriz de Usuários</h1>
-            <p className="text-iw-muted text-xs mt-0.5">Controle de operadores e permissões (RBAC)</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={KeySquare}
+        title="Matriz de Usuários"
+        description="Controle de operadores e permissões (RBAC)"
+        backHref="/dashboard/configuracoes/acessos"
+        backLabel="Voltar para Administração de Acessos"
+      />
 
       {!souGlobalAdmin && (
         <p className="text-xs text-iw-warning bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">

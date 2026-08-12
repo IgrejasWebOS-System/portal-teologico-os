@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   Landmark,
   Users,
@@ -63,20 +64,11 @@ const CONFIG_CARDS = [
 export default function ConfiguracoesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-          <Settings2 className="w-6 h-6 text-[#E88D0C]" />
-        </div>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-            Configurações do Sistema
-          </h1>
-          <p className="text-iw-muted text-sm">
-            Gerencie as tabelas auxiliares e dados mestres da plataforma.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings2}
+        title="Configurações do Sistema"
+        description="Gerencie as tabelas auxiliares e dados mestres da plataforma."
+      />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

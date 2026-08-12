@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ListTree, Plus } from "lucide-react";
+import { ListTree, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import { criarCategoriaAction, alternarCategoriaAtivaAction } from "../actions";
 
 export const metadata = { title: "Plano de Contas — CETADP" };
@@ -42,24 +43,13 @@ export default async function PlanoDeContasPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <Link
-          href="/admin/financeiro"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Financeiro
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-            <ListTree className="w-5 h-5 text-iw-gold" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Plano de Contas</h1>
-            <p className="text-iw-muted text-xs mt-0.5">Categorias de receita e despesa usadas no caixa diário.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={ListTree}
+        title="Plano de Contas"
+        description="Categorias de receita e despesa usadas no caixa diário."
+        backHref="/admin/financeiro"
+        backLabel="Voltar para Financeiro"
+      />
 
       {msg && (
         <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
@@ -151,7 +141,7 @@ export default async function PlanoDeContasPage({ searchParams }: PageProps) {
           />
           <button
             type="submit"
-            className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
+            className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity border border-black"
           >
             Criar
           </button>

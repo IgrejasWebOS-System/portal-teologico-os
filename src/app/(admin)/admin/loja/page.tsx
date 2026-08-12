@@ -4,6 +4,7 @@ import { Store, Package, Boxes, UserPlus, ChevronRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const metadata = { title: "Admin Loja — CETADP" };
 
@@ -58,18 +59,11 @@ export default async function AdminLojaPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-iw-navy flex items-center justify-center shrink-0">
-          <Store className="w-6 h-6 text-iw-sky" />
-        </div>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">Admin Loja</h1>
-          <p className="text-iw-muted text-sm">
-            Vendas, produtos, estoque e leads — tudo que envolve a Loja num só lugar.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Store}
+        title="Admin Loja"
+        description="Vendas, produtos, estoque e leads — tudo que envolve a Loja num só lugar."
+      />
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

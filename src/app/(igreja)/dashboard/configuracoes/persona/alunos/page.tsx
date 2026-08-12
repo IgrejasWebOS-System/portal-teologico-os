@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, BookUser, UserPlus } from "lucide-react";
+import { BookUser, UserPlus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import PageHeader from "@/components/layout/PageHeader";
 
 type Row = {
   id: string;
@@ -30,35 +31,22 @@ export default async function AlunosPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <PageHeader
+        icon={BookUser}
+        title="Aluno"
+        description={`${rows.length} aluno${rows.length === 1 ? "" : "s"} matriculado${rows.length === 1 ? "" : "s"} na Escola de Teologia.`}
+        backHref="/dashboard/configuracoes/persona"
+        backLabel="Voltar para Persona"
+        actions={
           <Link
-            href="/dashboard/configuracoes/persona"
-            className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
+            href="/admin/matriculas/nova"
+            className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar para Persona
+            <UserPlus className="w-4 h-4" />
+            Nova Matrícula
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-              <BookUser className="w-5 h-5 text-[#E88D0C]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-iw-navy tracking-tight">Aluno</h1>
-              <p className="text-iw-muted text-xs mt-0.5">
-                {rows.length} aluno{rows.length === 1 ? "" : "s"} matriculado{rows.length === 1 ? "" : "s"} na Escola de Teologia.
-              </p>
-            </div>
-          </div>
-        </div>
-        <Link
-          href="/admin/matriculas/nova"
-          className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
-        >
-          <UserPlus className="w-4 h-4" />
-          Nova Matrícula
-        </Link>
-      </div>
+        }
+      />
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">

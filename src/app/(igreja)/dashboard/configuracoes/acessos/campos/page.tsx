@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, Building, Plus, Pencil, Phone, Mail, AlertCircle } from "lucide-react";
+import { Building, Plus, Pencil, Phone, Mail, AlertCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { deleteCampoFormAction } from "./actions";
+import PageHeader from "@/components/layout/PageHeader";
 
 type Unit = { id: string; name: string; parent_id: string | null; legacy_church_id: string | null };
 type ChurchInfo = {
@@ -55,35 +56,24 @@ export default async function CamposPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard/configuracoes/acessos"
-            className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar para Administração de Acessos
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-              <Building className="w-5 h-5 text-[#E88D0C]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-iw-navy tracking-tight">Campos / Ministérios</h1>
-              <p className="text-iw-muted text-xs mt-0.5">Campo → Sede → Setor → Igreja, isolados entre si</p>
-            </div>
-          </div>
-        </div>
-        {souGlobalAdmin && (
-          <Link
-            href="/dashboard/configuracoes/acessos/campos/nova"
-            className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Campo
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        icon={Building}
+        title="Campos / Ministérios"
+        description="Campo → Sede → Setor → Igreja, isolados entre si"
+        backHref="/dashboard/configuracoes/acessos"
+        backLabel="Voltar para Administração de Acessos"
+        actions={
+          souGlobalAdmin ? (
+            <Link
+              href="/dashboard/configuracoes/acessos/campos/nova"
+              className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Campo
+            </Link>
+          ) : undefined
+        }
+      />
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
         {linhas.length === 0 ? (

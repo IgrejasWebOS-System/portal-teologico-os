@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, AlertTriangle, BookMarked } from "lucide-react";
+import { AlertTriangle, BookMarked } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import { addTrimestreAction } from "../actions";
 
 export const metadata = { title: "Novo Trimestre — EBD" };
@@ -33,17 +34,12 @@ export default async function NovoTrimestrePage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <Link
-          href="/admin/ebd"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para EBD
-        </Link>
-        <h1 className="text-xl font-black text-iw-navy tracking-tight">Novo Trimestre</h1>
-        <p className="text-iw-muted text-xs mt-0.5">Cadastre o trimestre antes de inserir as lições.</p>
-      </div>
+      <PageHeader
+        title="Novo Trimestre"
+        description="Cadastre o trimestre antes de inserir as lições."
+        backHref="/admin/ebd"
+        backLabel="Voltar para EBD"
+      />
 
       {error && (
         <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
@@ -106,7 +102,7 @@ export default async function NovoTrimestrePage({ searchParams }: PageProps) {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity"
+            className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-opacity border border-black"
           >
             Criar trimestre
           </button>

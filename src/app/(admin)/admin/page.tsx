@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import MonthlyBarChart from "@/components/admin/dashboard/MonthlyBarChart";
 import BreakdownBars from "@/components/admin/dashboard/BreakdownBars";
 import { contarPorMes, somarPorMes } from "@/utils/dashboard/agrupar-por-mes";
@@ -168,17 +169,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-iw-navy/10 flex items-center justify-center shrink-0">
-          <LayoutDashboard className="w-5 h-5 text-iw-navy" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-iw-navy tracking-tight">Dashboard</h1>
-          <p className="text-iw-muted text-xs mt-0.5">
-            Visão geral administrativa, financeira e acadêmica do CETADP.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="Visão geral administrativa, financeira e acadêmica do CETADP."
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -96,7 +96,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Link
                   href="/inscricao"
-                  className="bg-[#E88D0C] hover:opacity-90 text-white font-bold px-7 py-3.5 rounded-xl text-sm transition-opacity"
+                  className="bg-[#E88D0C] hover:opacity-90 text-white font-bold px-7 py-3.5 rounded-xl text-sm transition-opacity border border-black"
                 >
                   Fazer minha inscrição
                 </Link>
@@ -200,7 +200,7 @@ export default function HomePage() {
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/inscricao"
-                    className="w-full text-center bg-[#E88D0C] hover:opacity-90 text-white font-bold py-3 rounded-xl text-sm transition-opacity"
+                    className="w-full text-center bg-[#E88D0C] hover:opacity-90 text-white font-bold py-3 rounded-xl text-sm transition-opacity border border-black"
                   >
                     Fazer minha inscrição
                   </Link>

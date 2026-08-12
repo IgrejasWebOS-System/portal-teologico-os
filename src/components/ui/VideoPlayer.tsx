@@ -92,14 +92,14 @@ function YouTubePlayer({
 
   if (!videoId) {
     return (
-      <div className="aspect-video bg-iw-bg flex items-center justify-center rounded-xl border border-iw-border text-iw-muted text-sm">
+      <div className="aspect-video -mr-[5px] bg-iw-bg flex items-center justify-center rounded-xl border border-iw-border text-iw-muted text-sm">
         URL do YouTube inválida
       </div>
     );
   }
 
   return (
-    <div className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+    <div className="aspect-video -mr-[5px] rounded-xl overflow-hidden bg-black shadow-lg">
       <div ref={containerRef} className="w-full h-full" />
     </div>
   );
@@ -129,7 +129,7 @@ function DirectPlayer({
   };
 
   return (
-    <div className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+    <div className="aspect-video -mr-[5px] rounded-xl overflow-hidden bg-black shadow-lg">
       <video
         ref={videoRef}
         src={url}
@@ -152,7 +152,7 @@ export default function VideoPlayer({
 
   if (videoType === "none" || !videoUrl) {
     return (
-      <div className="aspect-video rounded-xl bg-iw-bg border border-iw-border flex flex-col items-center justify-center gap-3 text-iw-muted">
+      <div className="aspect-video -mr-[5px] rounded-xl bg-iw-bg border border-iw-border flex flex-col items-center justify-center gap-3 text-iw-muted">
         <FileText className="w-10 h-10 opacity-30" />
         <p className="text-sm font-medium">Conteúdo escrito — sem vídeo</p>
       </div>
@@ -161,7 +161,7 @@ export default function VideoPlayer({
 
   if (videoType === "virtual") {
     return (
-      <div className="aspect-video rounded-xl bg-iw-bg border border-iw-border flex flex-col items-center justify-center gap-3 text-iw-muted">
+      <div className="aspect-video -mr-[5px] rounded-xl bg-iw-bg border border-iw-border flex flex-col items-center justify-center gap-3 text-iw-muted">
         <Bot className="w-10 h-10 opacity-30" />
         <p className="text-sm font-medium">Vídeo com professor virtual</p>
         <p className="text-xs opacity-60">Em produção — disponível em breve</p>
@@ -173,7 +173,7 @@ export default function VideoPlayer({
     return (
       <button
         onClick={() => setPlaying(true)}
-        className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg group"
+        className="relative w-full aspect-video -mr-[5px] rounded-xl overflow-hidden bg-black shadow-lg group"
       >
         {/* Thumbnail */}
         {videoType === "youtube" && getYouTubeId(videoUrl) && (

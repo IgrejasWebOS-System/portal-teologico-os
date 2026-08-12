@@ -1,11 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, GraduationCap, BookOpen } from "lucide-react";
+import { Plus, GraduationCap, BookOpen } from "lucide-react";
 import type { Course } from "@/types";
 import { createCourseVoidAction, toggleCourseStatusAction } from "../actions";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const metadata = { title: "Trilhas — Admin" };
 
@@ -34,15 +35,12 @@ export default async function TrilhasPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
-      <div>
-        <Link href="/admin/conteudo" className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium mb-3">
-          <ArrowLeft className="w-3.5 h-3.5" /> Voltar para Biblioteca
-        </Link>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">Trilhas e Módulos</h1>
-          <p className="text-iw-muted text-sm">Organize as trilhas de conteúdo por módulo.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Trilhas e Módulos"
+        description="Organize as trilhas de conteúdo por módulo."
+        backHref="/admin/conteudo"
+        backLabel="Voltar para Biblioteca"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
@@ -143,7 +141,7 @@ export default async function TrilhasPage() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors">
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors border border-black">
                 Criar curso
               </button>
             </form>
@@ -193,7 +191,7 @@ export default async function TrilhasPage() {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors">
+              <button type="submit" className="w-full py-2.5 rounded-xl bg-[#E88D0C] text-white text-sm font-semibold hover:opacity-90 transition-colors border border-black">
                 Criar curso
               </button>
             </form>

@@ -115,7 +115,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                   </p>
                   <Link
                     href="/inscricao"
-                    className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity"
+                    className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity border border-black"
                   >
                     Conhecer os cursos e me inscrever
                   </Link>

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building } from "lucide-react";
+import { Building } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import CampoForm from "../../CampoForm";
+import PageHeader from "@/components/layout/PageHeader";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -55,26 +55,13 @@ export default async function EditarCampoPage({ params }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <Link
-          href="/dashboard/configuracoes/acessos/campos"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para Campos / Ministérios
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
-            <Building className="w-5 h-5 text-[#E88D0C]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">Editar Campo</h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              {church ? "Atualize os dados do Campo e da Sede." : "Este campo ainda não tem a igreja da Sede detalhada — preencha abaixo."}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Building}
+        title="Editar Campo"
+        description={church ? "Atualize os dados do Campo e da Sede." : "Este campo ainda não tem a igreja da Sede detalhada — preencha abaixo."}
+        backHref="/dashboard/configuracoes/acessos/campos"
+        backLabel="Voltar para Campos / Ministérios"
+      />
 
       <CampoForm
         submitLabel="Salvar alterações"

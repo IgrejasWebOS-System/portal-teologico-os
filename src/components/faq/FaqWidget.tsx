@@ -44,7 +44,7 @@ export default function FaqWidget({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-full bg-iw-gold text-white shadow-xl flex items-center justify-center hover:opacity-90 transition-opacity"
+        className="fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-full bg-black border-2 border-[#E88D0C] text-white shadow-xl flex items-center justify-center hover:opacity-90 transition-opacity"
         aria-label="Central de Ajuda"
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircleQuestion className="w-6 h-6" />}

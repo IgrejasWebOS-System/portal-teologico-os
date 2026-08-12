@@ -4,6 +4,7 @@ import { Wallet, ListTree, ArrowRight, TrendingUp, TrendingDown, Receipt, Bankno
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 
 export const metadata = { title: "Financeiro — CETADP" };
 
@@ -71,15 +72,11 @@ export default async function FinanceiroPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
-          <Wallet className="w-5 h-5 text-iw-gold" />
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-iw-navy tracking-tight">Financeiro</h1>
-          <p className="text-iw-muted text-xs mt-0.5">Plano de contas e caixa diário do CETADP.</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Wallet}
+        title="Financeiro"
+        description="Plano de contas e caixa diário do CETADP."
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-5">

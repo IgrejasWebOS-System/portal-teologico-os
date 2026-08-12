@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { ArrowLeft, Plus, Pencil, Trash2, Video, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Video, FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
+import PageHeader from "@/components/layout/PageHeader";
 import type { EbdQuarter, EbdLesson } from "@/types";
 import { deleteLicaoFormAction, deleteTrimestreFormAction } from "../actions";
 
@@ -47,27 +48,16 @@ export default async function AdminEbdTrimestrePage({ params }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <Link
-          href="/admin/ebd"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar para EBD
-        </Link>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-xl font-black text-iw-navy tracking-tight">
-              {["1°", "2°", "3°", "4°"][quarter.quarter - 1]} Trimestre {quarter.year} — {AUDIENCE_LABEL[quarter.audience] ?? quarter.audience}
-            </h1>
-            <p className="text-iw-muted text-xs mt-0.5">
-              {quarter.theme ?? "Sem tema definido"} · {quarter.publisher} · {lessons.length}/{quarter.lesson_count} lições
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
+      <PageHeader
+        title={`${["1°", "2°", "3°", "4°"][quarter.quarter - 1]} Trimestre ${quarter.year} — ${AUDIENCE_LABEL[quarter.audience] ?? quarter.audience}`}
+        description={`${quarter.theme ?? "Sem tema definido"} · ${quarter.publisher} · ${lessons.length}/${quarter.lesson_count} lições`}
+        backHref="/admin/ebd"
+        backLabel="Voltar para EBD"
+        actions={
+          <>
             <Link
               href={`/admin/ebd/${quarterId}/nova`}
-              className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity"
+              className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity border border-black"
             >
               <Plus className="w-4 h-4" />
               Nova lição
@@ -81,9 +71,9 @@ export default async function AdminEbdTrimestrePage({ params }: PageProps) {
                 Excluir trimestre
               </button>
             </form>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {lessons.length === 0 ? (
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-10 text-center">
