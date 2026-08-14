@@ -50,3 +50,21 @@ rollback;
 `npx tsc --noEmit` não pega esse tipo de erro — é um bug de SQL/Postgres,
 não de TypeScript. Rodar apenas o tsc como critério de "pronto" não é
 suficiente quando a mudança envolve RLS.
+
+# Ambientes — produção vs staging (regra fixa a partir de 14/08/2026)
+
+| Ambiente | Pasta local | Branch git | Supabase | Deploy |
+|---|---|---|---|---|
+| Produção | `C:\Projetos\portal-teologico-os` | `main` | projeto principal (`toduvwtzklntyptcodkf`) | Vercel Production — dispara automático em push/merge na `main` |
+| Staging/dev | `C:\Projetos\portal-teologico-os-staging` | qualquer branch que não seja `main` | branch Supabase `staging` (criada a partir do projeto principal) | Vercel Preview — dispara automático em push de qualquer branch |
+
+## Fluxo obrigatório para qualquer mudança de código ou de banco
+
+1. Trabalhar sempre na pasta staging (`portal-teologico-os-staging`), nunca editar direto na pasta de produção.
+2. Validar local primeiro — `npm run dev`, conferir em `http://localhost:3000` que compila e funciona.
+3. Commit + push numa branch nova, nunca direto em `main`.
+4. O push gera Vercel Preview automático — validar lá antes de seguir.
+5. Mudança em `supabase/migrations/` — testar primeiro contra a branch Supabase `staging`, nunca contra o projeto de produção diretamente.
+6. Só depois de validado (local + preview + staging do banco), fazer merge em `main` — esse é o único gatilho que deve tocar produção de verdade.
+
+Essa regra vale para qualquer trabalho no projeto a partir desta data — inclusive para mim (Claude), que devo seguir esse fluxo por padrão em toda tarefa futura, sem precisar ser lembrado.
