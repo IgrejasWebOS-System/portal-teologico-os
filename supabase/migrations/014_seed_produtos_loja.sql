@@ -5,15 +5,22 @@
 -- links de download/leitura só funcionam de verdade depois que o
 -- arquivo for enviado pelo Dashboard do Supabase (Storage).
 
+-- course_id buscado dinamicamente pelo título (não fixo) — o UUID do
+-- curso "Homilética" é gerado pela migração 006 toda vez que ela roda,
+-- então varia por ambiente (produção, branch, staging, restore). Um
+-- UUID fixo aqui quebrava a aplicação das migrations em qualquer
+-- ambiente novo (violação de FK products_course_id_fkey).
 INSERT INTO public.products (tipo, titulo, descricao, preco_centavos, course_id, status)
-VALUES (
+SELECT
   'CURSO_AVULSO',
   'Homilética — A Arte de Pregar (avulso)',
   'Mesmo conteúdo do curso oficial, disponível para compra avulsa por quem não é membro do ministério.',
   15000,
-  'd45727d8-756a-4fc1-bc88-c3e548a4ab96',
+  id,
   'ATIVO'
-);
+FROM public.courses
+WHERE title = 'Homilética — A Arte de Pregar'
+LIMIT 1;
 
 INSERT INTO public.products (tipo, titulo, descricao, preco_centavos, estoque, status)
 VALUES (
