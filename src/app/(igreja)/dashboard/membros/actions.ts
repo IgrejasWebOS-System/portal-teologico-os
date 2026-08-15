@@ -135,8 +135,8 @@ export async function getMemberByMatriculaAction(matricula: string) {
     data: {
       profile: {
         ...member,
-        church_name: (member.churches as any)?.name ?? "—",
-        role_name: (member.ecclesiastical_roles as any)?.name ?? "—",
+        church_name: (member.churches as unknown as { name: string } | null)?.name ?? "—",
+        role_name: (member.ecclesiastical_roles as unknown as { name: string } | null)?.name ?? "—",
       },
       timeline: timeline ?? [],
     },

@@ -35,7 +35,7 @@ type Props = {
 
 export default function MembrosView({ initialMembers }: Props) {
   const [viewMode, setViewMode] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
-  const [members, setMembers] = useState<MemberRow[]>(initialMembers);
+  const [archivedMembers, setArchivedMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -54,10 +54,8 @@ export default function MembrosView({ initialMembers }: Props) {
 
   // Re-busca ao trocar viewMode para ARCHIVED
   useEffect(() => {
-    if (viewMode === "ACTIVE") {
-      setMembers(initialMembers);
-      return;
-    }
+    if (viewMode !== "ARCHIVED") return;
+
     async function fetchArchived() {
       setLoading(true);
       const supabase = createClient();
@@ -66,11 +64,13 @@ export default function MembrosView({ initialMembers }: Props) {
         .select("id, full_name, email, phone, registration_number, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
         .eq("status", "ARCHIVED")
         .order("full_name");
-      setMembers((data as unknown as MemberRow[]) ?? []);
+      setArchivedMembers((data as unknown as MemberRow[]) ?? []);
       setLoading(false);
     }
     fetchArchived();
-  }, [viewMode, initialMembers]);
+  }, [viewMode]);
+
+  const members = viewMode === "ACTIVE" ? initialMembers : archivedMembers;
 
   const filtered = members.filter((m) => {
     if (!search) return true;

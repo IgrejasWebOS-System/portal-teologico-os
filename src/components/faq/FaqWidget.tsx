@@ -21,8 +21,9 @@ export default function FaqWidget({
     if (!open) return;
 
     let ativo = true;
-    setLoading(true);
     const timer = setTimeout(async () => {
+      if (!ativo) return;
+      setLoading(true);
       const resultado = await searchFaqItemsAction(categoriaId, query);
       if (ativo) {
         setItems(resultado);

@@ -50,8 +50,8 @@ export type MatricularResultado =
   | { ok: true; matricula: string; alunoId: string; courseId: string | null }
   | { ok: false; erro: string };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function matricularAlunoEmCurso(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: SupabaseClient<any>,
   params: MatricularParams
 ): Promise<MatricularResultado> {

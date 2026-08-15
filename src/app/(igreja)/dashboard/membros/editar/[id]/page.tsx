@@ -30,6 +30,7 @@ export default async function EditarMembroPage({ params, searchParams }: PagePro
 
   return (
     <div className="w-full">
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- member vem de select("*", ecclesiastical_roles(...), churches(...)); o shape real (joins incluídos) não bate 1:1 com o tipo estreito do formulário, mesmo padrão usado em outros pontos do projeto */}
       <EditarMembroForm member={member as any} />
       <div className="mt-8 pb-20">
         <MemberFunctionsCard
