@@ -5,7 +5,13 @@ import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 // FloatingSocialIcons — ícones de redes sociais fixos no lado
 // esquerdo da tela, em coluna (vertical), sempre visíveis durante
 // o scroll da home. Mesmos links usados no rodapé (PublicFooter).
+//
+// Padrão visual único pros 5 ícones: fundo preto, borda laranja
+// (#E88D0C), desenho interno também laranja (#E88D0C).
 // ============================================================
+
+const ICON_BASE =
+  "w-[45px] h-[45px] rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg";
 
 export default function FloatingSocialIcons() {
   return (
@@ -15,36 +21,32 @@ export default function FloatingSocialIcons() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Instagram do CETADP"
-        className="w-10 h-10 rounded-full border-[1.5px] border-black hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
-        style={{
-          background:
-            "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)",
-        }}
+        className={ICON_BASE}
       >
-        <Instagram className="w-4 h-4 text-white" />
+        <Instagram className="w-4 h-4 text-[#E88D0C]" />
       </a>
       <a
         href="https://facebook.com/cetadp"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Facebook do CETADP"
-        className="w-10 h-10 rounded-full bg-[#1877F2] border-[1.5px] border-black hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
+        className={ICON_BASE}
       >
-        <Facebook className="w-4 h-4 text-white" fill="white" />
+        <Facebook className="w-4 h-4 text-[#E88D0C]" fill="#E88D0C" />
       </a>
       <a
         href="https://wa.me/5519998121950"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp do CETADP"
-        className="w-10 h-10 rounded-full bg-[#25D366] border-[1.5px] border-black hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
+        className={ICON_BASE}
       >
-        <WhatsAppIcon className="w-4 h-4 text-white" />
+        <WhatsAppIcon className="w-4 h-4 text-[#E88D0C]" />
       </a>
       <a
         href="mailto:cetadp@gmail.com"
         aria-label="E-mail do CETADP"
-        className="w-10 h-10 rounded-full bg-black border-2 border-[#E88D0C] hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
+        className={ICON_BASE}
       >
         <Mail className="w-4 h-4 text-[#E88D0C]" />
       </a>
@@ -53,9 +55,9 @@ export default function FloatingSocialIcons() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Localização do CETADP"
-        className="w-10 h-10 rounded-full bg-[#E88D0C] border-[1.5px] border-black hover:opacity-85 flex items-center justify-center transition-opacity shadow-lg"
+        className={ICON_BASE}
       >
-        <MapPin className="w-4 h-4 text-white" />
+        <MapPin className="w-4 h-4 text-[#E88D0C]" />
       </a>
     </div>
   );
