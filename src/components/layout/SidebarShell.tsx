@@ -41,7 +41,9 @@ export default function SidebarShell({
 
   // Fecha o menu do mobile ao navegar. No desktop isso não tem efeito
   // visual — o menu fica sempre visível via CSS, independente de isOpen.
+  // Padrão "ajustar estado quando uma prop muda" (aqui, a rota) — intencional.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOpen(false);
   }, [pathname]);
 

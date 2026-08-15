@@ -102,18 +102,18 @@ export async function createCourseAction(formData: FormData) {
 
   const title           = formData.get("title") as string;
   const description     = formData.get("description") as string;
-  const module          = formData.get("module") as "escola" | "cursos";
+  const moduleName      = formData.get("module") as "escola" | "cursos";
   const instructor_name = formData.get("instructor_name") as string;
   const level           = (formData.get("level") as string) || "iniciante";
   const thumbnail_url   = formData.get("thumbnail_url") as string;
   const featured        = formData.get("featured") === "true";
 
-  if (!title || !module) return { success: false, message: "Título e módulo são obrigatórios." };
+  if (!title || !moduleName) return { success: false, message: "Título e módulo são obrigatórios." };
 
   const { error } = await supabase.from("courses").insert({
     title,
     description:      description || null,
-    module,
+    module:            moduleName,
     instructor_name:  instructor_name || null,
     level,
     thumbnail_url:    thumbnail_url || null,

@@ -9,6 +9,9 @@ export function useCarrinho() {
   const recarregar = useCallback(() => setItens(obterCarrinho()), []);
 
   useEffect(() => {
+    // Hidrata a partir do carrinho persistido (localStorage) assim que o
+    // componente monta no client — intencionalmente síncrono aqui.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     recarregar();
     window.addEventListener("carrinho:atualizado", recarregar);
     window.addEventListener("storage", recarregar);

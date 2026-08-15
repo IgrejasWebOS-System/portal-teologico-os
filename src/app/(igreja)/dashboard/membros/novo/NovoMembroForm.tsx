@@ -117,6 +117,27 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
   );
 }
 
+// ── Section label helper ──────────────────────────────────
+
+function SectionHeader({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ElementType;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
+      <div className="w-6 h-6 rounded-lg bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
+        <Icon className="w-3.5 h-3.5 text-[#E88D0C]" />
+      </div>
+      <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">
+        {label}
+      </h2>
+    </div>
+  );
+}
+
 // ── Input / Select styles ────────────────────────────────────
 
 const inputCls =
@@ -189,6 +210,35 @@ export default function NovoMembroForm() {
   const [matriculaError, setMatriculaError] = useState("");
   const [serverError, setServerError] = useState("");
 
+  // ── City list (IBGE or DF custom) ─────────────────────────
+  const fetchCities = async (uf: string) => {
+    if (!uf) return;
+    setCities([]);
+    if (uf === "DF") {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("settings_custom_regions")
+        .select("id, name")
+        .eq("state_uf", "DF")
+        .order("name");
+      if (data && data.length > 0) {
+        setCities(data.map((d) => ({ id: d.id, nome: d.name })));
+      } else {
+        setCities([{ id: "fallback", nome: "Brasília" }]);
+      }
+    } else {
+      try {
+        const res = await fetch(
+          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`
+        );
+        const data = await res.json();
+        setCities(data);
+      } catch {
+        setCities([]);
+      }
+    }
+  };
+
   // ── Fetch dropdown data ────────────────────────────────────
   useEffect(() => {
     async function fetchData() {
@@ -241,36 +291,8 @@ export default function NovoMembroForm() {
       fetchCities("SP");
     }
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── City list (IBGE or DF custom) ─────────────────────────
-  const fetchCities = async (uf: string) => {
-    if (!uf) return;
-    setCities([]);
-    if (uf === "DF") {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("settings_custom_regions")
-        .select("id, name")
-        .eq("state_uf", "DF")
-        .order("name");
-      if (data && data.length > 0) {
-        setCities(data.map((d) => ({ id: d.id, nome: d.name })));
-      } else {
-        setCities([{ id: "fallback", nome: "Brasília" }]);
-      }
-    } else {
-      try {
-        const res = await fetch(
-          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`
-        );
-        const data = await res.json();
-        setCities(data);
-      } catch {
-        setCities([]);
-      }
-    }
-  };
 
   // ── Validations on blur ───────────────────────────────────
   const checkCpfExists = async (cpfVal: string) => {
@@ -361,24 +383,6 @@ export default function NovoMembroForm() {
       setUploading(false);
     }
   };
-
-  // ── Section label helper ──────────────────────────────────
-  const SectionHeader = ({
-    icon: Icon,
-    label,
-  }: {
-    icon: React.ElementType;
-    label: string;
-  }) => (
-    <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
-      <div className="w-6 h-6 rounded-lg bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
-        <Icon className="w-3.5 h-3.5 text-[#E88D0C]" />
-      </div>
-      <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">
-        {label}
-      </h2>
-    </div>
-  );
 
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">

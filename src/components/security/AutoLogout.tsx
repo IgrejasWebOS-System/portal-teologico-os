@@ -43,11 +43,10 @@ export default function AutoLogout() {
     }, 1000);
   }, [doLogout]);
 
-  const resetTimer = useCallback(() => {
-    clearAll();
-    setShowWarning(false);
-    setCountdown(WARNING_BEFORE / 1000);
-
+  // Só agenda os timers, sem mexer em estado — usado tanto no mount
+  // (estado já está no valor padrão, não precisa resetar) quanto dentro
+  // de resetTimer (que cuida do reset de estado separadamente).
+  const scheduleTimers = useCallback(() => {
     // Aviso: 5 min antes do logout
     warningTimerRef.current = setTimeout(() => {
       startWarningCountdown();
@@ -59,18 +58,26 @@ export default function AutoLogout() {
     }, INACTIVITY_LIMIT);
   }, [doLogout, startWarningCountdown]);
 
+  const resetTimer = useCallback(() => {
+    clearAll();
+    setShowWarning(false);
+    setCountdown(WARNING_BEFORE / 1000);
+    scheduleTimers();
+  }, [scheduleTimers]);
+
   const continueSession = () => {
     resetTimer();
   };
 
   useEffect(() => {
-    resetTimer();
+    clearAll();
+    scheduleTimers();
     EVENTS.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
     return () => {
       clearAll();
       EVENTS.forEach((e) => window.removeEventListener(e, resetTimer));
     };
-  }, [resetTimer]);
+  }, [scheduleTimers, resetTimer]);
 
   if (!showWarning) return null;
 
