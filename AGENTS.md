@@ -68,3 +68,11 @@ suficiente quando a mudança envolve RLS.
 6. Só depois de validado (local + preview + staging do banco), fazer merge em `main` — esse é o único gatilho que deve tocar produção de verdade.
 
 Essa regra vale para qualquer trabalho no projeto a partir desta data — inclusive para mim (Claude), que devo seguir esse fluxo por padrão em toda tarefa futura, sem precisar ser lembrado.
+
+## Como avisar sobre um PR pronto
+
+Depois do `git push` de uma branch nova, mandar direto o link
+`https://github.com/IgrejasWebOS-System/portal-teologico-os/pull/new/<nome-da-branch>`
+(ou o link que o próprio `git push` devolve). Não repetir a explicação do
+fluxo (abrir → conferir Preview → merge) a cada vez — isso já está
+documentado aqui em cima, só o link é necessário.
