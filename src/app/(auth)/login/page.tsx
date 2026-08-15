@@ -74,7 +74,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <Label htmlFor="password" required className="text-sm text-black">Senha</Label>
                 <Link
                   href="/recuperar-senha"
-                  className="text-sm font-bold text-iw-blue hover:underline"
+                  className="text-sm font-bold text-black hover:underline"
                 >
                   Esqueci minha senha
                 </Link>
