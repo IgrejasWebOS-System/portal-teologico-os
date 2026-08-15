@@ -1,0 +1,1121 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Plus,
+  Loader2,
+  Search,
+  User,
+  MapPin,
+  Briefcase,
+  Camera,
+  Droplets,
+  Church,
+  Hash,
+  Wand2,
+  AlertTriangle,
+  Flag,
+} from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import {
+  createMemberAction,
+  getNextRegistrationNumberAction,
+} from "@/app/[locale]/(igreja)/dashboard/membros/actions";
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function calculateTimeBaptized(ddmmyyyy: string): string {
+  if (ddmmyyyy.length !== 10) return "---";
+  const [d, m, y] = ddmmyyyy.split("/").map(Number);
+  const baptism = new Date(y, m - 1, d);
+  if (isNaN(baptism.getTime())) return "---";
+  const now = new Date();
+  let years = now.getFullYear() - baptism.getFullYear();
+  let months = now.getMonth() - baptism.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < baptism.getDate())) {
+    years--;
+    months += 12;
+  }
+  return `${years} ano${years !== 1 ? "s" : ""} e ${months} mês${months !== 1 ? "es" : ""}`;
+}
+
+function calculateAge(ddmmyyyy: string): string {
+  if (ddmmyyyy.length !== 10) return "---";
+  const [d, m, y] = ddmmyyyy.split("/").map(Number);
+  const birth = new Date(y, m - 1, d);
+  if (isNaN(birth.getTime())) return "---";
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
+    years--;
+    months += 12;
+  }
+  return `${years} ano${years !== 1 ? "s" : ""} e ${months} mês${months !== 1 ? "es" : ""}`;
+}
+
+// ── Máscaras ─────────────────────────────────────────────────
+
+function maskDate(raw: string): string {
+  let v = raw.replace(/\D/g, "").slice(0, 8);
+  if (v.length > 4) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+  else if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
+  return v;
+}
+
+function maskPhone(raw: string): string {
+  let v = raw.replace(/\D/g, "").slice(0, 11);
+  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
+  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  else v = v.length ? `(${v}` : v;
+  return v;
+}
+
+function maskCPF(raw: string): string {
+  let v = raw.replace(/\D/g, "").slice(0, 11);
+  v = v.replace(/(\d{3})(\d)/, "$1.$2");
+  v = v.replace(/(\d{3})(\d)/, "$1.$2");
+  v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  return v;
+}
+
+function maskRG(raw: string): string {
+  let v = raw.replace(/\D/g, "").slice(0, 9);
+  if (v.length > 7) v = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}-${v.slice(8)}`;
+  else if (v.length > 4) v = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
+  else if (v.length > 2) v = `${v.slice(0, 2)}.${v.slice(2)}`;
+  return v;
+}
+
+// ── Submit button ─────────────────────────────────────────────
+
+function SubmitButton({ disabled }: { disabled?: boolean }) {
+  const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
+  return (
+    <button
+      type="submit"
+      disabled={isDisabled}
+      className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+    >
+      {pending ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Cadastrando...
+        </>
+      ) : (
+        <>
+          <Plus className="w-4 h-4" />
+          Cadastrar Membro
+        </>
+      )}
+    </button>
+  );
+}
+
+// ── Section label helper ──────────────────────────────────
+
+function SectionHeader({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ElementType;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
+      <div className="w-6 h-6 rounded-lg bg-black border border-[#E88D0C] flex items-center justify-center shrink-0">
+        <Icon className="w-3.5 h-3.5 text-[#E88D0C]" />
+      </div>
+      <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">
+        {label}
+      </h2>
+    </div>
+  );
+}
+
+// ── Input / Select styles ────────────────────────────────────
+
+const inputCls =
+  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors";
+const inputErrCls =
+  "w-full bg-white border border-iw-error rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-error focus:outline-none transition-colors";
+const selectCls =
+  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none transition-colors cursor-pointer";
+const labelCls =
+  "block text-xs font-semibold text-iw-muted uppercase tracking-wider mb-1.5";
+
+// ── Main component ────────────────────────────────────────────
+
+type SelectItem = { id: string; name: string };
+
+export default function NovoMembroForm() {
+  // Dropdown data
+  const [roles, setRoles] = useState<SelectItem[]>([]);
+  const [professions, setProfessions] = useState<SelectItem[]>([]);
+  const [schoolings, setSchoolings] = useState<SelectItem[]>([]);
+  const [civilStatuses, setCivilStatuses] = useState<SelectItem[]>([]);
+  const [genders, setGenders] = useState<SelectItem[]>([]);
+  const [states, setStates] = useState<{ id: number; sigla: string; nome: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string | number; nome: string }[]>([]);
+
+  // Core form values managed in state (controlled by masks)
+  const [formData, setFormData] = useState({
+    full_name: "",
+    birth_date: "",
+    phone: "",
+    cpf: "",
+    rg: "",
+    rg_issuer: "SSP",
+    rg_state: "SP",
+    nationality_state: "SP",
+    nationality_city: "",
+    nationality: "Brasileira",
+    ecclesiastical_status: "ACTIVE",
+    photo_url: "",
+    marriage_date: "",
+    baptism_date: "",
+    origin_church: "",
+    role_id: "",
+    registration_number: "",
+    spouse_name: "",
+    father_name: "",
+    mother_name: "",
+    gender: "",
+    civil_status: "",
+    profession: "",
+    schooling: "",
+  });
+
+  const [igrejaNome, setIgrejaNome] = useState("");
+  const [timeBaptized, setTimeBaptized] = useState("---");
+  const [memberAge, setMemberAge] = useState("---");
+  const [addressData, setAddressData] = useState({
+    zip_code: "",
+    address: "",
+    number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+  });
+
+  const [loadingCep, setLoadingCep] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [generatingMatricula, setGeneratingMatricula] = useState(false);
+  const [cpfError, setCpfError] = useState("");
+  const [matriculaError, setMatriculaError] = useState("");
+  const [serverError, setServerError] = useState("");
+
+  // ── City list (IBGE or DF custom) ─────────────────────────
+  const fetchCities = async (uf: string) => {
+    if (!uf) return;
+    setCities([]);
+    if (uf === "DF") {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("settings_custom_regions")
+        .select("id, name")
+        .eq("state_uf", "DF")
+        .order("name");
+      if (data && data.length > 0) {
+        setCities(data.map((d) => ({ id: d.id, nome: d.name })));
+      } else {
+        setCities([{ id: "fallback", nome: "Brasília" }]);
+      }
+    } else {
+      try {
+        const res = await fetch(
+          `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`
+        );
+        const data = await res.json();
+        setCities(data);
+      } catch {
+        setCities([]);
+      }
+    }
+  };
+
+  // ── Fetch dropdown data ────────────────────────────────────
+  useEffect(() => {
+    async function fetchData() {
+      const supabase = createClient();
+      const [rolesRes, profRes, schoolRes, civilRes, genderRes] =
+        await Promise.all([
+          supabase.from("ecclesiastical_roles").select("id, name").order("name"),
+          supabase.from("settings_professions").select("id, name").order("name"),
+          supabase.from("settings_schooling").select("id, name").order("name"),
+          supabase.from("settings_civil_status").select("id, name").order("name"),
+          supabase.from("settings_gender").select("id, name").order("name"),
+        ]);
+
+      if (rolesRes.data) setRoles(rolesRes.data as SelectItem[]);
+      if (profRes.data) setProfessions(profRes.data as SelectItem[]);
+      if (schoolRes.data) setSchoolings(schoolRes.data as SelectItem[]);
+      if (civilRes.data) setCivilStatuses(civilRes.data as SelectItem[]);
+      if (genderRes.data) setGenders(genderRes.data as SelectItem[]);
+
+      // Igreja do usuário logado (somente leitura)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("church_id")
+          .eq("id", user.id)
+          .single();
+        if (profile?.church_id) {
+          const { data: church } = await supabase
+            .from("churches")
+            .select("name")
+            .eq("id", profile.church_id)
+            .single();
+          if (church?.name) setIgrejaNome(church.name);
+        }
+      }
+
+      // IBGE states
+      try {
+        const res = await fetch(
+          "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome"
+        );
+        const data = await res.json();
+        setStates(data);
+      } catch {
+        // fallback: keep empty
+      }
+
+      // Default SP cities
+      fetchCities("SP");
+    }
+    fetchData();
+  }, []);
+
+  // ── Validations on blur ───────────────────────────────────
+  const checkCpfExists = async (cpfVal: string) => {
+    if (!cpfVal || cpfVal.replace(/\D/g, "").length < 11) {
+      setCpfError("");
+      return;
+    }
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("members")
+      .select("id")
+      .eq("cpf", cpfVal)
+      .single();
+    setCpfError(data ? "Este CPF já está cadastrado no sistema." : "");
+  };
+
+  const checkMatriculaExists = async (mat: string) => {
+    if (!mat.trim()) {
+      setMatriculaError("");
+      return;
+    }
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("members")
+      .select("id")
+      .eq("registration_number", mat)
+      .single();
+    setMatriculaError(data ? "Esta matrícula já está em uso." : "");
+  };
+
+  // ── Auto-generate matrícula ───────────────────────────────
+  const handleGenerateMatricula = async () => {
+    setGeneratingMatricula(true);
+    setMatriculaError("");
+    const isActive = formData.ecclesiastical_status === "ACTIVE";
+    const result = await getNextRegistrationNumberAction(isActive);
+    if (result.success && result.data) {
+      setFormData((prev) => ({ ...prev, registration_number: result.data! }));
+    } else {
+      setMatriculaError("Falha ao consultar servidor.");
+    }
+    setGeneratingMatricula(false);
+  };
+
+  // ── CEP lookup ────────────────────────────────────────────
+  const handleBlurCep = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setAddressData((prev) => ({
+          ...prev,
+          zip_code: cep,
+          address: data.logradouro ?? prev.address,
+          neighborhood: data.bairro ?? prev.neighborhood,
+          city: data.localidade ?? prev.city,
+          state: data.uf ?? prev.state,
+        }));
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  // ── Photo upload ──────────────────────────────────────────
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const fileName = `member-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      setFormData((prev) => ({ ...prev, photo_url: data.publicUrl }));
+    } catch {
+      alert("Erro no upload da foto.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+
+      {/* ── Cabeçalho ── */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <ArrowLeft className="w-5 h-5 text-iw-navy shrink-0" />
+          <h2 className="text-2xl font-black text-black tracking-tight">
+            Vínculo Eclesiástico
+          </h2>
+          <span className="text-iw-border text-sm select-none">·</span>
+          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+            Novo Membro
+          </h1>
+          <p className="text-iw-muted text-sm">
+            Preencha a ficha cadastral completa.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/membros"
+          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm"
+        >
+          Voltar
+        </Link>
+      </div>
+
+      {/* ── Erro do servidor ── */}
+      {serverError && (
+        <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="font-medium">{serverError}</span>
+        </div>
+      )}
+
+      <form
+        action={async (fd: FormData) => {
+          setServerError("");
+          if (cpfError || matriculaError) return;
+
+          // Inject state-managed values that aren't native inputs
+          const fields: [string, string][] = [
+            ["full_name", formData.full_name],
+            ["photo_url", formData.photo_url],
+            ["baptism_date", formData.baptism_date],
+            ["marriage_date", formData.marriage_date],
+            ["birth_date", formData.birth_date],
+            ["phone", formData.phone],
+            ["cpf", formData.cpf],
+            ["rg", formData.rg],
+            ["rg_issuer", formData.rg_issuer],
+            ["rg_state", formData.rg_state],
+            ["nationality_state", formData.nationality_state],
+            ["nationality_city", formData.nationality_city],
+            ["nationality", formData.nationality],
+            ["role_id", formData.role_id],
+            ["registration_number", formData.registration_number],
+            ["ecclesiastical_status", formData.ecclesiastical_status],
+            ["gender", formData.gender],
+            ["civil_status", formData.civil_status],
+            ["profession", formData.profession],
+            ["schooling", formData.schooling],
+            ["spouse_name", formData.spouse_name],
+            ["father_name", formData.father_name],
+            ["mother_name", formData.mother_name],
+            ["origin_church", formData.origin_church],
+            ["zip_code", addressData.zip_code],
+            ["address", addressData.address],
+            ["number", addressData.number],
+            ["neighborhood", addressData.neighborhood],
+            ["city", addressData.city],
+            ["state", addressData.state],
+          ];
+
+          for (const [key, val] of fields) {
+            if (!fd.get(key)) fd.append(key, val);
+          }
+
+          const result = await createMemberAction(fd);
+          if (result && result.success === false) {
+            setServerError(result.message);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        }}
+        className="space-y-1.5"
+      >
+        {/* ══════════════════════════════════════════════════
+            CARD 1 — Vínculo eclesiástico
+        ══════════════════════════════════════════════════ */}
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-6">
+            {/* Foto — à esquerda de Nome/Data Nascimento, rente às bordas superior/inferior/esquerda */}
+            <div className="flex flex-col items-center justify-center gap-2 shrink-0 sm:w-40 px-4 py-6 sm:py-0">
+              <div className="w-[115px] h-[115px] rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors shrink-0">
+                {formData.photo_url ? (
+                  <img
+                    src={formData.photo_url}
+                    alt="Foto"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                    {uploading ? (
+                      <Loader2 className="w-7 h-7 animate-spin" />
+                    ) : (
+                      <Camera className="w-7 h-7" />
+                    )}
+                    <span className="text-[10px] font-semibold uppercase">
+                      Foto
+                    </span>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </div>
+              <p className="text-[10px] text-iw-muted text-center leading-tight">
+                JPG, PNG, WEBP.
+              </p>
+            </div>
+
+            {/* Campos — grid único: Matrícula/Igreja/Cargo/Batismo, depois Nome/Data Nasc. */}
+            <div className="flex-1 pt-6 pr-6 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-[130px_356px_224px_270px] gap-4 items-end">
+                {/* Matrícula */}
+                <div>
+                  <label className={labelCls}>
+                    <Hash className="inline w-3.5 h-3.5 mr-1 text-iw-gold" />
+                    Matrícula
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Auto ou manual..."
+                      value={formData.registration_number}
+                      onChange={(e) => {
+                        setFormData((p) => ({
+                          ...p,
+                          registration_number: e.target.value,
+                        }));
+                        if (matriculaError) setMatriculaError("");
+                      }}
+                      onBlur={() =>
+                        checkMatriculaExists(formData.registration_number)
+                      }
+                      className={`${matriculaError ? inputErrCls : inputCls} pr-9 font-mono text-center`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateMatricula}
+                      disabled={generatingMatricula}
+                      title="Gerar próximo número livre"
+                      className="absolute right-2.5 text-iw-muted hover:text-iw-gold transition-colors disabled:opacity-40"
+                    >
+                      {generatingMatricula ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                  {matriculaError && (
+                    <p className="text-iw-error text-xs mt-1 font-medium">
+                      {matriculaError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Igreja (somente leitura) */}
+                <div>
+                  <label className={labelCls}>
+                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Igreja
+                  </label>
+                  <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-muted truncate">
+                    {igrejaNome || "—"}
+                  </div>
+                </div>
+
+                {/* Cargo */}
+                <div>
+                  <label className={labelCls}>
+                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    Cargo
+                  </label>
+                  <select
+                    className={selectCls}
+                    value={formData.role_id}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, role_id: e.target.value }))
+                    }
+                  >
+                    <option value="">Sem cargo</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Data de Batismo + tempo */}
+                <div>
+                  <label className={labelCls}>
+                    <Droplets className="inline w-3.5 h-3.5 mr-1 text-iw-sky" />
+                    Batismo
+                  </label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      placeholder="DD/MM/AAAA"
+                      value={formData.baptism_date}
+                      maxLength={10}
+                      onChange={(e) => {
+                        const v = maskDate(e.target.value);
+                        setFormData((p) => ({ ...p, baptism_date: v }));
+                        if (v.length === 10) setTimeBaptized(calculateTimeBaptized(v));
+                        else setTimeBaptized("---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {timeBaptized}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nome completo — começa alinhado com Matrícula, ocupa 3 colunas */}
+                <div className="md:col-span-3">
+                  <label className={labelCls}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome do membro"
+                    value={formData.full_name}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, full_name: e.target.value }))
+                    }
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Data de Nascimento + idade — alinhada com Batismo acima */}
+                <div>
+                  <label className={labelCls}>Data Nasc. *</label>
+                  <div className="grid grid-cols-[104px_1fr] gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="DD/MM/AAAA"
+                      value={formData.birth_date}
+                      maxLength={10}
+                      onChange={(e) => {
+                        const v = maskDate(e.target.value);
+                        setFormData((p) => ({ ...p, birth_date: v }));
+                        setMemberAge(v.length === 10 ? calculateAge(v) : "---");
+                      }}
+                      className={`${inputCls} text-center`}
+                    />
+                    <div className="bg-iw-bg border border-iw-border rounded-xl px-2 py-2.5 text-xs text-black font-semibold flex items-center justify-center text-center leading-tight">
+                      {memberAge}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════
+            CARD 2 — Dados Pessoais
+        ══════════════════════════════════════════════════ */}
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
+          <SectionHeader icon={User} label="Dados Pessoais" />
+
+          {/* Row 1: sexo, estado civil, profissão, escolaridade */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-6 md:col-span-3">
+              <label className={labelCls}>Sexo *</label>
+              <select
+                required
+                className={selectCls}
+                value={formData.gender}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, gender: e.target.value }))
+                }
+              >
+                <option value="">...</option>
+                {genders.map((g) => (
+                  <option key={g.id} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Estado Civil *</label>
+              <select
+                required
+                className={selectCls}
+                value={formData.civil_status}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, civil_status: e.target.value }))
+                }
+              >
+                <option value="">Selecione...</option>
+                {civilStatuses.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Profissão</label>
+              <select
+                className={selectCls}
+                value={formData.profession}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, profession: e.target.value }))
+                }
+              >
+                <option value="">Selecione...</option>
+                {professions.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Escolaridade</label>
+              <select
+                className={selectCls}
+                value={formData.schooling}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, schooling: e.target.value }))
+                }
+              >
+                <option value="">Selecione...</option>
+                {schoolings.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 2: e-mail, telefone, naturalidade, nacionalidade */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>E-mail</label>
+              <input
+                name="email"
+                type="email"
+                placeholder="email@exemplo.com"
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Telefone *</label>
+              <input
+                type="text"
+                required
+                placeholder="(00) 00000-0000"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, phone: maskPhone(e.target.value) }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Naturalidade (UF / Cidade) *</label>
+              <div className="flex gap-2">
+                <select
+                  required
+                  className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  value={formData.nationality_state}
+                  onChange={(e) => {
+                    const uf = e.target.value;
+                    setFormData((p) => ({
+                      ...p,
+                      nationality_state: uf,
+                      nationality_city: "",
+                    }));
+                    fetchCities(uf);
+                  }}
+                >
+                  <option value="">UF</option>
+                  {states.map((s) => (
+                    <option key={s.id} value={s.sigla}>
+                      {s.sigla}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  required
+                  className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  value={formData.nationality_city}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, nationality_city: e.target.value }))
+                  }
+                >
+                  <option value="">Cidade</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.nome}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>
+                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                Nacionalidade *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.nationality}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, nationality: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          {/* Row 3: CPF, RG, órgão, UF RG, igreja origem */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-2">
+              <label className={labelCls}>CPF *</label>
+              <input
+                type="text"
+                required
+                placeholder="000.000.000-00"
+                value={formData.cpf}
+                maxLength={14}
+                onChange={(e) => {
+                  setFormData((p) => ({ ...p, cpf: maskCPF(e.target.value) }));
+                  if (cpfError) setCpfError("");
+                }}
+                onBlur={() => checkCpfExists(formData.cpf)}
+                className={cpfError ? inputErrCls : inputCls}
+              />
+              {cpfError && (
+                <p className="text-iw-error text-xs mt-1 font-medium">{cpfError}</p>
+              )}
+            </div>
+
+            <div className="col-span-12 md:col-span-2">
+              <label className={labelCls}>RG *</label>
+              <input
+                type="text"
+                required
+                placeholder="00.000.000-0"
+                value={formData.rg}
+                maxLength={12}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, rg: maskRG(e.target.value) }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-6 md:col-span-1">
+              <label className={labelCls}>Órgão</label>
+              <input
+                type="text"
+                value={formData.rg_issuer}
+                maxLength={6}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    rg_issuer: e.target.value.toUpperCase(),
+                  }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-6 md:col-span-1">
+              <label className={labelCls}>UF RG</label>
+              <input
+                type="text"
+                value={formData.rg_state}
+                maxLength={2}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    rg_state: e.target.value.toUpperCase(),
+                  }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-6">
+              <label className={labelCls}>Igreja de Origem</label>
+              <input
+                type="text"
+                placeholder="Nome da igreja anterior..."
+                value={formData.origin_church}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    origin_church: e.target.value,
+                  }))
+                }
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          {/* Row 4: mãe, pai, cônjuge, data casamento */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Nome da Mãe *</label>
+              <input
+                type="text"
+                required
+                value={formData.mother_name}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, mother_name: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-3">
+              <label className={labelCls}>Nome do Pai *</label>
+              <input
+                type="text"
+                required
+                value={formData.father_name}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, father_name: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-4">
+              <label className={labelCls}>Cônjuge</label>
+              <input
+                type="text"
+                value={formData.spouse_name}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, spouse_name: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-2">
+              <label className={labelCls}>Data Casamento</label>
+              <input
+                type="text"
+                placeholder="DD/MM/AAAA"
+                value={formData.marriage_date}
+                maxLength={10}
+                onChange={(e) => {
+                  const v = maskDate(e.target.value);
+                  setFormData((p) => ({ ...p, marriage_date: v }));
+                }}
+                className={`${inputCls} text-center`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════
+            CARD 3 — Endereço
+        ══════════════════════════════════════════════════ */}
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-5">
+          <SectionHeader icon={MapPin} label="Endereço Residencial" />
+
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 md:col-span-2 relative">
+              <label className={labelCls}>CEP</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="00000-000"
+                  value={addressData.zip_code}
+                  maxLength={9}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    if (v.length > 5) v = `${v.slice(0, 5)}-${v.slice(5)}`;
+                    setAddressData((p) => ({ ...p, zip_code: v }));
+                  }}
+                  onBlur={handleBlurCep}
+                  className={`${inputCls} pl-9`}
+                />
+                <Search
+                  className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                    loadingCep
+                      ? "text-iw-blue animate-pulse"
+                      : "text-iw-muted"
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div className="col-span-12 md:col-span-8">
+              <label className={labelCls}>Endereço</label>
+              <input
+                type="text"
+                placeholder="Rua, Avenida..."
+                value={addressData.address}
+                onChange={(e) =>
+                  setAddressData((p) => ({ ...p, address: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+
+            <div className="col-span-12 md:col-span-2">
+              <label className={labelCls}>Número</label>
+              <input
+                type="text"
+                placeholder="Nº"
+                value={addressData.number}
+                onChange={(e) =>
+                  setAddressData((p) => ({ ...p, number: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelCls}>Bairro</label>
+              <input
+                type="text"
+                placeholder="Bairro"
+                value={addressData.neighborhood}
+                onChange={(e) =>
+                  setAddressData((p) => ({ ...p, neighborhood: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Cidade</label>
+              <input
+                type="text"
+                placeholder="Cidade"
+                value={addressData.city}
+                onChange={(e) =>
+                  setAddressData((p) => ({ ...p, city: e.target.value }))
+                }
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>UF</label>
+              <input
+                type="text"
+                placeholder="UF"
+                value={addressData.state}
+                maxLength={2}
+                onChange={(e) =>
+                  setAddressData((p) => ({
+                    ...p,
+                    state: e.target.value.toUpperCase(),
+                  }))
+                }
+                className={`${inputCls} uppercase`}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════
+            RODAPÉ — Status + Financeiro + Salvar
+        ══════════════════════════════════════════════════ */}
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-5 flex flex-col sm:flex-row items-center gap-5 justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            {/* Status eclesiástico */}
+            <div className="flex-1 min-w-40">
+              <label className={labelCls}>Situação</label>
+              <select
+                className={selectCls}
+                value={formData.ecclesiastical_status}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    ecclesiastical_status: e.target.value,
+                  }))
+                }
+              >
+                <option value="ACTIVE">🟢 Ativo</option>
+                <option value="OBSERVATION">🟡 Observação</option>
+                <option value="INACTIVE">🔴 Inativo</option>
+                <option value="UNFIT">⚪ Inapto</option>
+              </select>
+            </div>
+
+            {/* Status financeiro */}
+            <div className="flex-1 min-w-40">
+              <label className={labelCls}>Financeiro</label>
+              <select name="financial_status" defaultValue="PENDING" className={selectCls}>
+                <option value="UP_TO_DATE">🟢 Em Dia</option>
+                <option value="PENDING">🔴 Pendente</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/membros"
+              className="px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
+            >
+              Cancelar
+            </Link>
+            <SubmitButton disabled={!!cpfError || !!matriculaError} />
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

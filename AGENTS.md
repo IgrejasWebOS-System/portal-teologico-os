@@ -73,6 +73,16 @@ Essa regra vale para qualquer trabalho no projeto a partir desta data — inclus
 
 Depois do `git push` de uma branch nova, mandar direto o link
 `https://github.com/IgrejasWebOS-System/portal-teologico-os/pull/new/<nome-da-branch>`
-(ou o link que o próprio `git push` devolve). Não repetir a explicação do
-fluxo (abrir → conferir Preview → merge) a cada vez — isso já está
-documentado aqui em cima, só o link é necessário.
+(ou o link que o próprio `git push` devolve), já acompanhado de um título e
+uma descrição sugeridos para o PR (resumindo o que mudou nos commits dessa
+branch), prontos pra colar nos campos "Add a title"/"Add a description" que
+o GitHub abre nessa tela. Não repetir a explicação do fluxo (abrir →
+conferir Preview → merge) a cada vez — isso já está documentado aqui em
+cima, só o link + título + descrição são necessários.
+
+Motivo de eu não abrir o PR sozinho: não tenho uma ferramenta do GitHub
+conectada nesta sessão para criar o PR via API, e mesmo que tivesse, abrir
+("publicar") um PR é uma ação que exige minha confirmação com o usuário a
+cada vez, por regra de segurança — então o fluxo real é: eu preencho tudo
+que dá pra preencher (link + título + descrição), e o clique final em
+"Create pull request" é sempre do Joaquim.
