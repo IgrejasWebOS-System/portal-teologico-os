@@ -16,7 +16,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { signOutGlobalAction } from "@/app/actions";
-import { trocarSenhaAlunoAction } from "@/app/(escola)/aluno-actions";
+import { trocarSenhaAlunoAction } from "@/app/[locale]/(escola)/aluno-actions";
 import { cn } from "@/utils/cn";
 
 // ============================================================

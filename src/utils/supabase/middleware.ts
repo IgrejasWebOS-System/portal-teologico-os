@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkIsStaff } from "@/utils/staff";
+import { routing } from "@/i18n/routing";
 
 // Rotas acessíveis sem autenticação (prefixo)
 const PUBLIC_PATHS = [
   "/login",
+  "/recuperar-senha",
   "/cadastro",
   "/inscricao",
   "/sobre",
@@ -18,9 +20,38 @@ const PUBLIC_PATHS = [
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
-  const path = request.nextUrl.pathname;
+// pt-BR não tem prefixo na URL; en-US e es-419 têm (/en-US/login).
+// Todo o roteamento de auth abaixo trabalha com o caminho SEM prefixo
+// (equivalente ao pt-BR), e devolve o prefixo de volta nos redirects
+// pra não trocar o idioma da pessoa no meio do fluxo de login.
+function semPrefixoDeIdioma(pathname: string): {
+  locale: string;
+  path: string;
+} {
+  for (const locale of routing.locales) {
+    if (locale === routing.defaultLocale) continue;
+    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
+      return { locale, path: pathname.slice(locale.length + 1) || "/" };
+    }
+  }
+  return { locale: routing.defaultLocale, path: pathname };
+}
+
+function comPrefixoDeIdioma(locale: string, path: string): string {
+  if (locale === routing.defaultLocale) return path;
+  return `/${locale}${path === "/" ? "" : path}`;
+}
+
+export async function updateSession(
+  request: NextRequest,
+  baseResponse?: NextResponse
+) {
+  // Quando vem de proxy.ts, baseResponse já é a resposta que o
+  // next-intl preparou (prefixo/cookie de idioma) — a sessão do
+  // Supabase continua a partir dela em vez de descartá-la, senão o
+  // idioma resolvido pelo next-intl se perde nas rotas autenticadas.
+  let supabaseResponse = baseResponse ?? NextResponse.next({ request });
+  const { locale, path } = semPrefixoDeIdioma(request.nextUrl.pathname);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +65,14 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
+          // Preserva os cookies que já estavam na resposta anterior
+          // (ex.: NEXT_LOCALE do next-intl) antes de recriar a
+          // resposta para aplicar os cookies novos de sessão.
+          const previousCookies = supabaseResponse.cookies.getAll();
           supabaseResponse = NextResponse.next({ request });
+          previousCookies.forEach((cookie) =>
+            supabaseResponse.cookies.set(cookie)
+          );
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -58,14 +96,14 @@ export async function updateSession(request: NextRequest) {
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
     const isStaff = await checkIsStaff(supabase, user.id);
-    url.pathname = isStaff ? "/admin" : "/portal";
+    url.pathname = comPrefixoDeIdioma(locale, isStaff ? "/admin" : "/portal");
     return NextResponse.redirect(url);
   }
 
   // Usuário não autenticado em rota protegida → redireciona para /login
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = comPrefixoDeIdioma(locale, "/login");
     return NextResponse.redirect(url);
   }
 
@@ -80,7 +118,7 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.must_change_password) {
       const url = request.nextUrl.clone();
-      url.pathname = "/trocar-senha";
+      url.pathname = comPrefixoDeIdioma(locale, "/trocar-senha");
       return NextResponse.redirect(url);
     }
   }
@@ -111,7 +149,7 @@ export async function updateSession(request: NextRequest) {
 
       if (profile?.pode_escanear_provas) {
         const url = request.nextUrl.clone();
-        url.pathname = "/escolher-modo";
+        url.pathname = comPrefixoDeIdioma(locale, "/escolher-modo");
         return NextResponse.redirect(url);
       }
     }
