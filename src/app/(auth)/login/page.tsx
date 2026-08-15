@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="text-center mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-iw-muted hover:text-iw-navy text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-black hover:text-iw-navy text-sm font-medium transition-colors"
           >
             ← Voltar para o início
           </Link>
@@ -32,17 +32,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="inline-flex mb-4">
             <Logo size="lg" variant="dark" shape="circle" />
           </div>
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">
+          <h1 className="text-3xl font-black text-black tracking-tight">
             CETADP
           </h1>
-          <p className="text-iw-muted text-sm mt-1">
+          <p className="text-black text-base mt-1">
             Portal do Aluno · Centro Educacional Teológico
           </p>
         </div>
 
         {/* Card de Login */}
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-[var(--shadow-lg)] p-6 sm:p-8">
-          <h2 className="text-xl font-bold text-iw-navy mb-6">
+          <h2 className="text-2xl font-bold text-black mb-6">
             Acesse sua conta
           </h2>
 
@@ -58,7 +58,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <input type="hidden" name="redirectTo" value={redirectTo} />
             )}
             <div>
-              <Label htmlFor="email" required>E-mail</Label>
+              <Label htmlFor="email" required className="text-sm text-black">E-mail</Label>
               <TextInput
                 id="email"
                 name="email"
@@ -70,7 +70,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
 
             <div>
-              <Label htmlFor="password" required>Senha</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label htmlFor="password" required className="text-sm text-black">Senha</Label>
+                <Link
+                  href="/recuperar-senha"
+                  className="text-sm font-bold text-black hover:underline"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <PasswordInput
                 id="password"
                 name="password"
@@ -83,24 +91,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <LoginButton />
           </form>
 
-          <p className="text-center text-xs text-iw-muted mt-6">
+          <p className="text-center text-sm text-black mt-6">
             Problemas para acessar? Fale com a secretaria do CETADP.
           </p>
         </div>
 
-        <p className="text-center text-sm mt-6">
-          <Link href="/inscricao" className="text-iw-gold font-semibold hover:underline">
+        <p className="text-center text-base mt-6">
+          <Link href="/inscricao" className="text-black font-semibold hover:underline">
             Ainda não é aluno? Inscreva-se
           </Link>
         </p>
 
-        <p className="text-center text-sm mt-2">
-          <Link href="/cadastro" className="text-iw-muted font-medium hover:underline">
+        <p className="text-center text-base mt-2">
+          <Link href="/cadastro" className="text-black font-medium hover:underline">
             Não é membro do ministério? Crie uma conta para comprar cursos avulsos
           </Link>
         </p>
 
-        <p className="text-center text-iw-muted text-xs mt-6">
+        <p className="text-center text-black text-sm mt-6">
           CETADP · Portal EAD de Teologia · IgrejasWebOS
         </p>
       </div>

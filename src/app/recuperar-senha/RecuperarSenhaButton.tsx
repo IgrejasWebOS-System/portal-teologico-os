@@ -3,11 +3,11 @@
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui";
 
-export default function LoginButton() {
+export default function RecuperarSenhaButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" fullWidth size="lg" loading={pending} className="text-lg text-black">
-      Entrar
+    <Button type="submit" fullWidth size="lg" loading={pending}>
+      Enviar link de recuperação
     </Button>
   );
 }
