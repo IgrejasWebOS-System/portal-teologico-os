@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Loader2, AlertTriangle, User, Phone, Briefcase, Map, Church, Building } from "lucide-react";
 import MatriculaLookup from "../MatriculaLookup";
@@ -264,12 +265,12 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-1">
-        <a
+        <Link
           href="/dashboard/configuracoes/professores"
           className="px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
         >
           Cancelar
-        </a>
+        </Link>
         <button
           type="submit"
           disabled={isPending}
