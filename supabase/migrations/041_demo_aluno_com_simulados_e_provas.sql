@@ -7,11 +7,17 @@
 -- tela de simulados/prova ja preenchida, sem precisar refazer o
 -- fluxo manualmente.
 -- Senha padrao (mesma convencao das demais contas demo): @Cetadp748596#
+--
+-- campo_ministerio_id e os course_id do loop abaixo sao buscados
+-- dinamicamente (por nome/titulo, nao por UUID fixo) — mesmo motivo da
+-- correcao aplicada na migration 014/040: esses UUIDs sao gerados pelas
+-- migrations 005/006/008 toda vez que rodam, e variam por ambiente.
 
 do $$
 declare
   v_user_id uuid;
   v_aluno_id uuid;
+  v_campo_id uuid;
   v_matricula_num text;
   v_matricula_curso text;
   v_course record;
@@ -22,6 +28,7 @@ declare
   v_tipo text;
   v_acertos_alvo int := 8;
 begin
+  select id into v_campo_id from ead_campos_ministerios where nome = 'Campo Piracicaba Sede' limit 1;
   insert into auth.users (
     instance_id, id, aud, role, email, encrypted_password,
     email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -60,7 +67,7 @@ begin
   ) values (
     gen_random_uuid(), v_user_id, 'Aluno Demonstracao Provas', '555.666.777-88',
     'alunoprova@cetadp.teo.br', '(19) 99800-0000',
-    '284418c1-0564-4a78-8ce9-389c4bded1e3', 'Campo Piracicaba Sede', v_matricula_num,
+    v_campo_id, 'Campo Piracicaba Sede', v_matricula_num,
     'TEOLOGIA_BASICO', 'ATIVO'
   )
   returning id into v_aluno_id;
@@ -68,7 +75,7 @@ begin
   for v_course in
     select id as course_id, title
     from courses
-    where id in ('266ceb6a-1792-4ac6-921e-df4b4412b811', '90a6c3d2-bcde-469c-bd8c-dee4b7716598')
+    where title in ('Curso Teológico Básico', 'Curso Teológico Médio')
   loop
     v_matricula_curso := 'CETADP-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('ead_matricula_seq')::text, 4, '0');
 
