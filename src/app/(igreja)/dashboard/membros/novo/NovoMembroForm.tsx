@@ -291,7 +291,6 @@ export default function NovoMembroForm() {
       fetchCities("SP");
     }
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Validations on blur ───────────────────────────────────
