@@ -1,0 +1,49 @@
+{
+  "hero": {
+    "badge": "Centro Educacional Teológico Asambleas de Dios Piracicaba",
+    "tituloPrefixo": "Formación teológica",
+    "tituloDestaque": "presencial y a distancia",
+    "tituloSufixo": ", para todos los campos y ministerios.",
+    "subtitulo": "CETADP — Centro Educacional Teológico Asambleas de Dios Piracicaba — capacita a miembros, obreros y líderes evangélicos mediante cursos oficiales, actualización y teología en varios niveles, de forma presencial y a distancia.",
+    "ctaInscricao": "Hacer mi inscripción",
+    "ctaLogin": "Ya soy alumno — Iniciar sesión →",
+    "endereco": "Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080, Brasil"
+  },
+  "numeros": {
+    "igrejas": "Iglesias en el Campo de Piracicaba",
+    "membros": "Miembros de Iglesia",
+    "alunos": "Alumnos en Formación Teológica",
+    "anos": "Años de Historia (desde 1948)"
+  },
+  "servicos": {
+    "tituloSecao": "Qué Ofrecemos",
+    "subtituloSecao": "Trayectos de enseñanza teológica pensados para servir a varios campos y ministerios, dentro de un solo portal.",
+    "cursos": {
+      "titulo": "Cursos Oficiales",
+      "descricao": "Formación teológica reconocida por la institución, con carga horaria, evaluaciones y certificado al final de cada curso."
+    },
+    "reciclagem": {
+      "titulo": "Cursos de Actualización",
+      "descricao": "Actualización periódica para obreros y líderes ya formados, manteniendo la credencial ministerial vigente."
+    },
+    "teologia": {
+      "titulo": "Teología en Varios Niveles",
+      "descricao": "Trayectos de básico a avanzado, para quienes están comenzando en la obra y quienes buscan profundización ministerial."
+    },
+    "treinamento": {
+      "titulo": "Preparatorios y Capacitación",
+      "descricao": "Módulos de capacitación práctica para departamentos, ministerios y liderazgo local, según demanda de los campos."
+    }
+  },
+  "sobre": {
+    "titulo": "Sobre el CETADP",
+    "texto": "El CETADP, Centro Educacional Teológico de las Asambleas de Dios Piracicaba, está dedicado a la formación de miembros, obreros y líderes para el ejercicio del ministerio con fundamentación bíblica y teológica sólida. El Portal CETADP EAD reúne, en un solo lugar, la inscripción, la matrícula y el seguimiento del alumno desde el primer contacto hasta la conclusión del curso.",
+    "link": "Conoce nuestra historia"
+  },
+  "cta": {
+    "titulo": "¿Listo para comenzar?",
+    "texto": "Haz tu inscripción en pocos minutos y tu matrícula se confirma al instante.",
+    "ctaInscricao": "Hacer mi inscripción",
+    "ctaLogin": "Ya tengo matrícula — iniciar sesión"
+  }
+}

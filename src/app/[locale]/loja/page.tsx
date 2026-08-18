@@ -1,13 +1,15 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { ShoppingBag } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 import LojaCatalogo from "./LojaCatalogo";
 
-export const metadata = {
-  title: "Loja",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("loja");
+  return { title: t("metaTitulo") };
+}
 
 interface Produto {
   id: string;
@@ -31,6 +33,7 @@ export default async function LojaPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const t = await getTranslations("loja");
   const supabase = await createClient();
 
   const { data: produtos } = await supabase
@@ -57,19 +60,17 @@ export default async function LojaPage({
                 <ShoppingBag className="w-7 h-7 text-[#E88D0C]" />
               </div>
               <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-                Loja CETADP
+                {t("titulo")}
               </h1>
               <Link
                 href="/loja/carrinho"
                 className="text-iw-gold font-semibold text-lg hover:underline"
               >
-                Ver meu carrinho →
+                {t("verCarrinho")}
               </Link>
             </div>
             <p className="text-iw-muted text-base max-w-2xl text-center">
-              Cursos avulsos, material da biblioteca e PDFs — aberto para
-              membros do ministério e para o público em geral. Não precisa
-              ser aluno matriculado para comprar.
+              {t("subtitulo")}
             </p>
           </div>
         </section>
@@ -87,7 +88,7 @@ export default async function LojaPage({
         {(!produtos || produtos.length === 0) && (
           <section className="max-w-3xl mx-auto px-6 py-20 text-center">
             <p className="text-iw-muted text-sm">
-              Nenhum produto disponível no momento. Volte em breve.
+              {t("semProdutos")}
             </p>
           </section>
         )}

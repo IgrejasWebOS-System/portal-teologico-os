@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Send, Loader2 } from "lucide-react";
 import { submitInscricaoAction } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
@@ -31,6 +32,7 @@ const labelCls = "block text-xs font-bold text-iw-navy uppercase tracking-wider 
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useTranslations("inscricao.form");
   return (
     <button
       type="submit"
@@ -40,32 +42,41 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          Enviando inscrição...
+          {t("enviando")}
         </>
       ) : (
         <>
           <Send className="w-4 h-4" />
-          Enviar inscrição
+          {t("enviar")}
         </>
       )}
     </button>
   );
 }
 
-export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] }) {
+export default function InscricaoForm({
+  campos,
+  locale,
+}: {
+  campos: CampoMinisterio[];
+  locale: string;
+}) {
   const [cpf, setCpf] = useState("");
   const [telefone, setTelefone] = useState("");
+  const t = useTranslations("inscricao.form");
 
   return (
     <form action={submitInscricaoAction} className="flex flex-col gap-4">
+      <input type="hidden" name="locale" value={locale} />
+
       <div>
-        <label className={labelCls} htmlFor="nome_completo">Nome completo</label>
-        <input id="nome_completo" name="nome_completo" required className={inputCls} placeholder="Seu nome completo" />
+        <label className={labelCls} htmlFor="nome_completo">{t("nomeCompleto")}</label>
+        <input id="nome_completo" name="nome_completo" required className={inputCls} placeholder={t("placeholderNomeCompleto")} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={labelCls} htmlFor="cpf">CPF</label>
+          <label className={labelCls} htmlFor="cpf">{t("cpf")}</label>
           <input
             id="cpf"
             name="cpf"
@@ -76,7 +87,7 @@ export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] })
           />
         </div>
         <div>
-          <label className={labelCls} htmlFor="telefone">Telefone / WhatsApp</label>
+          <label className={labelCls} htmlFor="telefone">{t("telefone")}</label>
           <input
             id="telefone"
             name="telefone"
@@ -89,29 +100,29 @@ export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] })
       </div>
 
       <div>
-        <label className={labelCls} htmlFor="email">E-mail</label>
-        <input id="email" name="email" type="email" required className={inputCls} placeholder="seu@email.com" />
+        <label className={labelCls} htmlFor="email">{t("email")}</label>
+        <input id="email" name="email" type="email" required className={inputCls} placeholder={t("placeholderEmail")} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={labelCls} htmlFor="campo_ministerio_id">Campo / Ministério</label>
+          <label className={labelCls} htmlFor="campo_ministerio_id">{t("campoMinisterio")}</label>
           <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue="">
-            <option value="">Selecione (opcional)</option>
+            <option value="">{t("selecioneOpcional")}</option>
             {campos.map((c) => (
               <option key={c.id} value={c.id}>{c.nome}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className={labelCls} htmlFor="curso_pretendido">Curso pretendido</label>
+          <label className={labelCls} htmlFor="curso_pretendido">{t("cursoPretendido")}</label>
           <select id="curso_pretendido" name="curso_pretendido" required className={inputCls} defaultValue="">
-            <option value="" disabled>Selecione um curso</option>
+            <option value="" disabled>{t("selecioneCurso")}</option>
             {CURSOS_EAD.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
                 {c.precoMatriculaCentavos > 0
-                  ? ` — matrícula R$ ${(c.precoMatriculaCentavos / 100).toFixed(2).replace(".", ",")}`
+                  ? ` — ${t("matricula")} R$ ${(c.precoMatriculaCentavos / 100).toFixed(2).replace(".", ",")}`
                   : ""}
               </option>
             ))}
@@ -120,20 +131,18 @@ export default function InscricaoForm({ campos }: { campos: CampoMinisterio[] })
       </div>
 
       <div>
-        <label className={labelCls} htmlFor="mensagem">Mensagem (opcional)</label>
+        <label className={labelCls} htmlFor="mensagem">{t("mensagem")}</label>
         <textarea
           id="mensagem"
           name="mensagem"
           rows={3}
           className={inputCls}
-          placeholder="Conte um pouco sobre você ou sua dúvida"
+          placeholder={t("placeholderMensagem")}
         />
       </div>
 
       <p className="text-[11px] text-iw-muted leading-relaxed">
-        Seus dados ficam protegidos conforme a LGPD. Cursos sem matrícula paga
-        são confirmados na hora; cursos com matrícula paga redirecionam para o
-        pagamento e a matrícula é confirmada assim que o pagamento for aprovado.
+        {t("avisoLgpd")}
       </p>
 
       <SubmitButton />

@@ -1,0 +1,49 @@
+{
+  "hero": {
+    "badge": "Assemblies of God Theological Education Center — Piracicaba",
+    "tituloPrefixo": "Theological education",
+    "tituloDestaque": "in-person and online",
+    "tituloSufixo": ", for all fields and ministries.",
+    "subtitulo": "CETADP — Piracicaba Assemblies of God Theological Education Center — equips members, workers, and evangelical leaders through official courses, refresher training, and theology at multiple levels, both in-person and online.",
+    "ctaInscricao": "Sign Up Now",
+    "ctaLogin": "I'm already a student — Log In →",
+    "endereco": "Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080, Brazil"
+  },
+  "numeros": {
+    "igrejas": "Churches in the Piracicaba Field",
+    "membros": "Church Members",
+    "alunos": "Students in Theological Training",
+    "anos": "Years of History (since 1948)"
+  },
+  "servicos": {
+    "tituloSecao": "What We Offer",
+    "subtituloSecao": "Theological education tracks designed to serve multiple fields and ministries, all within a single portal.",
+    "cursos": {
+      "titulo": "Official Courses",
+      "descricao": "Institutionally recognized theological education, with class hours, assessments, and a certificate upon completion of each course."
+    },
+    "reciclagem": {
+      "titulo": "Refresher Courses",
+      "descricao": "Periodic updates for trained workers and leaders, keeping ministerial credentials current."
+    },
+    "teologia": {
+      "titulo": "Theology at Multiple Levels",
+      "descricao": "Tracks from basic to advanced, for those starting out in ministry and those seeking deeper training."
+    },
+    "treinamento": {
+      "titulo": "Preparatory & Training Programs",
+      "descricao": "Practical training modules for departments, ministries, and local leadership, upon request from the fields."
+    }
+  },
+  "sobre": {
+    "titulo": "About CETADP",
+    "texto": "CETADP, the Piracicaba Assemblies of God Theological Education Center, is dedicated to training members, workers, and leaders for ministry grounded in solid biblical and theological foundations. The CETADP Online Portal brings enrollment, registration, and student progress together in one place — from first contact through course completion.",
+    "link": "Learn about our history"
+  },
+  "cta": {
+    "titulo": "Ready to get started?",
+    "texto": "Sign up in just a few minutes and your enrollment is confirmed instantly.",
+    "ctaInscricao": "Sign Up Now",
+    "ctaLogin": "I already have an enrollment — log in"
+  }
+}

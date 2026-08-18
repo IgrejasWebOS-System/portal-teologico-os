@@ -1,18 +1,23 @@
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 import InscricaoForm from "./InscricaoForm";
 
-export const metadata = {
-  title: "Inscreva-se",
-};
-
 interface InscricaoPageProps {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ error?: string }>;
 }
 
-export default async function InscricaoPage({ searchParams }: InscricaoPageProps) {
+export async function generateMetadata() {
+  const t = await getTranslations("inscricao");
+  return { title: t("metaTitulo") };
+}
+
+export default async function InscricaoPage({ params, searchParams }: InscricaoPageProps) {
+  const { locale } = await params;
   const { error } = await searchParams;
+  const t = await getTranslations("inscricao");
 
   const supabase = await createClient();
   const { data: campos } = await supabase
@@ -29,11 +34,10 @@ export default async function InscricaoPage({ searchParams }: InscricaoPageProps
         <div className="w-full max-w-xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-black text-iw-navy tracking-tight">
-              Inscreva-se no CETADP
+              {t("titulo")}
             </h1>
             <p className="text-iw-muted text-sm mt-2 max-w-md mx-auto">
-              Preencha seus dados e sua matrícula é confirmada na hora — você
-              recebe o número da matrícula e o acesso ao Portal do Aluno por e-mail.
+              {t("subtitulo")}
             </p>
           </div>
 
@@ -43,7 +47,7 @@ export default async function InscricaoPage({ searchParams }: InscricaoPageProps
                 {decodeURIComponent(error)}
               </div>
             )}
-            <InscricaoForm campos={campos ?? []} />
+            <InscricaoForm campos={campos ?? []} locale={locale} />
           </div>
         </div>
       </main>

@@ -2,9 +2,17 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { hasLocale } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 export async function loginAction(formData: FormData) {
+  // getLocale() não é confiável dentro de Server Actions (não recebe o
+  // path da requisição do mesmo jeito que uma renderização de página) —
+  // por isso o idioma vem de um campo oculto preenchido pela própria
+  // página, com os parâmetros de rota (sempre corretos).
+  const localeRaw = formData.get("locale");
+  const locale = hasLocale(routing.locales, localeRaw) ? localeRaw : routing.defaultLocale;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const redirectToRaw = formData.get("redirectTo") as string | null;
@@ -14,21 +22,24 @@ export async function loginAction(formData: FormData) {
   const redirectTo = hasExplicitRedirect ? (redirectToRaw as string) : "/portal";
 
   if (!email || !password) {
-    redirect(
-      "/login?error=Preencha email e senha&redirectTo=" + encodeURIComponent(redirectTo)
-    );
+    redirect({
+      href: "/login?error=Preencha email e senha&redirectTo=" + encodeURIComponent(redirectTo),
+      locale,
+    });
   }
 
   const supabase = await createClient();
   const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(
-      "/login?error=" +
+    redirect({
+      href:
+        "/login?error=" +
         encodeURIComponent(error.message) +
         "&redirectTo=" +
-        encodeURIComponent(redirectTo)
-    );
+        encodeURIComponent(redirectTo),
+      locale,
+    });
   }
 
   // Sem link de retorno explícito: staff (secretaria/admin) cai direto no
@@ -38,7 +49,7 @@ export async function loginAction(formData: FormData) {
   if (!hasExplicitRedirect && signInData.user) {
     const isStaff = await checkIsStaff(supabase, signInData.user.id);
     if (isStaff) {
-      redirect("/admin");
+      redirect({ href: "/admin", locale });
     }
   }
 
@@ -70,11 +81,11 @@ export async function loginAction(formData: FormData) {
           .maybeSingle();
 
         if (course?.module) {
-          redirect(`/${course.module}/${matricula.course_id}`);
+          redirect({ href: `/${course.module}/${matricula.course_id}`, locale });
         }
       }
     }
   }
 
-  redirect(redirectTo);
+  redirect({ href: redirectTo, locale });
 }

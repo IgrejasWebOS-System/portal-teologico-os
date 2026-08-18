@@ -3,7 +3,14 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
+// "redirect" de next/navigation é usado só para a URL externa do Mercado
+// Pago (não é rota interna). Todo redirect pra dentro do site usa
+// "redirect" de @/i18n/navigation, que preserva o idioma — mesmo bug já
+// corrigido em login/cadastro/recuperar-senha/inscrição.
 import { redirect } from "next/navigation";
+import { redirect as localizedRedirect } from "@/i18n/navigation";
+import { hasLocale } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 // ============================================================
 // finalizarCompraAction — recebe o carrinho (JSON) de um form,
@@ -19,23 +26,28 @@ interface ItemCarrinho {
 }
 
 export async function finalizarCompraAction(formData: FormData) {
+  const localeRaw = formData.get("locale");
+  const locale = hasLocale(routing.locales, localeRaw) ? localeRaw : routing.defaultLocale;
   const itensJson = formData.get("itens") as string | null;
   const enderecoJson = formData.get("endereco") as string | null;
   const telefone = (formData.get("telefone") as string) || null;
 
   if (!itensJson) {
-    redirect("/loja?error=" + encodeURIComponent("Carrinho vazio."));
+    localizedRedirect({ href: "/loja?error=" + encodeURIComponent("Carrinho vazio."), locale });
+    return;
   }
 
   let itensCarrinho: ItemCarrinho[];
   try {
     itensCarrinho = JSON.parse(itensJson!);
   } catch {
-    redirect("/loja?error=" + encodeURIComponent("Carrinho inválido."));
+    localizedRedirect({ href: "/loja?error=" + encodeURIComponent("Carrinho inválido."), locale });
+    return;
   }
 
   if (!Array.isArray(itensCarrinho) || itensCarrinho.length === 0) {
-    redirect("/loja?error=" + encodeURIComponent("Carrinho vazio."));
+    localizedRedirect({ href: "/loja?error=" + encodeURIComponent("Carrinho vazio."), locale });
+    return;
   }
 
   const supabase = await createClient();
@@ -44,12 +56,15 @@ export async function finalizarCompraAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(
-      "/login?redirectTo=" +
+    localizedRedirect({
+      href:
+        "/login?redirectTo=" +
         encodeURIComponent("/loja/carrinho") +
         "&error=" +
-        encodeURIComponent("Faça login para finalizar a compra.")
-    );
+        encodeURIComponent("Faça login para finalizar a compra."),
+      locale,
+    });
+    return;
   }
 
   const { data: perfil } = await supabase
@@ -67,19 +82,28 @@ export async function finalizarCompraAction(formData: FormData) {
     .in("id", productIds);
 
   if (!produtos || produtos.length !== itensCarrinho.length || produtos.some((p) => p.status !== "ATIVO")) {
-    redirect("/loja?error=" + encodeURIComponent("Algum item do carrinho não está mais disponível."));
+    localizedRedirect({
+      href: "/loja?error=" + encodeURIComponent("Algum item do carrinho não está mais disponível."),
+      locale,
+    });
+    return;
   }
 
   const temItemFisico = produtos!.some((p) => p.tipo === "MATERIAL_FISICO");
   let endereco: unknown = null;
   if (temItemFisico) {
     if (!enderecoJson) {
-      redirect("/loja?error=" + encodeURIComponent("Informe o endereço de entrega para itens físicos."));
+      localizedRedirect({
+        href: "/loja?error=" + encodeURIComponent("Informe o endereço de entrega para itens físicos."),
+        locale,
+      });
+      return;
     }
     try {
       endereco = JSON.parse(enderecoJson!);
     } catch {
-      redirect("/loja?error=" + encodeURIComponent("Endereço inválido."));
+      localizedRedirect({ href: "/loja?error=" + encodeURIComponent("Endereço inválido."), locale });
+      return;
     }
   }
 
@@ -110,7 +134,11 @@ export async function finalizarCompraAction(formData: FormData) {
     .single();
 
   if (erroPedido || !pedido) {
-    redirect("/loja?error=" + encodeURIComponent("Não foi possível criar o pedido."));
+    localizedRedirect({
+      href: "/loja?error=" + encodeURIComponent("Não foi possível criar o pedido."),
+      locale,
+    });
+    return;
   }
 
   const { error: erroItens } = await admin
@@ -118,7 +146,11 @@ export async function finalizarCompraAction(formData: FormData) {
     .insert(itensParaInserir.map((item) => ({ ...item, order_id: pedido!.id })));
 
   if (erroItens) {
-    redirect("/loja?error=" + encodeURIComponent("Não foi possível registrar os itens do pedido."));
+    localizedRedirect({
+      href: "/loja?error=" + encodeURIComponent("Não foi possível registrar os itens do pedido."),
+      locale,
+    });
+    return;
   }
 
   let preferencia;
@@ -134,10 +166,13 @@ export async function finalizarCompraAction(formData: FormData) {
     });
   } catch (e) {
     console.error("[checkout] Falha ao criar preferência no Mercado Pago:", e);
-    redirect(
-      `/loja/pedido/${pedido!.id}?error=` +
-        encodeURIComponent("Erro ao iniciar o pagamento. Tente novamente.")
-    );
+    localizedRedirect({
+      href:
+        `/loja/pedido/${pedido!.id}?error=` +
+        encodeURIComponent("Erro ao iniciar o pagamento. Tente novamente."),
+      locale,
+    });
+    return;
   }
 
   await admin
@@ -145,5 +180,7 @@ export async function finalizarCompraAction(formData: FormData) {
     .update({ mercadopago_preference_id: preferencia!.id })
     .eq("id", pedido!.id);
 
+  // URL externa (Checkout Pro do Mercado Pago) — não é rota interna, usa o
+  // redirect padrão do Next (sem prefixo de idioma).
   redirect(preferencia!.sandbox_init_point || preferencia!.init_point);
 }

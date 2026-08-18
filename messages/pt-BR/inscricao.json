@@ -1,0 +1,23 @@
+{
+  "metaTitulo": "Inscreva-se",
+  "titulo": "Inscreva-se no CETADP",
+  "subtitulo": "Preencha seus dados e sua matrícula é confirmada na hora — você recebe o número da matrícula e o acesso ao Portal do Aluno por e-mail.",
+  "form": {
+    "nomeCompleto": "Nome completo",
+    "placeholderNomeCompleto": "Seu nome completo",
+    "cpf": "CPF",
+    "telefone": "Telefone / WhatsApp",
+    "email": "E-mail",
+    "placeholderEmail": "seu@email.com",
+    "campoMinisterio": "Campo / Ministério",
+    "selecioneOpcional": "Selecione (opcional)",
+    "cursoPretendido": "Curso pretendido",
+    "selecioneCurso": "Selecione um curso",
+    "matricula": "matrícula",
+    "mensagem": "Mensagem (opcional)",
+    "placeholderMensagem": "Conte um pouco sobre você ou sua dúvida",
+    "avisoLgpd": "Seus dados ficam protegidos conforme a LGPD. Cursos sem matrícula paga são confirmados na hora; cursos com matrícula paga redirecionam para o pagamento e a matrícula é confirmada assim que o pagamento for aprovado.",
+    "enviando": "Enviando inscrição...",
+    "enviar": "Enviar inscrição"
+  }
+}

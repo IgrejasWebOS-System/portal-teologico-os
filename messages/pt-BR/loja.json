@@ -1,0 +1,58 @@
+{
+  "metaTitulo": "Loja",
+  "titulo": "Loja CETADP",
+  "verCarrinho": "Ver meu carrinho →",
+  "subtitulo": "Cursos avulsos, material da biblioteca e PDFs — aberto para membros do ministério e para o público em geral. Não precisa ser aluno matriculado para comprar.",
+  "semProdutos": "Nenhum produto disponível no momento. Volte em breve.",
+  "categorias": {
+    "cursoAvulso": "Cursos Avulsos",
+    "materialFisico": "Material Físico",
+    "pdfDownload": "PDFs para Baixar",
+    "pdfVirtual": "Leitura no Portal"
+  },
+  "gratis": "Grátis",
+  "baixarGratis": "Baixar grátis",
+  "lerGratis": "Ler grátis",
+  "adicionarCarrinho": "Adicionar ao carrinho",
+  "adicionado": "Adicionado!",
+  "carrinho": {
+    "titulo": "Meu Carrinho",
+    "vazio": "Seu carrinho está vazio.",
+    "verCatalogo": "Ver catálogo",
+    "dadosCadastrais": "Dados cadastrais",
+    "nome": "Nome",
+    "email": "E-mail",
+    "naoInformado": "Não informado no cadastro",
+    "semConta": {
+      "titulo": "Você ainda não tem uma conta no portal.",
+      "texto": "Não precisa ser aluno para comprar — crie uma conta rápida (nome, e-mail e senha) para finalizar a compra de livros, apostilas e materiais da loja.",
+      "criarConta": "Criar conta",
+      "jaTenhoConta": "Já tenho conta — Entrar"
+    },
+    "telefone": "Telefone / WhatsApp",
+    "paisTelefone": "País",
+    "enderecoEntrega": "Endereço de entrega",
+    "cep": "CEP",
+    "uf": "UF",
+    "rua": "Rua",
+    "numero": "Número",
+    "complemento": "Complemento",
+    "bairro": "Bairro",
+    "cidade": "Cidade",
+    "buscandoCep": "Buscando...",
+    "resumoCompra": "Resumo da compra",
+    "cada": "cada",
+    "total": "Total",
+    "finalizarCompra": "Finalizar Compra (Mercado Pago)",
+    "loginAviso": "Você precisa estar logado para finalizar. Se ainda não tem conta,",
+    "crieUmaAqui": "crie uma aqui",
+    "removerItem": "Remover item",
+    "erroEndereco": "Preencha o endereço de entrega completo (complemento é opcional)."
+  },
+  "paises": {
+    "brasil": "Brasil",
+    "estadosUnidos": "Estados Unidos",
+    "portugal": "Portugal",
+    "argentina": "Argentina"
+  }
+}

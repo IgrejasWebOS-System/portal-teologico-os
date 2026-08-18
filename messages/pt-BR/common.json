@@ -4,5 +4,41 @@
     "pt-BR": "Português",
     "en-US": "English",
     "es-419": "Español"
+  },
+  "header": {
+    "barraTopo": "CETADP · Assembleia de Deus · Piracicaba-SP",
+    "slogan": "Uma Igreja Voltada ao Ensino",
+    "identidadeLabel": "Centro Educacional Teológico",
+    "versiculoTexto": "“Antes, crescei na graça e conhecimento de nosso Senhor e Salvador Jesus Cristo.” 2 Pe 3:18",
+    "nav": {
+      "cursos": "Cursos Oficiais",
+      "reciclagem": "Reciclagem",
+      "teologia": "Teologia (níveis)",
+      "biblioteca": "Biblioteca",
+      "loja": "Loja",
+      "sobre": "Quem Somos"
+    },
+    "entrar": "Fazer Login",
+    "inscrevaSe": "Inscreva-se",
+    "meuPortal": "Meu Portal",
+    "carrinho": "Carrinho",
+    "abrirMenu": "Abrir menu"
+  },
+  "footer": {
+    "descricao": "Centro Educacional Teológico das Assembleias de Deus Piracicaba — capacitação de membros, obreiros e líderes evangélicos através de cursos oficiais, reciclagem e formação teológica em vários níveis.",
+    "ensino": "Ensino",
+    "institucional": "Institucional",
+    "nav": {
+      "cursos": "Cursos Oficiais",
+      "reciclagem": "Cursos de Reciclagem",
+      "teologia": "Teologia — Níveis",
+      "biblioteca": "Biblioteca",
+      "certificados": "Validar Certificado",
+      "sobre": "Quem Somos",
+      "inscricao": "Inscreva-se",
+      "login": "Portal do Aluno"
+    },
+    "copyright": "© 2026 CETADP · Centro Educacional Teológico das Assembleias de Deus Piracicaba",
+    "portalEad": "Portal EAD · IgrejasWebOS"
   }
 }

@@ -1,0 +1,23 @@
+{
+  "metaTitulo": "Apply Now",
+  "titulo": "Apply to CETADP",
+  "subtitulo": "Fill in your details and your enrollment is confirmed right away — you'll receive your enrollment number and Student Portal access by email.",
+  "form": {
+    "nomeCompleto": "Full name",
+    "placeholderNomeCompleto": "Your full name",
+    "cpf": "CPF (Brazilian ID)",
+    "telefone": "Phone / WhatsApp",
+    "email": "Email",
+    "placeholderEmail": "you@email.com",
+    "campoMinisterio": "Field / Ministry",
+    "selecioneOpcional": "Select (optional)",
+    "cursoPretendido": "Desired course",
+    "selecioneCurso": "Select a course",
+    "matricula": "enrollment fee",
+    "mensagem": "Message (optional)",
+    "placeholderMensagem": "Tell us a bit about yourself or your question",
+    "avisoLgpd": "Your data is protected under Brazil's LGPD. Courses with no enrollment fee are confirmed right away; courses with an enrollment fee redirect to payment, and enrollment is confirmed once payment is approved.",
+    "enviando": "Submitting application...",
+    "enviar": "Submit application"
+  }
+}

@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { hasLocale } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 // ============================================================
 // Recuperação de senha — sempre redireciona para a mesma tela de
@@ -18,13 +20,17 @@ import { redirect } from "next/navigation";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function recuperarSenhaAction(formData: FormData) {
+  // getLocale() não é confiável em Server Actions — idioma vem de campo
+  // oculto preenchido pela página com os parâmetros de rota.
+  const localeRaw = formData.get("locale");
+  const locale = hasLocale(routing.locales, localeRaw) ? localeRaw : routing.defaultLocale;
   const email = (formData.get("email") as string || "").trim();
 
   if (!email || !EMAIL_REGEX.test(email)) {
-    redirect(
-      "/recuperar-senha?error=" +
-        encodeURIComponent("Informe um e-mail válido.")
-    );
+    redirect({
+      href: "/recuperar-senha?error=" + encodeURIComponent("Informe um e-mail válido."),
+      locale,
+    });
   }
 
   const supabase = await createClient();
@@ -35,5 +41,5 @@ export async function recuperarSenhaAction(formData: FormData) {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
   });
 
-  redirect("/recuperar-senha/confirme");
+  redirect({ href: "/recuperar-senha/confirme", locale });
 }

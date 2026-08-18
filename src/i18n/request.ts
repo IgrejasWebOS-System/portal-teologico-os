@@ -6,7 +6,7 @@ import { routing } from "./routing";
 // Cada novo módulo (auth, home, academy, financeiro...) entra nesta
 // lista quando a Fase 1/2 traduzir aquele módulo. Manter separado por
 // namespace evita carregar um dicionário gigante numa página simples.
-const NAMESPACES = ["common"] as const;
+const NAMESPACES = ["common", "home", "auth", "sobre", "inscricao", "loja"] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;

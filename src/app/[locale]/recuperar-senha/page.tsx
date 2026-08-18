@@ -1,19 +1,24 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import Logo from "@/components/Logo";
 import { Label, TextInput } from "@/components/ui";
 import RecuperarSenhaButton from "./RecuperarSenhaButton";
 import { recuperarSenhaAction } from "./actions";
 
-export const metadata = {
-  title: "Recuperar senha",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("auth.recuperarSenha");
+  return { title: t("titulo") };
+}
 
 interface PageProps {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ error?: string }>;
 }
 
-export default async function RecuperarSenhaPage({ searchParams }: PageProps) {
+export default async function RecuperarSenhaPage({ params, searchParams }: PageProps) {
+  const { locale } = await params;
   const { error } = await searchParams;
+  const t = await getTranslations("auth");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
@@ -23,7 +28,7 @@ export default async function RecuperarSenhaPage({ searchParams }: PageProps) {
             href="/login"
             className="inline-flex items-center gap-1.5 text-iw-muted hover:text-iw-navy text-xs font-medium transition-colors"
           >
-            ← Voltar para o login
+            {t("recuperarSenha.voltarLogin")}
           </Link>
         </div>
 
@@ -32,11 +37,10 @@ export default async function RecuperarSenhaPage({ searchParams }: PageProps) {
             <Logo size="lg" variant="dark" shape="circle" />
           </div>
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-            Recuperar senha
+            {t("recuperarSenha.titulo")}
           </h1>
           <p className="text-iw-muted text-sm mt-1">
-            Informe o e-mail da sua conta. Enviaremos um link para você
-            definir uma nova senha.
+            {t("recuperarSenha.subtitulo")}
           </p>
         </div>
 
@@ -48,15 +52,16 @@ export default async function RecuperarSenhaPage({ searchParams }: PageProps) {
           )}
 
           <form action={recuperarSenhaAction} className="flex flex-col gap-5">
+            <input type="hidden" name="locale" value={locale} />
             <div>
-              <Label htmlFor="email" required>E-mail</Label>
+              <Label htmlFor="email" required>{t("recuperarSenha.email")}</Label>
               <TextInput
                 id="email"
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="seu@email.com"
+                placeholder={t("recuperarSenha.placeholderEmail")}
               />
             </div>
 
@@ -65,7 +70,7 @@ export default async function RecuperarSenhaPage({ searchParams }: PageProps) {
         </div>
 
         <p className="text-center text-iw-muted text-xs mt-6">
-          CETADP · Portal EAD de Teologia · IgrejasWebOS
+          {t("rodape")}
         </p>
       </div>
     </div>

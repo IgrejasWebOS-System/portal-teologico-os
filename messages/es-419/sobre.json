@@ -1,0 +1,39 @@
+{
+  "metaTitulo": "Quiénes Somos",
+  "hero": {
+    "titulo": "¿Quién es el CETADP?",
+    "texto": "El Centro Educativo Teológico de las Asambleas de Dios Piracicaba es la institución de enseñanza teológica dedicada a la capacitación de miembros, obreros y líderes evangélicos, de manera presencial y a distancia."
+  },
+  "pilares": {
+    "missao": {
+      "titulo": "Misión",
+      "texto": "Capacitar a miembros, obreros y líderes de las Asambleas de Dios en Piracicaba con una formación teológica sólida, de manera presencial y a distancia."
+    },
+    "ensino": {
+      "titulo": "Enseñanza",
+      "texto": "Cursos oficiales, actualización periódica y teología en niveles progresivos — desde lo básico hasta lo avanzado."
+    },
+    "alcance": {
+      "titulo": "Alcance",
+      "texto": "Un único portal al servicio de varios campos y ministerios, para que la distancia nunca sea un obstáculo para la formación."
+    }
+  },
+  "diretoria": {
+    "titulo": "Junta Directiva del CETADP",
+    "subtitulo": "Liderazgo responsable de la conducción institucional, académica y administrativa del centro educativo.",
+    "cargos": {
+      "presidente": "Presidente",
+      "primeiroVicePresidente": "1.er Vicepresidente",
+      "segundoVicePresidente": "2.º Vicepresidente",
+      "secretario": "Secretario",
+      "tesouraria": "Tesorería",
+      "conselhoFiscal": "Consejo Fiscal",
+      "conselhoTeologico": "Consejo Teológico"
+    }
+  },
+  "cta": {
+    "titulo": "¿Quiere estudiar con el CETADP?",
+    "texto": "Realice su inscripción y la secretaría se pondrá en contacto con los próximos pasos.",
+    "botao": "Hacer mi inscripción"
+  }
+}

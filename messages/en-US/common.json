@@ -4,5 +4,41 @@
     "pt-BR": "Português",
     "en-US": "English",
     "es-419": "Español"
+  },
+  "header": {
+    "barraTopo": "CETADP · Assembly of God · Piracicaba-SP",
+    "slogan": "A Church Devoted to Teaching",
+    "identidadeLabel": "Theological Education Center",
+    "versiculoTexto": "“But grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ.” 2 Peter 3:18",
+    "nav": {
+      "cursos": "Official Courses",
+      "reciclagem": "Refresher Courses",
+      "teologia": "Theology (levels)",
+      "biblioteca": "Library",
+      "loja": "Store",
+      "sobre": "About Us"
+    },
+    "entrar": "Log In",
+    "inscrevaSe": "Sign Up",
+    "meuPortal": "My Portal",
+    "carrinho": "Cart",
+    "abrirMenu": "Open menu"
+  },
+  "footer": {
+    "descricao": "Piracicaba Assemblies of God Theological Education Center — equipping members, workers, and evangelical leaders through official courses, refresher training, and theological education at multiple levels.",
+    "ensino": "Education",
+    "institucional": "Institutional",
+    "nav": {
+      "cursos": "Official Courses",
+      "reciclagem": "Refresher Courses",
+      "teologia": "Theology — Levels",
+      "biblioteca": "Library",
+      "certificados": "Verify Certificate",
+      "sobre": "About Us",
+      "inscricao": "Sign Up",
+      "login": "Student Portal"
+    },
+    "copyright": "© 2026 CETADP · Piracicaba Assemblies of God Theological Education Center",
+    "portalEad": "Online Portal · IgrejasWebOS"
   }
 }

@@ -1,12 +1,16 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { MailCheck } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export const metadata = {
-  title: "Verifique seu e-mail",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("auth.confirmeRecuperacao");
+  return { title: t("titulo") };
+}
 
 export default function ConfirmeRecuperacaoPage() {
+  const t = useTranslations("auth");
   return (
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
       <div className="w-full max-w-md text-center">
@@ -19,23 +23,21 @@ export default function ConfirmeRecuperacaoPage() {
             <MailCheck className="w-7 h-7 text-[#E88D0C]" />
           </div>
           <h1 className="text-xl font-black text-iw-navy mb-2">
-            Verifique seu e-mail
+            {t("confirmeRecuperacao.titulo")}
           </h1>
           <p className="text-iw-muted text-sm leading-relaxed mb-6">
-            Se houver uma conta cadastrada com o e-mail informado, você vai
-            receber um link para definir uma nova senha em alguns minutos.
-            Confira também a caixa de spam.
+            {t("confirmeRecuperacao.texto")}
           </p>
           <Link
             href="/login"
             className="inline-block border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
           >
-            Voltar para o login
+            {t("confirmeRecuperacao.voltarLogin")}
           </Link>
         </div>
 
         <p className="text-center text-iw-muted text-xs mt-6">
-          CETADP · Portal EAD de Teologia · IgrejasWebOS
+          {t("rodape")}
         </p>
       </div>
     </div>
