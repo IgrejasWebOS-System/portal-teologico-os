@@ -1,0 +1,23 @@
+{
+  "metaTitulo": "Inscríbete",
+  "titulo": "Inscríbete en el CETADP",
+  "subtitulo": "Complete sus datos y su matrícula se confirma al instante — recibirá el número de matrícula y el acceso al Portal del Alumno por correo electrónico.",
+  "form": {
+    "nomeCompleto": "Nombre completo",
+    "placeholderNomeCompleto": "Su nombre completo",
+    "cpf": "CPF (documento brasileño)",
+    "telefone": "Teléfono / WhatsApp",
+    "email": "Correo electrónico",
+    "placeholderEmail": "su@correo.com",
+    "campoMinisterio": "Campo / Ministerio",
+    "selecioneOpcional": "Seleccione (opcional)",
+    "cursoPretendido": "Curso deseado",
+    "selecioneCurso": "Seleccione un curso",
+    "matricula": "matrícula",
+    "mensagem": "Mensaje (opcional)",
+    "placeholderMensagem": "Cuéntenos un poco sobre usted o su duda",
+    "avisoLgpd": "Sus datos están protegidos conforme a la LGPD de Brasil. Los cursos sin matrícula pagada se confirman al instante; los cursos con matrícula pagada redirigen al pago, y la matrícula se confirma en cuanto se apruebe el pago.",
+    "enviando": "Enviando inscripción...",
+    "enviar": "Enviar inscripción"
+  }
+}

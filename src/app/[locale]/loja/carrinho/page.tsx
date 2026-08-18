@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Trash2, Loader2 } from "lucide-react";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
@@ -35,11 +36,11 @@ const ENDERECO_VAZIO: Endereco = {
 // "0" = dígito. Ao trocar o país, a máscara muda junto.
 
 const PAISES_TELEFONE = [
-  { ddi: "+55", nome: "Brasil", mascara: "(00) 0 0000-0000", digitos: 11 },
-  { ddi: "+1", nome: "Estados Unidos", mascara: "(000) 000-0000", digitos: 10 },
-  { ddi: "+351", nome: "Portugal", mascara: "000 000 000", digitos: 9 },
-  { ddi: "+54", nome: "Argentina", mascara: "00 0000-0000", digitos: 10 },
-];
+  { ddi: "+55", key: "brasil", mascara: "(00) 0 0000-0000", digitos: 11 },
+  { ddi: "+1", key: "estadosUnidos", mascara: "(000) 000-0000", digitos: 10 },
+  { ddi: "+351", key: "portugal", mascara: "000 000 000", digitos: 9 },
+  { ddi: "+54", key: "argentina", mascara: "00 0000-0000", digitos: 10 },
+] as const;
 
 function aplicarMascaraTelefone(digitos: string, mascara: string) {
   let saida = "";
@@ -61,6 +62,9 @@ function aplicarMascaraCep(digitos: string) {
 }
 
 export default function CarrinhoPage() {
+  const locale = useLocale();
+  const t = useTranslations("loja.carrinho");
+  const tPaises = useTranslations("loja.paises");
   const { itens, recarregar } = useCarrinho();
   const [isPending, startTransition] = useTransition();
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
@@ -130,12 +134,15 @@ export default function CarrinhoPage() {
       const obrigatorios: (keyof Endereco)[] = ["cep", "rua", "numero", "bairro", "cidade", "uf"];
       const faltando = obrigatorios.some((campo) => !endereco[campo].trim());
       if (faltando) {
-        setErro("Preencha o endereço de entrega completo (complemento é opcional).");
+        setErro(t("erroEndereco"));
         return;
       }
     }
 
     const formData = new FormData();
+    // Chamada direta da Server Action via JS (não <form action>), então o
+    // locale vem do hook useLocale() do next-intl, não de campo oculto.
+    formData.set("locale", locale);
     formData.set(
       "itens",
       JSON.stringify(itens.map((i) => ({ productId: i.productId, quantidade: i.quantidade })))
@@ -153,7 +160,7 @@ export default function CarrinhoPage() {
       <PublicHeader />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-        <h1 className="text-2xl font-black tracking-tight mb-6">Meu Carrinho</h1>
+        <h1 className="text-2xl font-black tracking-tight mb-6">{t("titulo")}</h1>
 
         {erro && (
           <div className="mb-4 p-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm">
@@ -163,29 +170,29 @@ export default function CarrinhoPage() {
 
         {itens.length === 0 ? (
           <div className="bg-iw-bg border border-iw-border rounded-2xl p-10 text-center">
-            <p className="text-iw-muted text-sm mb-4">Seu carrinho está vazio.</p>
+            <p className="text-iw-muted text-sm mb-4">{t("vazio")}</p>
             <Link href="/loja" className="text-iw-gold font-semibold hover:underline">
-              Ver catálogo
+              {t("verCatalogo")}
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* ── Coluna esquerda: dados cadastrais ── */}
             <div className="lg:col-span-7 bg-iw-bg border border-iw-border rounded-2xl p-6">
-              <h2 className="font-extrabold text-sm text-iw-navy mb-4">Dados cadastrais</h2>
+              <h2 className="font-extrabold text-sm text-iw-navy mb-4">{t("dadosCadastrais")}</h2>
 
               {!carregandoUsuario && usuario && (
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div className="col-span-2">
-                    <Label htmlFor="nome-comprador">Nome</Label>
+                    <Label htmlFor="nome-comprador">{t("nome")}</Label>
                     <TextInput
                       id="nome-comprador"
-                      value={usuario.nome ?? "Não informado no cadastro"}
+                      value={usuario.nome ?? t("naoInformado")}
                       disabled
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="email-comprador">E-mail</Label>
+                    <Label htmlFor="email-comprador">{t("email")}</Label>
                     <TextInput id="email-comprador" value={usuario.email ?? ""} disabled />
                   </div>
                 </div>
@@ -194,34 +201,33 @@ export default function CarrinhoPage() {
               {!carregandoUsuario && !usuario && (
                 <div className="mb-5 p-4 rounded-lg bg-iw-gold/10 border border-iw-gold/40">
                   <p className="text-sm text-iw-navy font-semibold mb-1">
-                    Você ainda não tem uma conta no portal.
+                    {t("semConta.titulo")}
                   </p>
                   <p className="text-xs text-iw-muted mb-3">
-                    Não precisa ser aluno para comprar — crie uma conta rápida (nome, e-mail e
-                    senha) para finalizar a compra de livros, apostilas e materiais da loja.
+                    {t("semConta.texto")}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href="/cadastro?redirectTo=%2Floja%2Fcarrinho"
                       className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-lg transition-opacity border border-black"
                     >
-                      Criar conta
+                      {t("semConta.criarConta")}
                     </Link>
                     <Link
                       href="/login?redirectTo=%2Floja%2Fcarrinho"
                       className="border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors"
                     >
-                      Já tenho conta — Entrar
+                      {t("semConta.jaTenhoConta")}
                     </Link>
                   </div>
                 </div>
               )}
 
               <div className="mb-5">
-                <Label htmlFor="telefone">Telefone / WhatsApp</Label>
+                <Label htmlFor="telefone">{t("telefone")}</Label>
                 <div className="flex gap-2">
                   <SelectInput
-                    aria-label="País"
+                    aria-label={t("paisTelefone")}
                     value={ddi}
                     onChange={(e) => {
                       setDdi(e.target.value);
@@ -230,7 +236,7 @@ export default function CarrinhoPage() {
                     className="w-28 shrink-0"
                   >
                     {PAISES_TELEFONE.map((p) => (
-                      <option key={p.ddi} value={p.ddi}>
+                      <option key={p.ddi} value={p.ddi} title={tPaises(p.key)}>
                         {p.ddi}
                       </option>
                     ))}
@@ -250,16 +256,16 @@ export default function CarrinhoPage() {
               {temItemFisico && (
                 <>
                   <h3 className="font-extrabold text-sm text-iw-navy mb-4 mt-6">
-                    Endereço de entrega
+                    {t("enderecoEntrega")}
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="cep" required>CEP</Label>
+                      <Label htmlFor="cep" required>{t("cep")}</Label>
                       <TextInput
                         id="cep"
                         value={endereco.cep}
                         maxLength={9}
-                        placeholder={loadingCep ? "Buscando..." : "00000-000"}
+                        placeholder={loadingCep ? t("buscandoCep") : "00000-000"}
                         rightAddon={loadingCep ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
                         onChange={(e) => {
                           const digitos = e.target.value.replace(/\D/g, "").slice(0, 8);
@@ -269,7 +275,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="uf" required>UF</Label>
+                      <Label htmlFor="uf" required>{t("uf")}</Label>
                       <TextInput
                         id="uf"
                         maxLength={2}
@@ -280,7 +286,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="rua" required>Rua</Label>
+                      <Label htmlFor="rua" required>{t("rua")}</Label>
                       <TextInput
                         id="rua"
                         uppercase
@@ -289,7 +295,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="numero" required>Número</Label>
+                      <Label htmlFor="numero" required>{t("numero")}</Label>
                       <TextInput
                         id="numero"
                         uppercase
@@ -298,7 +304,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="complemento">Complemento</Label>
+                      <Label htmlFor="complemento">{t("complemento")}</Label>
                       <TextInput
                         id="complemento"
                         uppercase
@@ -307,7 +313,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="bairro" required>Bairro</Label>
+                      <Label htmlFor="bairro" required>{t("bairro")}</Label>
                       <TextInput
                         id="bairro"
                         uppercase
@@ -316,7 +322,7 @@ export default function CarrinhoPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cidade" required>Cidade</Label>
+                      <Label htmlFor="cidade" required>{t("cidade")}</Label>
                       <TextInput
                         id="cidade"
                         uppercase
@@ -331,7 +337,7 @@ export default function CarrinhoPage() {
 
             {/* ── Coluna direita: resumo da compra ── */}
             <div className="lg:col-span-5 bg-iw-bg border border-iw-border rounded-2xl p-6 lg:sticky lg:top-24">
-              <h2 className="font-extrabold text-sm text-iw-navy mb-4">Resumo da compra</h2>
+              <h2 className="font-extrabold text-sm text-iw-navy mb-4">{t("resumoCompra")}</h2>
 
               <ul className="divide-y divide-iw-border border border-iw-border rounded-xl overflow-hidden mb-5 max-h-64 overflow-y-auto">
                 {itens.map((item) => (
@@ -342,7 +348,7 @@ export default function CarrinhoPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-iw-navy truncate">{item.titulo}</p>
                       <p className="text-xs text-iw-muted">
-                        R$ {(item.precoCentavos / 100).toFixed(2).replace(".", ",")} cada
+                        R$ {(item.precoCentavos / 100).toFixed(2).replace(".", ",")} {t("cada")}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -361,7 +367,7 @@ export default function CarrinhoPage() {
                           removerDoCarrinho(item.productId);
                           recarregar();
                         }}
-                        aria-label="Remover item"
+                        aria-label={t("removerItem")}
                         className="text-iw-error hover:opacity-70 transition-opacity"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -372,21 +378,20 @@ export default function CarrinhoPage() {
               </ul>
 
               <div className="flex items-center justify-between mb-5">
-                <span className="font-bold text-iw-navy">Total</span>
+                <span className="font-bold text-iw-navy">{t("total")}</span>
                 <span className="font-black text-xl text-iw-navy">
                   R$ {(totalCentavos / 100).toFixed(2).replace(".", ",")}
                 </span>
               </div>
 
               <Button fullWidth size="lg" loading={isPending} onClick={handleFinalizar}>
-                Finalizar Compra (Mercado Pago)
+                {t("finalizarCompra")}
               </Button>
 
               <p className="text-center text-base text-iw-muted mt-4">
-                Você precisa estar logado para finalizar. Se ainda não tem
-                conta,{" "}
+                {t("loginAviso")}{" "}
                 <Link href="/cadastro?redirectTo=%2Floja%2Fcarrinho" className="text-iw-gold font-semibold hover:underline">
-                  crie uma aqui
+                  {t("crieUmaAqui")}
                 </Link>
                 .
               </p>

@@ -1,16 +1,19 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import Logo from "@/components/Logo";
 import { Label, TextInput, PasswordInput } from "@/components/ui";
 import CadastroButton from "./CadastroButton";
 import { cadastroAction } from "./actions";
 
 interface CadastroPageProps {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }
 
-export const metadata = {
-  title: "Criar Conta",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("auth.cadastro");
+  return { title: t("titulo") };
+}
 
 // ============================================================
 // /cadastro — cadastro público autosserviço, para quem não é
@@ -19,8 +22,10 @@ export const metadata = {
 // (diferente de /inscricao) — a conta já nasce ativa; o acesso ao
 // conteúdo pago é liberado depois, quando o pagamento é confirmado.
 // ============================================================
-export default async function CadastroPage({ searchParams }: CadastroPageProps) {
+export default async function CadastroPage({ params, searchParams }: CadastroPageProps) {
+  const { locale } = await params;
   const { error, redirectTo } = await searchParams;
+  const t = await getTranslations("auth");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
@@ -30,7 +35,7 @@ export default async function CadastroPage({ searchParams }: CadastroPageProps) 
             href="/"
             className="inline-flex items-center gap-1.5 text-iw-muted hover:text-iw-navy text-xs font-medium transition-colors"
           >
-            ← Voltar para o início
+            {t("cadastro.voltarInicio")}
           </Link>
         </div>
 
@@ -39,10 +44,10 @@ export default async function CadastroPage({ searchParams }: CadastroPageProps) 
             <Logo size="lg" variant="dark" shape="circle" />
           </div>
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
-            Criar conta
+            {t("cadastro.titulo")}
           </h1>
           <p className="text-iw-muted text-sm mt-1">
-            Para comprar cursos avulsos e material da biblioteca do CETADP.
+            {t("cadastro.subtitulo")}
           </p>
         </div>
 
@@ -54,54 +59,55 @@ export default async function CadastroPage({ searchParams }: CadastroPageProps) 
           )}
 
           <form action={cadastroAction} className="flex flex-col gap-5">
+            <input type="hidden" name="locale" value={locale} />
             {redirectTo && (
               <input type="hidden" name="redirectTo" value={redirectTo} />
             )}
             <div>
-              <Label htmlFor="nome" required>Nome completo</Label>
+              <Label htmlFor="nome" required>{t("cadastro.nomeCompleto")}</Label>
               <TextInput
                 id="nome"
                 name="nome"
                 type="text"
                 required
                 autoComplete="name"
-                placeholder="Seu nome completo"
+                placeholder={t("cadastro.placeholderNome")}
               />
             </div>
 
             <div>
-              <Label htmlFor="email" required>E-mail</Label>
+              <Label htmlFor="email" required>{t("cadastro.email")}</Label>
               <TextInput
                 id="email"
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="seu@email.com"
+                placeholder={t("cadastro.placeholderEmail")}
               />
             </div>
 
             <div>
-              <Label htmlFor="senha" required>Senha</Label>
+              <Label htmlFor="senha" required>{t("cadastro.senha")}</Label>
               <PasswordInput
                 id="senha"
                 name="senha"
                 required
                 minLength={6}
                 autoComplete="new-password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t("cadastro.placeholderSenhaMin")}
               />
             </div>
 
             <div>
-              <Label htmlFor="confirmar" required>Confirmar senha</Label>
+              <Label htmlFor="confirmar" required>{t("cadastro.confirmarSenha")}</Label>
               <PasswordInput
                 id="confirmar"
                 name="confirmar"
                 required
                 minLength={6}
                 autoComplete="new-password"
-                placeholder="Repita a senha"
+                placeholder={t("cadastro.placeholderRepitaSenha")}
               />
             </div>
 
@@ -109,19 +115,18 @@ export default async function CadastroPage({ searchParams }: CadastroPageProps) 
           </form>
 
           <p className="text-center text-xs text-iw-muted mt-6">
-            É membro de uma igreja do ministério e quer o curso teológico
-            oficial? <Link href="/inscricao" className="text-iw-gold font-semibold hover:underline">Faça sua inscrição aqui</Link>.
+            {t("cadastro.ehMembro")} <Link href="/inscricao" className="text-iw-gold font-semibold hover:underline">{t("cadastro.facaInscricaoAqui")}</Link>.
           </p>
         </div>
 
         <p className="text-center text-sm mt-6">
           <Link href="/login" className="text-iw-gold font-semibold hover:underline">
-            Já tenho conta — fazer login
+            {t("cadastro.jaTenhoConta")}
           </Link>
         </p>
 
         <p className="text-center text-iw-muted text-xs mt-6">
-          CETADP · Portal EAD de Teologia · IgrejasWebOS
+          {t("rodape")}
         </p>
       </div>
     </div>

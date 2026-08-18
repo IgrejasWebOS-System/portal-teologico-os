@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui";
 import { adicionarAoCarrinho, type TipoProduto } from "@/utils/carrinho";
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function AdicionarAoCarrinhoBotao({ productId, titulo, precoCentavos, tipo }: Props) {
+  const t = useTranslations("loja");
   const [adicionado, setAdicionado] = useState(false);
 
   function handleClick() {
@@ -29,7 +31,7 @@ export default function AdicionarAoCarrinhoBotao({ productId, titulo, precoCenta
       onClick={handleClick}
       fullWidth
     >
-      {adicionado ? "Adicionado!" : "Adicionar ao carrinho"}
+      {adicionado ? t("adicionado") : t("adicionarCarrinho")}
     </Button>
   );
 }

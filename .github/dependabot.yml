@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Dependências npm do portal-teologico-os
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    # Agrupa updates de patch/minor num único PR por semana, para não
+    # inundar o repositório de PRs individuais — updates major continuam
+    # vindo em PR separado, para revisão manual obrigatória.
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Actions usadas em .github/workflows/ci.yml
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"

@@ -1,0 +1,58 @@
+{
+  "metaTitulo": "Tienda",
+  "titulo": "Tienda CETADP",
+  "verCarrinho": "Ver mi carrito →",
+  "subtitulo": "Cursos sueltos, material de la biblioteca y PDFs — abierto para miembros del ministerio y para el público en general. No es necesario ser alumno matriculado para comprar.",
+  "semProdutos": "No hay productos disponibles por el momento. Vuelva pronto.",
+  "categorias": {
+    "cursoAvulso": "Cursos Sueltos",
+    "materialFisico": "Material Físico",
+    "pdfDownload": "PDFs para Descargar",
+    "pdfVirtual": "Lectura en el Portal"
+  },
+  "gratis": "Gratis",
+  "baixarGratis": "Descargar gratis",
+  "lerGratis": "Leer gratis",
+  "adicionarCarrinho": "Agregar al carrito",
+  "adicionado": "¡Agregado!",
+  "carrinho": {
+    "titulo": "Mi Carrito",
+    "vazio": "Su carrito está vacío.",
+    "verCatalogo": "Ver catálogo",
+    "dadosCadastrais": "Datos de la cuenta",
+    "nome": "Nombre",
+    "email": "Correo electrónico",
+    "naoInformado": "No informado en el registro",
+    "semConta": {
+      "titulo": "Todavía no tiene una cuenta en el portal.",
+      "texto": "No necesita ser alumno para comprar — cree una cuenta rápida (nombre, correo y contraseña) para completar la compra de libros, materiales y productos de la tienda.",
+      "criarConta": "Crear cuenta",
+      "jaTenhoConta": "Ya tengo cuenta — Iniciar sesión"
+    },
+    "telefone": "Teléfono / WhatsApp",
+    "paisTelefone": "País",
+    "enderecoEntrega": "Dirección de envío (solo Brasil)",
+    "cep": "Código postal (CEP)",
+    "uf": "Estado (UF)",
+    "rua": "Calle",
+    "numero": "Número",
+    "complemento": "Complemento",
+    "bairro": "Barrio",
+    "cidade": "Ciudad",
+    "buscandoCep": "Buscando...",
+    "resumoCompra": "Resumen de la compra",
+    "cada": "cada uno",
+    "total": "Total",
+    "finalizarCompra": "Finalizar Compra (Mercado Pago)",
+    "loginAviso": "Necesita iniciar sesión para finalizar. Si aún no tiene cuenta,",
+    "crieUmaAqui": "cree una aquí",
+    "removerItem": "Eliminar artículo",
+    "erroEndereco": "Complete la dirección de envío completa (el complemento es opcional)."
+  },
+  "paises": {
+    "brasil": "Brasil",
+    "estadosUnidos": "Estados Unidos",
+    "portugal": "Portugal",
+    "argentina": "Argentina"
+  }
+}

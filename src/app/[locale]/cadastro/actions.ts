@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { hasLocale } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 // ============================================================
 // cadastroAction — cadastro público autosserviço, para pessoas
@@ -16,6 +18,10 @@ import { redirect } from "next/navigation";
 // ============================================================
 
 export async function cadastroAction(formData: FormData) {
+  // getLocale() não é confiável em Server Actions — idioma vem de campo
+  // oculto preenchido pela página com os parâmetros de rota.
+  const localeRaw = formData.get("locale");
+  const locale = hasLocale(routing.locales, localeRaw) ? localeRaw : routing.defaultLocale;
   const nome = (formData.get("nome") as string)?.trim();
   const email = (formData.get("email") as string)?.trim();
   const senha = formData.get("senha") as string;
@@ -28,15 +34,24 @@ export async function cadastroAction(formData: FormData) {
       : "/portal";
 
   if (!nome || !email || !senha || !confirmar) {
-    redirect("/cadastro?error=" + encodeURIComponent("Preencha todos os campos."));
+    redirect({
+      href: "/cadastro?error=" + encodeURIComponent("Preencha todos os campos."),
+      locale,
+    });
   }
 
   if (senha.length < 6) {
-    redirect("/cadastro?error=" + encodeURIComponent("A senha precisa ter pelo menos 6 caracteres."));
+    redirect({
+      href: "/cadastro?error=" + encodeURIComponent("A senha precisa ter pelo menos 6 caracteres."),
+      locale,
+    });
   }
 
   if (senha !== confirmar) {
-    redirect("/cadastro?error=" + encodeURIComponent("As senhas não coincidem."));
+    redirect({
+      href: "/cadastro?error=" + encodeURIComponent("As senhas não coincidem."),
+      locale,
+    });
   }
 
   const supabase = await createClient();
@@ -51,8 +66,8 @@ export async function cadastroAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/cadastro?error=" + encodeURIComponent(error.message));
+    redirect({ href: "/cadastro?error=" + encodeURIComponent(error.message), locale });
   }
 
-  redirect("/cadastro/confirme-email");
+  redirect({ href: "/cadastro/confirme-email", locale });
 }

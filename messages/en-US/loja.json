@@ -1,0 +1,58 @@
+{
+  "metaTitulo": "Store",
+  "titulo": "CETADP Store",
+  "verCarrinho": "View my cart →",
+  "subtitulo": "Standalone courses, library materials, and PDFs — open to ministry members and the general public. You don't need to be an enrolled student to buy.",
+  "semProdutos": "No products available right now. Check back soon.",
+  "categorias": {
+    "cursoAvulso": "Standalone Courses",
+    "materialFisico": "Physical Materials",
+    "pdfDownload": "Downloadable PDFs",
+    "pdfVirtual": "Read in the Portal"
+  },
+  "gratis": "Free",
+  "baixarGratis": "Download free",
+  "lerGratis": "Read free",
+  "adicionarCarrinho": "Add to cart",
+  "adicionado": "Added!",
+  "carrinho": {
+    "titulo": "My Cart",
+    "vazio": "Your cart is empty.",
+    "verCatalogo": "View catalog",
+    "dadosCadastrais": "Account details",
+    "nome": "Name",
+    "email": "Email",
+    "naoInformado": "Not provided",
+    "semConta": {
+      "titulo": "You don't have a portal account yet.",
+      "texto": "You don't need to be a student to buy — create a quick account (name, email, and password) to complete your purchase of books, materials, and store items.",
+      "criarConta": "Create account",
+      "jaTenhoConta": "I already have an account — Log in"
+    },
+    "telefone": "Phone / WhatsApp",
+    "paisTelefone": "Country",
+    "enderecoEntrega": "Shipping address (Brazil only)",
+    "cep": "Postal code (CEP)",
+    "uf": "State (UF)",
+    "rua": "Street",
+    "numero": "Number",
+    "complemento": "Apt/Suite",
+    "bairro": "Neighborhood",
+    "cidade": "City",
+    "buscandoCep": "Looking up...",
+    "resumoCompra": "Order summary",
+    "cada": "each",
+    "total": "Total",
+    "finalizarCompra": "Complete Purchase (Mercado Pago)",
+    "loginAviso": "You need to be logged in to complete your order. If you don't have an account yet,",
+    "crieUmaAqui": "create one here",
+    "removerItem": "Remove item",
+    "erroEndereco": "Fill in the complete shipping address (apartment/suite is optional)."
+  },
+  "paises": {
+    "brasil": "Brazil",
+    "estadosUnidos": "United States",
+    "portugal": "Portugal",
+    "argentina": "Argentina"
+  }
+}

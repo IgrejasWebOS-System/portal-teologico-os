@@ -1,0 +1,39 @@
+{
+  "metaTitulo": "About Us",
+  "hero": {
+    "titulo": "Who is CETADP",
+    "texto": "The Theological Education Center of the Assemblies of God Piracicaba is the theological education institution dedicated to training members, workers, and evangelical leaders, both in person and at a distance."
+  },
+  "pilares": {
+    "missao": {
+      "titulo": "Mission",
+      "texto": "Equip members, workers, and leaders of the Assemblies of God in Piracicaba with solid theological training, both in person and at a distance."
+    },
+    "ensino": {
+      "titulo": "Teaching",
+      "texto": "Official courses, periodic refresher courses, and theology at progressive levels — from beginner to advanced."
+    },
+    "alcance": {
+      "titulo": "Reach",
+      "texto": "A single portal serving multiple fields and ministries, so that distance is never an obstacle to training."
+    }
+  },
+  "diretoria": {
+    "titulo": "CETADP Board",
+    "subtitulo": "Leadership responsible for the institutional, academic, and administrative direction of the educational center.",
+    "cargos": {
+      "presidente": "President",
+      "primeiroVicePresidente": "1st Vice President",
+      "segundoVicePresidente": "2nd Vice President",
+      "secretario": "Secretary",
+      "tesouraria": "Treasury",
+      "conselhoFiscal": "Audit Committee",
+      "conselhoTeologico": "Theological Council"
+    }
+  },
+  "cta": {
+    "titulo": "Want to study with CETADP?",
+    "texto": "Submit your application and our office will reach out with next steps.",
+    "botao": "Apply now"
+  }
+}

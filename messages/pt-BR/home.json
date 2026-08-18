@@ -1,0 +1,49 @@
+{
+  "hero": {
+    "badge": "Centro Educacional Teológico Assembleias de Deus Piracicaba",
+    "tituloPrefixo": "Formação teológica",
+    "tituloDestaque": "presencial e a distância",
+    "tituloSufixo": ", para todos os campos e ministérios.",
+    "subtitulo": "CETADP — Centro Educacional Teológico Assembleias de Deus Piracicaba — capacita membros, obreiros e líderes evangélicos por meio de cursos oficiais, reciclagem e teologia em vários níveis, de forma presencial e a distância.",
+    "ctaInscricao": "Fazer minha inscrição",
+    "ctaLogin": "Já sou aluno — Entrar →",
+    "endereco": "Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080"
+  },
+  "numeros": {
+    "igrejas": "Igrejas no Campo de Piracicaba",
+    "membros": "Membros Igreja",
+    "alunos": "Alunos em formação teológica",
+    "anos": "Anos de história (desde 1948)"
+  },
+  "servicos": {
+    "tituloSecao": "O que oferecemos",
+    "subtituloSecao": "Trilhas de ensino teológico pensadas para servir vários campos e ministérios, dentro de um único portal.",
+    "cursos": {
+      "titulo": "Cursos Oficiais",
+      "descricao": "Formação teológica reconhecida pela instituição, com carga horária, avaliações e certificado ao final de cada curso."
+    },
+    "reciclagem": {
+      "titulo": "Cursos de Reciclagem",
+      "descricao": "Atualização periódica para obreiros e líderes já formados, mantendo a credencial ministerial em dia."
+    },
+    "teologia": {
+      "titulo": "Teologia em Vários Níveis",
+      "descricao": "Trilhas de básico a avançado, para quem está começando na obra e para quem busca aprofundamento ministerial."
+    },
+    "treinamento": {
+      "titulo": "Preparatórios & Capacitação",
+      "descricao": "Módulos de capacitação prática para departamentos, ministérios e liderança local, sob demanda dos campos."
+    }
+  },
+  "sobre": {
+    "titulo": "Sobre o CETADP",
+    "texto": "O CETADP Centro Educacional Teológico das Assembleias de Deus Piracicaba, dedicada à formação de membros, obreiros e líderes para o exercício do ministério com fundamentação bíblica e teológica sólida. O Portal CETADP EAD reúne, em um único lugar, a inscrição, a matrícula e o acompanhamento do aluno do primeiro contato até a conclusão do curso.",
+    "link": "Conheça nossa história"
+  },
+  "cta": {
+    "titulo": "Pronto para começar?",
+    "texto": "Faça sua inscrição em poucos minutos e sua matrícula é confirmada na hora.",
+    "ctaInscricao": "Fazer minha inscrição",
+    "ctaLogin": "Já tenho matrícula — fazer login"
+  }
+}
