@@ -13,6 +13,11 @@ interface Aluno {
   telefone: string | null;
 }
 
+interface SelectItem {
+  id: string;
+  name: string;
+}
+
 const boxCls =
   "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
@@ -37,7 +42,13 @@ function maskPhone(raw: string): string {
   return v;
 }
 
-export default function ConfirmarCadastroForm({ aluno }: { aluno: Aluno }) {
+export default function ConfirmarCadastroForm({
+  aluno, escolaridades, profissoes,
+}: {
+  aluno: Aluno;
+  escolaridades: SelectItem[];
+  profissoes: SelectItem[];
+}) {
   const [telefone, setTelefone] = useState(aluno.telefone ?? "");
   const [cep, setCep] = useState("");
   const [endereco, setEndereco] = useState("");
@@ -197,6 +208,37 @@ export default function ConfirmarCadastroForm({ aluno }: { aluno: Aluno }) {
             <option value="Divorciado(a)">Divorciado(a)</option>
             <option value="Viúvo(a)">Viúvo(a)</option>
           </select>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Escolaridade">
+            <select name="escolaridade" defaultValue="" className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {escolaridades.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Profissão">
+            <select name="profissao" defaultValue="" className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {profissoes.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Naturalidade — cidade">
+            <input name="naturalidade_cidade" placeholder="Cidade onde nasceu" className={bareCls} />
+          </Field>
+          <Field label="UF">
+            <input name="naturalidade_estado" maxLength={2} className={`${bareCls} uppercase`} />
+          </Field>
+          <Field label="Nacionalidade">
+            <input name="nacionalidade" defaultValue="Brasileira" className={bareCls} />
+          </Field>
+        </div>
+
+        <Field label="Cônjuge (se houver)">
+          <input name="nome_conjuge" className={bareCls} />
         </Field>
 
         <Field label="Nome da mãe">

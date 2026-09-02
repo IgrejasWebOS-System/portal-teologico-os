@@ -36,6 +36,12 @@ export async function confirmarCadastroAction(
   const rgUf = (formData.get("rg_uf") as string)?.trim() || null;
   const genero = (formData.get("genero") as string) || null;
   const estadoCivil = (formData.get("estado_civil") as string) || null;
+  const escolaridade = (formData.get("escolaridade") as string) || null;
+  const profissao = (formData.get("profissao") as string) || null;
+  const naturalidadeCidade = (formData.get("naturalidade_cidade") as string)?.trim() || null;
+  const naturalidadeEstado = (formData.get("naturalidade_estado") as string)?.trim() || null;
+  const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
+  const nomeConjuge = (formData.get("nome_conjuge") as string)?.trim() || null;
   const nomeMae = (formData.get("nome_mae") as string)?.trim() || null;
   const nomePai = (formData.get("nome_pai") as string)?.trim() || null;
   const cep = (formData.get("cep") as string)?.trim() || null;
@@ -97,6 +103,12 @@ export async function confirmarCadastroAction(
       rg_uf: rgUf,
       genero,
       estado_civil: estadoCivil,
+      escolaridade,
+      profissao,
+      naturalidade_cidade: naturalidadeCidade,
+      naturalidade_estado: naturalidadeEstado,
+      nacionalidade,
+      nome_conjuge: nomeConjuge,
       nome_mae: nomeMae,
       nome_pai: nomePai,
       cep,

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
 import { validarCPF } from "@/utils/cpf";
 import { gerarQrCodeDataUrl } from "@/utils/qrcode";
+import { enviarLinkFichaRapida } from "@/utils/email/resend";
 import { revalidatePath } from "next/cache";
 
 // ============================================================
@@ -83,20 +84,42 @@ export async function criarFichaPendenteAction(formData: FormData) {
   // já existente em vez de duplicar.
   const { data: existente } = await admin
     .from("ead_alunos")
-    .select("id, user_id, status")
+    .select("id, user_id, status, nome_completo")
     .eq("cpf", cpf)
     .maybeSingle();
 
   if (existente) {
     const { data: conflito } = await admin
       .from("ead_matriculas")
-      .select("id")
+      .select("id, matricula")
       .eq("aluno_id", existente.id)
       .eq("course_id", curso.id)
       .in("status", ["EM_ANDAMENTO", "APROVADO"])
       .maybeSingle();
 
     if (conflito) {
+      // O aluno ainda não completou o cadastro pelo celular (ficha
+      // pendente) — em vez de travar, reaproveita a mesma ficha e
+      // devolve o mesmo link/QR de novo, pra secretaria poder mostrar
+      // ou reenviar sem gerar uma segunda matrícula duplicada.
+      if (existente.status === "FICHA_PENDENTE") {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+        const url = `${appUrl}/confirmar-cadastro/${existente.id}`;
+        const qrCodeDataUrl = await gerarQrCodeDataUrl(url).catch(() => null);
+
+        return {
+          success: true,
+          reaproveitada: true,
+          data: {
+            alunoId: existente.id,
+            matricula: conflito.matricula ?? "",
+            nomeCompleto: existente.nome_completo ?? nome_completo,
+            url,
+            qrCodeDataUrl,
+          },
+        };
+      }
+
       return {
         success: false,
         message: "Este CPF já possui matrícula em andamento ou aprovada neste curso.",
@@ -135,7 +158,7 @@ export async function criarFichaPendenteAction(formData: FormData) {
         status: "FICHA_PENDENTE", // aguardando o aluno completar via QR
         consentimento_lgpd_aceito: false, // consentimento é do aluno, dado só na confirmação
       })
-      .select("id, user_id, status")
+      .select("id, user_id, status, nome_completo")
       .single();
 
     if (alunoError || !novoAluno) {
@@ -175,5 +198,50 @@ export async function criarFichaPendenteAction(formData: FormData) {
       url,
       qrCodeDataUrl,
     },
+  };
+}
+
+// ============================================================
+// Envia (ou reenvia) por e-mail o link de /confirmar-cadastro pro
+// próprio aluno — pra quando ele não está presente pra escanear o
+// QR Code na hora, ou quando o link "não chegou" e a secretaria quer
+// tentar de novo. Só funciona enquanto a ficha ainda estiver
+// pendente (o aluno ainda não completou o cadastro).
+// ============================================================
+export async function enviarLinkFichaEmailAction(alunoId: string, email: string) {
+  try {
+    await requireStaff();
+  } catch (e) {
+    return { success: false, message: e instanceof Error ? e.message : "Não autorizado." };
+  }
+
+  if (!email || !email.includes("@")) {
+    return { success: false, message: "Informe um e-mail válido." };
+  }
+
+  const admin = createAdminClient();
+  const { data: aluno } = await admin
+    .from("ead_alunos")
+    .select("id, nome_completo, status")
+    .eq("id", alunoId)
+    .maybeSingle();
+
+  if (!aluno) return { success: false, message: "Ficha não encontrada." };
+  if (aluno.status !== "FICHA_PENDENTE") {
+    return {
+      success: false,
+      message: "Este cadastro já foi confirmado — não há link pendente para enviar.",
+    };
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const url = `${appUrl}/confirmar-cadastro/${aluno.id}`;
+  const enviado = await enviarLinkFichaRapida(email, aluno.nome_completo, url);
+
+  return {
+    success: enviado,
+    message: enviado
+      ? `Link enviado para ${email}.`
+      : "Não foi possível enviar o e-mail agora (envio ainda não configurado no ambiente) — use o link ou o QR Code na tela.",
   };
 }

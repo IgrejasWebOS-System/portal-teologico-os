@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Send, Loader2, AlertTriangle, QrCode, Copy, Check, UserPlus } from "lucide-react";
+import { Send, Loader2, AlertTriangle, QrCode, Copy, Check, UserPlus, Mail, CheckCircle2 } from "lucide-react";
 import { validarCPF } from "@/utils/cpf";
 import PageHeader from "@/components/layout/PageHeader";
-import { criarFichaPendenteAction } from "./actions";
+import { criarFichaPendenteAction, enviarLinkFichaEmailAction } from "./actions";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
@@ -55,6 +55,8 @@ interface ResultadoFicha {
   qrCodeDataUrl: string | null;
 }
 
+type EstadoEnvioEmail = "idle" | "enviando" | "enviado" | "erro";
+
 export default function FichaRapidaForm({
   campos, cursos, churches, setores,
 }: {
@@ -69,8 +71,14 @@ export default function FichaRapidaForm({
   const [churchId, setChurchId] = useState("");
   const [erro, setErro] = useState("");
   const [resultado, setResultado] = useState<ResultadoFicha | null>(null);
+  const [reaproveitada, setReaproveitada] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const [emailEnvio, setEmailEnvio] = useState("");
+  const [estadoEmail, setEstadoEmail] = useState<EstadoEnvioEmail>("idle");
+  const [mensagemEmail, setMensagemEmail] = useState("");
+  const [isPendingEmail, startTransitionEmail] = useTransition();
 
   const cursosEscola = cursos.filter((c) => c.module === "escola");
   const cursosOutros = cursos.filter((c) => c.module !== "escola");
@@ -95,7 +103,27 @@ export default function FichaRapidaForm({
         setErro(res.message ?? "Erro ao gerar ficha.");
         return;
       }
+      setReaproveitada(Boolean((res as { reaproveitada?: boolean }).reaproveitada));
+      setEstadoEmail("idle");
+      setMensagemEmail("");
+      setEmailEnvio("");
       setResultado(res.data as ResultadoFicha);
+    });
+  };
+
+  const handleEnviarEmail = () => {
+    if (!resultado) return;
+    if (!emailEnvio.includes("@")) {
+      setEstadoEmail("erro");
+      setMensagemEmail("Informe um e-mail válido.");
+      return;
+    }
+    setEstadoEmail("enviando");
+    setMensagemEmail("");
+    startTransitionEmail(async () => {
+      const res = await enviarLinkFichaEmailAction(resultado.alunoId, emailEnvio);
+      setEstadoEmail(res.success ? "enviado" : "erro");
+      setMensagemEmail(res.message ?? "");
     });
   };
 
@@ -120,6 +148,15 @@ export default function FichaRapidaForm({
           backLabel="Voltar para Matrículas"
         />
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4 text-center">
+          {reaproveitada && (
+            <div className="flex items-center gap-2 bg-iw-gold/10 border border-iw-gold/30 text-iw-navy px-3 py-2 rounded-xl text-xs text-left">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                Este aluno já tinha uma ficha pendente para este curso — o cadastro ainda não foi
+                completado, então aqui está o mesmo link/QR Code de novo (não foi criada uma segunda matrícula).
+              </span>
+            </div>
+          )}
           <p className="text-sm text-iw-navy">
             Mostre este QR Code pro aluno escanear com o celular — ele completa o próprio cadastro
             (endereço, RG, mãe/pai, foto) sem precisar da secretaria digitar tudo.
@@ -143,6 +180,42 @@ export default function FichaRapidaForm({
               {copiado ? "Copiado" : "Copiar link"}
             </button>
           </div>
+
+          <div className="bg-iw-bg rounded-xl px-3 py-3 text-left space-y-2">
+            <label className="block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider">
+              Ou enviar o link por e-mail (opcional)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                value={emailEnvio}
+                onChange={(e) => { setEmailEnvio(e.target.value); setEstadoEmail("idle"); setMensagemEmail(""); }}
+                placeholder="email@exemplo.com"
+                className="flex-1 bg-white border border-iw-border rounded-lg px-3 py-2 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-1 focus:ring-iw-gold/30 focus:border-iw-gold"
+              />
+              <button
+                type="button"
+                onClick={handleEnviarEmail}
+                disabled={isPendingEmail}
+                className="shrink-0 inline-flex items-center gap-1.5 bg-iw-navy hover:opacity-90 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-lg text-xs transition-opacity"
+              >
+                {estadoEmail === "enviando" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : estadoEmail === "enviado" ? (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                ) : (
+                  <Mail className="w-3.5 h-3.5" />
+                )}
+                Enviar
+              </button>
+            </div>
+            {mensagemEmail && (
+              <p className={`text-xs ${estadoEmail === "enviado" ? "text-green-700" : "text-iw-error"}`}>
+                {mensagemEmail}
+              </p>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => setResultado(null)}
