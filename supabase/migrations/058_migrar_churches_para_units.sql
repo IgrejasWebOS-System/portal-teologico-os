@@ -28,6 +28,16 @@
 --
 -- Pré-requisito: rodar 057_expandir_unit_type.sql ANTES deste, em
 -- execução separada.
+--
+-- Guarda de portabilidade (adicionada ao versionar este arquivo):
+-- os 3 setores (Vila Rezende, acef337f, Piracicamirim) e as 7
+-- churches originais referenciadas por UUID fixo abaixo são dados
+-- de um ambiente específico (produção, no momento em que este M4b
+-- rodou) — nunca existiram em nenhum outro ambiente (branch nova,
+-- restore) porque nasceram fora de qualquer migração rastreada.
+-- Se os 3 setores não forem encontrados aqui, a migração vira um
+-- no-op seguro em vez de quebrar a cadeia inteira — mesma lógica já
+-- aplicada em 014/032/040/041.
 -- ============================================================
 
 ALTER TABLE public.churches ADD COLUMN IF NOT EXISTS unit_id uuid REFERENCES public.units(id);
@@ -52,7 +62,8 @@ BEGIN
   SELECT unit_id INTO v_setor_piracicamirim FROM public.sectors WHERE id = '8da01130-f7f9-4af6-af99-bdf0da88608e';
 
   IF v_setor_vila_rezende IS NULL OR v_setor_acef IS NULL OR v_setor_piracicamirim IS NULL THEN
-    RAISE EXCEPTION 'sectors.unit_id não preenchido para algum dos 3 setores — rode o M3 (056) antes deste.';
+    RAISE NOTICE 'M4b: setores legados não encontrados neste ambiente — pulando (no-op).';
+    RETURN;
   END IF;
 
   -- IGREJA: Vila Rezende, mãe do setor
