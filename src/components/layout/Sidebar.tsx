@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import {
   GraduationCap,
@@ -152,6 +153,7 @@ export default function Sidebar({
   isOpen?: boolean;
 }) {
   const pathname = usePathname();
+  const locale = useLocale();
 
   return (
     <aside
@@ -363,6 +365,7 @@ export default function Sidebar({
       <div className="px-3 py-3 space-y-1">
         {/* Sair deste dispositivo */}
         <form action={signOutAction}>
+          <input type="hidden" name="locale" value={locale} />
           <button
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-iw-sky/70 hover:bg-white/8 hover:text-white transition-all duration-150 group"
@@ -376,6 +379,7 @@ export default function Sidebar({
 
         {/* Sair de todos os dispositivos */}
         <form action={signOutGlobalAction}>
+          <input type="hidden" name="locale" value={locale} />
           <button
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-iw-sky/40 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150 group"

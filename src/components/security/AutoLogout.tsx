@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useLocale } from "next-intl";
 import { signOutAction } from "@/app/actions";
 import { ShieldAlert, Clock, RefreshCw } from "lucide-react";
 
@@ -11,6 +12,7 @@ const WARNING_BEFORE   =  5 * 60 * 1000; //  5 minutos antes do logout
 const EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "click"];
 
 export default function AutoLogout() {
+  const locale = useLocale();
   const timerRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showWarning, setShowWarning] = useState(false);
@@ -25,8 +27,12 @@ export default function AutoLogout() {
 
   const doLogout = useCallback(async () => {
     clearAll();
-    await signOutAction();
-  }, []);
+    // signOutAction é chamada aqui direto em JS (não via <form action>),
+    // então o locale precisa ser montado num FormData manualmente.
+    const formData = new FormData();
+    formData.set("locale", locale);
+    await signOutAction(formData);
+  }, [locale]);
 
   const startWarningCountdown = useCallback(() => {
     setShowWarning(true);
@@ -131,6 +137,7 @@ export default function AutoLogout() {
             Continuar sessão
           </button>
           <form action={signOutAction}>
+            <input type="hidden" name="locale" value={locale} />
             <button
               type="submit"
               className="px-4 py-2.5 rounded-xl border border-iw-border text-iw-muted text-sm font-medium hover:border-iw-error hover:text-iw-error transition-colors"

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GraduationCap, Plus, IdCard, Mail } from "lucide-react";
+import { GraduationCap, Plus, IdCard, Mail, QrCode } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
@@ -56,13 +56,22 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
         title="Matrículas"
         description="Todas as matrículas por curso — vindas da inscrição pública ou lançadas direto pela secretaria."
         actions={
-          <Link
-            href="/admin/matriculas/nova"
-            className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity border border-black"
-          >
-            <Plus className="w-4 h-4" />
-            Nova matrícula direta
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/matriculas/ficha-rapida"
+              className="inline-flex items-center gap-2 bg-white hover:bg-iw-bg text-iw-navy font-bold text-xs px-4 py-2.5 rounded-xl transition-colors border border-iw-border"
+            >
+              <QrCode className="w-4 h-4" />
+              Ficha rápida (QR Code)
+            </Link>
+            <Link
+              href="/admin/matriculas/nova"
+              className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-opacity border border-black"
+            >
+              <Plus className="w-4 h-4" />
+              Nova matrícula direta
+            </Link>
+          </div>
         }
       />
 
