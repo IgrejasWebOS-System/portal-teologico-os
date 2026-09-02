@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import {
   User,
@@ -105,6 +106,7 @@ export default function AreaDoAlunoPainel({
   avaliacoes: AvaliacaoResumo[];
 }) {
   const pathname = usePathname();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const contaMsg = searchParams.get("contaMsg") ?? undefined;
   const contaError = searchParams.get("contaError") ?? undefined;
@@ -175,6 +177,7 @@ export default function AreaDoAlunoPainel({
             </form>
 
             <form action={signOutGlobalAction} className="pt-2 border-t border-white/10">
+              <input type="hidden" name="locale" value={locale} />
               <button
                 type="submit"
                 className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-red-300 hover:bg-red-500/10 transition-colors"

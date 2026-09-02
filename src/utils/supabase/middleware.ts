@@ -16,6 +16,7 @@ const PUBLIC_PATHS = [
   "/loja",
   "/matricula/pagamento",
   "/api/webhooks/mercadopago",
+  "/confirmar-cadastro",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
