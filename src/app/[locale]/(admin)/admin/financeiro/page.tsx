@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Wallet, ListTree, ArrowRight, TrendingUp, TrendingDown, Receipt, Banknote } from "lucide-react";
+import { Wallet, ListTree, ArrowRight, TrendingUp, TrendingDown, Receipt, Banknote, Tag } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
@@ -152,6 +152,20 @@ export default async function FinanceiroPage() {
             <div>
               <p className="font-bold text-iw-navy">Plano de Contas</p>
               <p className="text-xs text-iw-muted">{totalCategorias ?? 0} categorias ativas</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-iw-muted group-hover:text-iw-gold transition-colors" />
+        </Link>
+
+        <Link
+          href="/admin/financeiro/precos-cursos"
+          className="group bg-iw-surface border border-iw-border rounded-2xl p-6 flex items-center justify-between hover:border-iw-gold/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Tag className="w-6 h-6 text-iw-gold" />
+            <div>
+              <p className="font-bold text-iw-navy">Preços dos Cursos</p>
+              <p className="text-xs text-iw-muted">Matrícula e parcelas — Básico/Médio</p>
             </div>
           </div>
           <ArrowRight className="w-4 h-4 text-iw-muted group-hover:text-iw-gold transition-colors" />

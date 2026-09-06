@@ -1,0 +1,13 @@
+PALETA CETADP - VERSAO 1.0
+
+CORES NUCLEARES EXTRAIDAS DO LOGOTIPO RECEBIDO
+Dourado institucional: HEX #CF8403 | RGB 207, 132, 3 | CMYK 0, 36, 99, 19
+Preto institucional:   HEX #0D0D0D | RGB 13, 13, 13 | CMYK 0, 0, 0, 95
+Branco:                HEX #FFFFFF | RGB 255, 255, 255 | CMYK 0, 0, 0, 0
+
+CORES AUXILIARES RECOMENDADAS PARA INTERFACES (NAO PRESENTES NO LOGO)
+Neutro claro:          HEX #F7F4ED | RGB 247, 244, 237 | CMYK 0, 1, 4, 3
+Cinza para texto:      HEX #4A4A4A | RGB 74, 74, 74 | CMYK 0, 0, 0, 71
+
+Pantone nao foi especificado no arquivo-fonte. Para impressao institucional,
+validar uma prova de cor antes de homologar qualquer equivalencia Pantone.

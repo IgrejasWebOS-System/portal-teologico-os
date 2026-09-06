@@ -50,6 +50,8 @@ do MCP do Supabase — não via Supabase CLI.
 | `039_limite_simulados_por_matricula.sql` | Trigger `check_limite_simulados` — limita a 2 o número de SIMULADOs por matrícula (antes era ilimitado), rede de segurança no banco além da checagem já feita na Server Action |
 | `040_seed_questoes_curso_medio.sql` | 12 questões de exemplo em `avaliacoes_banco_questoes` para o Curso Teológico Médio (só o Básico tinha, desde a 025) — sem isso não dá pra gerar simulado/prova do Médio |
 | `041_demo_aluno_com_simulados_e_provas.sql` | Novo usuário demo `alunoprova@cetadp.teo.br` — matriculado e aprovado (nota 8,0) em Básico e Médio, 100% das aulas concluídas, 2 simulados + 1 prova já feitos em cada curso |
+| ... | (042 a 092: ver `list_migrations` do MCP do Supabase — RLS por unidade/setor, professores, campos auxiliares, etc.) |
+| `093_course_pricing.sql` | Tabela `course_pricing` — valor de matrícula + valor/número de parcelas por curso, editável só por staff em Financeiro (fonte única pra Nova Matrícula/Ficha Rápida pararem de depender de valor digitado à mão). Seed: Curso Básico (R$25 matrícula + 12x R$65), Curso Médio (sem matrícula, 12x R$80) |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**

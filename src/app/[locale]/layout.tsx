@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Merriweather } from "next/font/google";
+import { Cinzel, Source_Sans_3 } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
@@ -7,15 +7,21 @@ import "../globals.css";
 import FaqWidget from "@/components/faq/FaqWidget";
 import { getFaqCategoriasAtivasAction } from "@/components/faq/actions";
 
-const inter = Inter({
+// Fase 5 do BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md: tipografia oficial do
+// Manual de Identidade Visual CETADP v1.0 (capítulo 07) — Source Sans 3
+// pro corpo/interface, Cinzel pros títulos. Mantidos os mesmos nomes de
+// variável CSS (--font-inter / --font-merriweather) pra não precisar
+// tocar em globals.css além da paleta de cores.
+const sourceSans = Source_Sans_3({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
 });
 
-const merriweather = Merriweather({
+const cinzel = Cinzel({
   variable: "--font-merriweather",
   subsets: ["latin"],
-  weight: ["400", "700", "900"],
+  weight: ["600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -50,7 +56,7 @@ export default async function RootLayout({
   const faqCategorias = await getFaqCategoriasAtivasAction();
 
   return (
-    <html lang={locale} className={`${inter.variable} ${merriweather.variable}`}>
+    <html lang={locale} className={`${sourceSans.variable} ${cinzel.variable}`}>
       <body className="antialiased">
         <NextIntlClientProvider>
           {children}

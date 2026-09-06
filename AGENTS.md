@@ -86,3 +86,39 @@ conectada nesta sessão para criar o PR via API, e mesmo que tivesse, abrir
 cada vez, por regra de segurança — então o fluxo real é: eu preencho tudo
 que dá pra preencher (link + título + descrição), e o clique final em
 "Create pull request" é sempre do Joaquim.
+
+## Proteção de branch (desde 04/09/2026)
+
+A branch `main` deste repositório tem "Require a pull request before
+merging" habilitado nas configurações do GitHub (sem aprovação obrigatória
+— ver decisão abaixo). Push direto na `main` é recusado pelo próprio
+GitHub. Isso é a rede de segurança técnica do fluxo acima: só formaliza via
+Pull Request o que já era a regra, sem adicionar espera manual (não exige
+"Require approvals", porque o autor do PR não pode aprovar o próprio PR no
+GitHub — isso travaria o merge esperando alguém além do Joaquim clicar em
+"Approve", o que não faz sentido num projeto onde ele é o único revisor).
+
+## Convenção de mensagens de commit
+
+Commits seguem Conventional Commits: `tipo(escopo): descrição curta`, com
+`tipo` em `feat|fix|chore|docs|refactor|test|style`. Exemplo:
+`fix(matriculas): corrige perda de dados ao exibir erro no formulário`.
+Isso mantém o `git log` pesquisável e funcionando como registro de
+auditoria — não existe (nem deve ser criado) um arquivo de log separado
+pra isso; o histórico do git já é a fonte da verdade.
+
+## Conferir um deploy (sob pedido, não automático)
+
+Quando o Joaquim pedir para conferir um deploy, checar: status e logs de
+build no Vercel (deployment, build logs, runtime errors) e advisors/logs
+de erro no Supabase do ambiente correspondente (produção ou branch
+staging). Não existe checagem agendada automática — só quando solicitado
+explicitamente.
+
+## Outras regras fixas de comunicação
+
+- Nunca fabricar dado ou resultado — sempre verificar o estado real
+  (banco, build, terminal) antes de reportar algo como certo ou resolvido.
+- Toda comunicação com o Joaquim em português do Brasil.
+- Antes de rodar qualquer comando com efeito importante, avisar primeiro e
+  só depois passar o comando ("aviso antes, comando depois").

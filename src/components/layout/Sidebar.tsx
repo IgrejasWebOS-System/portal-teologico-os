@@ -165,7 +165,7 @@ export default function Sidebar({
     >
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-        <Logo size="sm" variant="dark" />
+        <Logo size="sm" variant="light" />
         <div className="min-w-0">
           <p className="text-white font-bold text-sm leading-tight truncate">
             Portal Teológico

@@ -33,7 +33,7 @@ export default function PublicFooter({ minimal = false }: { minimal?: boolean })
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2 mb-4">
-            <Logo size="sm" variant="dark" />
+            <Logo size="sm" variant="light" />
             <span className="text-white font-extrabold text-lg">CETADP</span>
           </div>
           <p className="text-sm leading-relaxed max-w-md">

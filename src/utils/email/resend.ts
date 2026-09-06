@@ -87,3 +87,47 @@ export async function enviarConviteParaSerAluno(email: string, nome: string) {
     html,
   });
 }
+
+/**
+ * E-mail com o link de confirmação de cadastro da Ficha Rápida (ver
+ * admin/matriculas/ficha-rapida) — para quando o QR Code não pode ser
+ * mostrado na hora pro aluno (ele não compareceu, o cadastro foi feito
+ * a partir de uma ficha de papel, etc.). O aluno abre o link pelo
+ * próprio celular e completa o cadastro (endereço, RG, foto, e-mail
+ * real) em /confirmar-cadastro/[id].
+ */
+export async function enviarLinkFichaRapida(email: string, nomeAluno: string, url: string) {
+  const primeiroNome = nomeAluno?.trim().split(" ")[0] || "";
+  const saudacao = primeiroNome ? `Olá, ${primeiroNome}!` : "Olá!";
+
+  const html = `
+    <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 560px; margin: 0 auto; color: #1a1a2e;">
+      <p style="font-size: 16px;">${saudacao}</p>
+      <p style="font-size: 15px; line-height: 1.6;">
+        Sua matrícula no CETADP — Centro Educacional Teológico das Assembleias
+        de Deus Piracicaba — já foi iniciada pela secretaria. Falta só você
+        completar o seu cadastro (endereço, dados pessoais e foto) pelo link
+        abaixo.
+      </p>
+      <p style="text-align: center; margin: 28px 0;">
+        <a href="${url}"
+           style="background: #c9973b; color: #ffffff; text-decoration: none; font-weight: bold; padding: 12px 28px; border-radius: 8px; display: inline-block;">
+          Completar meu cadastro
+        </a>
+      </p>
+      <p style="font-size: 13px; color: #6b6b6b; line-height: 1.5;">
+        Se o botão não funcionar, copie e cole este link no navegador:<br />
+        <a href="${url}" style="color: #6b6b6b;">${url}</a>
+      </p>
+      <p style="font-size: 12px; color: #6b6b6b; margin-top: 32px;">
+        CETADP · Centro Educacional Teológico das Assembleias de Deus Piracicaba
+      </p>
+    </div>
+  `.trim();
+
+  return enviarEmail({
+    para: email,
+    assunto: "Complete o seu cadastro — CETADP",
+    html,
+  });
+}

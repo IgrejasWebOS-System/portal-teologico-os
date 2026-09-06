@@ -5,9 +5,11 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 import { validarCPF } from "@/utils/cpf";
+import { gerarPdfMatricula } from "@/utils/pdf/matricula";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -51,6 +53,44 @@ async function requireStaff() {
 
 function fail(message: string): never {
   redirect("/admin/matriculas/nova?error=" + encodeURIComponent(message));
+}
+
+// ============================================================
+// Link de download do PDF assinado da matrícula (ver
+// confirmar-cadastro/[id]/actions.ts, que gera o PDF na confirmação
+// do cadastro). O bucket é privado, então o link é gerado sob
+// demanda (signed URL de curta duração) em vez de guardar uma URL
+// permanente no banco — o PDF tem CPF/RG/endereço do aluno.
+// ============================================================
+export async function gerarLinkPdfMatriculaAction(
+  alunoId: string
+): Promise<{ success: true; url: string } | { success: false; message: string }> {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const { data: aluno } = await admin
+    .from("ead_alunos")
+    .select("pdf_matricula_path")
+    .eq("id", alunoId)
+    .maybeSingle();
+
+  if (!aluno?.pdf_matricula_path) {
+    return {
+      success: false,
+      message: "Este aluno ainda não tem PDF de matrícula gerado (cadastro feito antes desse recurso, ou ainda não confirmado).",
+    };
+  }
+
+  const { data: signed, error } = await admin.storage
+    .from("matriculas-pdf")
+    .createSignedUrl(aluno.pdf_matricula_path, 60 * 10); // 10 min — baixa na hora
+
+  if (error || !signed) {
+    console.error("[matriculas/actions] falha ao gerar link do PDF:", error?.message);
+    return { success: false, message: "Erro ao gerar o link de download. Tente novamente." };
+  }
+
+  return { success: true, url: signed.signedUrl };
 }
 
 // ── Turma (course_editions) — cadastro rápido, sem sair do formulário
@@ -312,13 +352,19 @@ export async function matricularDiretoAction(formData: FormData) {
     fail("Erro ao registrar matrícula: " + (matriculaInsertError?.message ?? "desconhecido"));
   }
 
-  // Pagamento (opcional) — só gera cobrança em Contas a Receber se um
-  // valor total foi informado. Duas formas: parcelamento manual (linhas
-  // PENDENTE, baixadas uma a uma pela secretaria — não toca no Caixa
-  // Diário) ou cobrança única via Mercado Pago (mesmo padrão da Loja):
-  // gera um link de pagamento e a linha em Contas a Receber só vira PAGO
-  // quando o webhook confirmar o pagamento de verdade.
-  const valorTotalCentavos = centavosMatricula((formData.get("valor_total") as string) || "");
+  // Pagamento (opcional) — só gera cobrança em Contas a Receber se algum
+  // valor foi informado. Vem pré-preenchido a partir do preço fixo do
+  // curso (course_pricing, ver Financeiro > Preços dos Cursos), mas a
+  // secretaria pode sobrescrever pontualmente. Duas formas: parcelamento
+  // manual (matrícula é uma linha à parte, PAGA/baixada uma a uma pela
+  // secretaria — não toca no Caixa Diário) ou cobrança única via Mercado
+  // Pago (mesmo padrão da Loja): gera um link Pix/Checkout Pro com o
+  // valor total (matrícula + parcelas somadas), e a linha em Contas a
+  // Receber só vira PAGO quando o webhook confirmar o pagamento de verdade.
+  const valorMatriculaCentavos = centavosMatricula((formData.get("valor_matricula") as string) || "");
+  const valorParcelaCentavos = centavosMatricula((formData.get("valor_parcela") as string) || "");
+  const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
+  const valorTotalCentavos = valorMatriculaCentavos + valorParcelaCentavos * totalParcelas;
   const formaCobranca = (formData.get("forma_cobranca") as string) === "MERCADOPAGO" ? "MERCADOPAGO" : "MANUAL";
   const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
   const churchId = (formData.get("church_id") as string) || null;
@@ -326,23 +372,43 @@ export async function matricularDiretoAction(formData: FormData) {
   let linkPagamento: string | null = null;
 
   if (valorTotalCentavos > 0 && formaCobranca === "MANUAL") {
-    const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
     const dataVencimento = (formData.get("data_vencimento") as string) || new Date().toISOString().slice(0, 10);
     const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "DINHEIRO";
 
-    await gerarParcelasContasReceber(admin, {
-      origemTipo: "MATRICULA_DIRETA",
-      origemId: matriculaCriada!.id,
-      alunoId: aluno.id,
-      alunoUserId: aluno.user_id,
-      responsavelPagamento: responsavel,
-      churchId,
-      descricaoBase: `Matrícula — ${curso!.title}`,
-      valorTotalCentavos,
-      totalParcelas,
-      primeiroVencimento: dataVencimento,
-      formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
-    });
+    // Matrícula é uma cobrança à parte (vence junto com a 1ª parcela, mas
+    // com descrição própria) — só existe quando o curso cobra matrícula
+    // separada (ex.: Curso Básico); o Médio não gera essa linha.
+    if (valorMatriculaCentavos > 0) {
+      await gerarParcelasContasReceber(admin, {
+        origemTipo: "MATRICULA_DIRETA",
+        origemId: matriculaCriada!.id,
+        alunoId: aluno.id,
+        alunoUserId: aluno.user_id,
+        responsavelPagamento: responsavel,
+        churchId,
+        descricaoBase: `Matrícula — ${curso!.title}`,
+        valorTotalCentavos: valorMatriculaCentavos,
+        totalParcelas: 1,
+        primeiroVencimento: dataVencimento,
+        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+      });
+    }
+
+    if (valorParcelaCentavos > 0) {
+      await gerarParcelasContasReceber(admin, {
+        origemTipo: "MATRICULA_DIRETA",
+        origemId: matriculaCriada!.id,
+        alunoId: aluno.id,
+        alunoUserId: aluno.user_id,
+        responsavelPagamento: responsavel,
+        churchId,
+        descricaoBase: `Mensalidade — ${curso!.title}`,
+        valorTotalCentavos: valorParcelaCentavos * totalParcelas,
+        totalParcelas,
+        primeiroVencimento: dataVencimento,
+        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+      });
+    }
   } else if (valorTotalCentavos > 0 && formaCobranca === "MERCADOPAGO") {
     const { data: contaReceber, error: erroContaReceber } = await admin
       .from("fin_contas_receber")
@@ -353,7 +419,7 @@ export async function matricularDiretoAction(formData: FormData) {
         aluno_user_id: aluno.user_id,
         responsavel_pagamento: responsavel,
         church_id: responsavel === "IGREJA" ? churchId : null,
-        descricao: `Matrícula — ${curso!.title}`,
+        descricao: `Matrícula + curso — ${curso!.title}`,
         numero_parcela: 1,
         total_parcelas: 1,
         valor_bruto_centavos: valorTotalCentavos,
@@ -370,7 +436,7 @@ export async function matricularDiretoAction(formData: FormData) {
       try {
         const preferencia = await criarPreferenciaCheckout({
           orderId: contaReceber.id,
-          itens: [{ titulo: `Matrícula — ${curso!.title}`, quantidade: 1, precoUnitarioCentavos: valorTotalCentavos }],
+          itens: [{ titulo: `Matrícula + curso — ${curso!.title}`, quantidade: 1, precoUnitarioCentavos: valorTotalCentavos }],
           emailComprador: email,
           backUrlPath: "/matricula/pagamento",
         });
@@ -387,6 +453,133 @@ export async function matricularDiretoAction(formData: FormData) {
     }
   }
 
+  // PDF da matrícula (item pendente #7 — Matrícula Direta ainda não gerava
+  // nenhum) — mesmo formato dos fluxos de Ficha Rápida/Confirmar Cadastro,
+  // gerado aqui porque a secretaria já preencheu a ficha inteira de uma vez.
+  // Best-effort: se falhar, a matrícula já foi criada normalmente, só sem
+  // o "Baixar PDF" habilitado na listagem.
+  try {
+    let turmaNome: string | null = null;
+    let professorNome: string | null = null;
+    let setorNome: string | null = null;
+    let igrejaNome: string | null = null;
+
+    if (course_edition_id) {
+      const { data: turma } = await admin
+        .from("course_editions")
+        .select("nome")
+        .eq("id", course_edition_id)
+        .maybeSingle();
+      turmaNome = turma?.nome ?? null;
+    }
+    if (professor_id) {
+      const { data: professor } = await admin
+        .from("professores")
+        .select("nome_completo")
+        .eq("id", professor_id)
+        .maybeSingle();
+      professorNome = professor?.nome_completo ?? null;
+    }
+    if (sector_id) {
+      const { data: setor } = await admin.from("sectors").select("name").eq("id", sector_id).maybeSingle();
+      setorNome = setor?.name ?? null;
+    }
+    if (church_id_aluno) {
+      const { data: igreja } = await admin.from("churches").select("name").eq("id", church_id_aluno).maybeSingle();
+      igrejaNome = igreja?.name ?? null;
+    }
+
+    let fotoParaPdf: Uint8Array | null = null;
+    if (foto_url) {
+      try {
+        const res = await fetch(foto_url);
+        if (res.ok) fotoParaPdf = new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        console.error("[matricula direta] erro ao buscar foto pro PDF:", err);
+      }
+    }
+
+    const hdrs = await headers();
+    const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || hdrs.get("x-real-ip") || "desconhecido";
+    const userAgent = hdrs.get("user-agent") || "desconhecido";
+
+    const pdfBytes = await gerarPdfMatricula(
+      {
+        nomeCompleto: nome_completo,
+        matricula: matriculaNum,
+        cursoPretendido: curso!.title,
+        cpf,
+        email,
+        telefone,
+        dataNascimento: data_nascimento,
+        rg,
+        rgOrgaoEmissor: rg_orgao_emissor,
+        rgUf: rg_uf,
+        genero,
+        estadoCivil: estado_civil,
+        escolaridade,
+        profissao,
+        naturalidadeCidade: naturalidade_cidade,
+        naturalidadeEstado: naturalidade_estado,
+        nacionalidade,
+        nomeConjuge: nome_conjuge,
+        nomeMae: nome_mae,
+        nomePai: nome_pai,
+        cep,
+        endereco,
+        enderecoNumero: endereco_numero,
+        enderecoComplemento: endereco_complemento,
+        bairro,
+        cidade,
+        estado,
+        turmaNome,
+        professorNome,
+        campoMinisterio: campo_ministerio_nome,
+        setorNome,
+        igrejaNome,
+        pagamento:
+          valorTotalCentavos > 0
+            ? formaCobranca === "MERCADOPAGO"
+              ? {
+                  // Cobrança única (link Mercado Pago) — não dá pra saber o
+                  // recorte exato matrícula/parcela sem risco de mostrar
+                  // algo errado, então undefined (nunca marca "isento" à toa).
+                  valorMatriculaCentavos: undefined,
+                  valorParcelaCentavos: valorTotalCentavos,
+                  parcelas: 1,
+                  formaPagamento: "Mercado Pago / Pix",
+                  responsavelPagamento: responsavel,
+                  primeiroVencimento: new Date().toISOString().slice(0, 10),
+                }
+              : {
+                  valorMatriculaCentavos,
+                  valorParcelaCentavos,
+                  parcelas: totalParcelas,
+                  formaPagamento: (formData.get("forma_pagamento_prevista") as string) || null,
+                  responsavelPagamento: responsavel,
+                  primeiroVencimento: (formData.get("data_vencimento") as string) || null,
+                }
+            : null,
+      },
+      null, // sem assinatura eletrônica — ficha preenchida pela secretaria, não pelo aluno
+      { ip, userAgent, assinadoEm: new Date() },
+      fotoParaPdf
+    );
+
+    const pdfFileName = `matricula-${aluno.id}-${Date.now()}.pdf`;
+    const { error: pdfUploadError } = await admin.storage
+      .from("matriculas-pdf")
+      .upload(pdfFileName, Buffer.from(pdfBytes), { contentType: "application/pdf" });
+
+    if (pdfUploadError) {
+      console.error("[matricula direta] upload do PDF falhou:", pdfUploadError.message);
+    } else {
+      await admin.from("ead_alunos").update({ pdf_matricula_path: pdfFileName }).eq("id", aluno.id);
+    }
+  } catch (err) {
+    console.error("[matricula direta] erro inesperado ao gerar PDF da matrícula:", err);
+  }
+
   revalidatePath("/admin/matriculas");
   revalidatePath("/admin/financeiro/contas-a-receber");
 
@@ -394,4 +587,166 @@ export async function matricularDiretoAction(formData: FormData) {
   const params = new URLSearchParams({ msg });
   if (linkPagamento) params.set("link", linkPagamento);
   redirect(`/admin/matriculas?${params.toString()}`);
+}
+
+// ============================================================
+// Edição de uma matrícula já existente (item #12) — dados pessoais,
+// curso/vínculo, lançamento retroativo de pagamento (regularização
+// dos alunos que já estudam, com a data original em que a pessoa
+// pagou de verdade) e cancelamento. Não é possível trocar o CPF nem
+// o curso por aqui — isso exigiria uma nova matrícula.
+// ============================================================
+
+function failEdicao(matriculaId: string, message: string): never {
+  redirect(`/admin/matriculas/${matriculaId}?error=` + encodeURIComponent(message));
+}
+
+export async function atualizarMatriculaAction(formData: FormData) {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) fail("Matrícula inválida.");
+
+  const nome_completo = (formData.get("nome_completo") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
+  const telefone = (formData.get("telefone") as string)?.trim() || null;
+  const campo_ministerio_id = (formData.get("campo_ministerio_id") as string) || null;
+  const sector_id = (formData.get("sector_id") as string) || null;
+  const church_id_aluno = (formData.get("church_id_aluno") as string) || null;
+  const course_edition_id = (formData.get("course_edition_id") as string) || null;
+  const professor_id = (formData.get("professor_id") as string) || null;
+
+  const rg = (formData.get("rg") as string)?.trim() || null;
+  const rg_orgao_emissor = (formData.get("rg_orgao_emissor") as string)?.trim() || null;
+  const rg_uf = (formData.get("rg_uf") as string)?.trim() || null;
+  const data_nascimento = (formData.get("data_nascimento") as string) || null;
+  const genero = (formData.get("genero") as string) || null;
+  const estado_civil = (formData.get("estado_civil") as string) || null;
+  const escolaridade = (formData.get("escolaridade") as string) || null;
+  const profissao = (formData.get("profissao") as string) || null;
+  const naturalidade_cidade = (formData.get("naturalidade_cidade") as string)?.trim() || null;
+  const naturalidade_estado = (formData.get("naturalidade_estado") as string) || null;
+  const nome_conjuge = (formData.get("nome_conjuge") as string)?.trim() || null;
+  const nome_mae = (formData.get("nome_mae") as string)?.trim() || null;
+  const nome_pai = (formData.get("nome_pai") as string)?.trim() || null;
+  const cep = (formData.get("cep") as string)?.trim() || null;
+  const endereco = (formData.get("endereco") as string)?.trim() || null;
+  const endereco_numero = (formData.get("endereco_numero") as string)?.trim() || null;
+  const endereco_complemento = (formData.get("endereco_complemento") as string)?.trim() || null;
+  const bairro = (formData.get("bairro") as string)?.trim() || null;
+  const cidade = (formData.get("cidade") as string)?.trim() || null;
+  const estado = (formData.get("estado") as string) || null;
+  const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
+
+  if (!nome_completo || !email) {
+    failEdicao(matriculaId, "Nome completo e e-mail são obrigatórios.");
+  }
+
+  // Resolve o nome do campo/ministério pelo id direto no servidor — evita
+  // depender de um campo extra no formulário só pra carregar o texto (essa
+  // dessincronia já causou o campo aparecer em branco no PDF/telas antes).
+  let campo_ministerio_nome: string | null = null;
+  if (campo_ministerio_id) {
+    const { data: campoRow } = await admin
+      .from("ead_campos_ministerios")
+      .select("nome")
+      .eq("id", campo_ministerio_id)
+      .maybeSingle();
+    campo_ministerio_nome = campoRow?.nome ?? null;
+  }
+
+  const { error: alunoError } = await admin
+    .from("ead_alunos")
+    .update({
+      nome_completo, email, telefone,
+      campo_ministerio_id, campo_ministerio_nome,
+      sector_id, church_id: church_id_aluno,
+      rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao,
+      naturalidade_cidade, naturalidade_estado, nome_conjuge, nome_mae, nome_pai,
+      cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, nacionalidade,
+      foto_url,
+    })
+    .eq("id", alunoId);
+
+  if (alunoError) failEdicao(matriculaId, "Erro ao salvar dados pessoais: " + alunoError.message);
+
+  const { error: matriculaError } = await admin
+    .from("ead_matriculas")
+    .update({ course_edition_id, professor_id })
+    .eq("id", matriculaId);
+
+  if (matriculaError) failEdicao(matriculaId, "Erro ao salvar curso/vínculo: " + matriculaError.message);
+
+  revalidatePath(`/admin/matriculas/${matriculaId}`);
+  revalidatePath("/admin/matriculas");
+  redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent("Dados atualizados."));
+}
+
+// Lançamento retroativo — pra regularizar aluno que já paga/estuda desde
+// antes deste sistema. Entra direto como PAGO, com a data em que a
+// pessoa realmente pagou (não gera cobrança pendente nova/fantasma).
+export async function lancarPagamentoRetroativoAction(formData: FormData) {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) fail("Matrícula inválida.");
+
+  const valorTotalCentavos = centavosMatricula((formData.get("valor_total") as string) || "");
+  const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
+  const dataPagamento = (formData.get("data_pagamento") as string) || "";
+  const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "DINHEIRO";
+  const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
+  const churchId = (formData.get("church_id") as string) || null;
+  const observacoes = (formData.get("observacoes") as string)?.trim() || null;
+
+  if (valorTotalCentavos <= 0) failEdicao(matriculaId, "Informe o valor pago.");
+  if (!dataPagamento) failEdicao(matriculaId, "Informe a data original do pagamento.");
+
+  const { error } = await admin.from("fin_contas_receber").insert({
+    origem_tipo: "MATRICULA_DIRETA",
+    origem_id: matriculaId,
+    aluno_id: alunoId,
+    responsavel_pagamento: responsavel,
+    church_id: responsavel === "IGREJA" ? churchId : null,
+    descricao: `Regularização — lançamento retroativo${totalParcelas > 1 ? ` (${totalParcelas} parcelas)` : ""}`,
+    numero_parcela: 1,
+    total_parcelas: totalParcelas,
+    valor_bruto_centavos: valorTotalCentavos,
+    forma_pagamento_prevista: formaPagamento,
+    data_vencimento: dataPagamento,
+    status: "PAGO",
+    pago_em: new Date(`${dataPagamento}T12:00:00`).toISOString(),
+    observacoes,
+  });
+
+  if (error) failEdicao(matriculaId, "Erro ao lançar pagamento: " + error.message);
+
+  revalidatePath(`/admin/matriculas/${matriculaId}`);
+  revalidatePath("/admin/financeiro/contas-a-receber");
+  redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent("Pagamento retroativo lançado."));
+}
+
+// Cancelamento — nunca apaga a linha de verdade (perderia o histórico
+// pra auditoria/inventário), só muda o status pra CANCELADO.
+export async function cancelarMatriculaAction(formData: FormData) {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  if (!matriculaId) fail("Matrícula inválida.");
+
+  const { error } = await admin
+    .from("ead_matriculas")
+    .update({ status: "CANCELADO" })
+    .eq("id", matriculaId);
+
+  if (error) failEdicao(matriculaId, "Erro ao cancelar: " + error.message);
+
+  revalidatePath("/admin/matriculas");
+  redirect("/admin/matriculas?msg=" + encodeURIComponent("Matrícula cancelada."));
 }

@@ -19,7 +19,7 @@ export default async function DefinirSenhaPage({ searchParams }: PageProps) {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex mb-4">
-            <Logo size="lg" variant="dark" shape="circle" />
+            <Logo size="lg" variant="dark" />
           </div>
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
             Bem-vindo ao CETADP

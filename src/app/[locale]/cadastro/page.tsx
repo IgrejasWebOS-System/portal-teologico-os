@@ -41,7 +41,7 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
 
         <div className="text-center mb-8">
           <div className="inline-flex mb-4">
-            <Logo size="lg" variant="dark" shape="circle" />
+            <Logo size="lg" variant="dark" />
           </div>
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
             {t("cadastro.titulo")}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera,
+  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera, Search, Check,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
@@ -19,6 +19,31 @@ type Church = { id: string; name: string; sector_id: string | null };
 type Turma = { id: string; nome: string; course_id: string };
 type Professor = { id: string; nome_completo: string; church_id: string | null };
 type Municipio = { nome: string; uf: string };
+type Preco = {
+  course_id: string;
+  valor_matricula_centavos: number;
+  valor_parcela_centavos: number;
+  numero_parcelas: number;
+};
+
+// Preços dos cursos (Financeiro > Preços dos Cursos) chegam em centavos —
+// converte pra string "25,00" pronta pra cair num input de texto mascarado.
+function centavosParaTexto(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace(".", ",");
+}
+
+// Caminho inverso — texto digitado ("25,00", "25.00", "25") vira centavos,
+// pra somar matrícula + parcelas e mostrar o total antes de submeter
+// (validação visual pedida pela secretaria).
+function textoParaCentavos(valor: string): number {
+  const limpo = valor.replace(/\./g, "").replace(",", ".");
+  const num = Number(limpo);
+  return isNaN(num) ? 0 : Math.round(num * 100);
+}
+
+function formatarCentavos(centavos: number): string {
+  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function maskCPF(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 11);
@@ -58,74 +83,262 @@ function dateBrToIso(br: string): string {
   return `${y}-${m}-${d}`;
 }
 
+// Amostragem grande da data por extenso ("12 de mai. de 1967"), atualizando
+// conforme a pessoa digita.
+function dataPorExtenso(br: string): string {
+  if (br.length !== 10) return "";
+  const [d, m, y] = br.split("/");
+  const dia = Number(d), mes = Number(m), ano = Number(y);
+  if (!dia || !mes || !ano) return "";
+  const data = new Date(ano, mes - 1, dia);
+  if (data.getDate() !== dia || data.getMonth() !== mes - 1) return "";
+  return data.toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" });
+}
+
 // ── Campo compacto: rótulo em caixa alta dentro da própria caixa ──
+// O destaque forte (borda + fundo dourados) segue o campo com foco — ou
+// seja, o PRÓXIMO campo a preencher — via :focus-within, aplicado pelo
+// navegador sozinho assim que o campo recebe foco. Campo já preenchido,
+// sem foco, fica neutro e ganha só um ícone de check (ver Field).
 const boxCls =
-  "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
+  "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 // Variante compacta — usada no card "Curso e Vínculo" desde que ele ficou
 // mais estreito (foi pro lado direito, dividindo espaço com a foto do aluno).
 const boxClsCompact =
-  "border border-iw-border rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
+  "border border-iw-border rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
+const boxFilledCls =
+  "border border-iw-gold/40 rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
+const boxClsCompactFilled =
+  "border border-iw-gold/40 rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
+
+// Depois que a pessoa escolhe uma opção (select nativo ou item da lista em
+// tela cheia), pula sozinho pro próximo campo preenchível do formulário.
+function focarProximoCampo(atual: HTMLElement) {
+  const form = atual.closest("form");
+  if (!form) return;
+  // A busca pelo "próximo campo" só pode rodar DEPOIS que a tela cheia de
+  // busca já tiver saído do ar — ver comentário equivalente em
+  // ConfirmarCadastroForm.tsx.
+  setTimeout(() => {
+    const focaveis = Array.from(
+      form.querySelectorAll<HTMLElement>("input, select, textarea, button")
+    ).filter((el) => {
+      if (el.hasAttribute("disabled")) return false;
+      if (el.tabIndex === -1) return false;
+      if ((el as HTMLInputElement).type === "hidden") return false;
+      if (el.offsetParent === null) return false;
+      return true;
+    });
+    const idx = focaveis.indexOf(atual);
+    if (idx > -1 && idx < focaveis.length - 1) {
+      focaveis[idx + 1]?.focus();
+    }
+  }, 30);
+}
 
 function Field({
-  label, required, span, className, compact, children,
+  label, required, span, className, compact, filled, children,
 }: {
-  label: string; required?: boolean; span?: string; className?: string; compact?: boolean; children: React.ReactNode;
+  label: string; required?: boolean; span?: string; className?: string; compact?: boolean; filled?: boolean; children: React.ReactNode;
 }) {
+  const base = filled ? (compact ? boxClsCompactFilled : boxFilledCls) : (compact ? boxClsCompact : boxCls);
   return (
-    <div className={`${compact ? boxClsCompact : boxCls} ${span ?? "col-span-12 md:col-span-3"} ${className ?? ""}`}>
-      <label className={boxLabelCls}>{label}{required && " *"}</label>
+    <div className={`${base} ${span ?? "col-span-12 md:col-span-3"} ${className ?? ""}`}>
+      <div className="flex items-center justify-between gap-1">
+        <label className={boxLabelCls}>{label}{required && " *"}</label>
+        {filled && <Check className="w-3 h-3 text-iw-gold shrink-0" aria-hidden="true" />}
+      </div>
       {children}
     </div>
   );
 }
 
-function CidadeField({
-  span, query, onQueryChange, onSelect, municipios,
+interface ItemSelecao {
+  id: string;
+  label: string;
+  sublabel?: string;
+}
+
+// Dropdown de busca ancorado sob o campo — usado na tela de secretaria
+// (desktop). Uma versão em tela cheia (SeletorBuscaTelaCheia) existe à
+// parte pro formulário do próprio aluno no celular (confirmar-cadastro),
+// onde a lista ficaria escondida atrás do teclado; aqui, num monitor
+// normal, tela cheia só tampava a tela toda sem necessidade — daí o
+// dropdown compacto, igual um combobox comum.
+function SeletorBuscaDropdown({
+  titulo, valorInicial, itens, onFechar, onSelecionar, placeholder, permitirLivre,
 }: {
-  span: string;
-  query: string;
-  onQueryChange: (v: string) => void;
-  onSelect: (nome: string, uf: string) => void;
-  municipios: Municipio[];
+  titulo: string;
+  valorInicial: string;
+  itens: ItemSelecao[];
+  onFechar: () => void;
+  onSelecionar: (item: ItemSelecao) => void;
+  placeholder?: string;
+  permitirLivre?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState(valorInicial);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const resultados = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    return municipios.filter((m) => m.nome.toLowerCase().startsWith(q)).slice(0, 8);
-  }, [query, municipios]);
+    const q = busca.trim().toLowerCase();
+    if (!q) return itens.slice(0, 50);
+    return itens.filter((i) => i.label.toLowerCase().startsWith(q)).slice(0, 50);
+  }, [busca, itens]);
 
   return (
-    <div className={`${boxCls} ${span} relative`}>
-      <label className={boxLabelCls}>Naturalidade — cidade</label>
-      <input
-        value={query}
-        onChange={(e) => { onQueryChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        placeholder="Cidade de nascimento"
-        autoComplete="off"
-        className={bareCls}
-      />
-      {open && resultados.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full mt-1 bg-white border border-iw-border rounded-xl shadow-md max-h-56 overflow-auto z-20">
-          {resultados.map((m, i) => (
-            <li key={`${m.nome}-${m.uf}-${i}`}>
+    <>
+      {/* Camada invisível atrás do dropdown — clicar fora fecha, sem
+          escurecer/tampar o resto da tela como um modal faria. */}
+      <div className="fixed inset-0 z-40" onClick={onFechar} />
+      <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-iw-border rounded-xl shadow-lg flex flex-col max-h-80 overflow-hidden">
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-iw-border shrink-0">
+          <Search className="w-3.5 h-3.5 text-iw-muted shrink-0" />
+          <input
+            ref={inputRef}
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder={placeholder ?? `Buscar ${titulo.toLowerCase()}...`}
+            autoComplete="off"
+            className="flex-1 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none py-1 bg-transparent"
+          />
+        </div>
+
+        <ul className="flex-1 overflow-auto">
+          {resultados.length === 0 && (
+            <li className="px-3 py-4 text-center text-xs text-iw-muted">
+              Nenhum resultado encontrado{permitirLivre ? " — pode usar o botão abaixo" : ""}.
+            </li>
+          )}
+          {resultados.map((item) => (
+            <li key={item.id} className="border-b border-iw-border/60 last:border-b-0">
               <button
                 type="button"
-                onMouseDown={() => { onSelect(m.nome, m.uf); setOpen(false); }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-iw-bg text-iw-navy"
+                onClick={() => onSelecionar(item)}
+                className="w-full text-left px-3 py-2 text-sm text-iw-navy hover:bg-iw-bg active:bg-iw-gold/10"
               >
-                {m.nome} <span className="text-iw-muted text-xs">— {m.uf}</span>
+                {item.label}
+                {item.sublabel && <span className="text-iw-muted text-xs"> — {item.sublabel}</span>}
               </button>
             </li>
           ))}
         </ul>
+
+        {permitirLivre && busca.trim().length > 0 && (
+          <div className="p-2 border-t border-iw-border shrink-0">
+            <button
+              type="button"
+              onClick={() => onSelecionar({ id: busca.trim(), label: busca.trim() })}
+              className="w-full text-center text-xs font-bold text-iw-navy bg-iw-gold/10 hover:bg-iw-gold/20 px-3 py-2 rounded-lg transition-colors"
+            >
+              Usar &ldquo;{busca.trim()}&rdquo; mesmo assim
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Campo "de escolha" — mostra um botão/campo somente-leitura que abre o
+// SeletorBuscaDropdown ao clicar, com busca.
+function CampoDeEscolha({
+  label, name, span, itens, placeholder, required, permitirLivre,
+}: {
+  label: string;
+  name: string;
+  span?: string;
+  itens: ItemSelecao[];
+  placeholder?: string;
+  required?: boolean;
+  permitirLivre?: boolean;
+}) {
+  const [valor, setValor] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  return (
+    <Field label={label} required={required} span={span} className="relative" filled={valor.length > 0}>
+      <input
+        ref={inputRef}
+        name={name}
+        value={valor}
+        readOnly
+        onClick={() => setAberto(true)}
+        placeholder={placeholder}
+        className={`${bareCls} cursor-pointer`}
+      />
+      {aberto && (
+        <SeletorBuscaDropdown
+          titulo={label}
+          valorInicial={valor}
+          itens={itens}
+          permitirLivre={permitirLivre}
+          placeholder={placeholder}
+          onFechar={() => setAberto(false)}
+          onSelecionar={(item) => {
+            setValor(item.label);
+            setAberto(false);
+            if (inputRef.current) focarProximoCampo(inputRef.current);
+          }}
+        />
       )}
-    </div>
+    </Field>
+  );
+}
+
+// Naturalidade — igual ao CampoDeEscolha, mas ao escolher uma cidade também
+// define a UF correspondente.
+function CampoNaturalidade({
+  span, municipios, onSelecionarCidade,
+}: {
+  span?: string;
+  municipios: Municipio[];
+  onSelecionarCidade: (nome: string, uf: string) => void;
+}) {
+  const [valor, setValor] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const itens = useMemo(
+    () => municipios.map((m, i) => ({ id: `${m.nome}|${m.uf}|${i}`, label: m.nome, sublabel: m.uf })),
+    [municipios]
+  );
+
+  return (
+    <Field label="Naturalidade — cidade" span={span} className="relative" filled={valor.length > 0}>
+      <input
+        ref={inputRef}
+        value={valor}
+        readOnly
+        onClick={() => setAberto(true)}
+        placeholder="Cidade de nascimento"
+        className={`${bareCls} cursor-pointer`}
+      />
+      {aberto && (
+        <SeletorBuscaDropdown
+          titulo="Naturalidade"
+          valorInicial={valor}
+          itens={itens}
+          permitirLivre
+          placeholder="Cidade de nascimento"
+          onFechar={() => setAberto(false)}
+          onSelecionar={(item) => {
+            const [nome, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
+            setValor(nome);
+            onSelecionarCidade(nome, uf);
+            setAberto(false);
+            if (inputRef.current) focarProximoCampo(inputRef.current);
+          }}
+        />
+      )}
+    </Field>
   );
 }
 
@@ -170,6 +383,7 @@ export default function NovaMatriculaForm({
   setores,
   turmasIniciais,
   professoresIniciais,
+  precos,
   errorMsg,
 }: {
   campos: CampoMinisterio[];
@@ -178,10 +392,17 @@ export default function NovaMatriculaForm({
   setores: SelectItem[];
   turmasIniciais: Turma[];
   professoresIniciais: Professor[];
+  precos: Preco[];
   errorMsg?: string;
 }) {
   const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
   const [formaCobranca, setFormaCobranca] = useState("MANUAL");
+  // Preenchidos automaticamente ao escolher o curso (a partir de Financeiro
+  // > Preços dos Cursos) — a secretaria pode sobrescrever pontualmente sem
+  // afetar o preço padrão guardado lá.
+  const [valorMatricula, setValorMatricula] = useState("");
+  const [valorParcela, setValorParcela] = useState("");
+  const [numeroParcelasPagto, setNumeroParcelasPagto] = useState("12");
   const [fotoUrl, setFotoUrl] = useState("");
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
@@ -198,6 +419,9 @@ export default function NovaMatriculaForm({
   const [naturalidadeCidade, setNaturalidadeCidade] = useState("");
   const [naturalidadeEstado, setNaturalidadeEstado] = useState("");
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [genero, setGenero] = useState("");
+  const [estadoCivil, setEstadoCivil] = useState("");
+  const [escolaridadeSel, setEscolaridadeSel] = useState("");
 
   const [generos, setGeneros] = useState<SelectItem[]>([]);
   const [estadosCivis, setEstadosCivis] = useState<SelectItem[]>([]);
@@ -290,6 +514,15 @@ export default function NovaMatriculaForm({
   const cursosEscola = cursos.filter((c) => c.module === "escola");
   const cursosOutros = cursos.filter((c) => c.module !== "escola");
 
+  // Total calculado ao vivo (matrícula + parcela x nº de parcelas) —
+  // validação visual pedida pela secretaria antes de gerar a matrícula.
+  const valorTotalPagtoCentavos = useMemo(() => {
+    const matriculaCentavos = textoParaCentavos(valorMatricula);
+    const parcelaCentavos = textoParaCentavos(valorParcela);
+    const numParcelas = Math.max(1, Number(numeroParcelasPagto) || 1);
+    return matriculaCentavos + parcelaCentavos * numParcelas;
+  }, [valorMatricula, valorParcela, numeroParcelasPagto]);
+
   const igrejasDoSetor = useMemo(
     () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
     [sectorId, churches]
@@ -337,8 +570,9 @@ export default function NovaMatriculaForm({
       if (error) throw error;
       const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
       setFotoUrl(data.publicUrl);
-    } catch {
-      setExtraError("Erro no upload da foto.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "erro desconhecido";
+      setExtraError(`Erro no upload da foto: ${msg}`);
     } finally {
       setUploadingFoto(false);
     }
@@ -374,18 +608,24 @@ export default function NovaMatriculaForm({
         backLabel="Voltar para Matrículas"
       />
 
-      {errorMsg && (
-        <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span className="font-medium">{errorMsg}</span>
-        </div>
-      )}
-      {extraError && (
-        <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span className="font-medium">{extraError}</span>
-        </div>
-      )}
+      {/* Wrapper sempre montado — evita que o <form> logo abaixo remonte (e
+          perca todos os campos não controlados já preenchidos) quando esses
+          banners de erro aparecem/somem, por causa da reconciliação do React
+          numa lista de irmãos sem key. */}
+      <div className="space-y-3 empty:hidden">
+        {errorMsg && (
+          <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="font-medium">{errorMsg}</span>
+          </div>
+        )}
+        {extraError && (
+          <div className="flex items-center gap-3 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="font-medium">{extraError}</span>
+          </div>
+        )}
+      </div>
 
       <form
         action={(fd: FormData) => {
@@ -407,6 +647,12 @@ export default function NovaMatriculaForm({
           fd.set("church_id_aluno", churchId);
           fd.set("course_edition_id", turmaId);
           fd.set("professor_id", professorId);
+          // A action lê "campo_ministerio_nome" além do id (pro PDF/telas
+          // que só mostram o nome) — sem isso, o nome ficava sempre em
+          // branco mesmo com o campo selecionado.
+          const campoMinisterioIdSelecionado = fd.get("campo_ministerio_id") as string;
+          const campoSelecionado = campos.find((c) => c.id === campoMinisterioIdSelecionado);
+          fd.set("campo_ministerio_nome", campoSelecionado?.nome ?? "");
           fd.set("naturalidade_cidade", naturalidadeCidade);
           fd.set("naturalidade_estado", naturalidadeEstado);
           fd.set("foto_url", fotoUrl);
@@ -451,7 +697,17 @@ export default function NovaMatriculaForm({
                   name="course_id"
                   required
                   value={courseId}
-                  onChange={(e) => { setCourseId(e.target.value); setTurmaId(""); }}
+                  onChange={(e) => {
+                    const novoCursoId = e.target.value;
+                    setCourseId(novoCursoId);
+                    setTurmaId("");
+                    // Preço fixo do curso (Financeiro > Preços dos Cursos) —
+                    // preenche sozinho a seção de Pagamento mais abaixo.
+                    const preco = precos.find((p) => p.course_id === novoCursoId);
+                    setValorMatricula(preco ? centavosParaTexto(preco.valor_matricula_centavos) : "");
+                    setValorParcela(preco ? centavosParaTexto(preco.valor_parcela_centavos) : "");
+                    setNumeroParcelasPagto(preco ? String(preco.numero_parcelas) : "12");
+                  }}
                   className={bareSelectCls}
                 >
                   <option value="" disabled>Selecione o curso</option>
@@ -634,14 +890,18 @@ export default function NovaMatriculaForm({
                 className={bareCls}
               />
             </Field>
-            <Field label="Data de nascimento" span="col-span-6 md:col-span-3">
+            <Field label="Data de nascimento" span="col-span-6 md:col-span-3" filled={dataNascimento.length === 10}>
               <input
                 value={dataNascimento}
                 maxLength={10}
+                inputMode="numeric"
                 onChange={(e) => setDataNascimento(maskDate(e.target.value))}
                 placeholder="DD/MM/AAAA"
                 className={`${bareCls} text-center`}
               />
+              {dataPorExtenso(dataNascimento) && (
+                <p className="text-[11px] font-medium text-iw-navy text-center mt-0.5">{dataPorExtenso(dataNascimento)}</p>
+              )}
             </Field>
           </div>
 
@@ -674,39 +934,54 @@ export default function NovaMatriculaForm({
           </div>
 
           <div className="grid grid-cols-12 gap-3">
-            <Field label="Sexo" span="col-span-6 md:col-span-3">
-              <select name="genero" className={bareSelectCls} defaultValue="">
+            <Field label="Sexo" span="col-span-6 md:col-span-3" filled={genero.length > 0}>
+              <select
+                name="genero"
+                value={genero}
+                onChange={(e) => { setGenero(e.target.value); focarProximoCampo(e.currentTarget); }}
+                className={bareSelectCls}
+              >
                 <option value="">Selecione...</option>
                 {generos.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}
               </select>
             </Field>
-            <Field label="Estado civil" span="col-span-6 md:col-span-3">
-              <select name="estado_civil" className={bareSelectCls} defaultValue="">
+            <Field label="Estado civil" span="col-span-6 md:col-span-3" filled={estadoCivil.length > 0}>
+              <select
+                name="estado_civil"
+                value={estadoCivil}
+                onChange={(e) => { setEstadoCivil(e.target.value); focarProximoCampo(e.currentTarget); }}
+                className={bareSelectCls}
+              >
                 <option value="">Selecione...</option>
                 {estadosCivis.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
               </select>
             </Field>
-            <Field label="Escolaridade" span="col-span-6 md:col-span-3">
-              <select name="escolaridade" className={bareSelectCls} defaultValue="">
+            <Field label="Escolaridade" span="col-span-6 md:col-span-3" filled={escolaridadeSel.length > 0}>
+              <select
+                name="escolaridade"
+                value={escolaridadeSel}
+                onChange={(e) => { setEscolaridadeSel(e.target.value); focarProximoCampo(e.currentTarget); }}
+                className={bareSelectCls}
+              >
                 <option value="">Selecione...</option>
                 {escolaridades.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
               </select>
             </Field>
-            <Field label="Profissão" span="col-span-6 md:col-span-3">
-              <select name="profissao" className={bareSelectCls} defaultValue="">
-                <option value="">Selecione...</option>
-                {profissoes.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
-              </select>
-            </Field>
+            <CampoDeEscolha
+              label="Profissão"
+              name="profissao"
+              span="col-span-6 md:col-span-3"
+              itens={profissoes.map((p) => ({ id: p.id, label: p.name }))}
+              placeholder="Digite pra buscar"
+              permitirLivre
+            />
           </div>
 
           <div className="grid grid-cols-12 gap-3">
-            <CidadeField
+            <CampoNaturalidade
               span="col-span-6 md:col-span-2"
-              query={naturalidadeCidade}
-              onQueryChange={setNaturalidadeCidade}
-              onSelect={(nome, uf) => { setNaturalidadeCidade(nome); setNaturalidadeEstado(uf); }}
               municipios={municipios}
+              onSelecionarCidade={(nome, uf) => { setNaturalidadeCidade(nome); setNaturalidadeEstado(uf); }}
             />
             <Field label="UF" span="col-span-3 md:col-span-1">
               <input
@@ -720,16 +995,34 @@ export default function NovaMatriculaForm({
               <input name="nacionalidade" defaultValue="Brasileira" className={bareCls} />
             </Field>
             <Field label="Cônjuge (se houver)" span="col-span-12 md:col-span-7">
-              <input name="nome_conjuge" className={bareCls} />
+              <input
+                name="nome_conjuge"
+                autoComplete="off"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
+                className={bareCls}
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-12 gap-3">
             <Field label="Nome da mãe" span="col-span-12 md:col-span-6">
-              <input name="nome_mae" className={bareCls} />
+              <input
+                name="nome_mae"
+                autoComplete="off"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
+                className={bareCls}
+              />
             </Field>
             <Field label="Nome do pai" span="col-span-12 md:col-span-6">
-              <input name="nome_pai" className={bareCls} />
+              <input
+                name="nome_pai"
+                autoComplete="off"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
+                className={bareCls}
+              />
             </Field>
           </div>
         </div>
@@ -783,23 +1076,54 @@ export default function NovaMatriculaForm({
         {/* Pagamento */}
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
           <SectionHeader icon={Wallet} label="Pagamento" />
-          <p className="text-xs text-iw-muted -mt-1">
-            Opcional. Deixe o valor em branco se essa matrícula não tiver cobrança. Preenchendo, o sistema gera as
-            parcelas em Financeiro &gt; Contas a Receber (não lança nada no Caixa Diário automaticamente).
-          </p>
+          <div className="flex items-center justify-between gap-3 flex-wrap -mt-1">
+            <p className="text-xs text-iw-muted">
+              Preenchido automaticamente ao escolher o curso (valor fixo em Financeiro &gt; Preços dos Cursos) — pode
+              sobrescrever pontualmente aqui, sem alterar o preço padrão. Deixe tudo em branco se essa matrícula não
+              tiver cobrança.
+            </p>
+            {valorTotalPagtoCentavos > 0 && (
+              <span className="text-sm font-bold text-iw-gold whitespace-nowrap shrink-0">
+                Total: {formatarCentavos(valorTotalPagtoCentavos)}
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-12 gap-3">
-            <Field label="Valor total" span="col-span-6 md:col-span-3">
-              <input name="valor_total" placeholder="Ex: 600,00" className={bareCls} />
+            <Field label="Valor da matrícula (opcional)" span="col-span-6 md:col-span-3">
+              <input
+                name="valor_matricula"
+                value={valorMatricula}
+                onChange={(e) => setValorMatricula(e.target.value)}
+                placeholder="Ex: 25,00"
+                className={bareCls}
+              />
+            </Field>
+            <Field label="Valor da parcela" span="col-span-6 md:col-span-3">
+              <input
+                name="valor_parcela"
+                value={valorParcela}
+                onChange={(e) => setValorParcela(e.target.value)}
+                placeholder="Ex: 65,00"
+                className={bareCls}
+              />
+            </Field>
+            <Field label="Nº de parcelas" span="col-span-6 md:col-span-2">
+              <input
+                name="total_parcelas"
+                type="number"
+                min={1}
+                max={12}
+                value={numeroParcelasPagto}
+                onChange={(e) => setNumeroParcelasPagto(e.target.value)}
+                className={bareCls}
+              />
             </Field>
             {formaCobranca === "MANUAL" ? (
               <>
-                <Field label="Nº de parcelas" span="col-span-6 md:col-span-2">
-                  <input name="total_parcelas" type="number" min={1} max={12} defaultValue={1} className={bareCls} />
-                </Field>
-                <Field label="1º vencimento" span="col-span-6 md:col-span-3">
+                <Field label="1º vencimento" span="col-span-6 md:col-span-2">
                   <input name="data_vencimento" type="date" defaultValue={hoje} className={bareCls} />
                 </Field>
-                <Field label="Forma de pagamento prevista" span="col-span-6 md:col-span-4">
+                <Field label="Forma de pagamento prevista" span="col-span-12 md:col-span-2">
                   <select name="forma_pagamento_prevista" defaultValue="DINHEIRO" className={bareSelectCls}>
                     <option value="DINHEIRO">Dinheiro</option>
                     <option value="PIX">Pix</option>
@@ -810,10 +1134,11 @@ export default function NovaMatriculaForm({
                 </Field>
               </>
             ) : (
-              <div className="col-span-12 md:col-span-9 flex items-center">
+              <div className="col-span-12 flex items-center">
                 <p className="text-xs text-iw-muted">
-                  Um link de pagamento único (Checkout Pro) será gerado no valor total informado. A cobrança fica
-                  pendente em Financeiro &gt; Contas a Receber até o Mercado Pago confirmar o pagamento.
+                  Um link de pagamento único Pix/Mercado Pago (Checkout Pro) será gerado no valor total (matrícula +
+                  parcelas). A cobrança fica pendente em Financeiro &gt; Contas a Receber até o Mercado Pago
+                  confirmar o pagamento — não é possível dividir esse link em parcelas separadas.
                 </p>
               </div>
             )}

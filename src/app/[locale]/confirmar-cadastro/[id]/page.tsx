@@ -22,7 +22,7 @@ export default async function ConfirmarCadastroPage({ params }: PageProps) {
 
   const { data: aluno } = await admin
     .from("ead_alunos")
-    .select("id, nome_completo, cpf, matricula, curso_pretendido, status, telefone")
+    .select("id, nome_completo, cpf, matricula, curso_pretendido, status, telefone, email")
     .eq("id", id)
     .maybeSingle();
 
@@ -48,5 +48,20 @@ export default async function ConfirmarCadastroPage({ params }: PageProps) {
     );
   }
 
-  return <ConfirmarCadastroForm aluno={aluno} />;
+  // Página pública (sem sessão) — settings_schooling/settings_professions
+  // só têm SELECT liberado pra `authenticated`, então busca aqui com o
+  // client admin (bypassa RLS) e passa pronto pro form, em vez de deixar
+  // o client tentar buscar direto (ficaria vazio pra usuário anônimo).
+  const [{ data: escolaridades }, { data: profissoes }] = await Promise.all([
+    admin.from("settings_schooling").select("id, name").order("name"),
+    admin.from("settings_professions").select("id, name").order("name"),
+  ]);
+
+  return (
+    <ConfirmarCadastroForm
+      aluno={aluno}
+      escolaridades={escolaridades ?? []}
+      profissoes={profissoes ?? []}
+    />
+  );
 }

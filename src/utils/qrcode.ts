@@ -16,3 +16,14 @@ export async function gerarQrCodeDataUrl(conteudo: string): Promise<string> {
     errorCorrectionLevel: "M",
   });
 }
+
+// Mesma coisa, mas como PNG bruto (bytes) em vez de data URL — usado
+// quando o QR precisa ser embutido direto num PDF (pdf-lib embedPng),
+// que não aceita data URL, só bytes/Buffer/Uint8Array.
+export async function gerarQrCodePngBytes(conteudo: string): Promise<Uint8Array> {
+  return QRCode.toBuffer(conteudo, {
+    margin: 1,
+    width: 240,
+    errorCorrectionLevel: "M",
+  });
+}

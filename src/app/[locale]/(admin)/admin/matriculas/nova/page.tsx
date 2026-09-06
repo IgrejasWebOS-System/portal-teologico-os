@@ -36,6 +36,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     { data: setores },
     { data: turmas },
     { data: professores },
+    { data: precos },
   ] = await Promise.all([
     supabase.from("ead_campos_ministerios").select("id, nome, tipo").eq("ativo", true).order("nome"),
     supabase.from("courses").select("id, title, module").order("title"),
@@ -43,6 +44,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     supabase.from("sectors").select("id, name").order("name"),
     supabase.from("course_editions").select("id, nome, course_id").order("nome"),
     supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+    supabase.from("course_pricing").select("course_id, valor_matricula_centavos, valor_parcela_centavos, numero_parcelas"),
   ]);
 
   return (
@@ -53,6 +55,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
       setores={setores ?? []}
       turmasIniciais={turmas ?? []}
       professoresIniciais={professores ?? []}
+      precos={precos ?? []}
       errorMsg={error ? decodeURIComponent(error) : undefined}
     />
   );
