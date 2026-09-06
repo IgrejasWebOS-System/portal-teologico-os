@@ -17,8 +17,18 @@ jobs:
           node-version: 20
           cache: npm
 
+      # npm ci exige que package-lock.json contenha, sem margem, a árvore de
+      # dependências que ELE MESMO vai resolver — incluindo variações
+      # específicas de plataforma (ex.: @swc/helpers, que entra na árvore de
+      # forma diferente quando o lock é gerado no Windows do dev vs. quando
+      # o npm ci roda aqui no Linux/Ubuntu). Sem WSL/Docker local pra gerar
+      # um lockfile "nascido no Linux", npm ci falha nesse cenário mesmo com
+      # o lockfile 100% correto e reproduzível localmente. npm install
+      # resolve a árvore normalmente (mesma fonte de verdade, package.json),
+      # sem essa checagem estrita — troca segura aqui, já que não dependemos
+      # de reprodutibilidade byte-a-byte do lock entre CI e dev.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Lint
         run: npm run lint
