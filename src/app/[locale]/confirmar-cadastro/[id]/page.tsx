@@ -22,7 +22,7 @@ export default async function ConfirmarCadastroPage({ params }: PageProps) {
 
   const { data: aluno } = await admin
     .from("ead_alunos")
-    .select("id, nome_completo, cpf, matricula, curso_pretendido, status, telefone")
+    .select("id, nome_completo, cpf, matricula, curso_pretendido, status, telefone, email")
     .eq("id", id)
     .maybeSingle();
 

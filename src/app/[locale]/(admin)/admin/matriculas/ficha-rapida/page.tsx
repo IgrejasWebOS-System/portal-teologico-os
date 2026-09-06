@@ -23,11 +23,22 @@ export default async function FichaRapidaPage() {
     );
   }
 
-  const [{ data: campos }, { data: cursos }, { data: churches }, { data: setores }] = await Promise.all([
+  const [
+    { data: campos },
+    { data: cursos },
+    { data: churches },
+    { data: setores },
+    { data: turmas },
+    { data: professores },
+    { data: precos },
+  ] = await Promise.all([
     supabase.from("ead_campos_ministerios").select("id, nome, tipo").eq("ativo", true).order("nome"),
     supabase.from("courses").select("id, title, module").order("title"),
     supabase.from("churches").select("id, name, sector_id").order("name"),
     supabase.from("sectors").select("id, name").order("name"),
+    supabase.from("course_editions").select("id, nome, course_id").order("nome"),
+    supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+    supabase.from("course_pricing").select("course_id, valor_matricula_centavos, valor_parcela_centavos, numero_parcelas"),
   ]);
 
   return (
@@ -36,6 +47,9 @@ export default async function FichaRapidaPage() {
       cursos={cursos ?? []}
       churches={churches ?? []}
       setores={setores ?? []}
+      turmas={turmas ?? []}
+      professores={professores ?? []}
+      precos={precos ?? []}
     />
   );
 }

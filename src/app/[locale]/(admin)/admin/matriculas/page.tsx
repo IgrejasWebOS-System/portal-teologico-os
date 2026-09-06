@@ -6,6 +6,7 @@ import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
 import LinkPagamentoBanner from "./LinkPagamentoBanner";
+import BotaoBaixarPdfMatricula from "./BotaoBaixarPdfMatricula";
 
 export const metadata = { title: "Matrículas — CETADP" };
 
@@ -46,7 +47,7 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
 
   const { data: matriculas } = await supabase
     .from("ead_matriculas")
-    .select("*, ead_alunos(nome_completo, cpf, email)")
+    .select("*, ead_alunos(nome_completo, cpf, email, pdf_matricula_path)")
     .order("data_matricula", { ascending: false });
 
   return (
@@ -95,12 +96,13 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-3">
           {matriculas.map((m) => {
             const alunoInfo = m.ead_alunos as unknown as
-              | { nome_completo: string; cpf: string | null; email: string }
+              | { nome_completo: string; cpf: string | null; email: string; pdf_matricula_path: string | null }
               | null;
             return (
-              <div
+              <Link
                 key={m.id}
-                className="bg-iw-surface border border-iw-border rounded-2xl p-5 shadow-sm flex flex-col gap-2"
+                href={`/admin/matriculas/${m.id}`}
+                className="bg-iw-surface border border-iw-border rounded-2xl p-5 shadow-sm flex flex-col gap-2 hover:border-iw-gold/40 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
@@ -120,11 +122,14 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
                       )}
                     </div>
                   </div>
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLE[m.status] ?? STATUS_STYLE.EM_ANDAMENTO}`}
-                  >
-                    {m.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLE[m.status] ?? STATUS_STYLE.EM_ANDAMENTO}`}
+                    >
+                      {m.status}
+                    </span>
+                    {alunoInfo?.pdf_matricula_path && <BotaoBaixarPdfMatricula alunoId={m.aluno_id} />}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-iw-muted">
@@ -135,7 +140,7 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
                     <span><strong className="text-iw-navy">Nota final:</strong> {Number(m.nota_final).toFixed(1)}</span>
                   )}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
