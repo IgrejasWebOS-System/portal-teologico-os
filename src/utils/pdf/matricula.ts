@@ -83,9 +83,17 @@ export interface EvidenciaAssinatura {
 
 const marginX = 40;
 const rightEdge = 555;
-const navy = rgb(0.05, 0.09, 0.2);
-const gold = rgb(0.55, 0.42, 0.09);
-const muted = rgb(0.45, 0.45, 0.47);
+// Fase 8 do BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md: cores oficiais do
+// Manual de Identidade Visual CETADP v1.0 (preto #0D0D0D, dourado
+// #CF8403), convertidas para escala 0–1 do pdf-lib. Antes eram valores
+// arbitrários que não batiam nem com a paleta antiga nem com a oficial.
+const navy = rgb(0x0d / 255, 0x0d / 255, 0x0d / 255); // #0D0D0D — preto institucional
+const gold = rgb(0xcf / 255, 0x84 / 255, 0x03 / 255); // #CF8403 — dourado institucional
+// Pedido explícito do usuário: apesar do blueprint de identidade visual usar
+// cinza (#4A4A4A) como "cor de texto auxiliar" nas telas do site, em
+// RELATÓRIOS GERADOS EM PDF PARA IMPRESSÃO isso vira preto puro (#000000)
+// — evita texto claro/desbotado na impressora. Vale só aqui, não no site.
+const muted = rgb(0, 0, 0); // #000000 — antes: rgb(0.45, 0.45, 0.47)
 const borderCinza = rgb(0.8, 0.8, 0.8);
 
 // Largura reservada à esquerda pra foto circular, só na seção "Curso e
@@ -214,6 +222,42 @@ function quebrarEDesenharTexto(
   return y;
 }
 
+// Desenha uma linha de texto centralizada entre marginX e rightEdge —
+// usado no rodapé institucional.
+function desenharTextoCentralizado(
+  page: PDFPage, texto: string, y: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>
+) {
+  const largura = font.widthOfTextAtSize(texto, size);
+  page.drawText(texto, { x: marginX + (rightEdge - marginX - largura) / 2, y, size, font, color });
+}
+
+// Desenha uma linha de texto encostada na margem direita — usado na
+// legenda acima do QR Code, que fica na mesma coluna do QR (lado
+// direito), não centralizada na página inteira.
+function desenharTextoAlinhadoDireita(
+  page: PDFPage, texto: string, y: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>
+) {
+  const largura = font.widthOfTextAtSize(texto, size);
+  page.drawText(texto, { x: rightEdge - largura, y, size, font, color });
+}
+
+// Carrega o arquivo oficial do logo (medalhão + lettering CETADP +
+// faixa), pra desenhar ao lado do título no cabeçalho do PDF — pedido
+// explícito pra usar o logo completo, não só o símbolo isolado. Lê
+// direto do disco (arquivo estático do repositório, não dado do
+// usuário) — se o arquivo ainda não tiver sido copiado pra
+// public/branding (ver BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md, Fase 3),
+// falha em silêncio e o cabeçalho sai só com texto, sem quebrar o PDF.
+async function carregarLogoCabecalhoBytes(): Promise<Uint8Array | null> {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const path = await import("node:path");
+    return await readFile(path.join(process.cwd(), "public", "branding", "logos", "logo-colorida.png"));
+  } catch {
+    return null;
+  }
+}
+
 export async function gerarPdfMatricula(
   dados: DadosMatriculaPdf,
   assinaturaPngBytes: Uint8Array | null,
@@ -228,11 +272,36 @@ export async function gerarPdfMatricula(
   let y = 800;
 
   // ── Cabeçalho ──────────────────────────────────────────────
-  page.drawText(`${INSTITUICAO.sigla} — Formulário de Matrícula`, { x: marginX, y, size: 16, font: fontBold, color: navy });
+  // Logo institucional completo (medalhão + lettering + faixa) ao lado
+  // esquerdo do título — pedido explícito pra usar o logo inteiro, não só
+  // o símbolo isolado. O texto do título+subtítulo fica centralizado na
+  // altura do logo (não "pendurado" no topo dele). Se o arquivo ainda não
+  // foi copiado pra public/branding, simplesmente não desenha nada e o
+  // título fica sem recuo — nunca quebra o PDF.
+  const logoBytes = await carregarLogoCabecalhoBytes();
+  let tituloX = marginX;
+  if (logoBytes) {
+    try {
+      const logoImg = await pdf.embedPng(logoBytes);
+      const logoLado = 46;
+      const escala = Math.max(logoLado / logoImg.width, logoLado / logoImg.height);
+      const w = logoImg.width * escala;
+      const h = logoImg.height * escala;
+      // Centro vertical do bloco de texto (título size 16 + subtítulo
+      // size 9, espaçados por "y -= 18" logo abaixo): topo do título
+      // (~y+11) até a base do subtítulo (~(y-18)-3) → centro = y-5.
+      const centroTexto = y - 5;
+      page.drawImage(logoImg, { x: marginX, y: centroTexto - h / 2 + 1, width: w, height: h });
+      tituloX = marginX + w + 10;
+    } catch {
+      // segue sem o logo no cabeçalho se a imagem vier corrompida
+    }
+  }
+  page.drawText(`${INSTITUICAO.sigla} — Formulário de Matrícula`, { x: tituloX, y, size: 16, font: fontBold, color: navy });
   y -= 18;
-  page.drawText(INSTITUICAO.nomeCompleto, { x: marginX, y, size: 9, font, color: muted });
+  page.drawText(INSTITUICAO.nomeCompleto, { x: tituloX, y, size: 9, font, color: muted });
   y -= 6;
-  page.drawLine({ start: { x: marginX, y }, end: { x: rightEdge, y }, thickness: 1.5, color: gold });
+  page.drawLine({ start: { x: marginX, y: y - 3 }, end: { x: rightEdge, y: y - 3 }, thickness: 1.5, color: gold });
   y -= 20;
 
   // Foto do aluno — carregada uma vez aqui, desenhada mais abaixo, ao lado
@@ -415,42 +484,48 @@ export async function gerarPdfMatricula(
     fecharSecao(page, secao.boxTop, yc);
   }
 
-  // ── Assinatura para impressão (sem assinatura eletrônica) ───
-  // Só aparece quando o aluno não assinou digitalmente na hora do
-  // cadastro — uma linha em branco, alinhada à esquerda, antes do
-  // rodapé, pra assinar à caneta depois de impresso.
-  if (!assinaturaPngBytes) {
-    const sigY = 168;
-    page.drawLine({ start: { x: marginX, y: sigY }, end: { x: marginX + 220, y: sigY }, thickness: 0.5, color: muted });
-    page.drawText("Assinatura do Aluno (após impressão)", { x: marginX, y: sigY - 11, size: 7.5, font, color: muted });
-  }
+  // Posições fixas da faixa final da página — de baixo pra cima: rodapé,
+  // assinatura (só 2 linhas acima do rodapé) e QR Code + legenda,
+  // encostados na margem direita. footerTop mais baixo que antes (pedido
+  // explícito), com tudo mais recalculado em cascata a partir dele.
+  const footerTop = 50;
 
   // ── QR Code de consulta (acima do rodapé, lado direito) ─────
   // Codifica só o número da matrícula (não um link) — é o que dá pra
   // conferir sem inventar URL de verificação pública, que este sistema
-  // não tem. Quem escanear vê o texto puro "CETADP-AAAA-NNNN"; a nota à
-  // esquerda do QR deixa claro que o histórico completo só é visto no
-  // Portal do Aluno, com login e senha.
-  // Fica encostado na margem direita — testado com o formulário impresso
-  // na mão, de frente: o QR precisa estar do lado direito da folha.
+  // não tem. Fica encostado na margem direita — testado com o formulário
+  // impresso na mão, de frente: o QR precisa estar do lado direito da folha.
+  const qrLado = 48;
+  const qrY = footerTop + 14; // base do QR — deixa espaço abaixo pro nº da matrícula sem encostar no rodapé
+  const qrX = rightEdge - qrLado;
   try {
     const qrBytes = await gerarQrCodePngBytes(dados.matricula);
     const qrImg = await pdf.embedPng(qrBytes);
-    const qrLado = 48;
-    const qrY = 92; // base do QR — deixa espaço abaixo pro nº da matrícula sem encostar no rodapé
-    const qrX = rightEdge - qrLado;
     page.drawImage(qrImg, { x: qrX, y: qrY, width: qrLado, height: qrLado });
     const numLargura = fontBold.widthOfTextAtSize(dados.matricula, 6);
     page.drawText(dados.matricula, {
       x: qrX + (qrLado - numLargura) / 2, y: qrY - 11, size: 6, font: fontBold, color: navy,
     });
-    quebrarEDesenharTexto(
-      page,
-      "Consulta rápida da matrícula. O histórico completo do aluno só é acessado com login e senha no Portal do Aluno.",
-      marginX, qrY + qrLado - 8, qrX - marginX - 10, 6.5, font, muted
-    );
   } catch {
     // sem QR no PDF se a geração falhar — não deve travar o documento
+  }
+
+  // Legenda acima do QR Code — encostada na margem direita (mesma coluna
+  // do QR), não centralizada na página inteira: fica ACIMA do QR, não ao
+  // lado/alinhada com ele.
+  const qrTopo = qrY + qrLado;
+  desenharTextoAlinhadoDireita(page, "Consulta rápida matrícula.", qrTopo + 26, 7, font, muted);
+  desenharTextoAlinhadoDireita(page, "Histórico aluno", qrTopo + 17, 7, font, muted);
+  desenharTextoAlinhadoDireita(page, "login e senha no Portal EAD-CETADP", qrTopo + 8, 7, font, muted);
+
+  // ── Assinatura para impressão (sem assinatura eletrônica) ───
+  // Só aparece quando o aluno não assinou digitalmente na hora do
+  // cadastro — uma linha em branco, alinhada à esquerda, ficando só ~2
+  // linhas de texto acima do rodapé (pedido explícito).
+  if (!assinaturaPngBytes) {
+    const sigY = footerTop + 24;
+    page.drawLine({ start: { x: marginX, y: sigY }, end: { x: marginX + 220, y: sigY }, thickness: 0.5, color: muted });
+    page.drawText("Assinatura do Aluno", { x: marginX, y: sigY - 11, size: 7.5, font, color: muted });
   }
 
   // ── Rodapé institucional ────────────────────────────────────
@@ -459,16 +534,11 @@ export async function gerarPdfMatricula(
   // tamanho fixo de A4 usado aqui). Centralizado, sem repetir o nome da
   // instituição (já aparece no cabeçalho).
   {
-    const footerTop = 78;
     page.drawLine({ start: { x: marginX, y: footerTop }, end: { x: rightEdge, y: footerTop }, thickness: 0.75, color: borderCinza });
-    const centralizar = (texto: string, yPos: number, size: number, f: PDFFont, color: ReturnType<typeof rgb>) => {
-      const largura = f.widthOfTextAtSize(texto, size);
-      page.drawText(texto, { x: marginX + (rightEdge - marginX - largura) / 2, y: yPos, size, font: f, color });
-    };
     let yf = footerTop - 14;
-    centralizar(INSTITUICAO.endereco, yf, 7, font, muted);
+    desenharTextoCentralizado(page, INSTITUICAO.endereco, yf, 7, font, muted);
     yf -= 11;
-    centralizar(`Tel./WhatsApp: ${INSTITUICAO.telefone}  ·  ${INSTITUICAO.site}`, yf, 7, font, muted);
+    desenharTextoCentralizado(page, `Tel./WhatsApp: ${INSTITUICAO.telefone}  ·  ${INSTITUICAO.site}`, yf, 7, font, muted);
   }
 
   return pdf.save();

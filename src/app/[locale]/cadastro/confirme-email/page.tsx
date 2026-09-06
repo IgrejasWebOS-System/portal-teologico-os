@@ -15,7 +15,7 @@ export default function ConfirmeEmailPage() {
     <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
       <div className="w-full max-w-md text-center">
         <div className="inline-flex mb-4">
-          <Logo size="lg" variant="dark" shape="circle" />
+          <Logo size="lg" variant="dark" />
         </div>
 
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-[var(--shadow-lg)] p-8">

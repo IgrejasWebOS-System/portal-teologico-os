@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  Send, Loader2, AlertTriangle, CheckCircle2, User, GraduationCap, Wallet, QrCode, Copy, Check, Ban, History,
+  Send, Loader2, AlertTriangle, CheckCircle2, User, GraduationCap, Wallet, QrCode, Copy, Check, Ban, History, Camera,
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   atualizarMatriculaAction, lancarPagamentoRetroativoAction, cancelarMatriculaAction,
@@ -50,6 +51,7 @@ interface Aluno {
   cidade: string | null;
   estado: string | null;
   nacionalidade: string | null;
+  foto_url: string | null;
 }
 
 interface Matricula {
@@ -160,6 +162,32 @@ export default function EditarMatriculaForm({
   const [copiado, setCopiado] = useState(false);
   const [mostrarPagamento, setMostrarPagamento] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+  const [fotoUrl, setFotoUrl] = useState(aluno.foto_url ?? "");
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+
+  // Upload da foto do aluno — mesmo bucket "avatars" usado no cadastro
+  // direto (nova/NovaMatriculaForm.tsx). Faltava aqui: quando a matrícula
+  // era criada pela Ficha Rápida (sem foto) não tinha como adicionar
+  // depois — só editar dados, sem opção de foto.
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const fileName = `aluno-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      setFotoUrl(data.publicUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "erro desconhecido";
+      alert(`Erro no upload da foto: ${msg}`);
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
 
   const igrejasDoSetor = useMemo(
     () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
@@ -241,6 +269,24 @@ export default function EditarMatriculaForm({
         <input type="hidden" name="aluno_id" value={aluno.id} />
 
         <SectionHeader icon={User} label="Dados pessoais" />
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-iw-bg border-2 border-dashed border-iw-border flex items-center justify-center relative overflow-hidden shrink-0 group hover:border-iw-gold transition-colors">
+            {fotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-gold">
+                {uploadingFoto ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+          </div>
+          <div className="text-xs text-iw-muted">
+            <p className="font-bold text-iw-navy">{fotoUrl ? "Foto do aluno" : "Sem foto — clique no círculo pra adicionar"}</p>
+            <p>Aparece na ficha e no PDF de matrícula.</p>
+          </div>
+          <input type="hidden" name="foto_url" value={fotoUrl} />
+        </div>
         <div className="grid grid-cols-12 gap-3">
           <Field label="Nome completo" required span="col-span-12 md:col-span-6">
             <input name="nome_completo" required defaultValue={aluno.nome_completo} className={bareCls} />

@@ -639,6 +639,7 @@ export async function atualizarMatriculaAction(formData: FormData) {
   const cidade = (formData.get("cidade") as string)?.trim() || null;
   const estado = (formData.get("estado") as string) || null;
   const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
 
   if (!nome_completo || !email) {
     failEdicao(matriculaId, "Nome completo e e-mail são obrigatórios.");
@@ -666,6 +667,7 @@ export async function atualizarMatriculaAction(formData: FormData) {
       rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao,
       naturalidade_cidade, naturalidade_estado, nome_conjuge, nome_mae, nome_pai,
       cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, nacionalidade,
+      foto_url,
     })
     .eq("id", alunoId);
 

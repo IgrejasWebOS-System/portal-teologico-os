@@ -3,17 +3,18 @@
 /* ============================================================
    IgrejasWebOS Design System v1.0 — Tailwind v4
    Projeto: portal-teologico-os
-   Paleta extraída do logo oficial (2026-06-15)
+   Paleta oficial CETADP — Manual de Identidade Visual v1.0 (2026-09)
+   Ver BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md, Fase 4.
    ============================================================ */
 
 @theme {
   /* ===== AZUIS IGREJAS-WEB-OS ===== */
-  --color-iw-navy:    #111111;   /* base, títulos, ícones de destaque — preto elegante */
+  --color-iw-navy:    #0D0D0D;   /* preto institucional CETADP (manual v1.0) */
   --color-iw-blue:    #BCE5FF;   /* botões de ação, elementos ativos — azul pastel claro */
   --color-iw-sky:     #88CDF6;   /* bordas, hover, fundos suaves — azul céu médio */
 
   /* ===== DOURADO ===== */
-  --color-iw-gold:    #C5A059;   /* destaques, badges, ícones de sistema */
+  --color-iw-gold:    #CF8403;   /* dourado institucional CETADP (manual v1.0) */
   --color-iw-gold-alt:#D4AF37;   /* variação mais viva para hover */
 
   /* ===== NEUTROS ===== */
@@ -22,6 +23,10 @@
   --color-iw-text:    #111111;   /* texto principal — preto */
   --color-iw-muted:   #6B7280;   /* texto secundário */
   --color-iw-border:  #D1D5DB;   /* bordas sutis */
+
+  /* ===== AUXILIARES DE MARCA (manual v1.0, capítulo 06) ===== */
+  --color-iw-neutro-claro: #F7F4ED;
+  --color-iw-cinza-texto:  #4A4A4A;
 
   /* ===== SEMÂNTICAS ===== */
   --color-iw-success: #059669;
@@ -61,16 +66,20 @@
   --iw-space-xl: 32px;
 }
 
-/* ===== TIPOGRAFIA BASE ===== */
-/* Fontes injetadas via next/font/google no layout.tsx */
+/* ===== TIPOGRAFIA BASE =====
+   Fontes injetadas via next/font/google no layout.tsx. Desde a Fase 5 do
+   BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md, --font-inter carrega Source
+   Sans 3 e --font-merriweather carrega Cinzel (tipografia oficial do
+   Manual de Identidade Visual CETADP v1.0) — os nomes de variável CSS
+   foram mantidos de propósito para não precisar tocar aqui. */
 body {
-  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter), 'Source Sans 3', system-ui, sans-serif;
   color: #111111;
   background-color: #E8E8E8;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-merriweather), 'Merriweather', Georgia, serif;
+  font-family: var(--font-merriweather), 'Cinzel', Georgia, serif;
   color: #111111;
 }
 

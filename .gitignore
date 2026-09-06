@@ -41,5 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# rotina de backup local (scripts/*.ps1)
+# rotina de backup local (scripts/*.ps1) + exports manuais de banco de
+# produção (contém dados pessoais reais — nunca commitar)
 /logs/
+/backups/

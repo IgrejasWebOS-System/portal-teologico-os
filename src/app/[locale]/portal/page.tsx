@@ -114,7 +114,7 @@ export default async function PortalHubPage() {
       <header className="bg-iw-navy shadow-lg">
         <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <Logo size="sm" variant="dark" />
+            <Logo size="sm" variant="light" />
             <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-none truncate">
                 CETADP
