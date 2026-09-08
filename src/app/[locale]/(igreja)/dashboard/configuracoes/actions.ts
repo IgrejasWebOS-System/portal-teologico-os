@@ -444,6 +444,75 @@ async function resolverBridgeUnits(
   return { church_id, sector_id };
 }
 
+// Concede (ou promove uma conta já existente a) acesso de nível 4 —
+// Usuário-Local — escopado ao unit_id do núcleo de ensino, pro
+// professor/responsável gerenciar sozinho matrículas/turmas/alunos
+// daquele núcleo. Mesmo padrão de inviteStaffAction (M9), disparado
+// direto da tela de Professores (Fase 4 do parecer de Regionais/
+// Núcleos de Ensino). Usa o cliente admin (service_role) porque
+// convidar via Auth e gravar admin_roles em nome de outra pessoa
+// exige privilégio que o usuário comum não tem.
+async function grantNucleoAccess(
+  currentUserId: string,
+  email: string,
+  fullName: string,
+  unitId: string
+): Promise<string> {
+  const admin = createAdminClient();
+
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  let targetUserId: string;
+  let promovendoExistente = false;
+
+  if (existingProfile?.id) {
+    targetUserId = existingProfile.id;
+    promovendoExistente = true;
+    if (fullName) {
+      await admin.from("profiles").update({ full_name: fullName }).eq("id", targetUserId);
+    }
+  } else {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: fullName ? { full_name: fullName } : undefined,
+    });
+    if (inviteError || !invited?.user) {
+      return `Professor salvo, mas não foi possível enviar o convite de acesso: ${inviteError?.message ?? "erro desconhecido"}.`;
+    }
+    targetUserId = invited.user.id;
+    await admin
+      .from("profiles")
+      .update({ full_name: fullName || null, must_change_password: true })
+      .eq("id", targetUserId);
+  }
+
+  const { error: roleError } = await admin
+    .from("admin_roles")
+    .upsert(
+      {
+        user_id: targetUserId,
+        level: 4,
+        unit_id: unitId,
+        role_title: "Responsável de núcleo de ensino",
+        invited_by: currentUserId,
+      },
+      { onConflict: "user_id,unit_id" }
+    );
+
+  if (roleError) {
+    return promovendoExistente
+      ? `Professor salvo, mas houve erro ao gravar o acesso ao núcleo: ${roleError.message}`
+      : `Convite enviado, mas houve erro ao gravar o acesso ao núcleo: ${roleError.message}`;
+  }
+
+  return promovendoExistente
+    ? `Professor salvo. ${email} já tinha conta — acesso de nível 4 a este núcleo foi adicionado.`
+    : `Professor salvo. Convite de acesso enviado para ${email} (nível 4, escopado a este núcleo).`;
+}
+
 export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
@@ -477,8 +546,20 @@ export async function addProfessorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
 
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  let avisoAcesso: string | undefined;
+  if (email) {
+    if (!email.includes("@")) {
+      avisoAcesso = "Professor salvo, mas o e-mail informado é inválido — acesso não foi concedido.";
+    } else if (!unitId) {
+      avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
+    } else {
+      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
+    }
+  }
+
   revalidatePath("/dashboard/configuracoes/professores");
-  return { success: true, data };
+  return { success: true, data, message: avisoAcesso };
 }
 
 export async function updateProfessorAction(formData: FormData) {
@@ -513,8 +594,20 @@ export async function updateProfessorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
 
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  let avisoAcesso: string | undefined;
+  if (email) {
+    if (!email.includes("@")) {
+      avisoAcesso = "Professor salvo, mas o e-mail informado é inválido — acesso não foi concedido.";
+    } else if (!unitId) {
+      avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
+    } else {
+      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
+    }
+  }
+
   revalidatePath("/dashboard/configuracoes/professores");
-  return { success: true };
+  return { success: true, message: avisoAcesso };
 }
 
 export async function deleteProfessorAction(id: string) {

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Loader2, AlertTriangle, User, Phone, Briefcase, Map, Church, Building } from "lucide-react";
+import { Plus, Save, Loader2, AlertTriangle, User, Phone, Briefcase, Map, Church, Building, Mail, ShieldCheck } from "lucide-react";
 import MatriculaLookup from "../MatriculaLookup";
 import { addProfessorAction, updateProfessorAction, type MembroEncontrado } from "../actions";
 import { ancestryChain, SUB_UNIT_TYPES, type UnitNode } from "../unitsChain";
@@ -55,7 +55,9 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
   const [nome, setNome] = useState(existing?.nome ?? "");
   const [cargo, setCargo] = useState(existing?.cargo ?? "");
   const [telefone, setTelefone] = useState(existing?.telefone ?? "");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [avisoAcesso, setAvisoAcesso] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const campos = useMemo(() => units.filter((u) => u.type === "CAMPO"), [units]);
@@ -102,17 +104,20 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
     if (!nome.trim()) { setError("Busque a matrícula/nome ou digite o nome do professor."); return; }
     if (!finalUnitId) { setError("Selecione ao menos Campo, Setor e Igreja."); return; }
     setError("");
+    setAvisoAcesso("");
     fd.set("nome_completo", nome.trim());
     fd.set("cargo", cargo);
     fd.set("telefone", telefone);
     fd.set("member_id", memberId);
     fd.set("unit_id", finalUnitId);
     fd.set("setor_unit_id", setorId);
+    fd.set("email", email.trim());
     if (existing) fd.set("id", existing.id);
 
     startTransition(async () => {
       const res = existing ? await updateProfessorAction(fd) : await addProfessorAction(fd);
       if (!res.success) { setError(res.message ?? "Erro ao salvar."); return; }
+      if (res.message) setAvisoAcesso(res.message);
       router.push("/dashboard/configuracoes/professores");
       router.refresh();
     });
@@ -262,6 +267,34 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             />
           </div>
         </div>
+      </div>
+
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
+        <h3 className={sectionTitleCls}>
+          <ShieldCheck className="w-4 h-4 text-iw-gold" />
+          Acesso ao núcleo de ensino (opcional)
+        </h3>
+        <p className="text-xs text-iw-muted -mt-2">
+          Se preencher o e-mail abaixo, essa pessoa recebe (ou já tem) acesso pra gerenciar
+          sozinha este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a
+          Campo/Setor/Igreja/Sub-unidade selecionados acima. Deixe em branco se o professor
+          só vai aparecer no cadastro, sem login.
+        </p>
+        <div className="max-w-sm">
+          <label className={labelCls}>
+            <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail de acesso</span>
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="professor@exemplo.com"
+            className={inputCls}
+          />
+        </div>
+        {avisoAcesso && (
+          <p className="text-xs font-semibold text-iw-success">{avisoAcesso}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-1">

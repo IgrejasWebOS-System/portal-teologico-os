@@ -134,6 +134,14 @@ Por pedido explícito do Joaquim ("executar as alterações de ponta a ponta, se
 
 ## 12. Pendências que ficam para uma próxima rodada
 
-1. **Fase 4 — núcleo de ensino:** wiring de `professores.unit_id` + `admin_roles` nível 4 no fluxo de cadastro de professor. A mecânica já existe (seção 7), falta o formulário efetivamente criar o `admin_roles` junto.
-2. **Fase 5 — relatórios e portal público:** contagem de matrículas por Sede/Setor/Regional/Igreja e "núcleo mais próximo" no site público — depende de `ead_alunos.unit_id`/`course_editions.unit_id` passarem a ser preenchidos de verdade no fluxo de matrícula, o que ainda não acontece.
+1. ~~**Fase 4 — núcleo de ensino:** wiring de `professores.unit_id` + `admin_roles` nível 4 no fluxo de cadastro de professor.~~ **[RESOLVIDO nesta sessão]** — ver seção 13.
+2. ~~**Fase 5 — relatórios:** contagem de matrículas por Sede/Setor/Regional/Igreja.~~ **[RESOLVIDO nesta sessão]** — ver seção 13. "Núcleo mais próximo" no site público segue como pendência real (não foi pedido nesta rodada; precisa de UI pública nova, não só dado).
 3. Validar com `npx tsc --noEmit` e `npm run build` antes de abrir PR (comandos na resposta de chat, não aqui).
+
+## 13. O que foi executado na 2ª rodada (staging)
+
+Por pedido explícito do Joaquim ("nível 4 pro núcleo de ensino ter gerenciamento individual, e a matrícula gravar unit_id de verdade... direto ao ponto, sem intervenção, de ponta a ponta"):
+
+- **Fase 4 (professores/admin_roles nível 4):** investigação encontrou que `professores` já grava `unit_id` corretamente (não era o gap real). O gap era `admin_roles` nunca ser criado a partir do cadastro de professor. Adicionado campo opcional "E-mail de acesso" em `ProfessorForm.tsx` — quando preenchido, `addProfessorAction`/`updateProfessorAction` (via nova função `grantNucleoAccess`, mesmo padrão de `inviteStaffAction`/M9) convidam ou promovem a conta e gravam `admin_roles` com `level: 4`, `unit_id` = unidade escolhida no formulário, `role_title: "Responsável de núcleo de ensino"`. Upsert por `(user_id, unit_id)` — reenviar o cadastro com o mesmo e-mail não duplica.
+- **Fase 5 (relatórios):** investigação encontrou que `ead_alunos.unit_id` **já era gravado corretamente** em ambos os fluxos de matrícula com igreja (`matricularDiretoAction` e ficha-rápida) desde antes desta sessão — o gap real não era gravação de dado, era a ausência de uma tela pra consumir esse dado. Criada `/admin/matriculas/relatorio-territorio`: soma matrículas subindo a árvore `units` (Campo → Sede → Setor/Regional → Igreja → Sub-unidade), com rótulo Setor/Regional vindo de `sectors.categoria`. Link adicionado na listagem de Matrículas.
+- Matrículas de inscrição pública sem igreja informada (aluno "de fora") continuam de propósito fora da árvore de unidades — não entram nesse relatório, exatamente como o desenho original de `062_ead_alunos_unit_id.sql` já previa.
