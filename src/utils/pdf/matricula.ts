@@ -344,8 +344,20 @@ export async function gerarPdfMatricula(
   // ── Dados pessoais ─────────────────────────────────────────
   {
     const secao = abrirSecao(page, y, "Dados pessoais", fontBold);
+
+    // Nome completo em linha própria, com a largura cheia da caixa — em
+    // 1/3 da largura (como as demais células) nomes compostos longos
+    // (ex.: "LUCIA HELENA BATISTA SOARES") estouravam e o sobrenome caía
+    // pra linha de baixo, invadindo a célula seguinte. Pedido explícito do
+    // usuário: usar o espaço livre do lado direito da caixa.
+    let yGrade = secao.y;
+    page.drawText("NOME COMPLETO", { x: marginX + 10, y: yGrade, size: 6.5, font: fontBold, color: muted });
+    page.drawText(dados.nomeCompleto || "—", {
+      x: marginX + 10, y: yGrade - 11, size: 9.5, font, color: navy, maxWidth: rightEdge - marginX - 30,
+    });
+    yGrade -= 26;
+
     const celulas: Celula[] = [
-      { label: "Nome completo", valor: dados.nomeCompleto },
       { label: "CPF", valor: dados.cpf ?? "" },
       { label: "Data de nascimento", valor: isoParaBr(dados.dataNascimento) },
       { label: "E-mail", valor: dados.email },
@@ -361,7 +373,7 @@ export async function gerarPdfMatricula(
       { label: "Nome da mãe", valor: dados.nomeMae ?? "" },
       { label: "Nome do pai", valor: dados.nomePai ?? "" },
     ];
-    const yFinal = desenharGrade(page, secao.y, celulas, 3, fontBold, font);
+    const yFinal = desenharGrade(page, yGrade, celulas, 3, fontBold, font);
     y = fecharSecao(page, secao.boxTop, yFinal).proximoY;
   }
 

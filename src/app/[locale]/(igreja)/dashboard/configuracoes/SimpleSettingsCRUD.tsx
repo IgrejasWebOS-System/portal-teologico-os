@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import { Trash2, Plus, Pencil, Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 type Item = { id: string; name: string };
 
@@ -103,6 +104,7 @@ export default function SimpleSettingsCRUD({
           name="name"
           type="text"
           placeholder={placeholder}
+          onChange={aplicarMaiusculaNoEvento}
           className="flex-1 bg-white border border-iw-border rounded-xl px-4 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors font-medium uppercase"
         />
         <button
@@ -154,7 +156,7 @@ export default function SimpleSettingsCRUD({
                     <input
                       autoFocus
                       value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
+                      onChange={(e) => setEditValue(e.target.value.toUpperCase())}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(item.id); }
                         if (e.key === "Escape") cancelEdit();

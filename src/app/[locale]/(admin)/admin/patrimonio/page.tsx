@@ -95,7 +95,7 @@ export default async function PatrimonioPage({ searchParams }: PageProps) {
         <form action={cadastrarBemAction} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-xs font-bold text-iw-navy uppercase tracking-wider mb-1.5">Nome *</label>
-            <input name="nome" required className="w-full bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm" />
+            <input name="nome" required className="w-full bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm uppercase" />
           </div>
           <div>
             <label className="block text-xs font-bold text-iw-navy uppercase tracking-wider mb-1.5">Categoria</label>

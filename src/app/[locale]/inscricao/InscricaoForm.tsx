@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Send, Loader2 } from "lucide-react";
 import { submitInscricaoAction } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -71,7 +72,7 @@ export default function InscricaoForm({
 
       <div>
         <label className={labelCls} htmlFor="nome_completo">{t("nomeCompleto")}</label>
-        <input id="nome_completo" name="nome_completo" required className={inputCls} placeholder={t("placeholderNomeCompleto")} />
+        <input id="nome_completo" name="nome_completo" required onChange={aplicarMaiusculaNoEvento} className={`${inputCls} uppercase`} placeholder={t("placeholderNomeCompleto")} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

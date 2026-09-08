@@ -7,6 +7,7 @@ import {
   Building2, MapPin, User, Phone, Map,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 
@@ -16,8 +17,8 @@ interface Props {
   setores: SelectItem[];
   igrejasMae: SelectItem[];
   /** Quando informado, trava o tipo de congregação e esconde o seletor
-   *  (usado pelos atalhos de Sub-congregações e Células). */
-  lockedType?: "CHURCH" | "SUB" | "CELL";
+   *  (usado pelos atalhos de Sub-congregações, Pontos de Pregação e Células). */
+  lockedType?: "CHURCH" | "SUB" | "PONTO" | "CELL";
   /** Rótulo do botão de submit e destino de "Cancelar"/redirect pós-submit. */
   backHref?: string;
   submitLabel?: string;
@@ -35,6 +36,7 @@ const sectionTitleCls =
 const TYPE_TITLE: Record<string, string> = {
   CHURCH: "Igreja",
   SUB: "Sub-congregação",
+  PONTO: "Ponto de Pregação",
   CELL: "Célula",
 };
 
@@ -112,17 +114,19 @@ export default function NovaIgrejaForm({
             .single();
           unitId = newUnit?.id ?? null;
         }
-      } else if ((churchType === "SUB" || churchType === "CELL") && payload.parent_id) {
+      } else if ((churchType === "SUB" || churchType === "PONTO" || churchType === "CELL") && payload.parent_id) {
         const { data: igrejaRow } = await supabase
           .from("churches")
           .select("unit_id")
           .eq("id", payload.parent_id as string)
           .single();
         if (igrejaRow?.unit_id) {
+          const unitType =
+            churchType === "SUB" ? "SUB_CONGREGACAO" : churchType === "PONTO" ? "PONTO_PREGACAO" : "CELULA";
           const { data: newUnit } = await supabase
             .from("units")
             .insert({
-              type: churchType === "SUB" ? "SUB_CONGREGACAO" : "CELULA",
+              type: unitType,
               name: payload.name,
               parent_id: igrejaRow.unit_id,
             })
@@ -172,6 +176,7 @@ export default function NovaIgrejaForm({
             >
               <option value="CHURCH">Igreja / Congregação</option>
               <option value="SUB">Sub-congregação</option>
+              <option value="PONTO">Ponto de Pregação</option>
               <option value="CELL">Célula</option>
             </select>
           </div>
@@ -180,14 +185,15 @@ export default function NovaIgrejaForm({
         {/* Nome */}
         <div>
           <label className={labelCls}>
-            Nome d{lockedType === "CELL" ? "a Célula" : lockedType === "SUB" ? "a Sub-congregação" : "a Congregação"} *
+            Nome d{lockedType === "CELL" ? "a Célula" : lockedType === "SUB" ? "a Sub-congregação" : lockedType === "PONTO" ? "o Ponto de Pregação" : "a Congregação"} *
           </label>
           <input
             name="name"
             type="text"
             required
             placeholder="Ex: AD Central, Congregação Vale da Bênção..."
-            className={inputCls}
+            onChange={aplicarMaiusculaNoEvento}
+            className={`${inputCls} uppercase`}
           />
         </div>
 
@@ -203,8 +209,8 @@ export default function NovaIgrejaForm({
             </select>
           </div>
 
-          {/* Igreja-mãe (apenas para sub e células) */}
-          {(churchType === "SUB" || churchType === "CELL") && (
+          {/* Igreja-mãe (apenas para sub-congregação, ponto de pregação e células) */}
+          {(churchType === "SUB" || churchType === "PONTO" || churchType === "CELL") && (
             <div>
               <label className={labelCls}>Igreja Mãe</label>
               <select name="parent_id" className={selectCls}>
@@ -251,9 +257,9 @@ export default function NovaIgrejaForm({
               name="pastor_name"
               type="text"
               value={pastorName}
-              onChange={(e) => setPastorName(e.target.value)}
+              onChange={(e) => setPastorName(e.target.value.toUpperCase())}
               placeholder="Nome do responsável"
-              className={inputCls}
+              className={`${inputCls} uppercase`}
             />
             {pastorRole && (
               <p className="mt-1 text-[11px] text-iw-muted">Cargo: {pastorRole}</p>
@@ -324,7 +330,8 @@ export default function NovaIgrejaForm({
               name="address"
               type="text"
               placeholder="Rua, Avenida, etc."
-              className={inputCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
             />
           </div>
 
@@ -334,7 +341,8 @@ export default function NovaIgrejaForm({
               name="address_number"
               type="text"
               placeholder="Ex: 123"
-              className={inputCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
             />
           </div>
         </div>
@@ -347,7 +355,8 @@ export default function NovaIgrejaForm({
               name="address_complement"
               type="text"
               placeholder="Bloco, Sala..."
-              className={inputCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
             />
           </div>
 
@@ -357,7 +366,8 @@ export default function NovaIgrejaForm({
               name="neighborhood"
               type="text"
               placeholder="Ex: Centro"
-              className={inputCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
             />
           </div>
 
@@ -371,7 +381,8 @@ export default function NovaIgrejaForm({
               name="city"
               type="text"
               placeholder="Ex: Brasília"
-              className={inputCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
             />
           </div>
 

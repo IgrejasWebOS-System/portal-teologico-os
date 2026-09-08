@@ -87,13 +87,22 @@ export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?      : string;
   leftAddon?  : ReactNode;
   rightAddon? : ReactNode;
-  /** Força a digitação em caixa alta (independente de como o usuário digitar). */
+  /**
+   * Força a digitação em caixa alta. Padrão: true pra todo campo de texto
+   * livre (padronização institucional, pedido 2026-09-06) — só desliga
+   * sozinho quando type="email" ou type="password" (convenção: esses dois
+   * sempre seguem exatamente como digitado). Passe uppercase={false}
+   * explicitamente pra desligar em qualquer outro campo específico.
+   */
   uppercase?  : boolean;
 }
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ error, leftAddon, rightAddon, uppercase, className, style, onChange, ...rest }, ref) => {
-    const handleChange = uppercase
+  ({ error, leftAddon, rightAddon, uppercase, type, className, style, onChange, ...rest }, ref) => {
+    const tipoIsento = type === "email" || type === "password";
+    const forcarMaiuscula = uppercase ?? !tipoIsento;
+
+    const handleChange = forcarMaiuscula
       ? (e: ChangeEvent<HTMLInputElement>) => {
           const pos = e.target.selectionStart;
           e.target.value = e.target.value.toUpperCase();
@@ -111,8 +120,9 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         )}
         <input
           ref={ref}
+          type={type}
           onChange={handleChange}
-          style={uppercase ? { textTransform: "uppercase", ...style } : style}
+          style={forcarMaiuscula ? { textTransform: "uppercase", ...style } : style}
           className={cn(
             INPUT_BASE,
             error ? INPUT_ERROR : INPUT_NORMAL,

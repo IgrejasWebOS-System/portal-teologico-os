@@ -98,7 +98,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
             name="nome"
             required
             placeholder="Nome da categoria (ex: Curso Básico, RH, Reciclagem 2026)"
-            className="sm:col-span-4 bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm"
+            className="sm:col-span-4 bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm uppercase"
           />
           <input
             name="ordem"
@@ -152,7 +152,7 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
                         name="nome"
                         defaultValue={cat.nome}
                         required
-                        className="sm:col-span-3 bg-white border border-iw-border rounded-xl px-3 py-2 text-sm"
+                        className="sm:col-span-3 bg-white border border-iw-border rounded-xl px-3 py-2 text-sm uppercase"
                       />
                       <input
                         name="ordem"
