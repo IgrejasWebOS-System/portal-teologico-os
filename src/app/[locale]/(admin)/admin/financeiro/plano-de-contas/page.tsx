@@ -122,7 +122,7 @@ export default async function PlanoDeContasPage({ searchParams }: PageProps) {
             name="nome"
             required
             placeholder="Nome da categoria"
-            className="bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm focus:border-iw-gold focus:outline-none"
+            className="bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm focus:border-iw-gold focus:outline-none uppercase"
           />
           <select
             name="tipo"

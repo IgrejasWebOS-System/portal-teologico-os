@@ -621,9 +621,9 @@ export default function NovoMembroForm() {
                     placeholder="Nome do membro"
                     value={formData.full_name}
                     onChange={(e) =>
-                      setFormData((p) => ({ ...p, full_name: e.target.value }))
+                      setFormData((p) => ({ ...p, full_name: e.target.value.toUpperCase() }))
                     }
-                    className={inputCls}
+                    className={`${inputCls} uppercase`}
                   />
                 </div>
 
@@ -816,9 +816,9 @@ export default function NovoMembroForm() {
                 required
                 value={formData.nationality}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, nationality: e.target.value }))
+                  setFormData((p) => ({ ...p, nationality: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
           </div>
@@ -901,10 +901,10 @@ export default function NovoMembroForm() {
                 onChange={(e) =>
                   setFormData((p) => ({
                     ...p,
-                    origin_church: e.target.value,
+                    origin_church: e.target.value.toUpperCase(),
                   }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
           </div>
@@ -918,9 +918,9 @@ export default function NovoMembroForm() {
                 required
                 value={formData.mother_name}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, mother_name: e.target.value }))
+                  setFormData((p) => ({ ...p, mother_name: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
 
@@ -931,9 +931,9 @@ export default function NovoMembroForm() {
                 required
                 value={formData.father_name}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, father_name: e.target.value }))
+                  setFormData((p) => ({ ...p, father_name: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
 
@@ -943,9 +943,9 @@ export default function NovoMembroForm() {
                 type="text"
                 value={formData.spouse_name}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, spouse_name: e.target.value }))
+                  setFormData((p) => ({ ...p, spouse_name: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
 
@@ -1006,9 +1006,9 @@ export default function NovoMembroForm() {
                 placeholder="Rua, Avenida..."
                 value={addressData.address}
                 onChange={(e) =>
-                  setAddressData((p) => ({ ...p, address: e.target.value }))
+                  setAddressData((p) => ({ ...p, address: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
 
@@ -1019,9 +1019,9 @@ export default function NovoMembroForm() {
                 placeholder="Nº"
                 value={addressData.number}
                 onChange={(e) =>
-                  setAddressData((p) => ({ ...p, number: e.target.value }))
+                  setAddressData((p) => ({ ...p, number: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
           </div>
@@ -1034,9 +1034,9 @@ export default function NovoMembroForm() {
                 placeholder="Bairro"
                 value={addressData.neighborhood}
                 onChange={(e) =>
-                  setAddressData((p) => ({ ...p, neighborhood: e.target.value }))
+                  setAddressData((p) => ({ ...p, neighborhood: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
             <div>
@@ -1046,9 +1046,9 @@ export default function NovoMembroForm() {
                 placeholder="Cidade"
                 value={addressData.city}
                 onChange={(e) =>
-                  setAddressData((p) => ({ ...p, city: e.target.value }))
+                  setAddressData((p) => ({ ...p, city: e.target.value.toUpperCase() }))
                 }
-                className={inputCls}
+                className={`${inputCls} uppercase`}
               />
             </div>
             <div>

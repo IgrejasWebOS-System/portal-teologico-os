@@ -6,6 +6,7 @@ import { criarCampoAction, atualizarCampoAction } from "./actions";
 import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 import { regiaoPorUf } from "@/utils/estadosBrasil";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 function formatarTelefone(valor: string): string {
   const digits = valor.replace(/\D/g, "").slice(0, 11);
@@ -115,7 +116,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
             required
             defaultValue={existing?.nomeCampo}
             placeholder="Ex: ADBRAS Caruaru Ministério Madureira"
-            className={inputCls}
+            onChange={aplicarMaiusculaNoEvento}
+            className={`${inputCls} uppercase`}
           />
         </div>
 
@@ -127,7 +129,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
             required
             defaultValue={existing?.nomeSede}
             placeholder="Ex: ADBRAS Sede Caruaru"
-            className={inputCls}
+            onChange={aplicarMaiusculaNoEvento}
+            className={`${inputCls} uppercase`}
           />
         </div>
       </div>
@@ -160,21 +163,21 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               name="endereco"
               type="text"
               value={endereco}
-              onChange={(e) => setEndereco(e.target.value)}
+              onChange={(e) => setEndereco(e.target.value.toUpperCase())}
               placeholder="Rua, Avenida..."
-              className={inputCls}
+              className={`${inputCls} uppercase`}
             />
           </div>
           <div className="sm:col-span-3">
             <label className={labelCls}>Número</label>
-            <input name="numero" type="text" value={numero} onChange={(e) => setNumero(e.target.value)} className={inputCls} />
+            <input name="numero" type="text" value={numero} onChange={(e) => setNumero(e.target.value.toUpperCase())} className={`${inputCls} uppercase`} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
           <div className="sm:col-span-3">
             <label className={labelCls}>Complemento</label>
-            <input name="complemento" type="text" defaultValue={existing?.complemento ?? ""} className={inputCls} />
+            <input name="complemento" type="text" defaultValue={existing?.complemento ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${inputCls} uppercase`} />
           </div>
           <div className="sm:col-span-3">
             <label className={labelCls}>Bairro</label>
@@ -182,8 +185,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               name="bairro"
               type="text"
               value={bairro}
-              onChange={(e) => setBairro(e.target.value)}
-              className={inputCls}
+              onChange={(e) => setBairro(e.target.value.toUpperCase())}
+              className={`${inputCls} uppercase`}
             />
           </div>
           <div className="sm:col-span-4">
@@ -192,8 +195,8 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               name="cidade"
               type="text"
               value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-              className={inputCls}
+              onChange={(e) => setCidade(e.target.value.toUpperCase())}
+              className={`${inputCls} uppercase`}
             />
           </div>
           <div className="sm:col-span-2">
@@ -264,9 +267,9 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
               name="contato"
               type="text"
               value={contato}
-              onChange={(e) => setContato(e.target.value)}
+              onChange={(e) => setContato(e.target.value.toUpperCase())}
               placeholder="Nome do responsável"
-              className={inputCls}
+              className={`${inputCls} uppercase`}
             />
           </div>
         </div>

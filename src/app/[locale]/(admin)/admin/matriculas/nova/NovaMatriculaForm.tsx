@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, addTurmaAction } from "../actions";
 import MatriculaLookup from "@/app/[locale]/(igreja)/dashboard/configuracoes/MatriculaLookup";
@@ -272,7 +273,7 @@ function CampoDeEscolha({
         readOnly
         onClick={() => setAberto(true)}
         placeholder={placeholder}
-        className={`${bareCls} cursor-pointer`}
+        className={`${bareCls} cursor-pointer uppercase`}
       />
       {aberto && (
         <SeletorBuscaDropdown
@@ -283,7 +284,7 @@ function CampoDeEscolha({
           placeholder={placeholder}
           onFechar={() => setAberto(false)}
           onSelecionar={(item) => {
-            setValor(item.label);
+            setValor(item.label.toUpperCase());
             setAberto(false);
             if (inputRef.current) focarProximoCampo(inputRef.current);
           }}
@@ -319,7 +320,7 @@ function CampoNaturalidade({
         readOnly
         onClick={() => setAberto(true)}
         placeholder="Cidade de nascimento"
-        className={`${bareCls} cursor-pointer`}
+        className={`${bareCls} cursor-pointer uppercase`}
       />
       {aberto && (
         <SeletorBuscaDropdown
@@ -330,7 +331,8 @@ function CampoNaturalidade({
           placeholder="Cidade de nascimento"
           onFechar={() => setAberto(false)}
           onSelecionar={(item) => {
-            const [nome, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
+            const [nomeBruto, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
+            const nome = nomeBruto.toUpperCase();
             setValor(nome);
             onSelecionarCidade(nome, uf);
             setAberto(false);
@@ -805,9 +807,9 @@ export default function NovaMatriculaForm({
                 <Field compact label="Nome da turma" span="col-span-12 md:col-span-4">
                   <input
                     value={novaTurmaNome}
-                    onChange={(e) => setNovaTurmaNome(e.target.value)}
+                    onChange={(e) => setNovaTurmaNome(e.target.value.toUpperCase())}
                     placeholder="Ex: Edição 2026"
-                    className={bareCls}
+                    className={`${bareCls} uppercase`}
                   />
                 </Field>
                 <Field compact label="Mês/Ano — Início" span="col-span-6 md:col-span-3">
@@ -852,10 +854,10 @@ export default function NovaMatriculaForm({
                   />
                 </div>
                 <Field compact label="Nome completo" span="col-span-12 md:col-span-3">
-                  <input value={novoProfNome} onChange={(e) => setNovoProfNome(e.target.value)} className={bareCls} />
+                  <input value={novoProfNome} onChange={(e) => setNovoProfNome(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
                 </Field>
                 <Field compact label="Cargo" span="col-span-6 md:col-span-2">
-                  <input value={novoProfCargo} onChange={(e) => setNovoProfCargo(e.target.value)} className={bareCls} />
+                  <input value={novoProfCargo} onChange={(e) => setNovoProfCargo(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
                 </Field>
                 <Field compact label="Telefone" span="col-span-6 md:col-span-2">
                   <input value={novoProfTelefone} onChange={(e) => setNovoProfTelefone(e.target.value)} className={bareCls} />
@@ -879,7 +881,13 @@ export default function NovaMatriculaForm({
 
           <div className="grid grid-cols-12 gap-3">
             <Field label="Nome completo" required span="col-span-12 md:col-span-6">
-              <input name="nome_completo" required placeholder="Nome completo do aluno" className={bareCls} />
+              <input
+                name="nome_completo"
+                required
+                placeholder="Nome completo do aluno"
+                onChange={aplicarMaiusculaNoEvento}
+                className={`${bareCls} uppercase`}
+              />
             </Field>
             <Field label="CPF" required span="col-span-6 md:col-span-3">
               <input
@@ -926,7 +934,7 @@ export default function NovaMatriculaForm({
               />
             </Field>
             <Field label="Órgão" span="col-span-6 md:col-span-1">
-              <input name="rg_orgao_emissor" defaultValue="SSP" className={bareCls} />
+              <input name="rg_orgao_emissor" defaultValue="SSP" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="UF do RG" span="col-span-6 md:col-span-2">
               <input name="rg_uf" maxLength={2} defaultValue="SP" className={`${bareCls} uppercase`} />
@@ -992,7 +1000,7 @@ export default function NovaMatriculaForm({
               />
             </Field>
             <Field label="Nacionalidade" span="col-span-3 md:col-span-2">
-              <input name="nacionalidade" defaultValue="Brasileira" className={bareCls} />
+              <input name="nacionalidade" defaultValue="Brasileira" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Cônjuge (se houver)" span="col-span-12 md:col-span-7">
               <input
@@ -1000,7 +1008,8 @@ export default function NovaMatriculaForm({
                 autoComplete="off"
                 readOnly
                 onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-                className={bareCls}
+                onChange={aplicarMaiusculaNoEvento}
+                className={`${bareCls} uppercase`}
               />
             </Field>
           </div>
@@ -1012,7 +1021,8 @@ export default function NovaMatriculaForm({
                 autoComplete="off"
                 readOnly
                 onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-                className={bareCls}
+                onChange={aplicarMaiusculaNoEvento}
+                className={`${bareCls} uppercase`}
               />
             </Field>
             <Field label="Nome do pai" span="col-span-12 md:col-span-6">
@@ -1021,7 +1031,8 @@ export default function NovaMatriculaForm({
                 autoComplete="off"
                 readOnly
                 onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-                className={bareCls}
+                onChange={aplicarMaiusculaNoEvento}
+                className={`${bareCls} uppercase`}
               />
             </Field>
           </div>
@@ -1046,21 +1057,21 @@ export default function NovaMatriculaForm({
               />
             </Field>
             <Field label="Endereço" span="col-span-12 md:col-span-7">
-              <input value={endereco} onChange={(e) => setEndereco(e.target.value)} className={bareCls} />
+              <input value={endereco} onChange={(e) => setEndereco(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Número" span="col-span-6 md:col-span-3">
-              <input name="endereco_numero" className={bareCls} />
+              <input name="endereco_numero" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
           </div>
           <div className="grid grid-cols-12 gap-3">
             <Field label="Complemento" span="col-span-12 md:col-span-4">
-              <input name="endereco_complemento" className={bareCls} />
+              <input name="endereco_complemento" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Bairro" span="col-span-12 md:col-span-4">
-              <input value={bairro} onChange={(e) => setBairro(e.target.value)} className={bareCls} />
+              <input value={bairro} onChange={(e) => setBairro(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Cidade" span="col-span-6 md:col-span-3">
-              <input value={cidade} onChange={(e) => setCidade(e.target.value)} className={bareCls} />
+              <input value={cidade} onChange={(e) => setCidade(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="UF" span="col-span-6 md:col-span-1">
               <input

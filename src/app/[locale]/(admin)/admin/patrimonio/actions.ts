@@ -39,17 +39,17 @@ function centavos(valor: string): number {
 export async function cadastrarBemAction(formData: FormData) {
   const { supabase } = await requireStaff();
 
-  const nome = (formData.get("nome") as string)?.trim();
+  const nome = (formData.get("nome") as string)?.trim().toUpperCase();
   const descricao = (formData.get("descricao") as string)?.trim() || null;
   const categoria = (formData.get("categoria") as string) || "OUTRO";
   const valorAquisicao = centavos((formData.get("valor_aquisicao") as string) || "0");
   const dataAquisicao = (formData.get("data_aquisicao") as string) || new Date().toISOString().slice(0, 10);
-  const fornecedor = (formData.get("fornecedor") as string)?.trim() || null;
+  const fornecedor = (formData.get("fornecedor") as string)?.trim().toUpperCase() || null;
   const notaFiscal = (formData.get("nota_fiscal") as string)?.trim() || null;
   const vidaUtilAnos = formData.get("vida_util_anos") ? Number(formData.get("vida_util_anos")) : null;
   const taxaDepreciacao = formData.get("taxa_depreciacao_anual") ? Number(formData.get("taxa_depreciacao_anual")) : null;
-  const localizacao = (formData.get("localizacao") as string)?.trim() || null;
-  const responsavelNome = (formData.get("responsavel_nome") as string)?.trim() || null;
+  const localizacao = (formData.get("localizacao") as string)?.trim().toUpperCase() || null;
+  const responsavelNome = (formData.get("responsavel_nome") as string)?.trim().toUpperCase() || null;
   const categoriaFinanceiraId = (formData.get("categoria_financeira_id") as string) || null;
 
   if (!nome || valorAquisicao <= 0) {

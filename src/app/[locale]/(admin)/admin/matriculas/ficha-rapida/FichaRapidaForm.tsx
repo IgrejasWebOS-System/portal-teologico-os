@@ -357,9 +357,9 @@ export default function FichaRapidaForm({
               name="nome_completo"
               required
               value={nomeCompleto}
-              onChange={(e) => setNomeCompleto(e.target.value)}
+              onChange={(e) => setNomeCompleto(e.target.value.toUpperCase())}
               placeholder="Nome completo do aluno"
-              className={bareCls}
+              className={`${bareCls} uppercase`}
             />
           </Field>
           <Field label="CPF" required span="col-span-6 md:col-span-3" filled={cpf.length > 0}>

@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition, useRef } from "react";
 import { Trash2, Plus, Pencil, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import { addSetorAction, deleteSetorAction, updateSetorRegiaoAction, renameSetorAction } from "../actions";
 import { ancestryChain, type UnitNode } from "../unitsChain";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 type Regiao = { id: string; name: string };
 type Setor = { id: string; name: string; regiao_id: string | null; unit_id: string | null };
@@ -148,7 +149,7 @@ export default function SetoresManager({ setores, regioes, units }: Props) {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <input name="name" type="text" placeholder="Ex: SETOR 16 - NOVO BAIRRO..." className={inputCls} />
+        <input name="name" type="text" placeholder="Ex: SETOR 16 - NOVO BAIRRO..." onChange={aplicarMaiusculaNoEvento} className={`${inputCls} uppercase`} />
         <select name="regiao_id" className={`${inputCls} sm:max-w-[220px]`}>
           <option value="">Sem região</option>
           {regioes.map((r) => (
@@ -188,7 +189,7 @@ export default function SetoresManager({ setores, regioes, units }: Props) {
                     <input
                       autoFocus
                       value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
+                      onChange={(e) => setEditValue(e.target.value.toUpperCase())}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(s); }
                         if (e.key === "Escape") cancelEdit();

@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 import { validarCPF } from "@/utils/cpf";
-import { gerarPdfMatricula } from "@/utils/pdf/matricula";
+import { gerarPdfMatricula, type DadosPagamentoPdf } from "@/utils/pdf/matricula";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -62,35 +62,189 @@ function fail(message: string): never {
 // demanda (signed URL de curta duração) em vez de guardar uma URL
 // permanente no banco — o PDF tem CPF/RG/endereço do aluno.
 // ============================================================
+// Reconstrói a seção "Pagamento" do PDF a partir do que está de verdade em
+// fin_contas_receber (não a partir de um snapshot antigo) — reflete
+// qualquer renegociação/edição posterior, e é a única fonte que ainda
+// existe depois da matrícula criada (o formulário de origem não persiste
+// forma_cobranca/responsavel em lugar nenhum reconsultável). Convenção de
+// `descricao` definida em matricularDiretoAction/gerarParcelasContasReceber:
+// "Matrícula — <curso>" (taxa avulsa), "Mensalidade — <curso>" (parcelas),
+// "Matrícula + curso — <curso>" (cobrança única via Mercado Pago).
+async function buscarDadosPagamentoPdf(
+  admin: ReturnType<typeof createAdminClient>,
+  alunoId: string
+): Promise<DadosPagamentoPdf | null> {
+  const { data: contas } = await admin
+    .from("fin_contas_receber")
+    .select("descricao, valor_bruto_centavos, numero_parcela, total_parcelas, forma_pagamento_prevista, data_vencimento, responsavel_pagamento")
+    .eq("aluno_id", alunoId)
+    .order("data_vencimento", { ascending: true });
+
+  if (!contas || contas.length === 0) return null;
+
+  const linhaMatricula = contas.find((c) => c.descricao?.startsWith("Matrícula —"));
+  const linhasMensalidade = contas.filter((c) => c.descricao?.startsWith("Mensalidade —"));
+  const linhaUnica = contas.find((c) => c.descricao?.startsWith("Matrícula + curso"));
+
+  if (linhaUnica) {
+    return {
+      valorMatriculaCentavos: undefined, // cobrança única — não dá pra separar o recorte com segurança
+      valorParcelaCentavos: linhaUnica.valor_bruto_centavos,
+      parcelas: 1,
+      formaPagamento: "Mercado Pago / Pix",
+      responsavelPagamento: linhaUnica.responsavel_pagamento,
+      primeiroVencimento: linhaUnica.data_vencimento,
+    };
+  }
+
+  const primeira = linhasMensalidade[0] ?? linhaMatricula ?? contas[0];
+  return {
+    valorMatriculaCentavos: linhaMatricula ? linhaMatricula.valor_bruto_centavos : linhasMensalidade.length ? 0 : undefined,
+    valorParcelaCentavos: linhasMensalidade[0]?.valor_bruto_centavos ?? linhaMatricula?.valor_bruto_centavos ?? 0,
+    parcelas: linhasMensalidade[0]?.total_parcelas ?? linhasMensalidade.length ?? 1,
+    formaPagamento: primeira?.forma_pagamento_prevista ?? null,
+    responsavelPagamento: primeira?.responsavel_pagamento ?? null,
+    primeiroVencimento: linhasMensalidade[0]?.data_vencimento ?? linhaMatricula?.data_vencimento ?? null,
+  };
+}
+
+// Gera o PDF DE NOVO a partir dos dados ATUAIS do aluno (nunca serve o
+// arquivo estático salvo na criação) — antes, "Baixar PDF" só devolvia o
+// PDF gerado uma única vez lá em matricularDiretoAction/confirmar-cadastro,
+// então editar a matrícula depois (ex.: adicionar foto que faltava) nunca
+// aparecia no PDF baixado. Agora regenera do zero toda vez, sobrescrevendo
+// pdf_matricula_path com um arquivo novo.
 export async function gerarLinkPdfMatriculaAction(
   alunoId: string
 ): Promise<{ success: true; url: string } | { success: false; message: string }> {
   await requireStaff();
   const admin = createAdminClient();
 
-  const { data: aluno } = await admin
-    .from("ead_alunos")
-    .select("pdf_matricula_path")
-    .eq("id", alunoId)
+  const { data: aluno } = await admin.from("ead_alunos").select("*").eq("id", alunoId).maybeSingle();
+  if (!aluno) {
+    return { success: false, message: "Aluno não encontrado." };
+  }
+
+  const { data: matriculaRow } = await admin
+    .from("ead_matriculas")
+    .select("matricula, curso_nome_snapshot, course_edition_id, professor_id")
+    .eq("aluno_id", alunoId)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (!aluno?.pdf_matricula_path) {
-    return {
-      success: false,
-      message: "Este aluno ainda não tem PDF de matrícula gerado (cadastro feito antes desse recurso, ou ainda não confirmado).",
-    };
+  if (!matriculaRow) {
+    return { success: false, message: "Este aluno ainda não tem matrícula registrada." };
   }
 
-  const { data: signed, error } = await admin.storage
-    .from("matriculas-pdf")
-    .createSignedUrl(aluno.pdf_matricula_path, 60 * 10); // 10 min — baixa na hora
+  try {
+    let turmaNome: string | null = null;
+    let professorNome: string | null = null;
+    let setorNome: string | null = null;
+    let igrejaNome: string | null = null;
 
-  if (error || !signed) {
-    console.error("[matriculas/actions] falha ao gerar link do PDF:", error?.message);
-    return { success: false, message: "Erro ao gerar o link de download. Tente novamente." };
+    if (matriculaRow.course_edition_id) {
+      const { data: turma } = await admin.from("course_editions").select("nome").eq("id", matriculaRow.course_edition_id).maybeSingle();
+      turmaNome = turma?.nome ?? null;
+    }
+    if (matriculaRow.professor_id) {
+      const { data: professor } = await admin.from("professores").select("nome_completo").eq("id", matriculaRow.professor_id).maybeSingle();
+      professorNome = professor?.nome_completo ?? null;
+    }
+    if (aluno.sector_id) {
+      const { data: setor } = await admin.from("sectors").select("name").eq("id", aluno.sector_id).maybeSingle();
+      setorNome = setor?.name ?? null;
+    }
+    if (aluno.church_id) {
+      const { data: igreja } = await admin.from("churches").select("name").eq("id", aluno.church_id).maybeSingle();
+      igrejaNome = igreja?.name ?? null;
+    }
+
+    // Busca a foto ATUAL (pode ter sido adicionada/trocada na tela de
+    // edição depois do cadastro original) — é exatamente isso que faltava.
+    let fotoParaPdf: Uint8Array | null = null;
+    if (aluno.foto_url) {
+      try {
+        const res = await fetch(aluno.foto_url);
+        if (res.ok) fotoParaPdf = new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        console.error("[matriculas] erro ao buscar foto pro PDF:", err);
+      }
+    }
+
+    const pagamento = await buscarDadosPagamentoPdf(admin, alunoId);
+
+    const hdrs = await headers();
+    const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || hdrs.get("x-real-ip") || "desconhecido";
+    const userAgent = hdrs.get("user-agent") || "desconhecido";
+
+    const pdfBytes = await gerarPdfMatricula(
+      {
+        nomeCompleto: aluno.nome_completo,
+        matricula: matriculaRow.matricula,
+        cursoPretendido: matriculaRow.curso_nome_snapshot,
+        cpf: aluno.cpf,
+        email: aluno.email,
+        telefone: aluno.telefone,
+        dataNascimento: aluno.data_nascimento,
+        rg: aluno.rg,
+        rgOrgaoEmissor: aluno.rg_orgao_emissor,
+        rgUf: aluno.rg_uf,
+        genero: aluno.genero,
+        estadoCivil: aluno.estado_civil,
+        escolaridade: aluno.escolaridade,
+        profissao: aluno.profissao,
+        naturalidadeCidade: aluno.naturalidade_cidade,
+        naturalidadeEstado: aluno.naturalidade_estado,
+        nacionalidade: aluno.nacionalidade,
+        nomeConjuge: aluno.nome_conjuge,
+        nomeMae: aluno.nome_mae,
+        nomePai: aluno.nome_pai,
+        cep: aluno.cep,
+        endereco: aluno.endereco,
+        enderecoNumero: aluno.endereco_numero,
+        enderecoComplemento: aluno.endereco_complemento,
+        bairro: aluno.bairro,
+        cidade: aluno.cidade,
+        estado: aluno.estado,
+        turmaNome,
+        professorNome,
+        campoMinisterio: aluno.campo_ministerio_nome,
+        setorNome,
+        igrejaNome,
+        pagamento,
+      },
+      null, // sem assinatura eletrônica — reimpressão administrativa
+      { ip, userAgent, assinadoEm: new Date() },
+      fotoParaPdf
+    );
+
+    const pdfFileName = `matricula-${aluno.id}-${Date.now()}.pdf`;
+    const { error: pdfUploadError } = await admin.storage
+      .from("matriculas-pdf")
+      .upload(pdfFileName, Buffer.from(pdfBytes), { contentType: "application/pdf" });
+
+    if (pdfUploadError) {
+      console.error("[matriculas] upload do PDF regenerado falhou:", pdfUploadError.message);
+      return { success: false, message: "Erro ao gerar o PDF. Tente novamente." };
+    }
+
+    await admin.from("ead_alunos").update({ pdf_matricula_path: pdfFileName }).eq("id", aluno.id);
+
+    const { data: signed, error } = await admin.storage
+      .from("matriculas-pdf")
+      .createSignedUrl(pdfFileName, 60 * 10); // 10 min — baixa na hora
+
+    if (error || !signed) {
+      console.error("[matriculas/actions] falha ao gerar link do PDF:", error?.message);
+      return { success: false, message: "Erro ao gerar o link de download. Tente novamente." };
+    }
+
+    return { success: true, url: signed.signedUrl };
+  } catch (err) {
+    console.error("[matriculas] erro inesperado ao regenerar PDF:", err);
+    return { success: false, message: "Erro inesperado ao gerar o PDF. Tente novamente." };
   }
-
-  return { success: true, url: signed.signedUrl };
 }
 
 // ── Turma (course_editions) — cadastro rápido, sem sair do formulário

@@ -567,8 +567,8 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                     required
                     placeholder="Nome do membro"
                     value={formData.full_name}
-                    onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))}
-                    className={inputCls}
+                    onChange={e => setFormData(p => ({ ...p, full_name: e.target.value.toUpperCase() }))}
+                    className={`${inputCls} uppercase`}
                   />
                 </div>
 
@@ -684,8 +684,8 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                 type="text"
                 required
                 value={formData.nationality}
-                onChange={e => setFormData(p => ({ ...p, nationality: e.target.value }))}
-                className={inputCls}
+                onChange={e => setFormData(p => ({ ...p, nationality: e.target.value.toUpperCase() }))}
+                className={`${inputCls} uppercase`}
               />
             </div>
           </div>
@@ -727,8 +727,8 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
               <label className={labelCls}>Igreja de Origem</label>
               <input type="text" placeholder="Nome da igreja anterior..."
                 value={formData.origin_church}
-                onChange={e => setFormData(p => ({ ...p, origin_church: e.target.value }))}
-                className={inputCls} />
+                onChange={e => setFormData(p => ({ ...p, origin_church: e.target.value.toUpperCase() }))}
+                className={`${inputCls} uppercase`} />
             </div>
           </div>
 
@@ -736,17 +736,17 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>Nome da Mãe *</label>
               <input type="text" required value={formData.mother_name}
-                onChange={e => setFormData(p => ({ ...p, mother_name: e.target.value }))} className={inputCls} />
+                onChange={e => setFormData(p => ({ ...p, mother_name: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>Nome do Pai *</label>
               <input type="text" required value={formData.father_name}
-                onChange={e => setFormData(p => ({ ...p, father_name: e.target.value }))} className={inputCls} />
+                onChange={e => setFormData(p => ({ ...p, father_name: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div className="col-span-12 md:col-span-4">
               <label className={labelCls}>Cônjuge</label>
               <input type="text" value={formData.spouse_name}
-                onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value }))} className={inputCls} />
+                onChange={e => setFormData(p => ({ ...p, spouse_name: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div className="col-span-12 md:col-span-2">
               <label className={labelCls}>Data Casamento</label>
@@ -782,12 +782,12 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             <div className="col-span-12 md:col-span-8">
               <label className={labelCls}>Endereço</label>
               <input type="text" placeholder="Rua, Avenida..." value={addressData.address}
-                onChange={e => setAddressData(p => ({ ...p, address: e.target.value }))} className={inputCls} />
+                onChange={e => setAddressData(p => ({ ...p, address: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div className="col-span-12 md:col-span-2">
               <label className={labelCls}>Número</label>
               <input type="text" placeholder="Nº" value={addressData.number}
-                onChange={e => setAddressData(p => ({ ...p, number: e.target.value }))} className={inputCls} />
+                onChange={e => setAddressData(p => ({ ...p, number: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
           </div>
 
@@ -795,12 +795,12 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             <div>
               <label className={labelCls}>Bairro</label>
               <input type="text" placeholder="Bairro" value={addressData.neighborhood}
-                onChange={e => setAddressData(p => ({ ...p, neighborhood: e.target.value }))} className={inputCls} />
+                onChange={e => setAddressData(p => ({ ...p, neighborhood: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div>
               <label className={labelCls}>Cidade</label>
               <input type="text" placeholder="Cidade" value={addressData.city}
-                onChange={e => setAddressData(p => ({ ...p, city: e.target.value }))} className={inputCls} />
+                onChange={e => setAddressData(p => ({ ...p, city: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
             </div>
             <div>
               <label className={labelCls}>UF</label>

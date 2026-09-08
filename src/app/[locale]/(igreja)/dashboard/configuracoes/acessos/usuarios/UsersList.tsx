@@ -122,9 +122,9 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
                       <input
                         autoFocus
                         value={editNome}
-                        onChange={(e) => setEditNome(e.target.value)}
+                        onChange={(e) => setEditNome(e.target.value.toUpperCase())}
                         placeholder="Nome completo"
-                        className="bg-white border border-iw-blue rounded-lg px-2.5 py-1.5 text-sm text-iw-navy focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+                        className="bg-white border border-iw-blue rounded-lg px-2.5 py-1.5 text-sm text-iw-navy uppercase focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
                       />
                       <input
                         value={editEmail}

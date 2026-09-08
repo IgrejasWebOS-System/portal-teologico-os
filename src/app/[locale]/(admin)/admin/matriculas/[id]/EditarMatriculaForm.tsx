@@ -6,6 +6,7 @@ import {
   Send, Loader2, AlertTriangle, CheckCircle2, User, GraduationCap, Wallet, QrCode, Copy, Check, Ban, History, Camera,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   atualizarMatriculaAction, lancarPagamentoRetroativoAction, cancelarMatriculaAction,
@@ -289,7 +290,7 @@ export default function EditarMatriculaForm({
         </div>
         <div className="grid grid-cols-12 gap-3">
           <Field label="Nome completo" required span="col-span-12 md:col-span-6">
-            <input name="nome_completo" required defaultValue={aluno.nome_completo} className={bareCls} />
+            <input name="nome_completo" required defaultValue={aluno.nome_completo} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="E-mail" required span="col-span-12 md:col-span-3">
             <input name="email" type="email" required defaultValue={aluno.email} className={bareCls} />
@@ -303,7 +304,7 @@ export default function EditarMatriculaForm({
             <input name="rg" defaultValue={aluno.rg ?? ""} className={bareCls} />
           </Field>
           <Field label="Órgão" span="col-span-6 md:col-span-2">
-            <input name="rg_orgao_emissor" defaultValue={aluno.rg_orgao_emissor ?? "SSP"} className={bareCls} />
+            <input name="rg_orgao_emissor" defaultValue={aluno.rg_orgao_emissor ?? "SSP"} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="UF do RG" span="col-span-6 md:col-span-2">
             <input name="rg_uf" maxLength={2} defaultValue={aluno.rg_uf ?? "SP"} className={`${bareCls} uppercase`} />
@@ -330,30 +331,30 @@ export default function EditarMatriculaForm({
         </div>
         <div className="grid grid-cols-12 gap-3">
           <Field label="Escolaridade" span="col-span-6 md:col-span-3">
-            <input name="escolaridade" defaultValue={aluno.escolaridade ?? ""} className={bareCls} />
+            <input name="escolaridade" defaultValue={aluno.escolaridade ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Profissão" span="col-span-6 md:col-span-3">
-            <input name="profissao" defaultValue={aluno.profissao ?? ""} className={bareCls} />
+            <input name="profissao" defaultValue={aluno.profissao ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Naturalidade — cidade" span="col-span-6 md:col-span-3">
-            <input name="naturalidade_cidade" defaultValue={aluno.naturalidade_cidade ?? ""} className={bareCls} />
+            <input name="naturalidade_cidade" defaultValue={aluno.naturalidade_cidade ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="UF" span="col-span-3 md:col-span-1">
             <input name="naturalidade_estado" maxLength={2} defaultValue={aluno.naturalidade_estado ?? ""} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Nacionalidade" span="col-span-3 md:col-span-2">
-            <input name="nacionalidade" defaultValue={aluno.nacionalidade ?? "Brasileira"} className={bareCls} />
+            <input name="nacionalidade" defaultValue={aluno.nacionalidade ?? "Brasileira"} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
         </div>
         <div className="grid grid-cols-12 gap-3">
           <Field label="Cônjuge (se houver)" span="col-span-12 md:col-span-4">
-            <input name="nome_conjuge" defaultValue={aluno.nome_conjuge ?? ""} autoComplete="off" className={bareCls} />
+            <input name="nome_conjuge" defaultValue={aluno.nome_conjuge ?? ""} autoComplete="off" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Nome da mãe" span="col-span-12 md:col-span-4">
-            <input name="nome_mae" defaultValue={aluno.nome_mae ?? ""} autoComplete="off" className={bareCls} />
+            <input name="nome_mae" defaultValue={aluno.nome_mae ?? ""} autoComplete="off" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Nome do pai" span="col-span-12 md:col-span-4">
-            <input name="nome_pai" defaultValue={aluno.nome_pai ?? ""} autoComplete="off" className={bareCls} />
+            <input name="nome_pai" defaultValue={aluno.nome_pai ?? ""} autoComplete="off" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
         </div>
 
@@ -363,19 +364,19 @@ export default function EditarMatriculaForm({
             <input name="cep" defaultValue={aluno.cep ?? ""} className={bareCls} />
           </Field>
           <Field label="Endereço" span="col-span-12 md:col-span-4">
-            <input name="endereco" defaultValue={aluno.endereco ?? ""} className={bareCls} />
+            <input name="endereco" defaultValue={aluno.endereco ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Número" span="col-span-6 md:col-span-2">
-            <input name="endereco_numero" defaultValue={aluno.endereco_numero ?? ""} className={bareCls} />
+            <input name="endereco_numero" defaultValue={aluno.endereco_numero ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Complemento" span="col-span-6 md:col-span-2">
-            <input name="endereco_complemento" defaultValue={aluno.endereco_complemento ?? ""} className={bareCls} />
+            <input name="endereco_complemento" defaultValue={aluno.endereco_complemento ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Bairro" span="col-span-6 md:col-span-2">
-            <input name="bairro" defaultValue={aluno.bairro ?? ""} className={bareCls} />
+            <input name="bairro" defaultValue={aluno.bairro ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Cidade" span="col-span-6 md:col-span-2">
-            <input name="cidade" defaultValue={aluno.cidade ?? ""} className={bareCls} />
+            <input name="cidade" defaultValue={aluno.cidade ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="UF" span="col-span-6 md:col-span-2">
             <input name="estado" maxLength={2} defaultValue={aluno.estado ?? ""} className={`${bareCls} uppercase`} />
@@ -575,7 +576,7 @@ export default function EditarMatriculaForm({
                 </select>
               </Field>
               <Field label="Observações (opcional)" span="col-span-12 md:col-span-6">
-                <input name="observacoes" placeholder="Ex: pago direto na secretaria antes do sistema" className={bareCls} />
+                <input name="observacoes" placeholder="Ex: pago direto na secretaria antes do sistema" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
               </Field>
             </div>
             <div className="flex items-center gap-2 pt-1">

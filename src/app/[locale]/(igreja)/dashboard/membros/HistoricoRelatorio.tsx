@@ -669,10 +669,10 @@ export default function HistoricoRelatorio() {
                           <input
                             type="text"
                             value={evDesc}
-                            onChange={e => setEvDesc(e.target.value)}
+                            onChange={e => setEvDesc(e.target.value.toUpperCase())}
                             placeholder="Descreva a ocorrência..."
                             required
-                            className="w-full bg-white border border-iw-border rounded-xl px-2.5 py-2 text-xs text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none"
+                            className="w-full bg-white border border-iw-border rounded-xl px-2.5 py-2 text-xs text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none uppercase"
                           />
                         </div>
                       </div>

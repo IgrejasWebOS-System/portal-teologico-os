@@ -9,6 +9,7 @@ import {
   type MembroEncontrado,
 } from "../../actions";
 import { ancestryChain, type UnitNode } from "../../unitsChain";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 type UnitOption = UnitNode;
 type ChurchLink = { id: string; unit_id: string | null };
@@ -260,8 +261,8 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
           <input
             type="text"
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className={inputCls}
+            onChange={(e) => setFullName(e.target.value.toUpperCase())}
+            className={`${inputCls} uppercase`}
             placeholder="Opcional"
           />
         </div>
@@ -298,7 +299,8 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
           <input
             type="text"
             name="role_title"
-            className={inputCls}
+            onChange={aplicarMaiusculaNoEvento}
+            className={`${inputCls} uppercase`}
             placeholder="Ex: secretário, tesoureiro — só informativo, não afeta o acesso"
           />
         </div>

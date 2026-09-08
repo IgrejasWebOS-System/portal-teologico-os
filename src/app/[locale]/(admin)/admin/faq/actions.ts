@@ -45,7 +45,7 @@ function slugify(nome: string) {
 export async function addFaqCategoriaAction(formData: FormData) {
   const { supabase } = await requireStaff();
 
-  const nome = (formData.get("nome") as string)?.trim();
+  const nome = (formData.get("nome") as string)?.trim().toUpperCase();
   const ordem = Number(formData.get("ordem")) || 0;
 
   if (!nome) {
@@ -69,7 +69,7 @@ export async function updateFaqCategoriaAction(formData: FormData) {
   const { supabase } = await requireStaff();
 
   const id = (formData.get("id") as string) || "";
-  const nome = (formData.get("nome") as string)?.trim();
+  const nome = (formData.get("nome") as string)?.trim().toUpperCase();
   const ordem = Number(formData.get("ordem")) || 0;
   const ativo = formData.get("ativo") === "on";
 

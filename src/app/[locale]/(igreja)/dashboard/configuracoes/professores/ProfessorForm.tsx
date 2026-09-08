@@ -229,9 +229,9 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             <input
               type="text"
               value={nome}
-              onChange={(e) => setNome(e.target.value)}
+              onChange={(e) => setNome(e.target.value.toUpperCase())}
               placeholder="Nome do professor"
-              className={inputCls}
+              className={`${inputCls} uppercase`}
               required
             />
           </div>
@@ -243,9 +243,9 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             <input
               type="text"
               value={cargo}
-              onChange={(e) => setCargo(e.target.value)}
+              onChange={(e) => setCargo(e.target.value.toUpperCase())}
               placeholder="Ex: Professor(a)"
-              className={inputCls}
+              className={`${inputCls} uppercase`}
             />
           </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, Loader2, AlertTriangle, CheckCircle2, Send, User, MapPin, ImageIcon, X, RotateCcw, PenLine, Eraser, FileText, ChevronLeft, Search, Check } from "lucide-react";
 import { confirmarCadastroAction } from "./actions";
+import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
 interface Aluno {
   id: string;
@@ -273,7 +274,7 @@ function CampoDeEscolha({
         readOnly
         onClick={() => setAberto(true)}
         placeholder={placeholder}
-        className={`${bareCls} cursor-pointer`}
+        className={`${bareCls} cursor-pointer uppercase`}
       />
       {aberto && (
         <SeletorBuscaTelaCheia
@@ -284,7 +285,7 @@ function CampoDeEscolha({
           placeholder={placeholder}
           onFechar={() => setAberto(false)}
           onSelecionar={(item) => {
-            setValor(item.label);
+            setValor(item.label.toUpperCase());
             setAberto(false);
             if (inputRef.current) focarProximoCampo(inputRef.current);
           }}
@@ -320,7 +321,7 @@ function CampoNaturalidade({
         readOnly
         onClick={() => setAberto(true)}
         placeholder="Cidade onde nasceu"
-        className={`${bareCls} cursor-pointer`}
+        className={`${bareCls} cursor-pointer uppercase`}
       />
       {aberto && (
         <SeletorBuscaTelaCheia
@@ -331,7 +332,8 @@ function CampoNaturalidade({
           placeholder="Cidade onde nasceu"
           onFechar={() => setAberto(false)}
           onSelecionar={(item) => {
-            const [nome, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
+            const [nomeBruto, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
+            const nome = nomeBruto.toUpperCase();
             setValor(nome);
             onSelecionarCidade(nome, uf);
             setAberto(false);
@@ -825,7 +827,7 @@ export default function ConfirmarCadastroForm({
               <input name="rg" className={bareCls} />
             </Field>
             <Field label="Órgão">
-              <input name="rg_orgao_emissor" defaultValue="SSP" className={bareCls} />
+              <input name="rg_orgao_emissor" defaultValue="SSP" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="UF">
               <input name="rg_uf" maxLength={2} defaultValue="SP" className={`${bareCls} uppercase`} />
@@ -882,7 +884,7 @@ export default function ConfirmarCadastroForm({
               />
             </Field>
             <Field label="Nacionalidade">
-              <input name="nacionalidade" defaultValue="Brasileira" className={bareCls} />
+              <input name="nacionalidade" defaultValue="Brasileira" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
           </div>
 
@@ -892,7 +894,8 @@ export default function ConfirmarCadastroForm({
               autoComplete="off"
               readOnly
               onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-              className={bareCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${bareCls} uppercase`}
             />
           </Field>
 
@@ -902,7 +905,8 @@ export default function ConfirmarCadastroForm({
               autoComplete="off"
               readOnly
               onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-              className={bareCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${bareCls} uppercase`}
             />
           </Field>
           <Field label="Nome do pai">
@@ -911,7 +915,8 @@ export default function ConfirmarCadastroForm({
               autoComplete="off"
               readOnly
               onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
-              className={bareCls}
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${bareCls} uppercase`}
             />
           </Field>
         </div>
@@ -936,21 +941,21 @@ export default function ConfirmarCadastroForm({
               />
             </Field>
             <Field label="Número">
-              <input name="endereco_numero" className={bareCls} />
+              <input name="endereco_numero" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
           </div>
           <Field label="Endereço">
-            <input value={endereco} onChange={(e) => setEndereco(e.target.value)} className={bareCls} />
+            <input value={endereco} onChange={(e) => setEndereco(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Complemento">
-            <input name="endereco_complemento" className={bareCls} />
+            <input name="endereco_complemento" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
           </Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Bairro">
-              <input value={bairro} onChange={(e) => setBairro(e.target.value)} className={bareCls} />
+              <input value={bairro} onChange={(e) => setBairro(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Cidade">
-              <input value={cidade} onChange={(e) => setCidade(e.target.value)} className={bareCls} />
+              <input value={cidade} onChange={(e) => setCidade(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="UF">
               <input value={estado} maxLength={2} onChange={(e) => setEstado(e.target.value.toUpperCase())} className={`${bareCls} uppercase text-center`} />

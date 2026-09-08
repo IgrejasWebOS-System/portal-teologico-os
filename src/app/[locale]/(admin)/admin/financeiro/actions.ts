@@ -43,7 +43,7 @@ function centavos(valor: string): number {
 export async function criarCategoriaAction(formData: FormData) {
   const { supabase } = await requireStaff();
 
-  const nome = (formData.get("nome") as string)?.trim();
+  const nome = (formData.get("nome") as string)?.trim().toUpperCase();
   const tipo = formData.get("tipo") as string;
   const codigo = (formData.get("codigo") as string)?.trim() || null;
   const categoria_pai_id = (formData.get("categoria_pai_id") as string) || null;
