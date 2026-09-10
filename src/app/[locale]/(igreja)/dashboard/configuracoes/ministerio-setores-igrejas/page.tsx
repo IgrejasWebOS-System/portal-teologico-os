@@ -15,9 +15,17 @@ import {
 
 const PANELS = [
   {
+    href: "/dashboard/configuracoes/ministerios",
+    icon: Landmark,
+    title: "Ministérios",
+    description: "Agrupamento de Campos por Ministério (Madureira, Belém...)",
+    cta: "Gerenciar",
+    accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",
+  },
+  {
     href: "/dashboard/configuracoes/acessos/campos",
     icon: Building,
-    title: "Campos / Ministérios",
+    title: "Campos",
     description: "Crie e gerencie os campos principais do sistema",
     cta: "Gerenciar Campos",
     accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",
@@ -25,7 +33,7 @@ const PANELS = [
   {
     href: "/dashboard/configuracoes/setores",
     icon: Map,
-    title: "Setores",
+    title: "Setores/Regionais",
     description: "Organização geográfica e pastoral",
     cta: "Gerenciar",
     accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",

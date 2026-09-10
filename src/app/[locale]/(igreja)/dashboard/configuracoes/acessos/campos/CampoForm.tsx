@@ -21,12 +21,20 @@ const inputCls =
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 const sectionTitleCls =
   "flex items-center gap-2 text-xs font-black text-iw-navy uppercase tracking-widest mb-4 pb-2 border-b border-iw-border";
+const tabBtnCls = (ativo: boolean) =>
+  `px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${
+    ativo ? "bg-iw-blue text-white" : "bg-iw-bg text-iw-muted hover:text-iw-navy"
+  }`;
+
+type Ministerio = { id: string; name: string };
+type IgrejaDisponivel = { id: string; name: string; city: string | null; state: string | null };
 
 type CampoData = {
   campoId: string;
   sedeId: string;
   churchId: string | null;
   nomeCampo: string;
+  ministerioId?: string | null;
   nomeSede: string;
   cep?: string | null;
   endereco?: string | null;
@@ -42,12 +50,20 @@ type CampoData = {
 
 interface Props {
   existing?: CampoData;
+  ministerios?: Ministerio[];
+  igrejasDisponiveis?: IgrejaDisponivel[];
   submitLabel?: string;
 }
 
-export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }: Props) {
+export default function CampoForm({ existing, ministerios = [], igrejasDisponiveis = [], submitLabel = "Cadastrar Campo" }: Props) {
   const action = existing ? atualizarCampoAction : criarCampoAction;
 
+  const [ministerioId, setMinisterioId] = useState(existing?.ministerioId ?? "");
+  const [modoSede, setModoSede] = useState<"existente" | "nova">(
+    existing?.churchId || igrejasDisponiveis.length > 0 ? "existente" : "nova"
+  );
+  const [churchIdSede, setChurchIdSede] = useState(existing?.churchId ?? "");
+  const igrejaSelecionada = igrejasDisponiveis.find((i) => i.id === churchIdSede);
   const [cep, setCep] = useState(existing?.cep ?? "");
   const [endereco, setEndereco] = useState(existing?.endereco ?? "");
   const [bairro, setBairro] = useState(existing?.bairro ?? "");
@@ -101,6 +117,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           <input type="hidden" name="church_id" value={existing.churchId ?? ""} />
         </>
       )}
+      <input type="hidden" name="modo_sede" value={modoSede} />
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
@@ -108,33 +125,86 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Identificação
         </h3>
 
-        <div>
-          <label className={labelCls}>Nome do Campo *</label>
-          <input
-            name="nome_campo"
-            type="text"
-            required
-            defaultValue={existing?.nomeCampo}
-            placeholder="Ex: ADBRAS Caruaru Ministério Madureira"
-            onChange={aplicarMaiusculaNoEvento}
-            className={`${inputCls} uppercase`}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Nome do Campo *</label>
+            <input
+              name="nome_campo"
+              type="text"
+              required
+              defaultValue={existing?.nomeCampo}
+              placeholder="Ex: ADBRAS Caruaru"
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Ministério</label>
+            <select
+              name="ministerio_id"
+              value={ministerioId}
+              onChange={(e) => setMinisterioId(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Sem ministério vinculado</option>
+              {ministerios.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className={labelCls}>Nome da Sede *</label>
-          <input
-            name="nome_sede"
-            type="text"
-            required
-            defaultValue={existing?.nomeSede}
-            placeholder="Ex: ADBRAS Sede Caruaru"
-            onChange={aplicarMaiusculaNoEvento}
-            className={`${inputCls} uppercase`}
-          />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={labelCls + " mb-0"}>Igreja Sede do Campo *</label>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={() => setModoSede("existente")} className={tabBtnCls(modoSede === "existente")}>
+                Igreja já cadastrada
+              </button>
+              <button type="button" onClick={() => setModoSede("nova")} className={tabBtnCls(modoSede === "nova")}>
+                Cadastrar nova
+              </button>
+            </div>
+          </div>
+
+          {modoSede === "existente" ? (
+            <>
+              <select
+                name="church_id_sede"
+                value={churchIdSede}
+                onChange={(e) => setChurchIdSede(e.target.value)}
+                required
+                className={inputCls}
+              >
+                <option value="">Busque a igreja pelo nome...</option>
+                {igrejasDisponiveis.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                    {i.city ? ` — ${i.city}${i.state ? "/" + i.state : ""}` : ""}
+                  </option>
+                ))}
+              </select>
+              <input type="hidden" name="nome_sede" value={igrejaSelecionada?.name ?? ""} />
+              <p className="text-[11px] text-iw-muted mt-1">
+                Puxa os dados direto do cadastro de igrejas — endereço, pastor e contato ficam como já estão lá.
+              </p>
+            </>
+          ) : (
+            <input
+              name="nome_sede"
+              type="text"
+              required
+              defaultValue={existing?.nomeSede}
+              placeholder="Ex: ADBRAS Sede Caruaru"
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
+            />
+          )}
         </div>
       </div>
 
+      {modoSede === "nova" && (
       <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <MapPin className="w-4 h-4 text-iw-gold" />
@@ -249,7 +319,9 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           </div>
         </div>
       </div>
+      )}
 
+      {modoSede === "nova" && (
       <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <Phone className="w-4 h-4 text-iw-blue" />
@@ -277,6 +349,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Ao buscar por matrícula, o telefone e o e-mail acima (em Endereço da Sede) são preenchidos automaticamente.
         </p>
       </div>
+      )}
 
       <button
         type="submit"

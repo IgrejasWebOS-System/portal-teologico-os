@@ -12,7 +12,8 @@ type SimpleTable =
   | "settings_schooling"
   | "settings_civil_status"
   | "settings_gender"
-  | "function_roles";
+  | "function_roles"
+  | "ministerios";
 
 // ── Adicionar item simples ────────────────────────────────────
 export async function addSettingItemAction(
@@ -688,6 +689,7 @@ export async function definirLiderSetorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
 
@@ -703,6 +705,7 @@ export async function removerLiderSetorAction(setorId: string) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
 

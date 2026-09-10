@@ -14,12 +14,14 @@ export default async function EditarCampoPage({ params }: PageProps) {
 
   const { data: campo } = await supabase
     .from("units")
-    .select("id, name, type")
+    .select("id, name, type, ministerio_id")
     .eq("id", id)
     .eq("type", "CAMPO")
     .single();
 
   if (!campo) notFound();
+
+  const { data: ministerios } = await supabase.from("ministerios").select("id, name").order("name");
 
   const { data: sede } = await supabase
     .from("units")
@@ -29,6 +31,15 @@ export default async function EditarCampoPage({ params }: PageProps) {
     .maybeSingle();
 
   if (!sede) notFound();
+
+  const orFiltro = sede.legacy_church_id
+    ? `unit_id.is.null,id.eq.${sede.legacy_church_id}`
+    : "unit_id.is.null";
+  const { data: igrejasDisponiveis } = await supabase
+    .from("churches")
+    .select("id, name, city, state")
+    .or(orFiltro)
+    .order("name");
 
   let church: {
     id: string;
@@ -60,16 +71,19 @@ export default async function EditarCampoPage({ params }: PageProps) {
         title="Editar Campo"
         description={church ? "Atualize os dados do Campo e da Sede." : "Este campo ainda não tem a igreja da Sede detalhada — preencha abaixo."}
         backHref="/dashboard/configuracoes/acessos/campos"
-        backLabel="Voltar para Campos / Ministérios"
+        backLabel="Voltar para Campos"
       />
 
       <CampoForm
         submitLabel="Salvar alterações"
+        ministerios={ministerios ?? []}
+        igrejasDisponiveis={igrejasDisponiveis ?? []}
         existing={{
           campoId: campo.id,
           sedeId: sede.id,
           churchId: church?.id ?? null,
           nomeCampo: campo.name,
+          ministerioId: campo.ministerio_id,
           nomeSede: sede.name,
           cep: church?.zip_code,
           endereco: church?.address,
