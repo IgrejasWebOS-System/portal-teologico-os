@@ -39,47 +39,6 @@
 - Registre falhas repetitivas da IA em `staging/governance/ERROS-COMUNS-IA.md`.
 - Após 3 tentativas malsucedidas, interrompa e diagnostique. Reverta apenas mudanças da tentativa; `git reset --hard` e `git clean` exigem autorização explícita e checkpoint recuperável.
 
-# Portal Teológico OS — Governança para Agentes de IA
-
-## Escopo e autoridade
-
-- Este arquivo governa todo o repositório a partir da raiz.
-- Instruções do usuário e regras de segurança da plataforma têm precedência.
-- Um `AGENTS.md` em subdiretório pode estabelecer regras mais específicas apenas dentro de seu escopo.
-- A política detalhada está em `staging/governance/GOVERNANCA-IA-E-DESENVOLVIMENTO.md`.
-- Memória de IA é auxiliar; Git, código, migrations, documentação versionada e evidências são as fontes de verdade.
-
-## Área obrigatória de trabalho
-
-- Use `staging/` para análises, planos, decisões, evidências e documentação de desenvolvimento ou governança em elaboração.
-- Edite código nos diretórios canônicos (`src/`, `supabase/` e equivalentes); não copie código de produção para `staging/`.
-- Trabalhe na pasta/branch de staging definida neste arquivo e nunca diretamente na pasta ou branch de produção.
-- Nunca registre segredos, tokens, credenciais, chaves, dados pessoais desnecessários ou conteúdo de `.env` na documentação.
-
-## Padrão Action-First
-
-- Comece cada resposta com a próxima ação executável, um caminho, uma função, um comando ou um snippet.
-- Use listas numeradas de no máximo 5 itens por bloco; cada item deve representar uma ação isolada.
-- Informe estimativas em minutos inteiros e exiba `Estado: X/Y ações concluídas — <situação>`.
-- Elimine preâmbulos e encerramentos vazios, preservando justificativas necessárias para segurança, risco e arquitetura.
-
-## M-Gates e regra ZVDT
-
-- **M0 — Entrada:** objetivo, escopo, riscos, ação imediata e critérios de aceite definidos.
-- **M1 — Estrutura:** arquitetura, dependências, migrations, contratos e plano de rollback revisados.
-- **M2 — Execução:** alteração implementada e validada com testes proporcionais ao risco.
-- **M3 — Conformidade:** evidências, decisões e pendências registradas em `staging/`.
-- **M4 — Liberação:** somente liberar com vulnerabilidades Críticas/Altas conhecidas = 0, segredos expostos = 0, controles obrigatórios = 100%, dívida Crítica/Alta vencida = 0 e crescimento líquido de dívida técnica <= 0.
-- Vulnerabilidade Crítica não admite exceção em produção. Exceção emergencial para vulnerabilidade Alta exige justificativa, impacto, controle compensatório verificável, responsável, prazo, aprovação e bloqueio após vencimento.
-
-## Disciplina de desenvolvimento assistido por IA
-
-- Faça commits atômicos somente após uma pequena entrega validada; não misture objetivos independentes.
-- Priorize integração e E2E nos fluxos do usuário, complementando com testes unitários, contrato, autorização/RLS e segurança conforme o risco.
-- Organize o código em módulos coesos, contratos explícitos e responsabilidades únicas.
-- Registre falhas repetitivas da IA em `staging/governance/ERROS-COMUNS-IA.md`.
-- Após 3 tentativas malsucedidas, interrompa e diagnostique. Reverta apenas mudanças da tentativa; `git reset --hard` e `git clean` exigem autorização explícita e checkpoint recuperável.
-
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
