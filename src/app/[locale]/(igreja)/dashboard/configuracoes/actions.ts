@@ -290,6 +290,112 @@ export async function buscarMembroPorMatriculaAction(
   };
 }
 
+// ── Busca de cadastro completo por Matrícula OU CPF ──────────────
+// Usada no passo "já tem cadastro?" da Nova Matrícula (admin) — evita
+// redigitar os dados de alguém que já é membro de alguma igreja. RLS
+// (members_select_scoped) já limita o resultado ao que esse usuário
+// logado pode enxergar, então não precisa de checagem extra aqui.
+export type MembroCompletoEncontrado = {
+  id: string;
+  full_name: string;
+  cpf: string | null;
+  rg: string | null;
+  rg_issuer: string | null;
+  rg_state: string | null;
+  phone: string | null;
+  email: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  civil_status: string | null;
+  schooling: string | null;
+  profession: string | null;
+  nationality: string | null;
+  nationality_city: string | null;
+  nationality_state: string | null;
+  spouse_name: string | null;
+  mother_name: string | null;
+  father_name: string | null;
+  address: string | null;
+  zip_code: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  photo_url: string | null;
+  church_id: string | null;
+  registration_number: string | null;
+  cargo: string | null;
+};
+
+const CAMPOS_MEMBRO_COMPLETO =
+  "id, full_name, cpf, rg, rg_issuer, rg_state, phone, email, birth_date, gender, civil_status, schooling, profession, nationality, nationality_city, nationality_state, spouse_name, mother_name, father_name, address, zip_code, neighborhood, city, state, photo_url, church_id, registration_number, ecclesiastical_roles(name)";
+
+function mapMembroCompleto(row: Record<string, unknown>): MembroCompletoEncontrado {
+  const cargo = (row.ecclesiastical_roles as { name: string } | null)?.name ?? null;
+  return {
+    id: row.id as string,
+    full_name: (row.full_name as string) ?? "",
+    cpf: row.cpf as string | null,
+    rg: row.rg as string | null,
+    rg_issuer: row.rg_issuer as string | null,
+    rg_state: row.rg_state as string | null,
+    phone: row.phone as string | null,
+    email: row.email as string | null,
+    birth_date: row.birth_date as string | null,
+    gender: row.gender as string | null,
+    civil_status: row.civil_status as string | null,
+    schooling: row.schooling as string | null,
+    profession: row.profession as string | null,
+    nationality: row.nationality as string | null,
+    nationality_city: row.nationality_city as string | null,
+    nationality_state: row.nationality_state as string | null,
+    spouse_name: row.spouse_name as string | null,
+    mother_name: row.mother_name as string | null,
+    father_name: row.father_name as string | null,
+    address: row.address as string | null,
+    zip_code: row.zip_code as string | null,
+    neighborhood: row.neighborhood as string | null,
+    city: row.city as string | null,
+    state: row.state as string | null,
+    photo_url: row.photo_url as string | null,
+    church_id: row.church_id as string | null,
+    registration_number: row.registration_number as string | null,
+    cargo,
+  };
+}
+
+export async function buscarCadastroCompletoAction(
+  identificador: string
+): Promise<{ success: boolean; data?: MembroCompletoEncontrado; message?: string }> {
+  const termo = identificador.trim();
+  if (!termo) return { success: false, message: "Digite a matrícula ou o CPF." };
+
+  const supabase = await createClient();
+  const soDigitos = termo.replace(/\D/g, "");
+  // CPF sempre tem 11 dígitos — usa isso pra decidir se busca por CPF
+  // (formato mascarado "000.000.000-00", igual ao salvo pelo cadastro
+  // de membros) ou por matrícula (registration_number, texto livre).
+  const { data, error } =
+    soDigitos.length === 11
+      ? await supabase
+          .from("members")
+          .select(CAMPOS_MEMBRO_COMPLETO)
+          .eq("cpf", termo)
+          .maybeSingle()
+      : await supabase
+          .from("members")
+          .select(CAMPOS_MEMBRO_COMPLETO)
+          .eq("registration_number", termo)
+          .maybeSingle();
+
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao buscar. Tente novamente." };
+  }
+  if (!data) return { success: false, message: "Nenhum cadastro encontrado com essa matrícula/CPF." };
+
+  return { success: true, data: mapMembroCompleto(data as unknown as Record<string, unknown>) };
+}
+
 // ── Busca de membro por nome (retorna vários — nome não é único) ──
 export async function buscarMembroPorNomeAction(
   nome: string

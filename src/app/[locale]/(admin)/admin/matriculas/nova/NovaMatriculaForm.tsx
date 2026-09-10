@@ -11,7 +11,13 @@ import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, addTurmaAction } from "../actions";
 import MatriculaLookup from "@/app/[locale]/(igreja)/dashboard/configuracoes/MatriculaLookup";
-import { addProfessorAction, type MembroEncontrado } from "@/app/[locale]/(igreja)/dashboard/configuracoes/actions";
+import {
+  addProfessorAction,
+  buscarCadastroCompletoAction,
+  type MembroEncontrado,
+  type MembroCompletoEncontrado,
+} from "@/app/[locale]/(igreja)/dashboard/configuracoes/actions";
+import JaTemCadastroCard, { type TipoPessoa } from "@/components/matricula/JaTemCadastroCard";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
@@ -451,6 +457,52 @@ export default function NovaMatriculaForm({
   const [isPendingExtra, startTransitionExtra] = useTransition();
   const [extraError, setExtraError] = useState("");
 
+  // ── "Já tem cadastro?" — quem está se matriculando (Aluno/Professor/
+  // Visitante), com busca por Matrícula ou CPF pré-preenchendo os dados
+  // pessoais abaixo, sem redigitar quem já é membro de alguma igreja. ──
+  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>("ALUNO");
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  const isoParaBr = (iso: string) => {
+    const [y, m, d] = iso.split("-");
+    return y && m && d ? `${d}/${m}/${y}` : "";
+  };
+
+  // Preenche campo "cru" (não controlado por state — name/email/rg-órgão/
+  // uf/nacionalidade/cônjuge/mãe/pai) direto no DOM via ref do form.
+  const preencherCampoCru = (name: string, valor: string | null) => {
+    if (!valor || !formRef.current) return;
+    const el = formRef.current.elements.namedItem(name) as HTMLInputElement | null;
+    if (el) el.value = valor;
+  };
+
+  const handleCadastroEncontrado = (m: MembroCompletoEncontrado) => {
+    preencherCampoCru("nome_completo", m.full_name?.toUpperCase() ?? null);
+    preencherCampoCru("email", m.email);
+    preencherCampoCru("rg_orgao_emissor", m.rg_issuer?.toUpperCase() ?? null);
+    preencherCampoCru("rg_uf", m.rg_state?.toUpperCase() ?? null);
+    preencherCampoCru("nacionalidade", m.nationality?.toUpperCase() ?? null);
+    preencherCampoCru("nome_conjuge", m.spouse_name?.toUpperCase() ?? null);
+    preencherCampoCru("nome_mae", m.mother_name?.toUpperCase() ?? null);
+    preencherCampoCru("nome_pai", m.father_name?.toUpperCase() ?? null);
+
+    if (m.cpf) setCpf(maskCPF(m.cpf));
+    if (m.rg) setRg(maskRG(m.rg));
+    if (m.phone) setTelefone(maskPhone(m.phone));
+    if (m.birth_date) setDataNascimento(isoParaBr(m.birth_date));
+    if (m.zip_code) setCep(m.zip_code);
+    if (m.address) setEndereco(m.address.toUpperCase());
+    if (m.neighborhood) setBairro(m.neighborhood.toUpperCase());
+    if (m.city) setCidade(m.city.toUpperCase());
+    if (m.state) setEstado(m.state.toUpperCase());
+    if (m.nationality_city) setNaturalidadeCidade(m.nationality_city.toUpperCase());
+    if (m.nationality_state) setNaturalidadeEstado(m.nationality_state.toUpperCase());
+    if (m.gender) setGenero(m.gender);
+    if (m.civil_status) setEstadoCivil(m.civil_status);
+    if (m.schooling) setEscolaridadeSel(m.schooling);
+    if (m.photo_url) setFotoUrl(m.photo_url);
+  };
+
   useEffect(() => {
     async function fetchDropdowns() {
       const supabase = createClient();
@@ -629,8 +681,17 @@ export default function NovaMatriculaForm({
         )}
       </div>
 
+      <JaTemCadastroCard<MembroCompletoEncontrado>
+        tipo={tipoPessoa}
+        onChangeTipo={setTipoPessoa}
+        onBuscar={buscarCadastroCompletoAction}
+        onEncontrado={handleCadastroEncontrado}
+      />
+
       <form
+        ref={formRef}
         action={(fd: FormData) => {
+          fd.set("tipo_pessoa", tipoPessoa);
           if (!validarCPF(cpf)) {
             setExtraError("CPF inválido — confira os dígitos digitados.");
             return;

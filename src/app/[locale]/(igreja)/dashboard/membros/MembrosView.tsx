@@ -12,6 +12,7 @@ import {
   ArchiveRestore,
   X,
   Loader2,
+  ImagePlus,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { archiveMemberAction, restoreMemberAction } from "./actions";
@@ -142,6 +143,16 @@ export default function MembrosView({ initialMembers }: Props) {
               <><Archive className="w-3.5 h-3.5" /> Arquivo Morto</>
             )}
           </button>
+
+          {!isArchived && (
+            <Link
+              href="/dashboard/membros/importar-fotos"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              Importar Fotos
+            </Link>
+          )}
 
           {!isArchived && (
             <Link
