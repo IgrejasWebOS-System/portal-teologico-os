@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
 import { Send, Loader2 } from "lucide-react";
-import { submitInscricaoAction } from "./actions";
+import { submitInscricaoAction, buscarCadastroPublicoAction, type CadastroPublicoEncontrado } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
-import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { aplicarMaiuscula } from "@/utils/uppercaseInput";
+import JaTemCadastroCard, { type TipoPessoa } from "@/components/matricula/JaTemCadastroCard";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -64,15 +65,39 @@ export default function InscricaoForm({
 }) {
   const [cpf, setCpf] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>("ALUNO");
+  const [nomeCompleto, setNomeCompleto] = useState("");
+  const [email, setEmail] = useState("");
   const t = useTranslations("inscricao.form");
 
   return (
     <form action={submitInscricaoAction} className="flex flex-col gap-4">
       <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="tipo_pessoa" value={tipoPessoa} />
+
+      <JaTemCadastroCard<CadastroPublicoEncontrado>
+        tipo={tipoPessoa}
+        onChangeTipo={setTipoPessoa}
+        onBuscar={buscarCadastroPublicoAction}
+        onEncontrado={(dados) => {
+          setNomeCompleto(dados.full_name.toUpperCase());
+          if (dados.cpf) setCpf(dados.cpf);
+          if (dados.phone) setTelefone(dados.phone);
+          if (dados.email) setEmail(dados.email);
+        }}
+      />
 
       <div>
         <label className={labelCls} htmlFor="nome_completo">{t("nomeCompleto")}</label>
-        <input id="nome_completo" name="nome_completo" required onChange={aplicarMaiusculaNoEvento} className={`${inputCls} uppercase`} placeholder={t("placeholderNomeCompleto")} />
+        <input
+          id="nome_completo"
+          name="nome_completo"
+          required
+          value={nomeCompleto}
+          onChange={aplicarMaiuscula(setNomeCompleto)}
+          className={`${inputCls} uppercase`}
+          placeholder={t("placeholderNomeCompleto")}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -102,7 +127,16 @@ export default function InscricaoForm({
 
       <div>
         <label className={labelCls} htmlFor="email">{t("email")}</label>
-        <input id="email" name="email" type="email" required className={inputCls} placeholder={t("placeholderEmail")} />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputCls}
+          placeholder={t("placeholderEmail")}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

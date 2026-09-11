@@ -14,7 +14,7 @@ export default async function SubCongregacoesPage() {
       .eq("church_type", "SUB")
       .order("name"),
     supabase.from("sectors").select("id, name, categoria"),
-    supabase.from("churches").select("id, name"),
+    supabase.from("churches").select("id, name, church_type, sector_id"),
   ]);
 
   if (error) {
@@ -69,6 +69,7 @@ export default async function SubCongregacoesPage() {
         emptyTitle="Nenhuma sub-congregação cadastrada."
         emptyHint='Clique em "Nova Sub-congregação" para começar.'
         showParentColumn
+        allChurches={(churchesData ?? []).map((c) => ({ church_type: c.church_type, sector_id: c.sector_id }))}
       />
     </div>
   );
