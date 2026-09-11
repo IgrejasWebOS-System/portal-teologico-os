@@ -14,7 +14,7 @@ export default async function CelulasPage() {
       .eq("church_type", "CELL")
       .order("name"),
     supabase.from("sectors").select("id, name, categoria"),
-    supabase.from("churches").select("id, name"),
+    supabase.from("churches").select("id, name, church_type, sector_id"),
   ]);
 
   if (error) {
@@ -69,6 +69,7 @@ export default async function CelulasPage() {
         emptyTitle="Nenhuma célula cadastrada."
         emptyHint='Clique em "Nova Célula" para começar.'
         showParentColumn
+        allChurches={(churchesData ?? []).map((c) => ({ church_type: c.church_type, sector_id: c.sector_id }))}
       />
     </div>
   );

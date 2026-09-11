@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Church, Plus, Building2, GitBranch } from "lucide-react";
+import { Church, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import CongregacoesListClient, { type CongregacaoRow } from "../CongregacoesListClient";
@@ -23,9 +23,7 @@ export default async function IgrejasPage() {
   const nomeSetor = new Map(setores.map((s) => [s.id as string, s.name as string]));
 
   const all = data ?? [];
-  const main  = all.filter((c) => c.church_type === "CHURCH" || !c.church_type);
-  const subs  = all.filter((c) => c.church_type === "SUB");
-  const cells = all.filter((c) => c.church_type === "CELL");
+  const main = all.filter((c) => c.church_type === "CHURCH" || !c.church_type);
 
   const rows: CongregacaoRow[] = main.map((c) => ({
     id: c.id,
@@ -61,26 +59,6 @@ export default async function IgrejasPage() {
         </div>
       )}
 
-      {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Igrejas", count: main.length,  color: "text-iw-blue",    icon: Church },
-          { label: "Sub-congregações", count: subs.length,  color: "text-iw-gold",    icon: Building2 },
-          { label: "Células",  count: cells.length, color: "text-iw-success", icon: GitBranch },
-        ].map(({ label, count, color, icon: Icon }) => (
-          <div
-            key={label}
-            className="bg-iw-surface rounded-2xl border border-iw-border p-4 flex items-center gap-3"
-          >
-            <Icon className={`w-5 h-5 shrink-0 ${color}`} />
-            <div>
-              <p className="text-xl font-black text-iw-navy">{count}</p>
-              <p className="text-xs text-iw-muted">{label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
       <CongregacoesListClient
         rows={rows}
         setores={setores}
@@ -88,6 +66,7 @@ export default async function IgrejasPage() {
         emptyIcon={<Church className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />}
         emptyTitle="Nenhuma igreja cadastrada."
         emptyHint='Clique em "Nova Igreja" para começar.'
+        allChurches={all.map((c) => ({ church_type: c.church_type, sector_id: c.sector_id }))}
       />
     </div>
   );

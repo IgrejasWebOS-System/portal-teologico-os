@@ -12,6 +12,7 @@ import {
   ArchiveRestore,
   X,
   Loader2,
+  ImagePlus,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { archiveMemberAction, restoreMemberAction } from "./actions";
@@ -23,6 +24,7 @@ type MemberRow = {
   email: string | null;
   phone: string | null;
   registration_number: string | null;
+  photo_url: string | null;
   status: string;
   financial_status: string;
   ecclesiastical_status: string | null;
@@ -61,7 +63,7 @@ export default function MembrosView({ initialMembers }: Props) {
       const supabase = createClient();
       const { data } = await supabase
         .from("members")
-        .select("id, full_name, email, phone, registration_number, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
+        .select("id, full_name, email, phone, registration_number, photo_url, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
         .eq("status", "ARCHIVED")
         .order("full_name");
       setArchivedMembers((data as unknown as MemberRow[]) ?? []);
@@ -145,6 +147,16 @@ export default function MembrosView({ initialMembers }: Props) {
 
           {!isArchived && (
             <Link
+              href="/dashboard/membros/importar-fotos"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              Importar Fotos
+            </Link>
+          )}
+
+          {!isArchived && (
+            <Link
               href="/dashboard/membros/novo"
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-iw-blue text-white hover:bg-iw-navy transition-colors shadow-sm"
             >
@@ -202,10 +214,19 @@ export default function MembrosView({ initialMembers }: Props) {
                     href={`/dashboard/membros/editar/${member.id}`}
                     className="flex items-center gap-3 min-w-0 group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
-                      <span className="text-iw-blue font-bold text-xs">
-                        {member.full_name.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-iw-blue/20 transition-colors">
+                      {member.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.photo_url}
+                          alt={member.full_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-iw-blue font-bold text-xs">
+                          {member.full_name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-blue transition-colors">

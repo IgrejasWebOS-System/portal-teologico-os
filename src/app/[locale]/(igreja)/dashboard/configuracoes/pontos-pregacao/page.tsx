@@ -14,7 +14,7 @@ export default async function PontosPregacaoPage() {
       .eq("church_type", "PONTO")
       .order("name"),
     supabase.from("sectors").select("id, name, categoria"),
-    supabase.from("churches").select("id, name"),
+    supabase.from("churches").select("id, name, church_type, sector_id"),
   ]);
 
   if (error) {
@@ -69,6 +69,7 @@ export default async function PontosPregacaoPage() {
         emptyTitle="Nenhum ponto de pregação cadastrado."
         emptyHint='Clique em "Novo Ponto de Pregação" para começar.'
         showParentColumn
+        allChurches={(churchesData ?? []).map((c) => ({ church_type: c.church_type, sector_id: c.sector_id }))}
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, Church, Building2, MapPinned, GitBranch } from "lucide-react";
 
 export type CongregacaoRow = {
   id: string;
@@ -15,6 +15,8 @@ export type CongregacaoRow = {
   parent_name: string | null;
 };
 
+export type ChurchTypeCount = { church_type: string | null; sector_id: string | null };
+
 type SetorOption = { id: string; name: string; categoria?: string | null };
 
 interface Props {
@@ -26,7 +28,20 @@ interface Props {
   emptyHint: string;
   /** Mostra a coluna "Igreja-mãe" em vez de depender só do Setor (Sub/Ponto/Célula). */
   showParentColumn?: boolean;
+  /**
+   * Todas as congregações (dos 4 tipos), só com tipo + setor — usado pra
+   * calcular os 4 cards (Igreja/Sub/Ponto/Célula) geral E individualizado
+   * pelo Setor/Regional selecionado no filtro abaixo.
+   */
+  allChurches?: ChurchTypeCount[];
 }
+
+const TIPO_CARDS = [
+  { tipo: "CHURCH", label: "Igrejas", icon: Church, color: "text-iw-blue" },
+  { tipo: "SUB", label: "Sub-congregações", icon: Building2, color: "text-iw-gold" },
+  { tipo: "PONTO", label: "Pontos de Pregação", icon: MapPinned, color: "text-iw-gold" },
+  { tipo: "CELL", label: "Células", icon: GitBranch, color: "text-iw-success" },
+] as const;
 
 export default function CongregacoesListClient({
   rows,
@@ -36,6 +51,7 @@ export default function CongregacoesListClient({
   emptyTitle,
   emptyHint,
   showParentColumn = false,
+  allChurches,
 }: Props) {
   const [busca, setBusca] = useState("");
   const [setorId, setSetorId] = useState("");
@@ -54,8 +70,47 @@ export default function CongregacoesListClient({
     });
   }, [rows, busca, setorId]);
 
+  const contagens = useMemo(() => {
+    if (!allChurches) return null;
+    const setorLabel = setorId ? setoresOrdenados.find((s) => s.id === setorId)?.name ?? "" : "";
+    return TIPO_CARDS.map(({ tipo }) => {
+      const tipoNorm = (c: ChurchTypeCount) => (c.church_type ?? "CHURCH") === tipo;
+      const global = allChurches.filter(tipoNorm).length;
+      const escopo = setorId
+        ? allChurches.filter((c) => tipoNorm(c) && c.sector_id === setorId).length
+        : null;
+      return { tipo, global, escopo, setorLabel };
+    });
+  }, [allChurches, setorId, setoresOrdenados]);
+
   return (
     <div className="space-y-4">
+      {contagens && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {TIPO_CARDS.map(({ tipo, label, icon: Icon, color }, i) => {
+            const c = contagens[i];
+            return (
+              <div key={tipo} className="bg-iw-surface rounded-2xl border border-iw-border p-4 flex items-center gap-3">
+                <Icon className={`w-5 h-5 shrink-0 ${color}`} />
+                <div>
+                  <p className="text-xl font-black text-iw-navy">
+                    {c.escopo !== null ? c.escopo : c.global}
+                  </p>
+                  <p className="text-xs text-iw-muted">
+                    {label}
+                    {c.escopo !== null && (
+                      <span className="block text-[10px] text-iw-muted/70">
+                        de {c.global} no geral · {c.setorLabel}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Consulta: por nome e por Setor/Regional */}
       <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
