@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ClipboardList, GraduationCap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ClipboardList, GraduationCap, AlertTriangle, ListChecks } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { iniciarAvaliacaoAction } from "./actions";
+import { iniciarAvaliacaoAction, iniciarTesteLicaoAction } from "./actions";
+import { listarTestesLicaoDoCurso, type TesteLicaoDisponivel } from "@/utils/avaliacoes/gerador";
 
 export const metadata = { title: "Simulados e Provas — Portal do Aluno" };
 
@@ -77,10 +78,15 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const { data: avaliacoes } = matriculaIds.length
     ? await supabase
         .from("avaliacoes")
-        .select("id, matricula_id, tipo, status, nota, aprovado, iniciada_em, finalizada_em")
+        .select("id, matricula_id, tipo, status, nota, aprovado, lesson_id, numero_teste, iniciada_em, finalizada_em")
         .in("matricula_id", matriculaIds)
         .order("iniciada_em", { ascending: false })
     : { data: [] };
+
+  const testesLicaoPorCurso = new Map<string, TesteLicaoDisponivel[]>();
+  for (const courseId of courseIds) {
+    testesLicaoPorCurso.set(courseId, await listarTestesLicaoDoCurso(courseId));
+  }
 
   const { data: enrollments } = courseIds.length
     ? await supabase
@@ -149,6 +155,8 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
             const matriculaEmAndamento = m.status === "EM_ANDAMENTO";
             const podeAvaliar =
               !!m.course_id && (matriculaEmAndamento || !!provaExistente || simuladosFeitos > 0);
+            const testesLicao = m.course_id ? testesLicaoPorCurso.get(m.course_id) ?? [] : [];
+            const testesLicaoDaMatricula = avaliacoesDaMatricula.filter((a) => a.tipo === "TESTE_LICAO");
 
             return (
               <div key={m.id} className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
@@ -253,6 +261,60 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                         </form>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {matriculaEmAndamento && testesLicao.length > 0 && (
+                  <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="w-3.5 h-3.5 text-iw-blue" />
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Testes por lição (Certo/Errado)</p>
+                    </div>
+                    <ul className="space-y-2">
+                      {testesLicao.map((t) => {
+                        const tentativa = testesLicaoDaMatricula.find(
+                          (a) => a.lesson_id === t.lessonId && a.numero_teste === t.numeroTeste
+                        );
+                        return (
+                          <li
+                            key={`${t.lessonId}-${t.numeroTeste}`}
+                            className="flex items-center justify-between gap-3 bg-white border border-iw-border rounded-lg px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-iw-navy truncate">
+                                {t.lessonTitle} — Teste {t.numeroTeste}
+                              </p>
+                              <p className="text-[11px] text-iw-muted">
+                                {t.licoesLabel} · {t.totalQuestoes} questões
+                                {t.gabaritoProvisorio && (
+                                  <span className="text-iw-warning font-semibold"> · gabarito provisório</span>
+                                )}
+                              </p>
+                            </div>
+                            {tentativa ? (
+                              <Link
+                                href={`/portal/avaliacoes/${tentativa.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                                className="shrink-0 text-[11px] font-bold text-iw-blue hover:underline"
+                              >
+                                {tentativa.status === "FINALIZADA" ? `nota ${Number(tentativa.nota).toFixed(1)}` : "em andamento"}
+                              </Link>
+                            ) : (
+                              <form action={iniciarTesteLicaoAction}>
+                                <input type="hidden" name="matricula_id" value={m.id} />
+                                <input type="hidden" name="lesson_id" value={t.lessonId} />
+                                <input type="hidden" name="numero_teste" value={t.numeroTeste} />
+                                <button
+                                  type="submit"
+                                  className="shrink-0 bg-iw-blue hover:opacity-90 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition-opacity"
+                                >
+                                  Fazer teste
+                                </button>
+                              </form>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 )}
 
