@@ -24,6 +24,7 @@ type MemberRow = {
   email: string | null;
   phone: string | null;
   registration_number: string | null;
+  photo_url: string | null;
   status: string;
   financial_status: string;
   ecclesiastical_status: string | null;
@@ -62,7 +63,7 @@ export default function MembrosView({ initialMembers }: Props) {
       const supabase = createClient();
       const { data } = await supabase
         .from("members")
-        .select("id, full_name, email, phone, registration_number, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
+        .select("id, full_name, email, phone, registration_number, photo_url, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
         .eq("status", "ARCHIVED")
         .order("full_name");
       setArchivedMembers((data as unknown as MemberRow[]) ?? []);
@@ -213,10 +214,19 @@ export default function MembrosView({ initialMembers }: Props) {
                     href={`/dashboard/membros/editar/${member.id}`}
                     className="flex items-center gap-3 min-w-0 group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
-                      <span className="text-iw-blue font-bold text-xs">
-                        {member.full_name.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-iw-blue/20 transition-colors">
+                      {member.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.photo_url}
+                          alt={member.full_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-iw-blue font-bold text-xs">
+                          {member.full_name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-blue transition-colors">

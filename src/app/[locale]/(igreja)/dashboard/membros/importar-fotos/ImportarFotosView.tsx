@@ -72,6 +72,16 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
           status: "pendente" as MatchStatus,
         };
       });
+
+    // Ordem alfabética pelo nome do membro (o arquivo-origem das fotos já
+    // vem alfabético — mantém a mesma ordem aqui pra facilitar conferir
+    // lado a lado). Não encontrados ficam agrupados no final, por código.
+    novas.sort((a, b) => {
+      if (!!a.member !== !!b.member) return a.member ? -1 : 1;
+      const chaveA = a.member?.full_name ?? a.codigo;
+      const chaveB = b.member?.full_name ?? b.codigo;
+      return chaveA.localeCompare(chaveB, "pt-BR");
+    });
     setMatches(novas);
     setResumo(null);
   };

@@ -15,7 +15,7 @@ export default async function MembrosPage() {
   const { data: members } = await supabase
     .from("members")
     .select(
-      "id, full_name, email, phone, registration_number, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)"
+      "id, full_name, email, phone, registration_number, photo_url, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)"
     )
     .eq("status", "ACTIVE")
     .order("full_name");
