@@ -2,27 +2,39 @@ import Link from "next/link";
 import { Building2, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
-
-type Row = {
-  id: string;
-  name: string;
-  pastor_name: string | null;
-  pastor_role: string | null;
-  pastor_phone: string | null;
-  sectors: { name: string } | null;
-  parent: { name: string } | null;
-};
+import CongregacoesListClient, { type CongregacaoRow } from "../CongregacoesListClient";
 
 export default async function SubCongregacoesPage() {
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("churches")
-    .select("id, name, pastor_name, pastor_role, pastor_phone, sectors(name), parent:parent_id(name)")
-    .eq("church_type", "SUB")
-    .order("name");
+  const [{ data, error }, { data: sectorsData }, { data: churchesData }] = await Promise.all([
+    supabase
+      .from("churches")
+      .select("id, name, pastor_name, pastor_role, pastor_phone, sector_id, parent_id")
+      .eq("church_type", "SUB")
+      .order("name"),
+    supabase.from("sectors").select("id, name, categoria"),
+    supabase.from("churches").select("id, name"),
+  ]);
 
-  const rows = (data ?? []) as unknown as Row[];
+  if (error) {
+    console.error("[sub-congregacoes/page]", error);
+  }
+
+  const setores = sectorsData ?? [];
+  const nomeSetor = new Map(setores.map((s) => [s.id as string, s.name as string]));
+  const nomeIgreja = new Map((churchesData ?? []).map((c) => [c.id as string, c.name as string]));
+
+  const rows: CongregacaoRow[] = (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    pastor_name: r.pastor_name,
+    pastor_role: r.pastor_role,
+    pastor_phone: r.pastor_phone,
+    sector_id: r.sector_id,
+    sector_name: r.sector_id ? nomeSetor.get(r.sector_id) ?? "—" : null,
+    parent_name: r.parent_id ? nomeIgreja.get(r.parent_id) ?? "—" : null,
+  }));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -43,40 +55,21 @@ export default async function SubCongregacoesPage() {
         </Link>
       </div>
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
-        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Igreja / Setor</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Responsável</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Telefone</span>
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
+          Erro ao carregar as sub-congregações: {error.message}
         </div>
+      )}
 
-        {rows.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <Building2 className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
-            <p className="text-iw-muted text-sm font-medium">Nenhuma sub-congregação cadastrada.</p>
-            <p className="text-iw-muted/60 text-xs mt-1">
-              Clique em &ldquo;Nova Sub-congregação&rdquo; para começar.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-iw-border">
-            {rows.map((r) => (
-              <li key={r.id} className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
-                <span className="text-sm font-semibold text-iw-navy truncate">{r.name}</span>
-                <span className="text-xs text-iw-muted truncate">
-                  {r.parent?.name ?? "—"} {r.sectors?.name ? `· ${r.sectors.name}` : ""}
-                </span>
-                <span className="text-xs text-iw-navy truncate">
-                  {r.pastor_name ?? "—"}
-                  {r.pastor_role && <span className="text-iw-muted"> ({r.pastor_role})</span>}
-                </span>
-                <span className="text-xs text-iw-muted truncate">{r.pastor_phone ?? "—"}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <CongregacoesListClient
+        rows={rows}
+        setores={setores}
+        editBasePath="/dashboard/configuracoes/sub-congregacoes"
+        emptyIcon={<Building2 className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />}
+        emptyTitle="Nenhuma sub-congregação cadastrada."
+        emptyHint='Clique em "Nova Sub-congregação" para começar.'
+        showParentColumn
+      />
     </div>
   );
 }

@@ -50,6 +50,13 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
   const [subunidadeId, setSubunidadeId] = useState(
     cadeiaInicial.find((u) => SUB_UNIT_TYPES.includes(u.type))?.id ?? ""
   );
+  // Atua na própria Igreja Sede do Campo — a Sede também é uma igreja
+  // completa (departamentos, turmas, professores), mas fica "acima" do
+  // Setor na árvore, então não aparece no passo Setor→Igreja abaixo.
+  // Este toggle deixa selecionar a Sede direto como unidade final.
+  const [atuaNaSede, setAtuaNaSede] = useState(
+    cadeiaInicial.length > 0 && cadeiaInicial[cadeiaInicial.length - 1]?.type === "SEDE"
+  );
 
   const [memberId, setMemberId] = useState(existing?.memberId ?? "");
   const [nome, setNome] = useState(existing?.nome ?? "");
@@ -82,7 +89,7 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
     [units, igrejaId]
   );
 
-  const finalUnitId = subunidadeId || igrejaId;
+  const finalUnitId = atuaNaSede ? (sedeDoCampo?.id ?? "") : (subunidadeId || igrejaId);
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setMemberId(membro.id);
@@ -93,10 +100,12 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
     const church = churches.find((c) => c.id === membro.church_id);
     if (church?.unit_id) {
       const chain = ancestryChain(church.unit_id, units);
+      const ehSede = chain.find((u) => u.id === church.unit_id)?.type === "SEDE";
       setCampoId(chain.find((u) => u.type === "CAMPO")?.id ?? "");
-      setSetorId(chain.find((u) => u.type === "SETOR")?.id ?? "");
-      setIgrejaId(chain.find((u) => u.type === "IGREJA")?.id ?? "");
-      setSubunidadeId(chain.find((u) => SUB_UNIT_TYPES.includes(u.type))?.id ?? "");
+      setAtuaNaSede(ehSede);
+      setSetorId(ehSede ? "" : chain.find((u) => u.type === "SETOR")?.id ?? "");
+      setIgrejaId(ehSede ? "" : chain.find((u) => u.type === "IGREJA")?.id ?? "");
+      setSubunidadeId(ehSede ? "" : chain.find((u) => SUB_UNIT_TYPES.includes(u.type))?.id ?? "");
     }
   };
 
@@ -145,7 +154,7 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             </label>
             <select
               value={campoId}
-              onChange={(e) => { setCampoId(e.target.value); setSetorId(""); setIgrejaId(""); setSubunidadeId(""); }}
+              onChange={(e) => { setCampoId(e.target.value); setSetorId(""); setIgrejaId(""); setSubunidadeId(""); setAtuaNaSede(false); }}
               className={selectCls}
             >
               <option value="">Selecione o campo...</option>
@@ -162,7 +171,7 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             <select
               value={setorId}
               onChange={(e) => { setSetorId(e.target.value); setIgrejaId(""); setSubunidadeId(""); }}
-              disabled={!campoId}
+              disabled={!campoId || atuaNaSede}
               className={selectCls}
             >
               <option value="">{campoId ? "Selecione o setor..." : "Escolha o campo primeiro"}</option>
@@ -179,7 +188,7 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             <select
               value={igrejaId}
               onChange={(e) => { setIgrejaId(e.target.value); setSubunidadeId(""); }}
-              disabled={!setorId}
+              disabled={!setorId || atuaNaSede}
               className={selectCls}
             >
               <option value="">{setorId ? "Selecione a igreja..." : "Escolha o setor primeiro"}</option>
@@ -194,7 +203,7 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             <select
               value={subunidadeId}
               onChange={(e) => setSubunidadeId(e.target.value)}
-              disabled={!igrejaId || subunidades.length === 0}
+              disabled={!igrejaId || subunidades.length === 0 || atuaNaSede}
               className={selectCls}
             >
               <option value="">
@@ -206,6 +215,22 @@ export default function ProfessorForm({ units, churches, existing, submitLabel =
             </select>
           </div>
         </div>
+
+        {sedeDoCampo && (
+          <label className="flex items-center gap-2 text-xs font-semibold text-iw-navy bg-iw-blue/5 border border-iw-blue/20 rounded-xl px-3 py-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={atuaNaSede}
+              onChange={(e) => {
+                const marcado = e.target.checked;
+                setAtuaNaSede(marcado);
+                if (marcado) { setSetorId(""); setIgrejaId(""); setSubunidadeId(""); }
+              }}
+              className="w-4 h-4 accent-iw-blue"
+            />
+            Atua na própria Igreja Sede do Campo ({sedeDoCampo.name}) — não em um Setor/Igreja abaixo dela
+          </label>
+        )}
       </div>
 
       <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
