@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { gerarQuestoes } from "@/utils/avaliacoes/gerador";
+import { gerarQuestoes, carregarTesteLicao } from "@/utils/avaliacoes/gerador";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -126,6 +126,68 @@ export async function iniciarAvaliacaoAction(formData: FormData) {
 
   if (error || !avaliacao) {
     fail("Erro ao iniciar avaliação: " + (error?.message ?? "desconhecido"));
+  }
+
+  const { error: questoesError } = await admin.from("avaliacao_questoes").insert(
+    questoes.map((q, i) => ({
+      avaliacao_id: avaliacao!.id,
+      ordem: i + 1,
+      enunciado: q.enunciado,
+      opcoes: q.opcoes,
+      resposta_correta_index: q.resposta_correta_index,
+    }))
+  );
+
+  if (questoesError) {
+    fail("Erro ao gerar questões: " + questoesError.message);
+  }
+
+  redirect(`/portal/avaliacoes/${avaliacao!.id}`);
+}
+
+// Teste de Certo/Errado por par de lições (Teste 1: Lições 1 e 2 etc.)
+// — mesma engrenagem do simulado/prova, mas sem embaralhar (ordem fixa
+// igual ao papel) e sem as regras de "1 tentativa"/"2 tentativas"/
+// "só libera com 100%": é formativo, o aluno pode refazer. Copia
+// gabarito_provisorio do banco pra avaliacao no momento da criação,
+// pra tela de resultado mostrar o aviso mesmo que o banco seja
+// corrigido depois de já existirem tentativas antigas.
+export async function iniciarTesteLicaoAction(formData: FormData) {
+  const matriculaId = formData.get("matricula_id") as string;
+  const lessonId = formData.get("lesson_id") as string;
+  const numeroTeste = Number(formData.get("numero_teste"));
+
+  if (!matriculaId || !lessonId || !numeroTeste) fail("Dados inválidos.");
+
+  const { matricula } = await carregarMatriculaDoAluno(matriculaId);
+
+  if (matricula.status !== "EM_ANDAMENTO") {
+    fail("Esta matrícula não está em andamento — não é possível fazer o teste.");
+  }
+
+  const { questoes } = await carregarTesteLicao(lessonId, numeroTeste);
+  if (questoes.length === 0) {
+    fail("Não há questões cadastradas para este teste ainda.");
+  }
+
+  const gabaritoProvisorio = questoes.some((q) => q.gabaritoProvisorio);
+  const admin = createAdminClient();
+
+  const { data: avaliacao, error } = await admin
+    .from("avaliacoes")
+    .insert({
+      matricula_id: matriculaId,
+      tipo: "TESTE_LICAO",
+      lesson_id: lessonId,
+      numero_teste: numeroTeste,
+      num_questoes: questoes.length,
+      gabarito_provisorio: gabaritoProvisorio,
+    })
+    .select("id")
+    .single();
+
+  if (error || !avaliacao) {
+    fail("Erro ao iniciar teste: " + (error?.message ?? "desconhecido"));
   }
 
   const { error: questoesError } = await admin.from("avaliacao_questoes").insert(

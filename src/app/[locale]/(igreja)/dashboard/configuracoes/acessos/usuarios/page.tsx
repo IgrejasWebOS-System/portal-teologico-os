@@ -14,11 +14,12 @@ type Profile = {
 
 type UnitOption = { id: string; type: string; name: string; parent_id: string | null };
 type ChurchLink = { id: string; unit_id: string | null };
+type AdminRole = { user_id: string; level: number; unit_id: string | null };
 
 export default async function UsuariosPage() {
   const supabase = await createClient();
 
-  const [{ data }, { data: { user: currentUser } }, unitsRes, churchesRes] = await Promise.all([
+  const [{ data }, { data: { user: currentUser } }, unitsRes, churchesRes, adminRolesRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, system_role, church_id")
@@ -30,11 +31,13 @@ export default async function UsuariosPage() {
       .order("type")
       .order("name"),
     supabase.from("churches").select("id, unit_id"),
+    supabase.from("admin_roles").select("user_id, level, unit_id"),
   ]);
 
   const users = (data ?? []) as Profile[];
   const units = (unitsRes.data ?? []) as UnitOption[];
   const churches = (churchesRes.data ?? []) as ChurchLink[];
+  const adminRoles = (adminRolesRes.data ?? []) as AdminRole[];
   const souGlobalAdmin = users.find((u) => u.id === currentUser?.id)?.system_role === "GLOBAL_ADMIN";
 
   return (
@@ -55,7 +58,13 @@ export default async function UsuariosPage() {
 
       {souGlobalAdmin && <InviteStaffForm units={units} churches={churches} />}
 
-      <UsersList users={users} currentUserId={currentUser?.id} souGlobalAdmin={souGlobalAdmin} />
+      <UsersList
+        users={users}
+        currentUserId={currentUser?.id}
+        souGlobalAdmin={souGlobalAdmin}
+        units={units}
+        adminRoles={adminRoles}
+      />
     </div>
   );
 }

@@ -615,6 +615,12 @@ async function grantNucleoAccess(
       : `Convite enviado, mas houve erro ao gravar o acesso ao núcleo: ${roleError.message}`;
   }
 
+  // Sincroniza profiles.system_role com o nível recém-gravado — sem
+  // isso o professor não passa em checkIsStaff() e não entra no
+  // /dashboard mesmo já tendo o admin_roles certo (ver comentário em
+  // systemRoleParaLevel).
+  await admin.from("profiles").update({ system_role: systemRoleParaLevel(4) }).eq("id", targetUserId);
+
   return promovendoExistente
     ? `Professor salvo. ${email} já tinha conta — acesso de nível 4 a este núcleo foi adicionado.`
     : `Professor salvo. Convite de acesso enviado para ${email} (nível 4, escopado a este núcleo).`;
@@ -828,6 +834,33 @@ export async function definirLiderSetorFormAction(formData: FormData): Promise<v
 // critério do aviso já exibido na tela ("Master e Super Master").
 const NIVEIS_VALIDOS = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN", "MEMBER"];
 
+// ============================================================
+// Sincronização admin_roles.level ↔ profiles.system_role
+//
+// admin_roles (level 0-4 + unit_id) é quem manda na visibilidade real
+// de dados (RLS escopada — get_accessible_unit_ids()), mas quem manda
+// se a pessoa consegue logar em /dashboard é checkIsStaff(), que olha
+// só profiles.system_role. Os dois sistemas nunca foram sincronizados
+// automaticamente — um operador convidado (inviteStaffAction) ou um
+// professor com acesso de núcleo (grantNucleoAccess) ganhava a linha
+// em admin_roles mas ficava com system_role='MEMBER' (default do
+// trigger handle_new_user()) e não conseguia entrar. Mapeamento:
+//   nível 0 (Super-Master)  → GLOBAL_ADMIN (bypassa toda a RLS escopada,
+//                              é assim que is_super_master()/GLOBAL_ADMIN
+//                              já funcionam nas policies existentes)
+//   níveis 1-3 (Master de Campo, Admin de Sede, Admin de Setor) →
+//                              SECTOR_ADMIN (escopo maior que uma
+//                              igreja só — a visibilidade real continua
+//                              vindo de admin_roles/get_accessible_unit_ids(),
+//                              este texto só precisa passar em checkIsStaff())
+//   nível 4 (Usuário Local)  → LOCAL_ADMIN
+// ============================================================
+function systemRoleParaLevel(level: number): string {
+  if (level === 0) return "GLOBAL_ADMIN";
+  if (level === 4) return "LOCAL_ADMIN";
+  return "SECTOR_ADMIN";
+}
+
 export async function atualizarNivelUsuarioAction(formData: FormData) {
   const userId = (formData.get("user_id") as string) || "";
   const novoNivel = (formData.get("system_role") as string) || "";
@@ -862,6 +895,75 @@ export async function atualizarNivelUsuarioAction(formData: FormData) {
 
 export async function atualizarNivelUsuarioFormAction(formData: FormData): Promise<void> {
   await atualizarNivelUsuarioAction(formData);
+}
+
+// Edita o vínculo completo (nível admin_roles + unidade) de um usuário
+// já existente — a peça que faltava: até aqui só quem passava pelo
+// convite (inviteStaffAction) ou pela tela de Professores
+// (grantNucleoAccess) ganhava admin_roles; editar alguém já cadastrado
+// só mudava o texto solto em profiles.system_role. Substitui/limpa
+// qualquer admin_roles anterior do usuário antes de gravar o novo —
+// simplificação proposital: 1 vínculo principal por usuário nesta
+// tela (o banco não impede múltiplos, mas esta UI não gerencia mais
+// de um de cada vez).
+export async function atualizarVinculoUsuarioAction(formData: FormData) {
+  const userId = (formData.get("user_id") as string) || "";
+  const levelRaw = (formData.get("level") as string) || "";
+  const unitId = ((formData.get("unit_id") as string) || "").trim() || null;
+
+  if (!userId) return { success: false, message: "Usuário inválido." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (userId === user.id) {
+    return { success: false, message: "Você não pode alterar o próprio acesso por aqui." };
+  }
+
+  const { data: meuPerfil } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", user.id)
+    .single();
+  if (meuPerfil?.system_role !== "GLOBAL_ADMIN") {
+    return { success: false, message: "Apenas GLOBAL_ADMIN pode alterar o acesso de outros operadores." };
+  }
+
+  const admin = createAdminClient();
+
+  // "MEMBER" (ou vazio) = revogar: some com qualquer admin_roles e
+  // volta o operador a usuário comum, sem acesso a /dashboard.
+  if (levelRaw === "MEMBER" || levelRaw === "") {
+    await admin.from("admin_roles").delete().eq("user_id", userId);
+    const { error } = await admin.from("profiles").update({ system_role: "MEMBER" }).eq("id", userId);
+    if (error) return { success: false, message: "Erro ao salvar: " + error.message };
+    revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+    return { success: true, message: "Acesso revogado — usuário voltou a MEMBER." };
+  }
+
+  const level = Number.parseInt(levelRaw, 10);
+  if (Number.isNaN(level) || level < 0 || level > 4) return { success: false, message: "Nível inválido." };
+  if (level === 0 && unitId) return { success: false, message: "Super-Master (nível 0) não deve ter unidade selecionada." };
+  if (level > 0 && !unitId) return { success: false, message: "Selecione a unidade para esse nível." };
+
+  await admin.from("admin_roles").delete().eq("user_id", userId);
+
+  const { error: roleError } = await admin.from("admin_roles").insert({
+    user_id: userId,
+    level,
+    unit_id: level === 0 ? null : unitId,
+    invited_by: user.id,
+  });
+  if (roleError) return { success: false, message: "Erro ao gravar o vínculo: " + roleError.message };
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ system_role: systemRoleParaLevel(level) })
+    .eq("id", userId);
+  if (profileError) return { success: false, message: "Erro ao sincronizar o nível: " + profileError.message };
+
+  revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+  return { success: true, message: "Acesso atualizado." };
 }
 
 // Nome/e-mail de um operador. O e-mail é a credencial de login real
@@ -1145,6 +1247,11 @@ export async function inviteStaffAction(formData: FormData) {
         : `Convite enviado, mas houve um erro ao gravar o nível de acesso: ${roleError.message}`,
     };
   }
+
+  // Sincroniza profiles.system_role com o level recém-gravado — sem
+  // isso a pessoa fica com admin_roles certo mas continua travada em
+  // MEMBER e não passa em checkIsStaff() (ver systemRoleParaLevel).
+  await admin.from("profiles").update({ system_role: systemRoleParaLevel(level) }).eq("id", targetUserId);
 
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
   return {

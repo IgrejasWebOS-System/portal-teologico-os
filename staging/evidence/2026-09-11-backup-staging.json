@@ -1,0 +1,44 @@
+{
+  "backup_de": "cjxdroyyplpknygtcdgr (Supabase staging branch, projeto principal toduvwtzklntyptcodkf)",
+  "gerado_em": "2026-09-11T21:45:00Z",
+  "motivo": "Snapshot manual antes do merge staging->main e deploy pra produção do trabalho de hoje (RBAC Parte B, Seletor Membros, Teste C/E por lição). Não substitui os backups automáticos do Supabase — é um registro rápido do que foi criado hoje, pra restaurar rápido se algo quebrar no deploy.",
+  "tabelas": {
+    "avaliacoes_teste_licao_banco": {
+      "descricao": "72 questões de Certo/Errado da matéria Pneumatologia (4 testes), todas com gabarito_provisorio=true. lesson_id ec70b50b-ecfb-4468-9d01-c74955fa67d0 (Pneumatologia — O Espírito Santo, dentro de Curso Teológico Básico f3c251e1-8ae7-4be1-9a93-a338b0123936).",
+      "total_linhas": 72,
+      "por_teste": { "1": 15, "2": 20, "3": 17, "4": 20 },
+      "nota": "Conteúdo completo (enunciados + resposta_correta_index provisório) já está versionado no código em supabase/migrations/097_teste_licao_certo_errado.sql — essa migration É o backup restaurável desta tabela. Não repetido aqui na íntegra pra não duplicar ~15KB de texto; ver o arquivo de migration pra reaplicar linha a linha se precisar."
+    },
+    "admin_roles": {
+      "descricao": "Linhas com level/unit_id gravado no staging.",
+      "linhas": [
+        { "user_id": "d7b33dd8-6a05-47e7-98bf-f81373555d89", "level": 0, "unit_id": null, "role_title": "Staff de Teste (staging)", "email": "teste.staff@cetadp.teo.br" },
+        { "user_id": "5681b754-6f59-4ead-b677-c4655b2da0fe", "level": 0, "unit_id": null, "role_title": "Professor (acesso de teste)", "email": "professor@cetadp.teo.br" }
+      ]
+    },
+    "profiles_com_acesso_staff": {
+      "descricao": "profiles.system_role != MEMBER no staging, após a sincronização feita hoje.",
+      "linhas": [
+        { "id": "5681b754-6f59-4ead-b677-c4655b2da0fe", "email": "professor@cetadp.teo.br", "full_name": "Professor Teste", "system_role": "GLOBAL_ADMIN" },
+        { "id": "d7b33dd8-6a05-47e7-98bf-f81373555d89", "email": "teste.staff@cetadp.teo.br", "full_name": null, "system_role": "GLOBAL_ADMIN" }
+      ]
+    },
+    "contas_teste_criadas_hoje": {
+      "nota": "Criadas via supabase/migrations/098_contas_teste_alunos_professor_demo.sql — esse arquivo É o script de restauração completo (auth.users + ead_alunos + ead_matriculas + enrollments + lesson_completions).",
+      "contas": [
+        "alunobasico@cetadp.teo.br — Curso Teológico Básico, 40% concluído",
+        "alunomedio@cetadp.teo.br — Curso Teológico Básico, 60% concluído",
+        "professor@cetadp.teo.br — admin_roles nível 0, system_role GLOBAL_ADMIN"
+      ],
+      "senha": "@Cetadp748596# (mesma convenção das demais contas demo do projeto)"
+    }
+  },
+  "producao_ANTES_do_deploy_de_hoje": {
+    "correcao_ja_aplicada_direto_em_producao": "profiles.system_role de admin@cetadp.teo.br e joaquim@cetadp.teo.br corrigido de MEMBER para GLOBAL_ADMIN (já tinham admin_roles.level=0, só faltava o system_role sincronizado). cetadp@cetadp.teo.br já estava correto.",
+    "pendente_em_producao": [
+      "Aplicar supabase/migrations/097_teste_licao_certo_errado.sql (schema + RLS)",
+      "Popular avaliacoes_teste_licao_banco com as 72 questões de Pneumatologia (mesmo INSERT do staging, trocando o lesson_id pelo equivalente em produção)",
+      "NÃO aplicar 098 (contas de teste) em produção, a menos que seja pedido explicitamente — são contas só pro ambiente de teste"
+    ]
+  }
+}

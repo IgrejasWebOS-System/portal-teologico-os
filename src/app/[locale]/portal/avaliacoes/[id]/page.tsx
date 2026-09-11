@@ -4,6 +4,12 @@ import { ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { submeterAvaliacaoAction } from "../actions";
 
+const TITULO_TIPO: Record<string, string> = {
+  PROVA: "Prova",
+  SIMULADO: "Simulado",
+  TESTE_LICAO: "Teste",
+};
+
 export const metadata = { title: "Avaliação — Portal do Aluno" };
 
 interface PageProps {
@@ -36,7 +42,7 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
 
   const { data: avaliacao } = await supabase
     .from("avaliacoes")
-    .select("id, tipo, status, num_questoes, acertos, nota, aprovado, ead_matriculas(curso_nome_snapshot)")
+    .select("id, tipo, status, num_questoes, acertos, nota, aprovado, gabarito_provisorio, numero_teste, ead_matriculas(curso_nome_snapshot)")
     .eq("id", id)
     .single();
 
@@ -75,10 +81,25 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
       <main className="max-w-2xl mx-auto px-6 py-12 space-y-6">
         <div>
           <h1 className="text-xl font-black text-iw-navy tracking-tight">
-            {avaliacao.tipo === "PROVA" ? "Prova" : "Simulado"} — {matriculaInfo?.curso_nome_snapshot}
+            {TITULO_TIPO[avaliacao.tipo] ?? avaliacao.tipo}
+            {avaliacao.tipo === "TESTE_LICAO" && avaliacao.numero_teste ? ` ${avaliacao.numero_teste}` : ""}
+            {" — "}{matriculaInfo?.curso_nome_snapshot}
           </h1>
-          <p className="text-iw-muted text-xs mt-0.5">{avaliacao.num_questoes} questões de múltipla escolha.</p>
+          <p className="text-iw-muted text-xs mt-0.5">
+            {avaliacao.num_questoes}{" "}
+            {avaliacao.tipo === "TESTE_LICAO" ? "questões de Certo/Errado." : "questões de múltipla escolha."}
+          </p>
         </div>
+
+        {avaliacao.gabarito_provisorio && (
+          <div className="flex items-start gap-2 bg-iw-warning-bg border border-iw-warning/30 text-iw-warning px-4 py-3 rounded-xl text-xs">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              Gabarito provisório — as respostas corretas deste teste ainda não foram confirmadas pela
+              secretaria. A nota mostrada aqui não vale como avaliação real ainda.
+            </span>
+          </div>
+        )}
 
         {error && (
           <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
@@ -110,6 +131,33 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
             <div className="space-y-3">
               {(questoes ?? []).map((q) => {
                 const opcoes = q.opcoes as string[];
+                const ehCertoErrado = avaliacao.tipo === "TESTE_LICAO";
+
+                if (ehCertoErrado) {
+                  const isCorreta = q.resposta_correta_index === 0; // 0 = Certo
+                  const acertou = q.resposta_aluno_index === q.resposta_correta_index;
+                  return (
+                    <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4 flex items-start gap-3">
+                      <span
+                        className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black border-2 ${
+                          isCorreta
+                            ? "border-iw-success bg-iw-success-bg text-iw-success"
+                            : "border-iw-error bg-iw-error-bg text-iw-error"
+                        }`}
+                      >
+                        {isCorreta ? "C" : "E"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-iw-navy">{q.ordem}. {q.enunciado}</p>
+                        <p className={`text-xs mt-1 font-semibold ${acertou ? "text-iw-success" : "text-iw-error"}`}>
+                          Você marcou {q.resposta_aluno_index === 0 ? "C" : q.resposta_aluno_index === 1 ? "E" : "—"}
+                          {acertou ? " — correto" : ` — o certo era ${isCorreta ? "C" : "E"}`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4">
                     <p className="text-sm font-semibold text-iw-navy mb-2">{q.ordem}. {q.enunciado}</p>
@@ -152,6 +200,25 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
               <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
               {(questoes ?? []).map((q) => {
                 const opcoes = q.opcoes as string[];
+
+                if (avaliacao.tipo === "TESTE_LICAO") {
+                  return (
+                    <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4">
+                      <p className="text-sm font-semibold text-iw-navy mb-3">{q.ordem}. {q.enunciado}</p>
+                      <div className="flex gap-3">
+                        <label className="flex-1 flex items-center justify-center gap-2 border-2 border-iw-success/40 bg-iw-success-bg hover:bg-iw-success/15 has-[:checked]:bg-iw-success has-[:checked]:border-iw-success has-[:checked]:text-white text-iw-success font-black text-sm rounded-xl py-2.5 cursor-pointer transition-colors">
+                          <input type="radio" name={`questao_${q.id}`} value={0} required className="sr-only" />
+                          C — Certo
+                        </label>
+                        <label className="flex-1 flex items-center justify-center gap-2 border-2 border-iw-error/40 bg-iw-error-bg hover:bg-iw-error/15 has-[:checked]:bg-iw-error has-[:checked]:border-iw-error has-[:checked]:text-white text-iw-error font-black text-sm rounded-xl py-2.5 cursor-pointer transition-colors">
+                          <input type="radio" name={`questao_${q.id}`} value={1} required className="sr-only" />
+                          E — Errado
+                        </label>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4">
                     <p className="text-sm font-semibold text-iw-navy mb-3">{q.ordem}. {q.enunciado}</p>
@@ -170,7 +237,7 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
                 type="submit"
                 className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity border border-black"
               >
-                Finalizar {avaliacao.tipo === "PROVA" ? "prova" : "simulado"}
+                Finalizar {avaliacao.tipo === "PROVA" ? "prova" : avaliacao.tipo === "TESTE_LICAO" ? "teste" : "simulado"}
               </button>
             </form>
           </>
