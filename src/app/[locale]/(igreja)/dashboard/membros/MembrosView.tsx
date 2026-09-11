@@ -125,9 +125,12 @@ export default function MembrosView({
 
     const idsParaBuscar = escopoFixo ? [escopoFixo.churchId] : churchIdsSelecionados;
 
+    // Sem escopo escolhido ainda: nada pra buscar. Não precisa limpar
+    // `members`/`loading` aqui — a renderização já checa `escopoDefinido`
+    // antes de olhar pra `filtered`, então o estado antigo fica só
+    // guardado, sem aparecer na tela (e evita setState síncrono direto
+    // no corpo do efeito).
     if (!idsParaBuscar || idsParaBuscar.length === 0) {
-      setMembers([]);
-      setLoading(false);
       return;
     }
 
