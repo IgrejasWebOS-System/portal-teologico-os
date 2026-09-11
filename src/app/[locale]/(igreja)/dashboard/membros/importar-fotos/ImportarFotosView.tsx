@@ -139,14 +139,12 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-baseline gap-3">
-          <ArrowLeft className="w-5 h-5 text-iw-navy shrink-0" />
-          <h1 className="text-2xl font-black text-iw-navy tracking-tight">Importar Fotos em Massa</h1>
-        </div>
+        <h1 className="text-2xl font-black text-iw-navy tracking-tight">Importar Fotos em Massa</h1>
         <Link
           href="/dashboard/membros"
-          className="px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
         >
+          <ArrowLeft className="w-4 h-4" />
           Voltar
         </Link>
       </div>

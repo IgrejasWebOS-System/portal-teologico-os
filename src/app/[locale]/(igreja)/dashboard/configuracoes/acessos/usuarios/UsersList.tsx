@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Search, User, ShieldCheck, Pencil, Check, X, Loader2, AlertTriangle } from "lucide-react";
-import { atualizarNivelUsuarioFormAction, atualizarPerfilUsuarioAction } from "../../actions";
+import { Search, User, ShieldCheck, Pencil, Check, X, Loader2, AlertTriangle, Link2 } from "lucide-react";
+import {
+  atualizarPerfilUsuarioAction,
+  atualizarVinculoUsuarioAction,
+} from "../../actions";
 
 type Profile = {
   id: string;
@@ -12,6 +15,9 @@ type Profile = {
   church_id: string | null;
 };
 
+type UnitOption = { id: string; type: string; name: string; parent_id: string | null };
+type AdminRole = { user_id: string; level: number; unit_id: string | null };
+
 const ROLE_COLOR: Record<string, string> = {
   GLOBAL_ADMIN: "bg-iw-error-bg text-iw-error border-iw-error/30",
   SECTOR_ADMIN: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
@@ -19,21 +25,44 @@ const ROLE_COLOR: Record<string, string> = {
   MEMBER:       "bg-iw-bg text-iw-muted border-iw-border",
 };
 
-const ROLE_OPTIONS = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN", "MEMBER"];
+// Espelha NIVEL_LABEL do InviteStaffForm — mesmo vocabulário em toda a
+// Matriz de Usuários (convite e edição de quem já existe).
+const NIVEL_LABEL: Record<string, string> = {
+  "0": "0 — Super-Master (sem unidade)",
+  "1": "1 — Master de Campo",
+  "2": "2 — Admin de Sede",
+  "3": "3 — Admin de Setor",
+  "4": "4 — Usuário Local",
+};
 
 interface Props {
   users: Profile[];
   currentUserId?: string;
   souGlobalAdmin: boolean;
+  units: UnitOption[];
+  adminRoles: AdminRole[];
 }
 
-export default function UsersList({ users, currentUserId, souGlobalAdmin }: Props) {
+export default function UsersList({ users, currentUserId, souGlobalAdmin, units, adminRoles }: Props) {
   const [busca, setBusca] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // Edição de vínculo (nível + unidade) — separada da edição de
+  // nome/e-mail, um formulário de cada vez por linha.
+  const [editingVinculoId, setEditingVinculoId] = useState<string | null>(null);
+  const [vinculoLevel, setVinculoLevel] = useState("MEMBER");
+  const [vinculoUnitId, setVinculoUnitId] = useState("");
+  const [vinculoResult, setVinculoResult] = useState<{ success: boolean; message?: string } | null>(null);
+
+  const roleAtualPorUsuario = useMemo(() => {
+    const map = new Map<string, AdminRole>();
+    for (const r of adminRoles) map.set(r.user_id, r);
+    return map;
+  }, [adminRoles]);
 
   const startEdit = (u: Profile) => {
     setEditingId(u.id);
@@ -58,6 +87,36 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
       const res = await atualizarPerfilUsuarioAction(fd);
       if (!res.success) { setError(res.message ?? "Erro ao salvar."); return; }
       setEditingId(null);
+    });
+  };
+
+  const startEditVinculo = (u: Profile) => {
+    setEditingVinculoId(u.id);
+    setVinculoResult(null);
+    const atual = roleAtualPorUsuario.get(u.id);
+    setVinculoLevel(atual ? String(atual.level) : "MEMBER");
+    setVinculoUnitId(atual?.unit_id ?? "");
+  };
+
+  const cancelEditVinculo = () => {
+    setEditingVinculoId(null);
+    setVinculoResult(null);
+  };
+
+  const handleSaveVinculo = (userId: string) => {
+    if (vinculoLevel !== "MEMBER" && vinculoLevel !== "0" && !vinculoUnitId) {
+      setVinculoResult({ success: false, message: "Selecione a unidade para esse nível." });
+      return;
+    }
+    setVinculoResult(null);
+    const fd = new FormData();
+    fd.set("user_id", userId);
+    fd.set("level", vinculoLevel);
+    fd.set("unit_id", vinculoLevel === "0" || vinculoLevel === "MEMBER" ? "" : vinculoUnitId);
+    startTransition(async () => {
+      const res = await atualizarVinculoUsuarioAction(fd);
+      setVinculoResult(res);
+      if (res.success) setEditingVinculoId(null);
     });
   };
 
@@ -86,9 +145,10 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_auto_auto] px-5 py-2.5 bg-iw-bg/60 border-b border-iw-border gap-4">
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] px-5 py-2.5 bg-iw-bg/60 border-b border-iw-border gap-4">
         <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome / E-mail</span>
         <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nível</span>
+        <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Unidade</span>
         <span></span>
         <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Ações</span>
       </div>
@@ -100,7 +160,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
         </div>
       )}
 
-      <div className="max-h-[420px] overflow-y-auto">
+      <div className="max-h-[480px] overflow-y-auto">
         {filtrados.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <User className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
@@ -112,8 +172,11 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
           <ul className="divide-y divide-iw-border">
             {filtrados.map((u) => {
               const role = u.system_role ?? "MEMBER";
+              const vinculo = roleAtualPorUsuario.get(u.id);
+              const unidadeAtual = vinculo?.unit_id ? units.find((un) => un.id === vinculo.unit_id) : null;
               const podeEditar = souGlobalAdmin && u.id !== currentUserId;
               const isEditing = editingId === u.id;
+              const isEditingVinculo = editingVinculoId === u.id;
 
               if (isEditing) {
                 return (
@@ -161,10 +224,71 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
                 );
               }
 
+              if (isEditingVinculo) {
+                return (
+                  <li key={u.id} className="px-5 py-4 bg-iw-gold/5">
+                    <p className="text-sm font-semibold text-iw-navy mb-2">{u.full_name ?? u.email}</p>
+
+                    {vinculoResult && !vinculoResult.success && (
+                      <div className="flex items-center gap-2 text-iw-error text-xs bg-iw-error-bg border border-iw-error/20 rounded-lg px-3 py-2 mb-2">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{vinculoResult.message}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                      <select
+                        value={vinculoLevel}
+                        onChange={(e) => { setVinculoLevel(e.target.value); if (e.target.value === "0") setVinculoUnitId(""); }}
+                        className="bg-white border border-iw-gold rounded-lg px-2.5 py-1.5 text-sm text-iw-navy focus:outline-none focus:ring-2 focus:ring-iw-gold/20 cursor-pointer"
+                      >
+                        <option value="MEMBER">Revogar — voltar a MEMBER</option>
+                        {Object.entries(NIVEL_LABEL).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={vinculoUnitId}
+                        onChange={(e) => setVinculoUnitId(e.target.value)}
+                        disabled={vinculoLevel === "0" || vinculoLevel === "MEMBER"}
+                        className="bg-white border border-iw-gold rounded-lg px-2.5 py-1.5 text-sm text-iw-navy focus:outline-none focus:ring-2 focus:ring-iw-gold/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">— Selecione a unidade —</option>
+                        {units.map((un) => (
+                          <option key={un.id} value={un.id}>{un.type} · {un.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveVinculo(u.id)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-iw-navy hover:bg-iw-navy/90 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        Salvar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEditVinculo}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-muted hover:text-iw-navy px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Cancelar
+                      </button>
+                    </div>
+                  </li>
+                );
+              }
+
               return (
                 <li
                   key={u.id}
-                  className="grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-4 hover:bg-iw-bg/50 transition-colors gap-4"
+                  className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center px-5 py-4 hover:bg-iw-bg/50 transition-colors gap-4"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-iw-navy truncate">
@@ -177,6 +301,10 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
                   >
                     <ShieldCheck className="w-3 h-3" />
                     {role}
+                    {vinculo ? ` · N${vinculo.level}` : ""}
+                  </span>
+                  <span className="text-xs text-iw-muted truncate max-w-[160px]">
+                    {unidadeAtual ? `${unidadeAtual.type} · ${unidadeAtual.name}` : vinculo?.level === 0 ? "todas" : "—"}
                   </span>
                   {podeEditar ? (
                     <button
@@ -191,24 +319,15 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin }: Prop
                     <span></span>
                   )}
                   {podeEditar ? (
-                    <form action={atualizarNivelUsuarioFormAction} className="flex items-center gap-1.5">
-                      <input type="hidden" name="user_id" value={u.id} />
-                      <select
-                        name="system_role"
-                        defaultValue={role}
-                        className="bg-white border border-iw-border rounded-lg px-2 py-1.5 text-xs text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
-                      >
-                        {ROLE_OPTIONS.map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                      <button
-                        type="submit"
-                        className="text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
-                      >
-                        Salvar
-                      </button>
-                    </form>
+                    <button
+                      type="button"
+                      onClick={() => startEditVinculo(u)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                      title="Editar nível e unidade"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      Acesso
+                    </button>
                   ) : (
                     <span className="text-xs text-iw-muted/50 text-right">
                       {u.id === currentUserId ? "você" : "—"}
