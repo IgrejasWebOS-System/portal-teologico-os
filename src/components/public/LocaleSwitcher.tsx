@@ -2,13 +2,26 @@
 
 import type { ComponentType } from "react";
 import { useLocale } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { usePathname, getPathname } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 
 // ============================================================
 // LocaleSwitcher — troca entre pt-BR/en-US/es-419 mantendo a
 // página atual (usePathname já vem sem o prefixo de idioma;
-// router.replace(pathname, { locale }) recalcula o prefixo certo).
+// getPathname({ href: pathname, locale }) recalcula o prefixo certo).
+//
+// Por que navegação "dura" (window.location.href) e não
+// router.replace(): bug real encontrado em 12/09/2026 — o Router
+// Cache do App Router do Next colide com o prefetch automático do
+// link "Entrar/Log In" do header (que fica visível na dobra
+// superior, então o Next pré-busca ele sozinho ao entrar em
+// viewport). Resultado: clicar em "Português" vindo de /es-419
+// navegava para /login em vez de "/", mesmo com o `pathname` lido
+// corretamente como "/" (confirmado com log). Forçar
+// window.location.href pula o Router Cache inteiro e sempre acerta
+// o destino — como troca de locale já obriga recarregar a página
+// mesmo (idioma é parte do layout raiz), não há perda de
+// performance real. Ver staging/governance/ERROS-COMUNS-IA.md.
 //
 // Nomes de idioma ficam sempre no próprio idioma ("English", não
 // "Inglês") — convenção padrão de seletor de idioma, pra alguém
@@ -85,7 +98,6 @@ export default function LocaleSwitcher({
 }) {
   const localeAtivo = useLocale() as AppLocale;
   const pathname = usePathname();
-  const router = useRouter();
 
   // Sem texto agora (era "PT · EN · ES"), então o estado ativo/inativo é
   // marcado por opacidade + anel, não mais por cor de texto.
@@ -100,7 +112,9 @@ export default function LocaleSwitcher({
           <button
             key={locale}
             type="button"
-            onClick={() => router.replace(pathname, { locale })}
+            onClick={() => {
+              window.location.href = getPathname({ href: pathname, locale });
+            }}
             title={NOMES_IDIOMA[locale]}
             aria-label={NOMES_IDIOMA[locale]}
             aria-current={locale === localeAtivo ? "true" : undefined}
