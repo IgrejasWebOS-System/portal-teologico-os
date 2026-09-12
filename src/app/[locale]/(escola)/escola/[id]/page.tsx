@@ -3,6 +3,8 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { redirect, notFound } from "next/navigation";
 import { enrollAction, completeLessonAction } from "@/app/course-actions";
 import { iniciarAvaliacaoAction } from "@/app/[locale]/portal/avaliacoes/actions";
+import { iniciarTesteLicaoAction } from "@/app/[locale]/portal/testes/[lessonId]/actions";
+import { TOTAL_TESTES_POR_MATERIA } from "@/utils/avaliacoes/geradorLicao";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -153,6 +155,34 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
     : lessonList[0];
 
   const hasVideo = activeLesson?.video_type && activeLesson.video_type !== "none" && activeLesson.video_url;
+
+  // Testes 1-4 / Prova por matéria (avaliacoes_banco_questoes_licao) —
+  // só aparece pra matérias que já têm banco de questões cadastrado
+  // (Bibliologia, Homilética). Reaproveita a mesma matrícula do curso.
+  let temBancoQuestoesLicao = false;
+  let avaliacoesLicaoDoAluno: { id: string; tipo: string; numero_teste: number | null; status: string; nota: number | null }[] = [];
+  if (activeLesson) {
+    const { count } = await admin
+      .from("avaliacoes_banco_questoes_licao")
+      .select("id", { count: "exact", head: true })
+      .eq("lesson_id", activeLesson.id)
+      .eq("ativo", true);
+    temBancoQuestoesLicao = (count ?? 0) > 0;
+
+    if (temBancoQuestoesLicao && matricula) {
+      const { data: avLicaoRows } = await admin
+        .from("avaliacoes")
+        .select("id, tipo, numero_teste, status, nota")
+        .eq("matricula_id", matricula.id)
+        .eq("lesson_id", activeLesson.id);
+      avaliacoesLicaoDoAluno = avLicaoRows ?? [];
+    }
+  }
+  const testesLicaoResumo = Array.from({ length: TOTAL_TESTES_POR_MATERIA }, (_, i) => i + 1).map((numero) => ({
+    numero,
+    avaliacao: avaliacoesLicaoDoAluno.find((a) => a.tipo === "TESTE_LICAO" && a.numero_teste === numero),
+  }));
+  const provaLicaoResumo = avaliacoesLicaoDoAluno.find((a) => a.tipo === "PROVA");
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -423,6 +453,69 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
 
               <Link href={`/portal/avaliacoes?voltar=${encodeURIComponent(returnPath)}`} className="block text-center text-xs text-iw-navy font-bold uppercase hover:underline">
                 Ver histórico completo
+              </Link>
+            </div>
+          )}
+
+          {/* Testes 1-4 e Prova desta matéria (Bibliologia, Homilética, ...) */}
+          {temBancoQuestoesLicao && matricula && activeLesson && (
+            <div className="xl:col-start-1 xl:row-start-3 xl:col-span-2 bg-iw-surface rounded-2xl border border-[#E88D0C]/40 shadow-sm p-5 space-y-3">
+              <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">
+                Testes e Prova — {activeLesson.title}
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {testesLicaoResumo.map(({ numero, avaliacao }) => (
+                  <div key={numero} className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center">
+                    <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Teste {numero}</p>
+                    {avaliacao ? (
+                      <Link
+                        href={`/portal/testes/${activeLesson.id}/${avaliacao.id}?voltar=${encodeURIComponent(returnPath)}`}
+                        className="block text-[11px] font-bold text-iw-navy hover:underline"
+                      >
+                        {avaliacao.status === "FINALIZADA" ? `Nota ${Number(avaliacao.nota).toFixed(1)}` : "Continuar"}
+                      </Link>
+                    ) : matriculaEmAndamento ? (
+                      <form action={iniciarTesteLicaoAction}>
+                        <input type="hidden" name="lesson_id" value={activeLesson.id} />
+                        <input type="hidden" name="tipo" value="TESTE_LICAO" />
+                        <input type="hidden" name="numero_teste" value={numero} />
+                        <button type="submit" className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-[11px] px-2 py-1.5 rounded-lg transition-opacity">
+                          Fazer
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="text-[10px] text-iw-muted italic">—</p>
+                    )}
+                  </div>
+                ))}
+
+                <div className="bg-iw-bg border border-iw-border rounded-xl p-3 space-y-2 text-center">
+                  <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Prova</p>
+                  {provaLicaoResumo ? (
+                    <Link
+                      href={`/portal/testes/${activeLesson.id}/${provaLicaoResumo.id}?voltar=${encodeURIComponent(returnPath)}`}
+                      className="block text-[11px] font-bold text-iw-navy hover:underline"
+                    >
+                      {provaLicaoResumo.status === "FINALIZADA" ? `Nota ${Number(provaLicaoResumo.nota).toFixed(1)}` : "Continuar"}
+                    </Link>
+                  ) : matriculaEmAndamento ? (
+                    <Link
+                      href={`/portal/testes/${activeLesson.id}?voltar=${encodeURIComponent(returnPath)}`}
+                      className="block text-[11px] font-bold text-iw-navy hover:underline"
+                    >
+                      Iniciar
+                    </Link>
+                  ) : (
+                    <p className="text-[10px] text-iw-muted italic">—</p>
+                  )}
+                </div>
+              </div>
+
+              <Link
+                href={`/portal/testes/${activeLesson.id}?voltar=${encodeURIComponent(returnPath)}`}
+                className="block text-center text-xs text-iw-navy font-bold uppercase hover:underline"
+              >
+                Ver todos os testes e a prova
               </Link>
             </div>
           )}
