@@ -1,6 +1,7 @@
 // ============================================================
-// Zera os dados de TESTE do ambiente de STAGING — matriculas, alunos e
-// contas a receber — preservando:
+// PROCEDIMENTO "X" — zera os dados de TESTE do ambiente de STAGING
+// (matriculas, alunos, contas a receber, avaliacoes via cascade) E
+// RECRIA do zero as contas de teste padrão, prontas pra logar — preserva:
 //   - qualquer conta com profiles.system_role = 'GLOBAL_ADMIN' (login de
 //     staff usado pra acessar /admin em localhost, ex.:
 //     teste.staff@cetadp.teo.br, criado por criar-usuario-teste-staff.mjs)
@@ -10,6 +11,20 @@
 //     qualquer motivo essas tabelas ja estiverem vazias, o script recria
 //     um professor e uma turma basicos pra nao deixar os dropdowns de
 //     Nova Matricula vazios.
+//
+// A partir de 12/09/2026 este script TAMBEM recria, ao final, as duas
+// contas de aluno de teste com matrícula ativa:
+//   - alunobasico@cetadp.teo.br  -> Curso Teológico Básico (Bibliologia)
+//   - alunomedio@cetadp.teo.br   -> Curso Teológico Médio  (Homilética)
+// (senha padrão @Cetadp26 pra ambas). Antes desta mudança, o script
+// apagava essas contas junto com o resto de auth.users mas NAO as
+// recriava — era preciso recriar na mão. Ver
+// staging/governance/ERROS-COMUNS-IA.md, incidente de 12/09/2026.
+//
+// Se você só quer refazer um Teste/Prova/Simulado com a MESMA conta
+// (sem recriar do zero), use o procedimento "Y" em vez deste:
+//   node --env-file=.env.local scripts/limpar-tentativas-teste.mjs
+// Ver staging/governance/QA-PROCEDIMENTO-TESTES.md pra saber qual usar.
 //
 // NUNCA roda em producao: trava se NEXT_PUBLIC_SUPABASE_URL nao for o
 // projeto de staging (cjxdroyyplpknygtcdgr).
@@ -105,3 +120,96 @@ if (!totalTurmas) {
 }
 
 console.log("\nStaging zerado (turma e professor mantidos).");
+
+// ============================================================
+// Recria as 2 contas de aluno de teste padrão, cada uma na matéria
+// certa (Bibliologia -> Básico, Homilética -> Médio — não são o mesmo
+// curso, checar antes de "consertar" isso).
+// ============================================================
+const SENHA_PADRAO_ALUNOS = "@Cetadp26";
+const NOME_CAMPO_MINISTERIO = "Campo Piracicaba Sede";
+
+async function recriarAlunoTeste({ email, nomeCompleto, cpf, telefone, cursoTitle, cursoPretendido }) {
+  const { data: curso } = await admin.from("courses").select("id").eq("title", cursoTitle).maybeSingle();
+  if (!curso) {
+    console.log(`  [AVISO] curso "${cursoTitle}" não encontrado — não deu pra recriar ${email}.`);
+    return;
+  }
+
+  const { data: campo } = await admin
+    .from("ead_campos_ministerios")
+    .select("id")
+    .eq("nome", NOME_CAMPO_MINISTERIO)
+    .maybeSingle();
+
+  const { data: criado, error: erroCriar } = await admin.auth.admin.createUser({
+    email,
+    password: SENHA_PADRAO_ALUNOS,
+    email_confirm: true,
+  });
+  if (erroCriar || !criado?.user) {
+    console.log(`  [ERRO] criar login ${email}: ${erroCriar?.message ?? "desconhecido"}`);
+    return;
+  }
+  const userId = criado.user.id;
+
+  const matriculaNumero = `TESTE-${Date.now().toString().slice(-8)}`;
+
+  const { data: aluno, error: erroAluno } = await admin
+    .from("ead_alunos")
+    .insert({
+      user_id: userId,
+      nome_completo: nomeCompleto,
+      cpf,
+      email,
+      telefone,
+      campo_ministerio_id: campo?.id ?? null,
+      campo_ministerio_nome: NOME_CAMPO_MINISTERIO,
+      matricula: matriculaNumero,
+      curso_pretendido: cursoPretendido,
+      status: "ATIVO",
+    })
+    .select("id")
+    .single();
+  if (erroAluno || !aluno) {
+    console.log(`  [ERRO] criar ead_alunos ${email}: ${erroAluno?.message ?? "desconhecido"}`);
+    return;
+  }
+
+  const { error: erroMatricula } = await admin.from("ead_matriculas").insert({
+    aluno_id: aluno.id,
+    course_id: curso.id,
+    curso_nome_snapshot: cursoTitle,
+    matricula: matriculaNumero,
+    status: "EM_ANDAMENTO",
+    origem: "MATRICULA_DIRETA",
+  });
+  if (erroMatricula) {
+    console.log(`  [ERRO] criar ead_matriculas ${email}: ${erroMatricula.message}`);
+    return;
+  }
+
+  await admin.from("enrollments").insert({ user_id: userId, course_id: curso.id, status: "ENROLLED", progress_percent: 0 });
+
+  console.log(`  [OK] ${email} recriado — matrícula "${matriculaNumero}" em "${cursoTitle}", senha ${SENHA_PADRAO_ALUNOS}.`);
+}
+
+console.log("\nRecriando contas de aluno de teste:\n");
+await recriarAlunoTeste({
+  email: "alunobasico@cetadp.teo.br",
+  nomeCompleto: "Aluno Teste Basico",
+  cpf: "111.222.333-40",
+  telefone: "(19) 99800-0001",
+  cursoTitle: "Curso Teológico Básico",
+  cursoPretendido: "TEOLOGIA_BASICO",
+});
+await recriarAlunoTeste({
+  email: "alunomedio@cetadp.teo.br",
+  nomeCompleto: "Aluno Teste Medio",
+  cpf: "111.222.333-41",
+  telefone: "(19) 99800-0002",
+  cursoTitle: "Curso Teológico Médio",
+  cursoPretendido: "TEOLOGIA_MEDIO",
+});
+
+console.log("\nStaging pronto pra testar do zero.");
