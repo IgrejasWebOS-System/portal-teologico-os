@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, BookOpen, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, Home } from "lucide-react";
+import { GraduationCap, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, Home } from "lucide-react";
 import PublicFooter from "@/components/public/PublicFooter";
 import Logo from "@/components/Logo";
 import { checkIsStaff } from "@/utils/staff";
@@ -25,18 +25,15 @@ const modules = [
     badge: "Ativo",
     badgeColor: "bg-iw-success/10 text-iw-success",
   },
-  {
-    href: "/cursos",
-    icon: BookOpen,
-    label: "Cursos & Preparatórios",
-    description:
-      "Trilhas de aprendizado, capacitação ministerial e formação continuada.",
-    border: "border-iw-gold/30",
-    iconBg: "bg-iw-gold/10",
-    iconColor: "text-iw-gold",
-    badge: "Ativo",
-    badgeColor: "bg-iw-success/10 text-iw-success",
-  },
+  // "Cursos & Preparatórios" (module=cursos: Diaconato, Presbitério,
+  // Homilética avulsa etc.) foi retirado do hub em 12/09/2026 — decisão
+  // do Joaquim: hoje o portal oficial trabalha só com a matéria oficial
+  // (Escola de Teologia, Curso Básico/Médio, com Testes/Provas). Esse
+  // catálogo avulso ainda não está disponível pra aluno nenhum (0
+  // matrículas reais); o conteúdo vai virar material de venda na
+  // Biblioteca/Livraria futuramente, não uma trilha de curso paralela.
+  // Os 11 `courses` com module='cursos' foram arquivados (status=
+  // ARCHIVED) no banco, não apagados — ver ERROS-COMUNS-IA.md.
   {
     href: "/ebd",
     icon: BookMarked,
