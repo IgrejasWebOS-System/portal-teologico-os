@@ -5,6 +5,7 @@ import { GraduationCap, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, 
 import PublicFooter from "@/components/public/PublicFooter";
 import Logo from "@/components/Logo";
 import { checkIsStaff } from "@/utils/staff";
+import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 
 // ============================================================
 // /portal — Hub autenticado (área restrita)
@@ -95,6 +96,15 @@ export default async function PortalHubPage() {
   // Staff nunca deveria ficar navegando o hub do aluno — mesmo que caia
   // aqui por link antigo, back button, etc., manda direto pro /admin.
   if (await checkIsStaff(supabase, user.id)) redirect("/admin");
+
+  // Decisão do Joaquim em 12/09/2026: "/portal" deixou de ser o destino
+  // principal do aluno oficial — todo o gerenciamento passou pra própria
+  // sala de aula (sidebar "Minha Área"). Se um aluno oficial cair aqui
+  // por link antigo/favorito, manda direto pra área de vínculo. Só quem
+  // NÃO tem ficha de aluno oficial (ex.: membro comum) continua vendo
+  // este hub.
+  const destino = await resolverDestinoPosLogin(supabase, user.id);
+  if (destino !== "/portal") redirect(destino);
 
   // Busca o perfil do usuário para saudação
   const { data: profile } = await supabase

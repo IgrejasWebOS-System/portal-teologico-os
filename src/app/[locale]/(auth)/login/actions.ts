@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
+import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { redirect } from "@/i18n/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
@@ -54,36 +55,12 @@ export async function loginAction(formData: FormData) {
   }
 
   // Sem link de retorno explícito: todo aluno oficial com matrícula em
-  // andamento cai direto na própria sala de aula, sem passar pelo /portal.
+  // andamento cai direto na própria sala de aula, sem passar pelo /portal
+  // (regra em utils/aluno/destino.ts, compartilhada com o proxy.ts).
   if (!hasExplicitRedirect && signInData.user) {
-    const { data: aluno } = await supabase
-      .from("ead_alunos")
-      .select("id")
-      .eq("user_id", signInData.user.id)
-      .maybeSingle();
-
-    if (aluno) {
-      const { data: matricula } = await supabase
-        .from("ead_matriculas")
-        .select("course_id")
-        .eq("aluno_id", aluno.id)
-        .eq("status", "EM_ANDAMENTO")
-        .not("course_id", "is", null)
-        .order("data_matricula", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (matricula?.course_id) {
-        const { data: course } = await supabase
-          .from("courses")
-          .select("module")
-          .eq("id", matricula.course_id)
-          .maybeSingle();
-
-        if (course?.module) {
-          redirect({ href: `/${course.module}/${matricula.course_id}`, locale });
-        }
-      }
+    const destino = await resolverDestinoPosLogin(supabase, signInData.user.id);
+    if (destino !== "/portal") {
+      redirect({ href: destino, locale });
     }
   }
 

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import SidebarShell from "@/components/layout/SidebarShell";
 import AutoLogout from "@/components/security/AutoLogout";
+import BackButtonLogout from "@/components/security/BackButtonLogout";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import { carregarAlunoPainelData } from "@/utils/aluno/painel";
@@ -22,6 +23,7 @@ export default async function EscolaLayout({
   return (
     <>
       <AutoLogout />
+      {isAlunoOficial && <BackButtonLogout />}
       <Suspense fallback={null}>
         <SidebarShell isStaff={isStaff} isAlunoOficial={isAlunoOficial} alunoPainel={alunoPainel}>
           {children}

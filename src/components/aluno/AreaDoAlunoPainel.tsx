@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import type { LucideIcon } from "lucide-react";
@@ -10,6 +11,7 @@ import {
   GraduationCap,
   Wallet,
   ClipboardCheck,
+  Printer,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
@@ -68,7 +70,7 @@ export interface AvaliacaoResumo {
   finalizadaEm: string | null;
 }
 
-type Secao = "dados" | "conta" | "curso" | "financeiro" | "provas";
+type Secao = "dados" | "conta" | "curso" | "financeiro" | "provas" | "impressao";
 
 const SECOES: { key: Secao; label: string; icon: LucideIcon }[] = [
   { key: "dados", label: "Meus Dados", icon: User },
@@ -76,6 +78,17 @@ const SECOES: { key: Secao; label: string; icon: LucideIcon }[] = [
   { key: "curso", label: "Curso", icon: GraduationCap },
   { key: "financeiro", label: "Financeiro", icon: Wallet },
   { key: "provas", label: "Provas e Testes", icon: ClipboardCheck },
+  { key: "impressao", label: "Impressão", icon: Printer },
+];
+
+// Documentos que o aluno pode imprimir/salvar em PDF diretamente do
+// navegador — cada um abre sua própria tela em src/app/[locale]/portal/impressao/.
+const ITENS_IMPRESSAO: { href: string; label: string }[] = [
+  { href: "/portal/impressao/ficha", label: "Ficha Aluno" },
+  { href: "/portal/impressao/testes", label: "Testes" },
+  { href: "/portal/impressao/prova", label: "Prova" },
+  { href: "/portal/impressao/declaracao", label: "Declaração" },
+  { href: "/portal/impressao/certificado", label: "Certificado" },
 ];
 
 const STATUS_PARCELA_CLS: Record<string, string> = {
@@ -262,6 +275,21 @@ export default function AreaDoAlunoPainel({
                 </div>
               ))
             )}
+          </div>
+        );
+
+      case "impressao":
+        return (
+          <div className="space-y-1">
+            {ITENS_IMPRESSAO.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-iw-sky/80 hover:bg-white/8 hover:text-white transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         );
     }

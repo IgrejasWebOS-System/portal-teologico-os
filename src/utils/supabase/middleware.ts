@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkIsStaff } from "@/utils/staff";
+import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { routing } from "@/i18n/routing";
 
 // Rotas acessíveis sem autenticação (prefixo)
@@ -97,7 +98,8 @@ export async function updateSession(
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
     const isStaff = await checkIsStaff(supabase, user.id);
-    url.pathname = comPrefixoDeIdioma(locale, isStaff ? "/admin" : "/portal");
+    const destino = isStaff ? "/admin" : await resolverDestinoPosLogin(supabase, user.id);
+    url.pathname = comPrefixoDeIdioma(locale, destino);
     return NextResponse.redirect(url);
   }
 
