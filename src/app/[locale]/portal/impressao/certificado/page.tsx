@@ -3,7 +3,11 @@ import { CheckCircle2, Lock } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { resolverAlunoEMatricula } from "@/utils/aluno/matriculaAtiva";
-import { calcularMediaCertificado, MEDIA_MINIMA_CERTIFICADO } from "@/utils/avaliacoes/mediaCertificado";
+import {
+  calcularMediaCertificado,
+  MEDIA_MINIMA_CERTIFICADO,
+  type ResultadoMedia,
+} from "@/utils/avaliacoes/mediaCertificado";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
 import CertificadoVisual from "@/components/certificados/CertificadoVisual";
 
@@ -18,7 +22,7 @@ export default async function CertificadoImpressaoPage() {
 
   const dados = await resolverAlunoEMatricula(user.id);
   if (!dados) redirect("/portal");
-  const { aluno, matricula } = dados;
+  const { matricula } = dados;
 
   const admin = createAdminClient();
   const voltarPara = matricula?.course_id ? `/escola/${matricula.course_id}` : "/escola";
@@ -57,7 +61,7 @@ export default async function CertificadoImpressaoPage() {
   // 2) Ainda não emitido — calcula elegibilidade pela média de Testes +
   //    Prova por matéria (não conta Simulado nem a Prova antiga por
   //    curso inteiro sem lesson_id).
-  let resultado = { itens: [], media: null as number | null, aprovado: null as boolean | null, quantidade: 0 };
+  let resultado: ResultadoMedia = { itens: [], media: null, aprovado: null, quantidade: 0 };
   if (matricula) {
     const { data: avaliacoes } = await admin
       .from("avaliacoes")
