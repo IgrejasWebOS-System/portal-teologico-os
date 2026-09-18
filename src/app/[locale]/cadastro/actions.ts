@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
+import { validarSenha } from "@/utils/senha";
 
 // ============================================================
 // cadastroAction — cadastro público autosserviço, para pessoas
@@ -40,11 +41,9 @@ export async function cadastroAction(formData: FormData) {
     });
   }
 
-  if (senha.length < 6) {
-    redirect({
-      href: "/cadastro?error=" + encodeURIComponent("A senha precisa ter pelo menos 6 caracteres."),
-      locale,
-    });
+  const { valido, mensagem } = validarSenha(senha);
+  if (!valido) {
+    redirect({ href: "/cadastro?error=" + encodeURIComponent(mensagem), locale });
   }
 
   if (senha !== confirmar) {

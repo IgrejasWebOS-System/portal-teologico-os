@@ -93,10 +93,11 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
                 id="senha"
                 name="senha"
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 placeholder={t("cadastro.placeholderSenhaMin")}
               />
+              <p className="text-[11px] text-iw-muted mt-1">{t("cadastro.regraSenha")}</p>
             </div>
 
             <div>
@@ -105,7 +106,7 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
                 id="confirmar"
                 name="confirmar"
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 placeholder={t("cadastro.placeholderRepitaSenha")}
               />

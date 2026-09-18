@@ -2,6 +2,7 @@ import Logo from "@/components/Logo";
 import { Label, PasswordInput } from "@/components/ui";
 import DefinirSenhaButton from "./DefinirSenhaButton";
 import { definirSenhaAction } from "./actions";
+import { REGRA_SENHA_TEXTO } from "@/utils/senha";
 
 interface PageProps {
   searchParams: Promise<{ error?: string }>;
@@ -44,9 +45,10 @@ export default async function DefinirSenhaPage({ searchParams }: PageProps) {
                 id="password"
                 name="password"
                 required
-                minLength={6}
-                placeholder="Mínimo 6 caracteres"
+                minLength={8}
+                placeholder="Mínimo 8 caracteres"
               />
+              <p className="text-[11px] text-iw-muted mt-1">{REGRA_SENHA_TEXTO}</p>
             </div>
 
             <div>
@@ -55,7 +57,7 @@ export default async function DefinirSenhaPage({ searchParams }: PageProps) {
                 id="confirm"
                 name="confirm"
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="Repita a senha"
               />
             </div>

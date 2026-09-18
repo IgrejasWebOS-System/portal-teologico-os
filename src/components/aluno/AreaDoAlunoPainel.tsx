@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { signOutGlobalAction } from "@/app/actions";
 import { trocarSenhaAlunoAction } from "@/app/[locale]/(escola)/aluno-actions";
+import { REGRA_SENHA_TEXTO } from "@/utils/senha";
 import { cn } from "@/utils/cn";
 import { montarPayloadPix, DADOS_PIX_CETADP } from "@/utils/financeiro/pix";
 import QRCode from "qrcode";
@@ -230,15 +231,16 @@ export default function AreaDoAlunoPainel({
                     name="password"
                     placeholder="Nova senha"
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
                   />
+                  <p className="text-[11px] text-iw-sky/50">{REGRA_SENHA_TEXTO}</p>
                   <input
                     type="password"
                     name="confirm"
                     placeholder="Confirmar nova senha"
                     required
-                    minLength={6}
+                    minLength={8}
                     className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
                   />
                   <button

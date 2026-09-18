@@ -6,16 +6,15 @@ import { checkIsStaff } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
+import { validarSenha } from "@/utils/senha";
 
 export async function definirSenhaAction(formData: FormData) {
   const password = formData.get("password") as string;
   const confirm = formData.get("confirm") as string;
 
-  if (!password || password.length < 6) {
-    redirect(
-      "/definir-senha?error=" +
-        encodeURIComponent("A senha deve ter no mínimo 6 caracteres.")
-    );
+  const { valido, mensagem } = validarSenha(password);
+  if (!valido) {
+    redirect("/definir-senha?error=" + encodeURIComponent(mensagem));
   }
 
   if (password !== confirm) {

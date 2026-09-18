@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { validarSenha } from "@/utils/senha";
 
 // ============================================================
 // Ações do painel "Área do Aluno" (menu lateral retrátil da
@@ -15,8 +16,9 @@ export async function trocarSenhaAlunoAction(formData: FormData) {
   const confirm = formData.get("confirm") as string;
   const returnPath = (formData.get("returnPath") as string) || "/escola";
 
-  if (!password || password.length < 6) {
-    redirect(`${returnPath}?contaError=` + encodeURIComponent("A senha deve ter no mínimo 6 caracteres."));
+  const { valido, mensagem } = validarSenha(password);
+  if (!valido) {
+    redirect(`${returnPath}?contaError=` + encodeURIComponent(mensagem));
   }
 
   if (password !== confirm) {
