@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
+import RankingBars, { type RankingBarItem } from "@/components/charts/RankingBars";
 
 export const metadata = { title: "Relatório por território — CETADP" };
 
@@ -126,6 +127,29 @@ export default async function RelatorioTerritorioPage() {
   }
   for (const root of roots) calcularTotal(root);
 
+  // Ranking de igrejas por matrículas, separado por Setor e por Regional
+  // — decisão do Joaquim em 13/09/2026. "Categoria" (SETOR/REGIONAL) é
+  // decidida no nível do nó SETOR e herdada por toda a sub-árvore abaixo
+  // dele (Igreja, Sub-congregação etc.), já que só o SETOR carrega essa
+  // marcação em `sectors.categoria`.
+  const igrejasPorCategoria: Record<"SETOR" | "REGIONAL", RankingBarItem[]> = {
+    SETOR: [],
+    REGIONAL: [],
+  };
+
+  function coletarIgrejas(node: TreeNode, categoriaHerdada: "SETOR" | "REGIONAL" | null) {
+    const categoria = node.type === "SETOR" ? node.categoria : categoriaHerdada;
+    if (node.type === "IGREJA" && node.total > 0 && categoria) {
+      igrejasPorCategoria[categoria].push({ name: node.name, total: node.total });
+    }
+    for (const filho of node.children) coletarIgrejas(filho, categoria);
+  }
+  for (const root of roots) coletarIgrejas(root, null);
+
+  const TOP_N = 8;
+  const topSetor = [...igrejasPorCategoria.SETOR].sort((a, b) => b.total - a.total).slice(0, TOP_N);
+  const topRegional = [...igrejasPorCategoria.REGIONAL].sort((a, b) => b.total - a.total).slice(0, TOP_N);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <PageHeader
@@ -136,7 +160,7 @@ export default async function RelatorioTerritorioPage() {
 
       <div className="bg-iw-surface border border-iw-border rounded-2xl p-5 shadow-sm flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-iw-blue/10 flex items-center justify-center shrink-0">
-          <Users className="w-5 h-5 text-iw-blue" />
+          <Users className="w-5 h-5 text-iw-navy" />
         </div>
         <div>
           <p className="text-sm font-bold text-iw-navy">{totalAlunosComUnidade} matrícula(s) vinculada(s) a uma unidade</p>
@@ -145,6 +169,19 @@ export default async function RelatorioTerritorioPage() {
             por desenho, elas ficam fora da árvore de unidades.
           </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RankingBars
+          titulo="Igrejas com mais matrículas — por Setor"
+          itens={topSetor}
+          vazio="Nenhuma igreja de Setor com matrícula ainda."
+        />
+        <RankingBars
+          titulo="Igrejas com mais matrículas — por Regional"
+          itens={topRegional}
+          vazio="Nenhuma igreja de Regional com matrícula ainda."
+        />
       </div>
 
       {roots.length === 0 ? (

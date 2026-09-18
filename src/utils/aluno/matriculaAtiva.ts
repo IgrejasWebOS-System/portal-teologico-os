@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/utils/supabase/admin";
+import { checkIsStaff } from "@/utils/staff";
 
 // ============================================================
 // Resolve a ficha de aluno + matrícula "de referência" do usuário
@@ -11,6 +12,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 
 export interface AlunoFicha {
   id: string;
+  user_id: string | null;
   nome_completo: string;
   cpf: string | null;
   email: string;
@@ -35,12 +37,71 @@ export async function resolverAlunoEMatricula(
 
   const { data: aluno } = await admin
     .from("ead_alunos")
-    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .select("id, user_id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!aluno) return null;
 
+  return montarAlunoEMatricula(admin, aluno);
+}
+
+// ============================================================
+// Mesma resolução, mas por ead_alunos.id direto — usada nas telas de
+// Impressão quando acessadas pela secretaria via ?alunoId= (staff
+// emitindo declaração/certificado/etc. em nome de um aluno que não
+// consegue fazer isso sozinho, 15/09/2026). O CALLER (a página) é quem
+// precisa confirmar checkIsStaff antes de honrar esse parâmetro — essa
+// função não faz nenhuma checagem de permissão sozinha, então nunca deve
+// ser chamada direto a partir de um alunoId vindo da URL sem essa
+// checagem antes (senão um aluno comum poderia espiar a ficha de outro).
+// ============================================================
+export async function resolverAlunoEMatriculaPorAlunoId(
+  alunoId: string
+): Promise<{ aluno: AlunoFicha; matricula: MatriculaAtiva | null } | null> {
+  const admin = createAdminClient();
+
+  const { data: aluno } = await admin
+    .from("ead_alunos")
+    .select("id, user_id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .eq("id", alunoId)
+    .maybeSingle();
+
+  if (!aluno) return null;
+
+  return montarAlunoEMatricula(admin, aluno);
+}
+
+// ============================================================
+// Ponto único usado pelas 6 telas de /portal/impressao/* — decide se
+// resolve a ficha do PRÓPRIO usuário logado (fluxo normal) ou, se veio
+// ?alunoId= na URL, a ficha de OUTRO aluno em nome de quem a secretaria
+// está agindo (staff emitindo declaração/certificado/ficha/etc. por um
+// aluno que não consegue fazer isso sozinho, 15/09/2026 — "acesso só
+// senha master staff", já satisfeito estruturalmente pelo checkIsStaff
+// abaixo). A checagem de staff SEMPRE roda antes de honrar o parâmetro:
+// se quem está logado não é staff, o alunoId da URL é ignorado e cai
+// pro fluxo normal — impede um aluno comum de espiar ficha alheia só
+// trocando o parâmetro na barra de endereço.
+export async function resolverAlunoParaImpressao(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  alunoIdParam: string | undefined
+): Promise<{ aluno: AlunoFicha; matricula: MatriculaAtiva | null } | null> {
+  if (alunoIdParam) {
+    const isStaff = await checkIsStaff(supabase, userId);
+    if (isStaff) {
+      return resolverAlunoEMatriculaPorAlunoId(alunoIdParam);
+    }
+  }
+  return resolverAlunoEMatricula(userId);
+}
+
+async function montarAlunoEMatricula(
+  admin: ReturnType<typeof createAdminClient>,
+  aluno: AlunoFicha
+): Promise<{ aluno: AlunoFicha; matricula: MatriculaAtiva | null }> {
   const { data: matriculas } = await admin
     .from("ead_matriculas")
     .select("id, course_id, curso_nome_snapshot, matricula, status, data_matricula")

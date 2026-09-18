@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
+import { cn } from "@/utils/cn";
 import type {
   AlunoResumo,
   MatriculaResumo,
@@ -37,6 +38,13 @@ export default function SidebarShell({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Recolhe a barra INTEIRA (não só o miolo de "Minha Área") pra uma
+  // faixa estreita de só ícones — decisão do Joaquim em 13/09/2026: antes
+  // o toggle só afetava o conteúdo interno do bloco "Minha Área", deixando
+  // os ícones flutuando centralizados numa barra ainda larga. O estado
+  // mora aqui (não dentro do Sidebar/AreaDoAlunoPainel) porque o <main>
+  // também precisa saber pra ajustar sua margem esquerda junto.
+  const [menuColapsado, setMenuColapsado] = useState(false);
   const pathname = usePathname();
 
   // Fecha o menu do mobile ao navegar. No desktop isso não tem efeito
@@ -64,7 +72,7 @@ export default function SidebarShell({
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
         aria-expanded={isOpen}
-        className="md:hidden fixed top-4 left-4 z-[60] w-10 h-10 rounded-full bg-iw-navy border-2 border-[#E88D0C] flex items-center justify-center shadow-lg hover:opacity-85 transition-opacity"
+        className="md:hidden fixed top-4 left-4 z-[60] w-11 h-11 rounded-full bg-iw-navy border-2 border-[#E88D0C] flex items-center justify-center shadow-lg hover:opacity-85 transition-opacity"
       >
         {isOpen ? (
           <X className="w-5 h-5 text-[#E88D0C]" />
@@ -78,9 +86,18 @@ export default function SidebarShell({
         isAlunoOficial={isAlunoOficial}
         alunoPainel={alunoPainel}
         isOpen={isOpen}
+        menuColapsado={menuColapsado}
+        onToggleColapso={() => setMenuColapsado((v) => !v)}
       />
 
-      <main className="flex-1 p-8 pl-20 md:pl-8 md:ml-64 min-h-screen">{children}</main>
+      <main
+        className={cn(
+          "flex-1 p-8 pl-20 md:pl-8 min-h-screen transition-[margin] duration-300 ease-in-out",
+          menuColapsado ? "md:ml-20" : "md:ml-64"
+        )}
+      >
+        {children}
+      </main>
     </div>
   );
 }

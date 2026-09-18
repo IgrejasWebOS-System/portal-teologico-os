@@ -57,9 +57,9 @@ function enderecoCompleto(i: IgrejaRoster): string {
 }
 
 const selectCls =
-  "w-full bg-white border border-iw-border rounded-lg px-2.5 py-1.5 text-xs text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer transition-colors";
+  "w-full bg-white border border-iw-navy rounded-lg px-2.5 py-1.5 text-xs text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer transition-colors";
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 
 export default function SetoresManager({ setores, regioes, units, igrejasPorSetor = {}, membrosPorIgreja = {} }: Props) {
   const [list, setList] = useState<Setor[]>(setores);
@@ -234,7 +234,7 @@ export default function SetoresManager({ setores, regioes, units, igrejasPorSeto
       </form>
 
       {/* Lista */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
           <span></span>
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Setor / Regional</span>
@@ -264,7 +264,7 @@ export default function SetoresManager({ setores, regioes, units, igrejasPorSeto
                   <button
                     type="button"
                     onClick={() => setExpandidoId(expandido ? null : s.id)}
-                    className="text-iw-muted hover:text-iw-blue transition-colors"
+                    className="text-iw-muted hover:text-iw-navy transition-colors"
                     title="Ver igrejas"
                   >
                     {expandido ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -309,7 +309,7 @@ export default function SetoresManager({ setores, regioes, units, igrejasPorSeto
                         <button
                           onClick={() => handleSaveEdit(s)}
                           disabled={isPending}
-                          className="text-iw-blue hover:text-iw-navy transition-colors disabled:opacity-50"
+                          className="text-iw-navy hover:text-iw-navy transition-colors disabled:opacity-50"
                           title="Salvar"
                         >
                           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -327,7 +327,7 @@ export default function SetoresManager({ setores, regioes, units, igrejasPorSeto
                       <>
                         <button
                           onClick={() => startEdit(s)}
-                          className="text-iw-muted hover:text-iw-blue transition-colors"
+                          className="text-iw-muted hover:text-iw-navy transition-colors"
                           title="Renomear"
                         >
                           <Pencil className="w-4 h-4" />
@@ -354,7 +354,7 @@ export default function SetoresManager({ setores, regioes, units, igrejasPorSeto
                     {igrejas.length === 0 ? (
                       <p className="text-xs text-iw-muted italic py-2">Nenhuma igreja vinculada a este {label.toLowerCase()} ainda.</p>
                     ) : (
-                      <div className="border border-iw-border rounded-xl overflow-hidden">
+                      <div className="border border-iw-gold rounded-xl overflow-hidden">
                         <div className="grid grid-cols-[1.4fr_1.2fr_1fr_0.6fr_1.8fr] gap-3 px-3 py-2 bg-iw-bg border-b border-iw-border">
                           <span className="text-[10px] font-bold text-iw-muted uppercase tracking-wider">Igreja</span>
                           <span className="text-[10px] font-bold text-iw-muted uppercase tracking-wider">Dirigente</span>

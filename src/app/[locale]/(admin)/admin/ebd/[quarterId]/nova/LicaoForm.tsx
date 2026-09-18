@@ -250,7 +250,7 @@ export default function LicaoForm({
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <SectionHeader label="Tópicos (I, II, III...)" />
-            <button type="button" onClick={addTopic} className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-blue hover:text-iw-navy transition-colors shrink-0">
+            <button type="button" onClick={addTopic} className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:text-iw-navy transition-colors shrink-0">
               <Plus className="w-3.5 h-3.5" /> Adicionar tópico
             </button>
           </div>
@@ -283,7 +283,7 @@ export default function LicaoForm({
               <div className="pl-4 border-l-2 border-iw-border space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-iw-muted uppercase">Subtópicos</span>
-                  <button type="button" onClick={() => addSubtopic(ti)} className="inline-flex items-center gap-1 text-[11px] font-bold text-iw-blue hover:text-iw-navy transition-colors">
+                  <button type="button" onClick={() => addSubtopic(ti)} className="inline-flex items-center gap-1 text-[11px] font-bold text-iw-navy hover:text-iw-navy transition-colors">
                     <Plus className="w-3 h-3" /> Subtópico
                   </button>
                 </div>
@@ -317,7 +317,7 @@ export default function LicaoForm({
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <SectionHeader label="Revisando o Conteúdo" />
-            <button type="button" onClick={addQuestion} className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-blue hover:text-iw-navy transition-colors shrink-0">
+            <button type="button" onClick={addQuestion} className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:text-iw-navy transition-colors shrink-0">
               <Plus className="w-3.5 h-3.5" /> Adicionar pergunta
             </button>
           </div>

@@ -149,7 +149,7 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
         </Link>
       </div>
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <p className="text-sm text-iw-navy">
           Selecione as fotos no seu computador. O nome de cada arquivo (sem a
           extensão) precisa ser exatamente o <strong>número de matrícula</strong>{" "}
@@ -176,7 +176,7 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
       {matches.length > 0 && (
         <>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-iw-surface rounded-2xl border border-iw-border p-4 text-center">
+            <div className="bg-iw-surface rounded-2xl border border-iw-gold p-4 text-center">
               <p className="text-xl font-black text-iw-navy">{matches.length}</p>
               <p className="text-xs text-iw-muted">Arquivos selecionados</p>
             </div>
@@ -190,7 +190,7 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
             </div>
           </div>
 
-          <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+          <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
             <div className="grid grid-cols-[48px_1fr_1fr_1fr_100px] gap-4 px-5 py-2.5 bg-iw-bg border-b border-iw-border">
               <span />
               <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Arquivo</span>
@@ -216,7 +216,7 @@ export default function ImportarFotosView({ members }: { members: MemberRow[] })
                   )}
                   <span className="text-xs">
                     {m.status === "pendente" && <span className="text-iw-muted">Aguardando</span>}
-                    {m.status === "enviando" && <Loader2 className="w-4 h-4 animate-spin text-iw-blue" />}
+                    {m.status === "enviando" && <Loader2 className="w-4 h-4 animate-spin text-iw-navy" />}
                     {m.status === "ok" && <CheckCircle2 className="w-4 h-4 text-iw-success" />}
                     {m.status === "erro" && (
                       <span className="text-iw-error flex items-center gap-1" title={m.erro}>

@@ -15,11 +15,14 @@
 // em ambiente serverless (Vercel) sem binário externo.
 // ============================================================
 
-import {
-  PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb,
-  pushGraphicsState, popGraphicsState, moveTo, appendBezierCurve, closePath, clip, endPath,
-} from "pdf-lib";
+import { PDFDocument, PDFImage, StandardFonts } from "pdf-lib";
 import { gerarQrCodePngBytes } from "@/utils/qrcode";
+import {
+  marginX, rightEdge, navy, muted, FOTO_AREA_LARGURA, FOTO_RAIO,
+  isoParaBr, formatarCentavos, desenharFotoCircular, abrirSecao, fecharSecao, desenharGrade,
+  quebrarEDesenharTexto, desenharTextoAlinhadoDireita, desenharCabecalhoInstitucional,
+  desenharRodapeInstitucional, type Celula,
+} from "./common";
 
 export interface DadosPagamentoPdf {
   // Valor da matrícula em separado (ex.: Curso Básico) — 0/null quando o
@@ -81,183 +84,6 @@ export interface EvidenciaAssinatura {
   assinadoEm: Date;
 }
 
-const marginX = 40;
-const rightEdge = 555;
-// Fase 8 do BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md: cores oficiais do
-// Manual de Identidade Visual CETADP v1.0 (preto #0D0D0D, dourado
-// #CF8403), convertidas para escala 0–1 do pdf-lib. Antes eram valores
-// arbitrários que não batiam nem com a paleta antiga nem com a oficial.
-const navy = rgb(0x0d / 255, 0x0d / 255, 0x0d / 255); // #0D0D0D — preto institucional
-const gold = rgb(0xcf / 255, 0x84 / 255, 0x03 / 255); // #CF8403 — dourado institucional
-// Pedido explícito do usuário: apesar do blueprint de identidade visual usar
-// cinza (#4A4A4A) como "cor de texto auxiliar" nas telas do site, em
-// RELATÓRIOS GERADOS EM PDF PARA IMPRESSÃO isso vira preto puro (#000000)
-// — evita texto claro/desbotado na impressora. Vale só aqui, não no site.
-const muted = rgb(0, 0, 0); // #000000 — antes: rgb(0.45, 0.45, 0.47)
-const borderCinza = rgb(0.8, 0.8, 0.8);
-
-// Largura reservada à esquerda pra foto circular, só na seção "Curso e
-// Vínculo" (as demais seções seguem com a largura cheia da página).
-const FOTO_AREA_LARGURA = 84;
-const FOTO_RAIO = 30;
-
-function formatarCentavos(centavos: number): string {
-  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-// As datas chegam aqui em ISO (yyyy-mm-dd — formato de banco/input nativo)
-// vindas de qualquer um dos três fluxos de matrícula. O formulário impresso
-// é brasileiro, então sempre exibe dd/mm/aaaa — nunca o ISO cru. Se o valor
-// já vier em outro formato (ou vazio), devolve como está, sem quebrar.
-function isoParaBr(dataIso: string | null | undefined): string {
-  if (!dataIso) return "";
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dataIso);
-  if (!m) return dataIso;
-  const [, ano, mes, dia] = m;
-  return `${dia}/${mes}/${ano}`;
-}
-
-// Dados institucionais do rodapé — os mesmos usados no rodapé público do
-// site (PublicFooter.tsx) e no ícone de WhatsApp (FloatingSocialIcons.tsx),
-// centralizados aqui pra não digitar de novo/divergir.
-const INSTITUICAO = {
-  sigla: "CETADP",
-  nomeCompleto: "Centro Educacional Teológico das Assembleias de Deus Piracicaba",
-  endereco: "Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080",
-  telefone: "(19) 99812-1950",
-  site: "www.cetadp.teo.br",
-};
-
-// Recorta a imagem num círculo (técnica padrão do pdf-lib: aproxima o
-// círculo com 4 curvas de Bézier e usa como caminho de clip) e desenha
-// com "cover" — a imagem preenche o círculo todo, cortando o excesso,
-// sem esticar/distorcer o rosto da pessoa.
-function desenharFotoCircular(page: PDFPage, img: PDFImage, cx: number, cy: number, raio: number) {
-  const k = 0.5522847498;
-  page.pushOperators(
-    pushGraphicsState(),
-    moveTo(cx + raio, cy),
-    appendBezierCurve(cx + raio, cy + raio * k, cx + raio * k, cy + raio, cx, cy + raio),
-    appendBezierCurve(cx - raio * k, cy + raio, cx - raio, cy + raio * k, cx - raio, cy),
-    appendBezierCurve(cx - raio, cy - raio * k, cx - raio * k, cy - raio, cx, cy - raio),
-    appendBezierCurve(cx + raio * k, cy - raio, cx + raio, cy - raio * k, cx + raio, cy),
-    closePath(),
-    clip(),
-    endPath()
-  );
-  const diam = raio * 2;
-  const scale = Math.max(diam / img.width, diam / img.height);
-  const w = img.width * scale;
-  const h = img.height * scale;
-  page.drawImage(img, { x: cx - w / 2, y: cy - h / 2, width: w, height: h });
-  page.pushOperators(popGraphicsState());
-  page.drawEllipse({ x: cx, y: cy, xScale: raio, yScale: raio, borderColor: borderCinza, borderWidth: 1 });
-}
-
-// Abre uma seção: escreve o título dourado e devolve o topo da caixa (pra
-// desenhar a borda depois, quando já soubermos onde o conteúdo terminou).
-// boxX permite encolher a caixa pela esquerda (usado só em "Curso e
-// Vínculo" quando há foto reservando espaço ao lado).
-function abrirSecao(page: PDFPage, y: number, titulo: string, fontBold: PDFFont, boxX: number = marginX): { boxTop: number; y: number } {
-  const boxTop = y;
-  page.drawText(titulo.toUpperCase(), { x: boxX + 10, y: y - 13, size: 8, font: fontBold, color: gold });
-  return { boxTop, y: y - 24 };
-}
-
-// Fecha a seção desenhando o retângulo em volta do que foi escrito entre
-// abrirSecao() e aqui. Devolve o y de onde a próxima seção deve começar e
-// o boxBottom (pra centralizar a foto verticalmente, no caso da 1ª seção).
-function fecharSecao(page: PDFPage, boxTop: number, y: number, boxX: number = marginX): { proximoY: number; boxBottom: number } {
-  const boxBottom = y - 8;
-  page.drawRectangle({
-    x: boxX, y: boxBottom, width: rightEdge - boxX, height: boxTop - boxBottom,
-    borderColor: borderCinza, borderWidth: 0.75,
-  });
-  return { proximoY: boxBottom - 14, boxBottom };
-}
-
-interface Celula { label: string; valor: string }
-
-// Grade de campos label/valor dentro de uma seção — preenchendo linha a
-// linha. Devolve o y logo abaixo da grade.
-function desenharGrade(
-  page: PDFPage, y: number, celulas: Celula[], cols: number, fontBold: PDFFont, font: PDFFont, boxX: number = marginX
-): number {
-  const areaLargura = rightEdge - boxX - 20;
-  const colWidth = areaLargura / cols;
-  const rowH = 26;
-  celulas.forEach((c, i) => {
-    const cx = boxX + 10 + (i % cols) * colWidth;
-    const cy = y - Math.floor(i / cols) * rowH;
-    page.drawText(c.label.toUpperCase(), { x: cx, y: cy, size: 6.5, font: fontBold, color: muted });
-    page.drawText(c.valor || "—", {
-      x: cx, y: cy - 11, size: 9, font, color: navy, maxWidth: colWidth - 8,
-    });
-  });
-  const rows = Math.ceil(celulas.length / cols);
-  return y - rows * rowH + 8;
-}
-
-function quebrarEDesenharTexto(
-  page: PDFPage, texto: string, x: number, yInicial: number, larguraMax: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>
-): number {
-  let y = yInicial;
-  const palavras = texto.split(" ");
-  let linhaAtual = "";
-  const caberNaLinha = (linha: string) => font.widthOfTextAtSize(linha, size) <= larguraMax;
-  for (const palavra of palavras) {
-    const teste = linhaAtual ? `${linhaAtual} ${palavra}` : palavra;
-    if (!caberNaLinha(teste) && linhaAtual) {
-      page.drawText(linhaAtual, { x, y, size, font, color });
-      y -= size + 4;
-      linhaAtual = palavra;
-    } else {
-      linhaAtual = teste;
-    }
-  }
-  if (linhaAtual) {
-    page.drawText(linhaAtual, { x, y, size, font, color });
-    y -= size + 4;
-  }
-  return y;
-}
-
-// Desenha uma linha de texto centralizada entre marginX e rightEdge —
-// usado no rodapé institucional.
-function desenharTextoCentralizado(
-  page: PDFPage, texto: string, y: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>
-) {
-  const largura = font.widthOfTextAtSize(texto, size);
-  page.drawText(texto, { x: marginX + (rightEdge - marginX - largura) / 2, y, size, font, color });
-}
-
-// Desenha uma linha de texto encostada na margem direita — usado na
-// legenda acima do QR Code, que fica na mesma coluna do QR (lado
-// direito), não centralizada na página inteira.
-function desenharTextoAlinhadoDireita(
-  page: PDFPage, texto: string, y: number, size: number, font: PDFFont, color: ReturnType<typeof rgb>
-) {
-  const largura = font.widthOfTextAtSize(texto, size);
-  page.drawText(texto, { x: rightEdge - largura, y, size, font, color });
-}
-
-// Carrega o arquivo oficial do logo (medalhão + lettering CETADP +
-// faixa), pra desenhar ao lado do título no cabeçalho do PDF — pedido
-// explícito pra usar o logo completo, não só o símbolo isolado. Lê
-// direto do disco (arquivo estático do repositório, não dado do
-// usuário) — se o arquivo ainda não tiver sido copiado pra
-// public/branding (ver BLUEPRINT_IDENTIDADE_VISUAL_CETADP.md, Fase 3),
-// falha em silêncio e o cabeçalho sai só com texto, sem quebrar o PDF.
-async function carregarLogoCabecalhoBytes(): Promise<Uint8Array | null> {
-  try {
-    const { readFile } = await import("node:fs/promises");
-    const path = await import("node:path");
-    return await readFile(path.join(process.cwd(), "public", "branding", "logos", "logo-colorida.png"));
-  } catch {
-    return null;
-  }
-}
-
 export async function gerarPdfMatricula(
   dados: DadosMatriculaPdf,
   assinaturaPngBytes: Uint8Array | null,
@@ -272,37 +98,10 @@ export async function gerarPdfMatricula(
   let y = 800;
 
   // ── Cabeçalho ──────────────────────────────────────────────
-  // Logo institucional completo (medalhão + lettering + faixa) ao lado
-  // esquerdo do título — pedido explícito pra usar o logo inteiro, não só
-  // o símbolo isolado. O texto do título+subtítulo fica centralizado na
-  // altura do logo (não "pendurado" no topo dele). Se o arquivo ainda não
-  // foi copiado pra public/branding, simplesmente não desenha nada e o
-  // título fica sem recuo — nunca quebra o PDF.
-  const logoBytes = await carregarLogoCabecalhoBytes();
-  let tituloX = marginX;
-  if (logoBytes) {
-    try {
-      const logoImg = await pdf.embedPng(logoBytes);
-      const logoLado = 46;
-      const escala = Math.max(logoLado / logoImg.width, logoLado / logoImg.height);
-      const w = logoImg.width * escala;
-      const h = logoImg.height * escala;
-      // Centro vertical do bloco de texto (título size 16 + subtítulo
-      // size 9, espaçados por "y -= 18" logo abaixo): topo do título
-      // (~y+11) até a base do subtítulo (~(y-18)-3) → centro = y-5.
-      const centroTexto = y - 5;
-      page.drawImage(logoImg, { x: marginX, y: centroTexto - h / 2 + 1, width: w, height: h });
-      tituloX = marginX + w + 10;
-    } catch {
-      // segue sem o logo no cabeçalho se a imagem vier corrompida
-    }
-  }
-  page.drawText(`${INSTITUICAO.sigla} — Formulário de Matrícula`, { x: tituloX, y, size: 16, font: fontBold, color: navy });
-  y -= 18;
-  page.drawText(INSTITUICAO.nomeCompleto, { x: tituloX, y, size: 9, font, color: muted });
-  y -= 6;
-  page.drawLine({ start: { x: marginX, y: y - 3 }, end: { x: rightEdge, y: y - 3 }, thickness: 1.5, color: gold });
-  y -= 20;
+  // Logo institucional completo + título + subtítulo + linha dourada —
+  // helper compartilhado (ver common.ts), usado também pelas fichas de
+  // membros por igreja.
+  y = await desenharCabecalhoInstitucional(pdf, page, "Formulário de Matrícula", fontBold, font, y);
 
   // Foto do aluno — carregada uma vez aqui, desenhada mais abaixo, ao lado
   // esquerdo do quadro "Curso e Vínculo" (em vez de solta no cabeçalho).
@@ -545,13 +344,7 @@ export async function gerarPdfMatricula(
   // as seções de cima sempre deixam espaço de sobra abaixo delas, dado o
   // tamanho fixo de A4 usado aqui). Centralizado, sem repetir o nome da
   // instituição (já aparece no cabeçalho).
-  {
-    page.drawLine({ start: { x: marginX, y: footerTop }, end: { x: rightEdge, y: footerTop }, thickness: 0.75, color: borderCinza });
-    let yf = footerTop - 14;
-    desenharTextoCentralizado(page, INSTITUICAO.endereco, yf, 7, font, muted);
-    yf -= 11;
-    desenharTextoCentralizado(page, `Tel./WhatsApp: ${INSTITUICAO.telefone}  ·  ${INSTITUICAO.site}`, yf, 7, font, muted);
-  }
+  desenharRodapeInstitucional(page, font, footerTop);
 
   return pdf.save();
 }

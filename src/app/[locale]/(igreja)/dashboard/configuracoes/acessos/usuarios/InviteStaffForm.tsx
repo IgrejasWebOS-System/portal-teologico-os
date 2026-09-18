@@ -23,7 +23,7 @@ const NIVEL_LABEL: Record<string, string> = {
 };
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40";
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 
 export default function InviteStaffForm({ units, churches }: { units: UnitOption[]; churches: ChurchLink[] }) {
@@ -130,7 +130,7 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
         <div
           className={`flex items-start gap-2 text-sm font-bold px-3.5 py-3 rounded-xl border-2 mb-4 ${
             result.success
-              ? "bg-iw-blue/10 text-iw-blue border-iw-blue/40"
+              ? "bg-iw-blue/10 text-iw-navy border-iw-blue/40"
               : "bg-iw-error-bg text-iw-error border-iw-error/50"
           }`}
         >
@@ -143,7 +143,7 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
         </div>
       )}
 
-      <div className="bg-iw-bg rounded-xl border border-iw-border p-4 mb-4 space-y-3">
+      <div className="bg-iw-bg rounded-xl border border-iw-gold p-4 mb-4 space-y-3">
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>
@@ -272,7 +272,7 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
           <select
             name="level"
             defaultValue="4"
-            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+            className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none cursor-pointer"
           >
             {Object.entries(NIVEL_LABEL).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -285,7 +285,7 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
           <select
             name="unit_id"
             defaultValue=""
-            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+            className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none cursor-pointer"
           >
             <option value="">— Nenhuma (só p/ nível 0) —</option>
             {units.map((u) => (

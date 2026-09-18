@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
+import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { redirect } from "@/i18n/navigation";
 import { hasLocale } from "next-intl";
@@ -51,6 +52,17 @@ export async function loginAction(formData: FormData) {
     const isStaff = await checkIsStaff(supabase, signInData.user.id);
     if (isStaff) {
       redirect({ href: "/admin", locale });
+    }
+  }
+
+  // Sem link de retorno explícito: professor com login vinculado
+  // (Módulo 1, professores.user_id) cai direto na área dele — antes de
+  // checar aluno oficial, já que uma mesma pessoa não deveria ser as
+  // duas coisas, mas a ordem aqui prioriza o papel de professor.
+  if (!hasExplicitRedirect && signInData.user) {
+    const professor = await checkIsProfessor(supabase, signInData.user.id);
+    if (professor) {
+      redirect({ href: "/professor", locale });
     }
   }
 

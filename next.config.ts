@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   // direito nesse IP (HMR fica falhando em loop no console), quebrando
   // interações como o upload de foto. Se o IP da máquina mudar, atualizar
   // aqui também.
-  allowedDevOrigins: ["192.168.15.15"],
+  allowedDevOrigins: ["192.168.15.10"],
   experimental: {
     serverActions: {
       // Padrão do Next é 1 MB — pequeno demais pra Server Action que recebe

@@ -8,12 +8,12 @@ export const metadata = { title: "Editar Matrícula — CETADP" };
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; msg?: string }>;
+  searchParams: Promise<{ error?: string; msg?: string; voltarPara?: string; voltarLabel?: string }>;
 }
 
 export default async function EditarMatriculaPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { error, msg } = await searchParams;
+  const { error, msg, voltarPara, voltarLabel } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -85,6 +85,8 @@ export default async function EditarMatriculaPage({ params, searchParams }: Page
       caixaAbertoId={caixaAbertoId}
       errorMsg={error ? decodeURIComponent(error) : undefined}
       successMsg={msg ? decodeURIComponent(msg) : undefined}
+      voltarPara={voltarPara ? decodeURIComponent(voltarPara) : undefined}
+      voltarLabel={voltarLabel ? decodeURIComponent(voltarLabel) : undefined}
     />
   );
 }

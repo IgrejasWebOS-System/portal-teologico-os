@@ -150,7 +150,7 @@ export default async function EscolaPage() {
         <p className="text-iw-navy font-bold text-lg">Nenhuma disciplina publicada ainda.</p>
         <p className="text-iw-muted text-sm">
           Crie trilhas no{" "}
-          <Link href="/admin/conteudo/trilhas" className="text-iw-blue hover:underline">painel admin</Link>.
+          <Link href="/admin/conteudo/trilhas" className="text-iw-navy hover:underline">painel admin</Link>.
         </p>
       </div>
     );
@@ -332,7 +332,7 @@ function CourseCard({
 
       {/* Info */}
       <div className="p-3 flex-1 flex flex-col gap-1">
-        <p className="text-sm font-bold text-iw-navy leading-tight line-clamp-2 group-hover:text-iw-blue transition-colors">
+        <p className="text-sm font-bold text-iw-navy leading-tight line-clamp-2 group-hover:text-iw-navy transition-colors">
           {course.title}
         </p>
         {course.instructor_name && (

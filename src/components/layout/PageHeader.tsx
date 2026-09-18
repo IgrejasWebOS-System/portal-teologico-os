@@ -44,7 +44,7 @@ export default function PageHeader({ icon: Icon, title, description, backHref, b
           {backHref && (
             <Link
               href={backHref}
-              className="inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1"
+              className="inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               {backLabel}

@@ -78,7 +78,7 @@ export default async function MeusCertificadosPage() {
                     <span className="text-xs font-mono font-bold text-iw-gold bg-iw-gold/10 px-3 py-1.5 rounded-lg">
                       {c.numero_certificado}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-iw-blue">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-iw-navy">
                       <Eye className="w-3.5 h-3.5" /> Ver certificado
                     </span>
                   </div>

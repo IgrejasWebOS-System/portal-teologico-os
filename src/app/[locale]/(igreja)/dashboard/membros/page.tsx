@@ -9,7 +9,11 @@ export const metadata = { title: "Membros — Igreja" };
 const CAMPOS_MEMBRO =
   "id, full_name, email, phone, cpf, registration_number, photo_url, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)";
 
-export default async function MembrosPage() {
+export default async function MembrosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ igreja?: string; arquivo?: string }>;
+}) {
   const supabase = await createClient();
 
   const {
@@ -22,12 +26,36 @@ export default async function MembrosPage() {
       supabase.from("profiles").select("system_role").eq("id", user.id).single(),
       supabase.from("sectors").select("id, name, categoria, unit_id"),
       supabase.from("units").select("id, type, name, parent_id"),
-      supabase.from("churches").select("id, name, unit_id"),
+      supabase.from("churches").select("id, name, unit_id, sector_id"),
     ]);
 
   const sectors = (sectorsRaw ?? []) as SectorOption[];
   const units = (unitsRaw ?? []) as UnitLite[];
   const churches = (churchesRaw ?? []) as ChurchOption[];
+
+  // Deep-link vindo do botão "Membros > Ir para Cadastro" em
+  // /dashboard/configuracoes/igrejas (?igreja=<id>) -- pré-seleciona
+  // Setor + Igreja no seletor, sem precisar de mais nenhum clique.
+  // Pedido do Joaquim em 2026-09-18.
+  const { igreja: igrejaQuery, arquivo: arquivoQuery } = await searchParams;
+  const igrejaDeepLink = igrejaQuery
+    ? (churchesRaw ?? []).find((c) => c.id === igrejaQuery)
+    : null;
+  const setorInicialId = igrejaDeepLink?.sector_id ?? null;
+  const igrejaInicialId = igrejaDeepLink?.id ?? null;
+
+  // Deep-link vindo do botão "Arquivo Morto" em Igrejas/Pontos de
+  // Pregação/Células/Sub-congregações (?arquivo=1) -- abre a tela já no
+  // modo Arquivo Morto, sem precisar clicar de novo aqui dentro (pedido
+  // do Joaquim em 2026-09-18).
+  const arquivoInicial = arquivoQuery === "1";
+
+  // Igreja "SEDE" (topo da árvore, unit type='SEDE') -- selecioná-la no
+  // seletor já traz direto os membros dela, sem precisar expandir a
+  // subárvore (que incluiria TODOS os Setores/Regionais, já que a unidade
+  // SEDE também é pai deles). Ver SeletorHierarquico/MembrosView.
+  const sedeUnitId = units.find((u) => u.type === "SEDE")?.id ?? null;
+  const sedeChurchId = sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId)?.id ?? null : null;
 
   const isGlobalAdmin = profile?.system_role === "GLOBAL_ADMIN";
 
@@ -42,6 +70,10 @@ export default async function MembrosPage() {
         churches={churches}
         accessibleUnitIds={null}
         escopoFixo={null}
+        sedeChurchId={sedeChurchId}
+        setorInicialId={setorInicialId}
+        igrejaInicialId={igrejaInicialId}
+        arquivoInicial={arquivoInicial}
       />
     );
   }
@@ -62,7 +94,7 @@ export default async function MembrosPage() {
     const { data: members } = await supabase
       .from("members")
       .select(CAMPOS_MEMBRO)
-      .eq("status", "ACTIVE")
+      .eq("status", arquivoInicial ? "ARCHIVED" : "ACTIVE")
       .eq("church_id", igreja.id)
       .order("full_name");
 
@@ -75,6 +107,8 @@ export default async function MembrosPage() {
         churches={churches}
         accessibleUnitIds={idsAcessiveis}
         escopoFixo={{ churchId: igreja.id, nome: igreja.name }}
+        sedeChurchId={sedeChurchId}
+        arquivoInicial={arquivoInicial}
       />
     );
   }
@@ -89,6 +123,10 @@ export default async function MembrosPage() {
       churches={churches}
       accessibleUnitIds={idsAcessiveis}
       escopoFixo={null}
+      sedeChurchId={sedeChurchId}
+      setorInicialId={setorInicialId}
+      igrejaInicialId={igrejaInicialId}
+      arquivoInicial={arquivoInicial}
     />
   );
 }

@@ -8,6 +8,7 @@ import { submitInscricaoAction, buscarCadastroPublicoAction, type CadastroPublic
 import { CURSOS_EAD } from "@/utils/cursos-ead";
 import { aplicarMaiuscula } from "@/utils/uppercaseInput";
 import JaTemCadastroCard, { type TipoPessoa } from "@/components/matricula/JaTemCadastroCard";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -142,7 +143,7 @@ export default function InscricaoForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelCls} htmlFor="campo_ministerio_id">{t("campoMinisterio")}</label>
-          <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue="">
+          <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue={resolverCampoPadraoId(campos)}>
             <option value="">{t("selecioneOpcional")}</option>
             {campos.map((c) => (
               <option key={c.id} value={c.id}>{c.nome}</option>

@@ -1,24 +1,30 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { resolverAlunoEMatricula } from "@/utils/aluno/matriculaAtiva";
+import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
+import ImprimirSecaoBotao from "@/components/impressao/ImprimirSecaoBotao";
 
 export const metadata = { title: "Prova" };
+
+interface PageProps {
+  searchParams: Promise<{ alunoId?: string }>;
+}
 
 function fmtData(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 
-export default async function ProvaImpressaoPage() {
+export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
+  const { alunoId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const dados = await resolverAlunoEMatricula(user.id);
+  const dados = await resolverAlunoParaImpressao(supabase, user.id, alunoId);
   if (!dados) redirect("/portal");
   const { aluno, matricula } = dados;
 
@@ -55,30 +61,65 @@ export default async function ProvaImpressaoPage() {
   }
 
   return (
-    <ImpressaoShell titulo="Prova" voltarPara={matricula?.course_id ? `/escola/${matricula.course_id}` : "/escola"}>
-      <p className="text-sm text-iw-muted mb-4">
+    <ImpressaoShell
+      titulo="Prova"
+      voltarPara={
+        alunoId
+          ? `/dashboard/configuracoes/persona/alunos/${alunoId}`
+          : matricula?.course_id
+            ? `/escola/${matricula.course_id}`
+            : "/escola"
+      }
+    >
+      {/* Mesmo padrão adotado em impressao/testes (14/09/2026): cada
+          matéria vira sua própria seção com botão de impressão individual. */}
+      <style>{`
+        @media print {
+          ${provas
+            .map(
+              (_, i) => `body[data-imprimir-secao="prova-${i}"] [data-secao]:not([data-secao="prova-${i}"]) { display: none !important; }`
+            )
+            .join("\n")}
+        }
+      `}</style>
+
+      <p className="text-sm text-iw-muted mb-2">
         {aluno.nome_completo} — {matricula?.curso_nome_snapshot ?? "—"}
       </p>
+
+      {provas.length > 0 && (
+        <p className="text-xs text-iw-muted/80 bg-iw-bg border border-iw-border rounded-lg px-3 py-2 mb-4 print:hidden">
+          O botão <strong>&ldquo;Imprimir / Salvar PDF&rdquo;</strong> no topo imprime todas as provas, em páginas
+          separadas. Para impressão individual, clique no botão ao lado da matéria desejada.
+        </p>
+      )}
 
       {provas.length === 0 ? (
         <p className="text-sm text-iw-muted">Nenhuma prova realizada ainda.</p>
       ) : (
         <div className="space-y-3">
           {provas.map((p, i) => (
-            <div key={i} className="border border-iw-border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div
+              key={i}
+              data-secao={`prova-${i}`}
+              className="border border-iw-border rounded-xl p-4 flex items-center justify-between gap-4 break-inside-avoid"
+            >
               <div>
                 <p className="font-bold text-iw-navy text-sm">{p.lessonTitle ?? "Prova geral do curso"}</p>
                 <p className="text-xs text-iw-muted mt-0.5">
                   {p.status === "FINALIZADA" ? `Finalizada em ${fmtData(p.finalizadaEm)}` : "Em andamento"}
                 </p>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-lg font-black text-iw-navy">{p.nota != null ? Number(p.nota).toFixed(1) : "—"}</p>
-                {p.aprovado != null && (
-                  <p className={`text-xs font-bold ${p.aprovado ? "text-iw-success" : "text-iw-error"}`}>
-                    {p.aprovado ? "Aprovado" : "Não aprovado"}
-                  </p>
-                )}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <p className="text-lg font-black text-iw-navy">{p.nota != null ? Number(p.nota).toFixed(1) : "—"}</p>
+                  {p.aprovado != null && (
+                    <p className={`text-xs font-bold ${p.aprovado ? "text-iw-success" : "text-iw-error"}`}>
+                      {p.aprovado ? "Aprovado" : "Não aprovado"}
+                    </p>
+                  )}
+                </div>
+                <ImprimirSecaoBotao secaoId={`prova-${i}`} label="Imprimir" />
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition, type FocusEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   Save, Loader2, AlertTriangle,
@@ -43,9 +43,9 @@ interface Props {
 }
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const selectCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer transition-colors";
 const labelCls =
   "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 const sectionTitleCls =
@@ -72,11 +72,48 @@ export default function CongregacaoEditForm({
   const [pastorRole, setPastorRole] = useState(existing.pastor_role ?? "");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [loadingCep, setLoadingCep] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setPastorName(membro.full_name);
     setPastorPhone(membro.phone ?? "");
     setPastorRole(membro.cargo ?? "");
+  };
+
+  // Preenche endereço/bairro/cidade/UF a partir do CEP (mesmo serviço usado
+  // na Nova Matrícula) — antes esta tela não tinha isso, então trocar o CEP
+  // nunca atualizava o resto do endereço (14/09/2026).
+  const preencherCampoCru = (name: string, valor: string | null) => {
+    if (!valor || !formRef.current) return;
+    const el = formRef.current.elements.namedItem(name) as HTMLInputElement | null;
+    if (el) el.value = valor;
+  };
+
+  const handleBlurCep = async (e: FocusEvent<HTMLInputElement>) => {
+    const cepLimpo = e.target.value.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        preencherCampoCru("address", data.logradouro?.toUpperCase() || null);
+        preencherCampoCru("neighborhood", data.bairro?.toUpperCase() || null);
+        preencherCampoCru("city", data.localidade?.toUpperCase() || null);
+        preencherCampoCru("state", data.uf?.toUpperCase() || null);
+        // Complemento é específico do endereço anterior — mudou o CEP, não
+        // faz sentido manter "CASA"/"BLOCO B" etc. de um endereço antigo.
+        // Alguns CEPs (prédios, condomínios) já vêm com complemento fixo
+        // no próprio ViaCEP; nesse caso usa o que ele mandou, senão limpa.
+        const complementoInput = formRef.current?.elements.namedItem("address_complement") as HTMLInputElement | null;
+        if (complementoInput) complementoInput.value = data.complemento?.toUpperCase() || "";
+      }
+    } catch {
+      // silencioso — os campos continuam editáveis manualmente
+    } finally {
+      setLoadingCep(false);
+    }
   };
 
   const handleSubmit = (fd: FormData) => {
@@ -123,7 +160,7 @@ export default function CongregacaoEditForm({
   };
 
   return (
-    <form action={handleSubmit} className="space-y-6">
+    <form ref={formRef} action={handleSubmit} className="space-y-6">
       {error && (
         <div className="flex items-center gap-2 text-iw-error text-sm bg-iw-error-bg border border-iw-error/20 px-4 py-3 rounded-xl">
           <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -132,9 +169,9 @@ export default function CongregacaoEditForm({
       )}
 
       {/* ── IDENTIFICAÇÃO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Building2 className="w-4 h-4 text-iw-blue" />
+          <Building2 className="w-4 h-4 text-iw-navy" />
           Identificação
         </h3>
 
@@ -178,7 +215,7 @@ export default function CongregacaoEditForm({
       </div>
 
       {/* ── LIDERANÇA E CONTATO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <User className="w-4 h-4 text-iw-gold" />
           Liderança e Contato
@@ -252,7 +289,7 @@ export default function CongregacaoEditForm({
       </div>
 
       {/* ── LOCALIZAÇÃO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <MapPin className="w-4 h-4 text-iw-success" />
           Localização
@@ -269,7 +306,8 @@ export default function CongregacaoEditForm({
               name="zip_code"
               type="text"
               defaultValue={existing.zip_code ?? ""}
-              placeholder="00000-000"
+              onBlur={handleBlurCep}
+              placeholder={loadingCep ? "Buscando..." : "00000-000"}
               maxLength={9}
               className={inputCls}
             />

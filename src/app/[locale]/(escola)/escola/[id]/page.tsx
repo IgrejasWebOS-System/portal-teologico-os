@@ -256,7 +256,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
 
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs md:text-sm font-semibold truncate ${
-                        isActive ? "text-iw-blue"
+                        isActive ? "text-iw-navy"
                         : isDone ? "line-through text-iw-muted"
                         : canPlay ? "text-iw-navy md:text-black" : "text-iw-muted/60"
                       }`}>
@@ -274,7 +274,7 @@ export default async function EscolaDetailPage({ params, searchParams }: Props) 
                     </div>
 
                     {hasVid && (
-                      <VIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-iw-blue" : "text-iw-muted/40"}`} />
+                      <VIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-iw-navy" : "text-iw-muted/40"}`} />
                     )}
                   </Link>
                 );

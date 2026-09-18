@@ -56,6 +56,8 @@ export default async function SetoresPage() {
         description="Organização geográfica e pastoral dos campos — cada setor/regional pertence a 1 região"
         iconColor="text-iw-navy"
         iconBg="bg-iw-sky/20"
+        backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
+        backLabel="VOLTAR"
       />
       <SetoresManager
         setores={setoresRes.data ?? []}

@@ -162,7 +162,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
               <div key={m.id} className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-iw-blue" />
+                    <GraduationCap className="w-4 h-4 text-iw-navy" />
                     <p className="font-bold text-iw-navy">{m.curso_nome_snapshot}</p>
                   </div>
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-iw-bg border border-iw-border text-iw-muted">
@@ -267,7 +267,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                 {matriculaEmAndamento && testesLicao.length > 0 && (
                   <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      <ListChecks className="w-3.5 h-3.5 text-iw-blue" />
+                      <ListChecks className="w-3.5 h-3.5 text-iw-navy" />
                       <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Testes por lição (Certo/Errado)</p>
                     </div>
                     <ul className="space-y-2">
@@ -294,7 +294,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             {tentativa ? (
                               <Link
                                 href={`/portal/avaliacoes/${tentativa.id}?voltar=${encodeURIComponent(voltarHref)}`}
-                                className="shrink-0 text-[11px] font-bold text-iw-blue hover:underline"
+                                className="shrink-0 text-[11px] font-bold text-iw-navy hover:underline"
                               >
                                 {tentativa.status === "FINALIZADA" ? `nota ${Number(tentativa.nota).toFixed(1)}` : "em andamento"}
                               </Link>

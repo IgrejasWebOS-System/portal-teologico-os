@@ -78,7 +78,7 @@ export default function ConfiguracoesPage() {
             <Link
               key={card.href}
               href={card.href}
-              className="group bg-iw-surface border border-iw-border rounded-2xl p-5 flex flex-col gap-3 hover:border-iw-blue/40 hover:shadow-md transition-all duration-150 min-h-[140px]"
+              className="group bg-iw-surface border border-iw-gold rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md transition-all duration-150 min-h-[140px]"
             >
               {/* Icon + Title inline — ícone à esquerda, título centralizado verticalmente */}
               <div className="flex items-center gap-3">
@@ -102,7 +102,7 @@ export default function ConfiguracoesPage() {
                 <span className="text-xs font-bold text-iw-navy uppercase tracking-wider">
                   {card.cta}
                 </span>
-                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-navy group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
           );

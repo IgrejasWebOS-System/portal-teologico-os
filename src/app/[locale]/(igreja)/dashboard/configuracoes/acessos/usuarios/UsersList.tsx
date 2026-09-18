@@ -21,7 +21,7 @@ type AdminRole = { user_id: string; level: number; unit_id: string | null };
 const ROLE_COLOR: Record<string, string> = {
   GLOBAL_ADMIN: "bg-iw-error-bg text-iw-error border-iw-error/30",
   SECTOR_ADMIN: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
-  LOCAL_ADMIN:  "bg-iw-blue/10 text-iw-blue border-iw-blue/20",
+  LOCAL_ADMIN:  "bg-iw-blue/10 text-iw-navy border-iw-blue/20",
   MEMBER:       "bg-iw-bg text-iw-muted border-iw-border",
 };
 
@@ -131,7 +131,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
   }, [busca, users]);
 
   return (
-    <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+    <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
       <div className="px-5 py-3 bg-iw-bg border-b border-iw-border">
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-iw-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -140,7 +140,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou e-mail..."
-            className="w-full bg-white border border-iw-border rounded-xl pl-8 pr-3 py-2 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+            className="w-full bg-white border border-iw-navy rounded-xl pl-8 pr-3 py-2 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40"
           />
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                     <button
                       type="button"
                       onClick={() => startEdit(u)}
-                      className="p-1.5 text-iw-muted hover:text-iw-blue transition-colors rounded-lg hover:bg-iw-blue/8"
+                      className="p-1.5 text-iw-muted hover:text-iw-navy transition-colors rounded-lg hover:bg-iw-blue/8"
                       title="Editar nome/e-mail"
                     >
                       <Pencil className="w-4 h-4" />
@@ -322,7 +322,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                     <button
                       type="button"
                       onClick={() => startEditVinculo(u)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
                       title="Editar nível e unidade"
                     >
                       <Link2 className="w-3.5 h-3.5" />

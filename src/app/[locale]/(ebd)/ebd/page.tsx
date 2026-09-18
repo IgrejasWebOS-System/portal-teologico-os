@@ -12,7 +12,7 @@ const quarterLabel = (q: number) =>
   ["1°", "2°", "3°", "4°"][q - 1] + " Trimestre";
 
 const AUDIENCES: { key: EbdAudience; label: string; color: string; bg: string }[] = [
-  { key: "ADULTOS", label: "Adultos · CPAD",  color: "text-iw-blue",  bg: "bg-iw-blue/10"  },
+  { key: "ADULTOS", label: "Adultos · CPAD",  color: "text-iw-navy",  bg: "bg-iw-blue/10"  },
   { key: "JOVENS",  label: "Jovens · CPAD",   color: "text-iw-gold",  bg: "bg-iw-gold/10"  },
 ];
 
@@ -76,7 +76,7 @@ export default async function EbdPage() {
             label: "Trimestres",
             value: quarters.length,
             icon: BookMarked,
-            color: "text-iw-blue",
+            color: "text-iw-navy",
             bg: "bg-iw-blue/10",
           },
           {

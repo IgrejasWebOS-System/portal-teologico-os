@@ -17,7 +17,7 @@ function formatarTelefone(valor: string): string {
 }
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 const sectionTitleCls =
   "flex items-center gap-2 text-xs font-black text-iw-navy uppercase tracking-widest mb-4 pb-2 border-b border-iw-border";
@@ -119,9 +119,9 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
       )}
       <input type="hidden" name="modo_sede" value={modoSede} />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Building className="w-4 h-4 text-iw-blue" />
+          <Building className="w-4 h-4 text-iw-navy" />
           Identificação
         </h3>
 
@@ -205,7 +205,7 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
       </div>
 
       {modoSede === "nova" && (
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <MapPin className="w-4 h-4 text-iw-gold" />
           Endereço da Sede
@@ -284,7 +284,7 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
         </div>
 
         {regiaoIbge && (
-          <div className="inline-flex items-center gap-1.5 bg-iw-blue/10 text-iw-blue text-xs font-bold px-3 py-1.5 rounded-lg">
+          <div className="inline-flex items-center gap-1.5 bg-iw-blue/10 text-iw-navy text-xs font-bold px-3 py-1.5 rounded-lg">
             <Globe2 className="w-3.5 h-3.5" />
             Região: {regiaoIbge.charAt(0) + regiaoIbge.slice(1).toLowerCase()}
           </div>
@@ -322,9 +322,9 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
       )}
 
       {modoSede === "nova" && (
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Phone className="w-4 h-4 text-iw-blue" />
+          <Phone className="w-4 h-4 text-iw-navy" />
           Contato
         </h3>
 

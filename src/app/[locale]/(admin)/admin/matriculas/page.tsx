@@ -11,7 +11,11 @@ import BotaoBaixarPdfMatricula from "./BotaoBaixarPdfMatricula";
 export const metadata = { title: "Matrículas — CETADP" };
 
 const STATUS_STYLE: Record<string, string> = {
-  EM_ANDAMENTO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  // Decisão do Joaquim em 13/09/2026: badge EM_ANDAMENTO passa a usar a
+  // identidade visual CETADP (fundo preto + borda dourada) em vez do azul
+  // genérico — só bg/border mudam, a fonte (cor/peso/tamanho do texto)
+  // continua exatamente como já estava.
+  EM_ANDAMENTO: "bg-[#0D0D0D] text-iw-navy border-[#CF8403]",
   APROVADO: "bg-iw-success-bg text-iw-success border-iw-success/30",
   REPROVADO: "bg-iw-error-bg text-iw-error border-iw-error/30",
   CANCELADO: "bg-iw-bg text-iw-muted border-iw-border",

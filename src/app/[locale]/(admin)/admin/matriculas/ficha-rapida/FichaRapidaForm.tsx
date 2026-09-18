@@ -5,6 +5,7 @@ import { Send, Loader2, AlertTriangle, QrCode, Copy, Check, UserPlus, Mail, Chec
 import { validarCPF } from "@/utils/cpf";
 import PageHeader from "@/components/layout/PageHeader";
 import { criarFichaPendenteAction, enviarLinkFichaEmailAction } from "./actions";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
@@ -120,7 +121,7 @@ export default function FichaRapidaForm({
   const [telefone, setTelefone] = useState("");
   const [emailAluno, setEmailAluno] = useState("");
   const [courseId, setCourseId] = useState("");
-  const [campoMinisterioId, setCampoMinisterioId] = useState("");
+  const [campoMinisterioId, setCampoMinisterioId] = useState(() => resolverCampoPadraoId(campos));
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
   const [turmaId, setTurmaId] = useState("");
@@ -130,7 +131,12 @@ export default function FichaRapidaForm({
   const [valorMatricula, setValorMatricula] = useState("");
   const [valorParcela, setValorParcela] = useState("");
   const [numeroParcelasPagto, setNumeroParcelasPagto] = useState("12");
-  const [formaCobranca, setFormaCobranca] = useState("MERCADOPAGO");
+  // Decisão do Joaquim em 13/09/2026: removida a opção de link
+  // automático Pix/Mercado Pago na matrícula direta — só trabalhamos com
+  // as formas tradicionais (dinheiro, pix, cartão, boleto), lançadas
+  // manualmente em Financeiro > Contas a Receber quando o pagamento
+  // acontecer de verdade (ver forma_pagamento em contas-a-receber/page.tsx).
+  const formaCobranca = "MANUAL";
   const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
   const [churchIdPagamento, setChurchIdPagamento] = useState("");
   const [erro, setErro] = useState("");
@@ -242,7 +248,7 @@ export default function FichaRapidaForm({
                   href={resultado.linkPagamento}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center gap-1 font-bold text-iw-blue hover:text-iw-navy"
+                  className="shrink-0 inline-flex items-center gap-1 font-bold text-iw-navy hover:text-iw-navy"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> Abrir
                 </a>
@@ -275,7 +281,7 @@ export default function FichaRapidaForm({
             <button
               type="button"
               onClick={handleCopiar}
-              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-blue hover:text-iw-navy"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-navy hover:text-iw-navy"
             >
               {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copiado ? "Copiado" : "Copiar link"}
@@ -512,16 +518,6 @@ export default function FichaRapidaForm({
                 className={bareCls}
               />
             </Field>
-            <Field label="Forma de cobrança" span="col-span-6 md:col-span-4">
-              <select
-                value={formaCobranca}
-                onChange={(e) => setFormaCobranca(e.target.value)}
-                className={bareSelectCls}
-              >
-                <option value="MERCADOPAGO">Link Pix / Mercado Pago</option>
-                <option value="MANUAL">Parcelamento manual (Contas a Receber)</option>
-              </select>
-            </Field>
           </div>
           <div className="grid grid-cols-12 gap-3">
             <Field label="Quem paga" span="col-span-6 md:col-span-4">
@@ -547,12 +543,6 @@ export default function FichaRapidaForm({
               </Field>
             )}
           </div>
-          {formaCobranca === "MERCADOPAGO" && (
-            <p className="text-xs text-iw-muted">
-              Um link de pagamento único Pix/Mercado Pago será gerado no valor total (matrícula + parcelas) e
-              mostrado na próxima tela, pronto pra copiar ou enviar pro aluno.
-            </p>
-          )}
         </div>
 
         <div className="flex justify-end pt-2">

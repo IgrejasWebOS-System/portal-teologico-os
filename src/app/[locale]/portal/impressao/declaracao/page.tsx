@@ -1,24 +1,29 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { resolverAlunoEMatricula } from "@/utils/aluno/matriculaAtiva";
+import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
 
 export const metadata = { title: "Declaração" };
+
+interface PageProps {
+  searchParams: Promise<{ alunoId?: string }>;
+}
 
 function fmtData(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("pt-BR");
 }
 
-export default async function DeclaracaoImpressaoPage() {
+export default async function DeclaracaoImpressaoPage({ searchParams }: PageProps) {
+  const { alunoId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const dados = await resolverAlunoEMatricula(user.id);
+  const dados = await resolverAlunoParaImpressao(supabase, user.id, alunoId);
   if (!dados) redirect("/portal");
   const { aluno, matricula } = dados;
 
@@ -38,7 +43,7 @@ export default async function DeclaracaoImpressaoPage() {
     const { data: completions } = await admin
       .from("lesson_completions")
       .select("lesson_id")
-      .eq("user_id", user.id)
+      .eq("user_id", aluno.user_id ?? user.id)
       .in("lesson_id", (lessons ?? []).map((l) => l.id));
 
     const feitasIds = new Set((completions ?? []).map((c) => c.lesson_id));
@@ -46,7 +51,16 @@ export default async function DeclaracaoImpressaoPage() {
   }
 
   return (
-    <ImpressaoShell titulo="Declaração de Matrícula" voltarPara={matricula?.course_id ? `/escola/${matricula.course_id}` : "/escola"}>
+    <ImpressaoShell
+      titulo="Declaração de Matrícula"
+      voltarPara={
+        alunoId
+          ? `/dashboard/configuracoes/persona/alunos/${alunoId}`
+          : matricula?.course_id
+            ? `/escola/${matricula.course_id}`
+            : "/escola"
+      }
+    >
       {!matricula ? (
         <p className="text-sm text-iw-muted">Nenhuma matrícula encontrada.</p>
       ) : (

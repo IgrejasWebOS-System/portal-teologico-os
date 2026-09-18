@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, Lock } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { resolverAlunoEMatricula } from "@/utils/aluno/matriculaAtiva";
+import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import {
   calcularMediaCertificado,
   MEDIA_MINIMA_CERTIFICADO,
@@ -13,31 +13,44 @@ import CertificadoVisual from "@/components/certificados/CertificadoVisual";
 
 export const metadata = { title: "Certificado" };
 
-export default async function CertificadoImpressaoPage() {
+interface PageProps {
+  searchParams: Promise<{ alunoId?: string }>;
+}
+
+export default async function CertificadoImpressaoPage({ searchParams }: PageProps) {
+  const { alunoId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const dados = await resolverAlunoEMatricula(user.id);
+  const dados = await resolverAlunoParaImpressao(supabase, user.id, alunoId);
   if (!dados) redirect("/portal");
-  const { matricula } = dados;
+  const { aluno, matricula } = dados;
 
   const admin = createAdminClient();
-  const voltarPara = matricula?.course_id ? `/escola/${matricula.course_id}` : "/escola";
+  // Quando a secretaria abre via Configuracões > Persona > Aluno
+  // (modoStaff manda ?alunoId=), o Voltar tem que retornar pra lá — não
+  // pro /escola do próprio aluno, que é o destino certo só quando é o
+  // aluno mesmo acessando sua Área (bug reportado 15/09/2026).
+  const voltarPara = alunoId
+    ? `/dashboard/configuracoes/persona/alunos/${alunoId}`
+    : matricula?.course_id
+      ? `/escola/${matricula.course_id}`
+      : "/escola";
 
   // 1) Já existe certificado emitido pela secretaria pra este curso?
   //    Emissão continua sendo ato da secretaria (tabela `certificates`,
   //    numeração e assinaturas) — a tela do aluno só mostra o que já
   //    foi emitido, ou a elegibilidade pra pedir.
-  const { data: certificadoEmitido } = matricula
+  const { data: certificadoEmitido } = matricula && aluno.user_id
     ? await admin
         .from("certificates")
         .select(
           "numero_certificado, nome_aluno, nome_curso, carga_horaria, assinatura_presidente, assinatura_coordenador, emitido_em"
         )
-        .eq("user_id", user.id)
+        .eq("user_id", aluno.user_id)
         .eq("nome_curso", matricula.curso_nome_snapshot)
         .maybeSingle()
     : { data: null };

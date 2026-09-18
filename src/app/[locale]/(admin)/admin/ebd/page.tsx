@@ -86,14 +86,14 @@ export default async function AdminEbdPage({ searchParams }: PageProps) {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-iw-blue/10 text-iw-blue">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-iw-blue/10 text-iw-navy">
                       {["1°", "2°", "3°", "4°"][q.quarter - 1]} Trimestre {q.year}
                     </span>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-iw-gold/10 text-iw-gold">
                       {AUDIENCE_LABEL[q.audience] ?? q.audience}
                     </span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-navy group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
                 <p className="font-bold text-iw-navy text-sm">{q.theme ?? "Sem tema definido"}</p>
                 <div className="flex items-center gap-4 text-xs text-iw-muted pt-2 border-t border-iw-border">

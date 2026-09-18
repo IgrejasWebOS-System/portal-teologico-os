@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkIsStaff } from "@/utils/staff";
+import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { routing } from "@/i18n/routing";
 
@@ -98,7 +99,12 @@ export async function updateSession(
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
     const isStaff = await checkIsStaff(supabase, user.id);
-    const destino = isStaff ? "/admin" : await resolverDestinoPosLogin(supabase, user.id);
+    const professor = isStaff ? null : await checkIsProfessor(supabase, user.id);
+    const destino = isStaff
+      ? "/admin"
+      : professor
+        ? "/professor"
+        : await resolverDestinoPosLogin(supabase, user.id);
     url.pathname = comPrefixoDeIdioma(locale, destino);
     return NextResponse.redirect(url);
   }

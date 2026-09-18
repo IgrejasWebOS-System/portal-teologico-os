@@ -43,14 +43,14 @@ export default async function LidereSetorPage() {
       {/* Definir / alterar líder de um setor */}
       <form
         action={definirLiderSetorFormAction}
-        className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end"
+        className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-5 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end"
       >
         <div>
           <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">Setor</label>
           <select
             name="setor_id"
             required
-            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+            className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
           >
             <option value="">Selecione um setor...</option>
             {sectors.map((s) => (
@@ -65,7 +65,7 @@ export default async function LidereSetorPage() {
           <select
             name="church_id"
             required
-            className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+            className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
           >
             <option value="">Selecione uma igreja...</option>
             {churches.map((c) => (
@@ -83,7 +83,7 @@ export default async function LidereSetorPage() {
       </form>
 
       {withLeader.length > 0 && (
-        <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
           <div className="grid grid-cols-[1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
             <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Setor</span>
             <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Igreja-Mãe</span>
@@ -128,7 +128,7 @@ export default async function LidereSetorPage() {
       )}
 
       {sectors.length === 0 && (
-        <div className="bg-iw-surface rounded-2xl border border-iw-border px-5 py-12 text-center shadow-sm">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold px-5 py-12 text-center shadow-sm">
           <Users2 className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
           <p className="text-iw-muted text-sm">Nenhuma liderança definida.</p>
           <p className="text-iw-muted/60 text-xs mt-1">
