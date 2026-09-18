@@ -71,7 +71,13 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
   const [turno, setTurno] = useState("");
   const [diaSemana, setDiaSemana] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [carregandoTurmas, setCarregandoTurmas] = useState(false);
+  // Em vez de um booleano ligado/desligado à mão dentro do efeito (o que o
+  // lint react-hooks/set-state-in-effect reprova mesmo pra "setLoading(true)"
+  // -- só aceita setState dentro do callback assíncrono), guarda pra qual
+  // igreja as turmas em `turmas` já correspondem, e deriva "carregando" só
+  // comparando com a igreja selecionada agora.
+  const [igrejaTurmasCarregadas, setIgrejaTurmasCarregadas] = useState<string | null>(null);
+  const carregandoTurmas = igrejaId !== "" && igrejaId !== igrejaTurmasCarregadas;
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -89,14 +95,33 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
     [units, setorId]
   );
 
-  useEffect(() => {
+  // Troca de igreja reseta a turma escolhida e a lista antiga -- ajuste de
+  // estado durante a renderização (não em useEffect), padrão recomendado
+  // pelo React pra "resetar estado quando um valor derivado muda"
+  // (https://react.dev/learn/you-might-not-need-an-effect), exigido pelo
+  // lint react-hooks/set-state-in-effect (CI quebrou nisso em 18/09/2026).
+  const [igrejaIdAnterior, setIgrejaIdAnterior] = useState(igrejaId);
+  if (igrejaId !== igrejaIdAnterior) {
+    setIgrejaIdAnterior(igrejaId);
     setTurmaId("");
-    if (!igrejaId) { setTurmas([]); return; }
-    setCarregandoTurmas(true);
+    setTurmas([]);
+  }
+
+  // Busca as turmas da igreja escolhida -- este sim é efeito de verdade
+  // (sincroniza com o backend); o reset de estado acima saiu daqui, e o
+  // único setState direto no corpo do efeito acontece dentro do callback
+  // assíncrono (padrão que o próprio lint aceita).
+  useEffect(() => {
+    if (!igrejaId) return;
+    let cancelado = false;
     buscarTurmasPorUnidadeConfigAction(igrejaId).then((data) => {
+      if (cancelado) return;
       setTurmas(data as Turma[]);
-      setCarregandoTurmas(false);
+      setIgrejaTurmasCarregadas(igrejaId);
     });
+    return () => {
+      cancelado = true;
+    };
   }, [igrejaId]);
 
   const turmasDoCurso = useMemo(() => {

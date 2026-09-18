@@ -592,16 +592,22 @@ export default function NovaMatriculaForm({
   // Assim que curso + igreja definem a lista de turmas daquela igreja,
   // seleciona "Turma 1" sozinho — a secretaria pode trocar pra 2/3/4 na
   // hora, sem precisar escolher entre dezenas de igrejas misturadas.
-  useEffect(() => {
+  // Ajuste de estado durante a renderização (não em useEffect) — padrão
+  // recomendado pelo React pra "resetar estado quando um valor derivado
+  // muda" (https://react.dev/learn/you-might-not-need-an-effect), exigido
+  // pelo lint react-hooks/set-state-in-effect (CI quebrou nisso em
+  // 18/09/2026). turmasDoCurso vem de useMemo, então só muda de
+  // referência quando curso/igreja/turmas realmente mudam.
+  const [turmasDoCursoAnterior, setTurmasDoCursoAnterior] = useState(turmasDoCurso);
+  if (turmasDoCurso !== turmasDoCursoAnterior) {
+    setTurmasDoCursoAnterior(turmasDoCurso);
     if (turmasDoCurso.length === 0) {
       setTurmaId("");
-      return;
+    } else if (!turmasDoCurso.some((t) => t.id === turmaId)) {
+      const turma1 = turmasDoCurso.find((t) => /turma\s*1\b/i.test(t.nome));
+      setTurmaId(turma1?.id ?? turmasDoCurso[0].id);
     }
-    const aindaValida = turmasDoCurso.some((t) => t.id === turmaId);
-    if (aindaValida) return;
-    const turma1 = turmasDoCurso.find((t) => /turma\s*1\b/i.test(t.nome));
-    setTurmaId(turma1?.id ?? turmasDoCurso[0].id);
-  }, [turmasDoCurso, turmaId]);
+  }
 
   // ── Upload da foto do aluno — mesmo bucket "avatars" usado no
   // cadastro de membros (dashboard/membros/novo). ──
