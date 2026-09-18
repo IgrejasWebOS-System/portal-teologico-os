@@ -193,3 +193,82 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   revalidatePath("/professor");
   redirect("/professor?msg=" + encodeURIComponent(`${nome_completo} matriculado(a) com sucesso.`));
 }
+
+// ── AÇÃO 3: CRIAR TURMA (mutirão de cadastro, 18/09/2026) ───────
+// Professor cria a própria turma (course_editions) e o vínculo
+// professor_turmas correspondente, que já nasce com um link_token —
+// esse é o link público que ele manda pros próprios alunos
+// (/matricula-turma/[token]). Mesmo shape de addTurmaConfigAction
+// (configuracoes/actions.ts), só que escopado ao próprio professor
+// em vez de staff.
+export async function professorCriarTurmaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const course_id = formData.get("course_id") as string;
+  const unit_id = (formData.get("unit_id") as string) || null;
+  const nome = (formData.get("nome") as string)?.trim();
+  const turno = formData.get("turno") as string;
+  const dia_semana = formData.get("dia_semana") as string;
+  const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
+  const data_inicio = (formData.get("data_inicio") as string) || null;
+  const data_fim = (formData.get("data_fim") as string) || null;
+
+  if (!course_id || !nome || !unit_id || !turno || !dia_semana) {
+    erro("Preencha curso, igreja, nome da turma, turno e dia da semana.");
+  }
+
+  const ano = data_inicio ? Number(data_inicio.slice(0, 4)) : new Date().getFullYear();
+
+  const { data: turma, error: erroTurma } = await admin
+    .from("course_editions")
+    .insert({
+      course_id,
+      unit_id,
+      nome: nome!.toUpperCase(),
+      classe,
+      ano,
+      data_inicio,
+      data_fim,
+      status: "ABERTA",
+    })
+    .select("id")
+    .single();
+
+  if (erroTurma || !turma) {
+    console.error("[professor/actions] criar turma", erroTurma);
+    erro("Erro ao criar a turma. Tente novamente.");
+  }
+
+  const { error: erroVinculo } = await admin.from("professor_turmas").insert({
+    professor_id: professor.id,
+    course_edition_id: turma!.id,
+    turno,
+    dia_semana,
+  });
+
+  if (erroVinculo) {
+    console.error("[professor/actions] vincular professor_turmas", erroVinculo);
+    erro("Turma criada, mas houve erro ao gerar seu link de matrícula. Fale com a secretaria.");
+  }
+
+  revalidatePath("/professor");
+  redirect("/professor?msg=" + encodeURIComponent(`Turma "${nome}" criada. O link de matrícula já está na lista abaixo.`));
+}
+
+// ── AÇÃO 4: DESATIVAR/REATIVAR LINK DE MATRÍCULA DE UMA TURMA ───
+export async function professorAlternarLinkTurmaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const id = formData.get("id") as string;
+  const ativar = formData.get("ativar") === "true";
+
+  const { data: vinculo } = await admin.from("professor_turmas").select("id, professor_id").eq("id", id).single();
+  if (!vinculo || vinculo.professor_id !== professor.id) {
+    erro("Este link não pertence a você.");
+  }
+
+  await admin.from("professor_turmas").update({ link_ativo: ativar }).eq("id", id);
+
+  revalidatePath("/professor");
+  redirect("/professor?msg=" + encodeURIComponent(ativar ? "Link reativado." : "Link desativado."));
+}

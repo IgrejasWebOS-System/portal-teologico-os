@@ -7,6 +7,7 @@ import { signOutAction } from "@/app/actions";
 import { calcularMediaCertificado } from "@/utils/avaliacoes/mediaCertificado";
 import Logo from "@/components/Logo";
 import { professorBaixarParcelaAction, professorCriarMatriculaAction } from "./actions";
+import TurmasDoProfessor, { type TurmaVinculo } from "./TurmasDoProfessor";
 
 export const metadata = { title: "Área do Professor — CETADP" };
 
@@ -67,6 +68,29 @@ export default async function AreaDoProfessorPage({
 
   const admin = createAdminClient();
 
+  // Mutirão de cadastro (18/09/2026): cursos + unidades pro professor
+  // criar as próprias turmas, e as turmas que ele já criou (com o link
+  // público de cada uma) pra listar/copiar.
+  const [{ data: cursosRaw }, { data: unitsRaw }, { data: turmasRaw }] = await Promise.all([
+    admin.from("courses").select("id, title").order("title"),
+    admin.from("units").select("id, type, name, parent_id").in("type", ["SETOR", "IGREJA", "SEDE"]),
+    admin
+      .from("professor_turmas")
+      .select("id, turno, dia_semana, link_token, link_ativo, course_editions(nome, classe, courses(title), units(name))")
+      .eq("professor_id", professor.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const turmasDoProfessor: TurmaVinculo[] = (turmasRaw ?? []).map((t) => ({
+    id: t.id,
+    turno: t.turno,
+    dia_semana: t.dia_semana,
+    link_token: t.link_token,
+    link_ativo: t.link_ativo,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    course_edition: (Array.isArray(t.course_editions) ? t.course_editions[0] : t.course_editions) as any,
+  }));
+
   const { data: matriculas } = await admin
     .from("ead_matriculas")
     .select("id, aluno_id, course_id, curso_nome_snapshot, matricula, status, data_matricula")
@@ -79,7 +103,7 @@ export default async function AreaDoProfessorPage({
 
   const [alunosRes, avaliacoesRes, contasRes] = await Promise.all([
     alunoIds.length
-      ? admin.from("ead_alunos").select("id, user_id, nome_completo, cpf, status").in("id", alunoIds)
+      ? admin.from("ead_alunos").select("id, user_id, nome_completo, cpf, status, convite_status").in("id", alunoIds)
       : Promise.resolve({ data: [] }),
     matriculaIds.length
       ? admin
@@ -156,6 +180,12 @@ export default async function AreaDoProfessorPage({
       testesFinalizados,
       media,
       parcelas,
+      // Mutirão de cadastro (18/09/2026): quando o convite de acesso do
+      // aluno falhou, avisa o professor aqui -- o jeito de reenviar é o
+      // próprio aluno reabrir o link da turma e preencher de novo com o
+      // mesmo CPF (matricularAlunoEmCurso detecta e só reenvia o convite,
+      // sem duplicar a matrícula).
+      convitePendente: aluno?.convite_status === "FALHOU",
     };
   });
 
@@ -196,6 +226,15 @@ export default async function AreaDoProfessorPage({
             <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
           </div>
         )}
+
+        <div className="mb-8">
+          <TurmasDoProfessor
+            cursos={cursosRaw ?? []}
+            units={(unitsRaw ?? []) as { id: string; type: string; name: string; parent_id: string | null }[]}
+            turmas={turmasDoProfessor}
+            appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+          />
+        </div>
 
         <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -295,6 +334,16 @@ export default async function AreaDoProfessorPage({
                     {l.status}
                   </span>
                 </div>
+
+                {l.convitePendente && (
+                  <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] px-2.5 py-2 rounded-lg">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      O e-mail de acesso deste aluno não foi entregue. Peça pra ele reabrir o link da
+                      turma e preencher de novo com o mesmo CPF — o convite é reenviado automaticamente.
+                    </span>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">

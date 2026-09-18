@@ -43,11 +43,44 @@ export interface MatricularParams {
   // Se a pessoa já está logada fazendo a própria matrícula, passa o
   // user.id aqui — pula o convite por e-mail (ela já tem acesso).
   userIdConhecido?: string | null;
-  origem: "INSCRICAO_PUBLICA" | "AUTO_MATRICULA";
+  origem: "INSCRICAO_PUBLICA" | "AUTO_MATRICULA" | "MUTIRAO_LINK";
+  // ── Mutirão de cadastro (18/09/2026) — matrícula vinda do link público
+  // de uma turma específica (/matricula-turma/[token]): já se sabe o
+  // course_id exato (pula a busca por título), a turma (course_edition_id,
+  // pra o professor ver "quem entrou nesta turma"), o professor dono do
+  // link, e o setor/igreja/unidade da turma (copiados pro cadastro do
+  // aluno, já que ele se cadastrou por causa dela). Também aceita um
+  // vínculo "soft" com members (member_id), quando o CPF bateu, e a
+  // matrícula de membro que a pessoa digitou de cabeça — nunca usada
+  // pra bloquear, só informativa.
+  courseIdConhecido?: string | null;
+  courseEditionId?: string | null;
+  professorId?: string | null;
+  unitId?: string | null;
+  churchId?: string | null;
+  sectorId?: string | null;
+  memberId?: string | null;
+  matriculaMembroInformada?: string | null;
 }
 
 export type MatricularResultado =
-  | { ok: true; matricula: string; alunoId: string; courseId: string | null }
+  | {
+      ok: true;
+      matricula: string;
+      alunoId: string;
+      // id da linha em ead_matriculas -- é isso (não alunoId) que
+      // fin_contas_receber.origem_id precisa guardar quando
+      // origem_tipo='MATRICULA_DIRETA', pro professor conseguir dar baixa
+      // em parcela depois (professorBaixarParcelaAction junta origem_id
+      // direto com ead_matriculas.id).
+      matriculaId: string;
+      courseId: string | null;
+      // true = o e-mail já pertencia a outra conta (aluno de outro curso,
+      // membro com login, etc.) e foi reaproveitado -- não saiu convite
+      // novo. Quem chama usa isso pra não prometer "confira seu e-mail"
+      // quando nenhum e-mail foi enviado de fato.
+      contaExistentePromovida: boolean;
+    }
   | { ok: false; erro: string };
 
 export async function matricularAlunoEmCurso(
@@ -55,11 +88,16 @@ export async function matricularAlunoEmCurso(
   admin: SupabaseClient<any>,
   params: MatricularParams
 ): Promise<MatricularResultado> {
-  let courseId: string | null = null;
-  const tituloCurso = CURSO_PRETENDIDO_PARA_TITULO_CURSO[params.cursoPretendido];
-  if (tituloCurso) {
-    const { data: curso } = await admin.from("courses").select("id").eq("title", tituloCurso).maybeSingle();
-    courseId = curso?.id ?? null;
+  // Mutirão de cadastro: quem chamou já sabe o course_id exato (veio da
+  // turma do link), não precisa resolver por título — evita um lookup a
+  // mais e qualquer risco de não bater o título (ex.: curso renomeado).
+  let courseId: string | null = params.courseIdConhecido ?? null;
+  if (!courseId) {
+    const tituloCurso = CURSO_PRETENDIDO_PARA_TITULO_CURSO[params.cursoPretendido];
+    if (tituloCurso) {
+      const { data: curso } = await admin.from("courses").select("id").eq("title", tituloCurso).maybeSingle();
+      courseId = curso?.id ?? null;
+    }
   }
 
   const cpfLimpo = params.cpf?.trim() || null;
@@ -78,16 +116,125 @@ export async function matricularAlunoEmCurso(
     aluno = data;
   }
 
+  // Convite de acesso — à prova de erro (pedido do Joaquim em 18/09/2026,
+  // mutirão de cadastro): extraído em função porque é reaproveitado em
+  // dois lugares — matrícula nova, e REENVIO (ver bloco de conflito logo
+  // abaixo) quando a pessoa já tem cadastro+matrícula neste curso mas
+  // nunca conseguiu entrar (convite caiu no spam, provedor de e-mail fora
+  // do ar). Nunca desfaz o cadastro já salvo se o convite falhar — só
+  // registra o resultado em convite_status pra dar pra reenviar depois
+  // sem duplicar nada:
+  // - ENVIADO: e-mail novo, convite saiu normalmente.
+  // - ENVIADO (promovido): e-mail já pertencia a outra conta (aluno de
+  //   outro curso, membro com login, etc.) — reaproveita o user_id em vez
+  //   de tratar como erro (mesmo padrão de grantNucleoAccess em
+  //   configuracoes/actions.ts).
+  // - FALHOU: erro genuíno (rate limit do Supabase, provedor de e-mail
+  //   fora do ar, etc.) — fica registrado em convite_erro pra reenviar.
+  async function tentarConvite(
+    alunoAtual: { id: string; user_id: string | null }
+  ): Promise<{ userId: string | null; contaExistentePromovida: boolean }> {
+    // Já tinha user_id antes mesmo de chegar aqui (achado por CPF/
+    // userIdConhecido, ou por uma tentativa de convite anterior que já
+    // tinha promovido) -- não sai convite nenhum, quem chama não deve
+    // prometer "confira seu e-mail".
+    if (alunoAtual.user_id) {
+      return { userId: alunoAtual.user_id, contaExistentePromovida: true };
+    }
+
+    try {
+      const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(params.email, {
+        data: { full_name: params.nomeCompleto },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
+      });
+
+      if (invited?.user?.id) {
+        await admin
+          .from("ead_alunos")
+          .update({
+            user_id: invited.user.id,
+            email: params.email,
+            convite_status: "ENVIADO",
+            convite_enviado_em: new Date().toISOString(),
+            convite_erro: null,
+          })
+          .eq("id", alunoAtual.id);
+        return { userId: invited.user.id, contaExistentePromovida: false };
+      }
+
+      if (inviteError) {
+        // "E-mail já cadastrado" não é falha real — é sinal de que a
+        // pessoa já tem login (outro curso, membro, staff). Busca o
+        // user_id existente por e-mail e vincula, em vez de travar o
+        // mutirão inteiro por causa disso.
+        const { data: profileExistente } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("email", params.email)
+          .maybeSingle();
+
+        if (profileExistente?.id) {
+          await admin
+            .from("ead_alunos")
+            .update({
+              user_id: profileExistente.id,
+              email: params.email,
+              convite_status: "ENVIADO",
+              convite_enviado_em: new Date().toISOString(),
+              convite_erro: null,
+            })
+            .eq("id", alunoAtual.id);
+          return { userId: profileExistente.id, contaExistentePromovida: true };
+        }
+
+        await admin
+          .from("ead_alunos")
+          .update({ convite_status: "FALHOU", convite_erro: inviteError.message })
+          .eq("id", alunoAtual.id);
+        return { userId: null, contaExistentePromovida: false };
+      }
+    } catch (err) {
+      // inviteUserByEmail não deveria lançar, mas se lançar (rede,
+      // timeout), o cadastro do aluno já está salvo — só marca o convite
+      // como falho pra alguém reenviar depois.
+      const msg = err instanceof Error ? err.message : "erro desconhecido";
+      console.error("[matricularAlunoEmCurso] erro inesperado ao convidar aluno:", err);
+      await admin.from("ead_alunos").update({ convite_status: "FALHOU", convite_erro: msg }).eq("id", alunoAtual.id);
+    }
+
+    return { userId: null, contaExistentePromovida: false };
+  }
+
   if (aluno && courseId) {
     const { data: conflito } = await admin
       .from("ead_matriculas")
-      .select("id")
+      .select("id, matricula")
       .eq("aluno_id", aluno.id)
       .eq("course_id", courseId)
       .in("status", ["EM_ANDAMENTO", "APROVADO"])
       .maybeSingle();
 
     if (conflito) {
+      // Reenvio de convite (18/09/2026): a pessoa já tem cadastro E
+      // matrícula neste curso, mas nunca conseguiu acessar (convite
+      // falhou, e-mail caiu no spam, ou preencheu o formulário de novo
+      // sem saber que já tinha se cadastrado antes) — em vez de bloquear
+      // com "já matriculado", só tenta o convite de novo pro mesmo
+      // cadastro. Só bloqueia de fato quando a pessoa já tem login ativo
+      // (user_id preenchido), que aí sim é tentativa de matrícula
+      // duplicada de verdade.
+      if (!aluno.user_id) {
+        const { contaExistentePromovida } = await tentarConvite(aluno);
+        return {
+          ok: true,
+          matricula: conflito.matricula,
+          alunoId: aluno.id,
+          matriculaId: conflito.id,
+          courseId,
+          contaExistentePromovida,
+        };
+      }
+
       return {
         ok: false,
         erro:
@@ -115,6 +262,13 @@ export async function matricularAlunoEmCurso(
         matricula,
         curso_pretendido: params.cursoPretendido,
         status: "ATIVO",
+        unit_id: params.unitId ?? null,
+        church_id: params.churchId ?? null,
+        sector_id: params.sectorId ?? null,
+        member_id: params.memberId ?? null,
+        matricula_membro_informada: params.matriculaMembroInformada ?? null,
+        tipo_aluno: params.memberId ? "MEMBRO" : "EXTERNO",
+        nacionalidade: "Brasileira",
       })
       .select("id, user_id")
       .single();
@@ -125,33 +279,28 @@ export async function matricularAlunoEmCurso(
     aluno = novoAluno;
   }
 
-  if (!aluno.user_id) {
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(params.email, {
-      data: { full_name: params.nomeCompleto },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
-    });
-
-    if (inviteError) {
-      return { ok: false, erro: "Erro ao criar acesso do aluno: " + inviteError.message };
-    }
-
-    if (invited?.user?.id) {
-      await admin.from("ead_alunos").update({ user_id: invited.user.id }).eq("id", aluno.id);
-      aluno = { ...aluno, user_id: invited.user.id };
-    }
+  const { userId: userIdAposConvite, contaExistentePromovida } = await tentarConvite(aluno);
+  if (userIdAposConvite) {
+    aluno = { ...aluno, user_id: userIdAposConvite };
   }
 
-  const { error: matriculaInsertError } = await admin.from("ead_matriculas").insert({
-    aluno_id: aluno.id,
-    course_id: courseId,
-    curso_nome_snapshot: labelCurso(params.cursoPretendido),
-    matricula,
-    status: "EM_ANDAMENTO",
-    origem: params.origem,
-  });
+  const { data: matriculaRow, error: matriculaInsertError } = await admin
+    .from("ead_matriculas")
+    .insert({
+      aluno_id: aluno.id,
+      course_id: courseId,
+      course_edition_id: params.courseEditionId ?? null,
+      professor_id: params.professorId ?? null,
+      curso_nome_snapshot: labelCurso(params.cursoPretendido),
+      matricula,
+      status: "EM_ANDAMENTO",
+      origem: params.origem,
+    })
+    .select("id")
+    .single();
 
-  if (matriculaInsertError) {
-    return { ok: false, erro: "Erro ao registrar matrícula: " + matriculaInsertError.message };
+  if (matriculaInsertError || !matriculaRow) {
+    return { ok: false, erro: "Erro ao registrar matrícula: " + (matriculaInsertError?.message ?? "desconhecido") };
   }
 
   // Também garante a matrícula no sistema genérico de aulas (enrollments),
@@ -167,5 +316,5 @@ export async function matricularAlunoEmCurso(
       );
   }
 
-  return { ok: true, matricula, alunoId: aluno.id, courseId };
+  return { ok: true, matricula, alunoId: aluno.id, matriculaId: matriculaRow.id, courseId, contaExistentePromovida };
 }

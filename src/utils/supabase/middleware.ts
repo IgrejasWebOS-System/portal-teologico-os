@@ -19,6 +19,10 @@ const PUBLIC_PATHS = [
   "/matricula/pagamento",
   "/api/webhooks/mercadopago",
   "/confirmar-cadastro",
+  // Mutirão de cadastro (18/09/2026) — links públicos de autocadastro de
+  // professor e de aluno (vinculado a professor+turma), sem login.
+  "/cadastro-professor",
+  "/matricula-turma",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
