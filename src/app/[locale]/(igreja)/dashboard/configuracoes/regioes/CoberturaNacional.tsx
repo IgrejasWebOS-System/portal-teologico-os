@@ -82,12 +82,12 @@ export default function CoberturaNacional({ cobertura }: Props) {
       </div>
 
       {mostrarMapa && (
-        <div className="bg-iw-surface rounded-2xl border border-iw-border p-4">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold p-4">
           <BrasilCartograma cobertura={cobertura} ufSelecionada={ufSelecionada} onSelectUf={setUfSelecionada} />
         </div>
       )}
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1fr_auto_auto_auto_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
           <span className="text-xs font-bold text-black uppercase tracking-wider">Estado</span>
           <span className="text-xs font-bold text-black uppercase tracking-wider">Região</span>

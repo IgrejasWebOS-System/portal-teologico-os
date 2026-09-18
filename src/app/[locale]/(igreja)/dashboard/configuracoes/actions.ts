@@ -27,7 +27,14 @@ export async function addSettingItemAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { error } = await supabase.from(table).insert({ name });
+  // Sigla é usada só por Cargos hoje (ex.: PASTOR = PR) — as outras
+  // tabelas simples nem mandam esse campo no formulário, então o insert
+  // fica igual a antes pra elas.
+  const siglaRaw = (formData.get("sigla") as string)?.trim().toUpperCase();
+  const payload: { name: string; sigla?: string | null } = { name };
+  if (siglaRaw !== undefined && siglaRaw !== "") payload.sigla = siglaRaw;
+
+  const { error } = await supabase.from(table).insert(payload);
   if (error) {
     console.error("[configuracoes/actions]", error);
     return { success: false, message: "Erro ao salvar. Tente novamente." };
@@ -60,7 +67,8 @@ export async function deleteSettingItemAction(
 export async function updateSettingItemAction(
   table: SimpleTable,
   id: string,
-  name: string
+  name: string,
+  sigla?: string
 ) {
   const trimmed = name.trim().toUpperCase();
   if (!trimmed) return { success: false, message: "Nome obrigatório." };
@@ -69,7 +77,10 @@ export async function updateSettingItemAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { error } = await supabase.from(table).update({ name: trimmed }).eq("id", id);
+  const payload: { name: string; sigla?: string | null } = { name: trimmed };
+  if (sigla !== undefined) payload.sigla = sigla.trim() ? sigla.trim().toUpperCase() : null;
+
+  const { error } = await supabase.from(table).update(payload).eq("id", id);
   if (error) {
     console.error("[configuracoes/actions]", error);
     return { success: false, message: "Erro ao salvar. Tente novamente." };
@@ -396,6 +407,33 @@ export async function buscarCadastroCompletoAction(
   return { success: true, data: mapMembroCompleto(data as unknown as Record<string, unknown>) };
 }
 
+// ── Busca de cadastro completo por ID direto (members.id) ──────
+// Usada no cadastro de Professor: quando o professor já está vinculado
+// a um member_id, este painel busca a ficha completa do membro (só
+// leitura — os dados pessoais em si continuam sendo editados no
+// cadastro de Membros, não duplicados aqui) pra exibir na tela de
+// edição do professor.
+export async function buscarMembroCompletoPorIdAction(
+  memberId: string
+): Promise<{ success: boolean; data?: MembroCompletoEncontrado; message?: string }> {
+  if (!memberId) return { success: false, message: "ID do membro não informado." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("members")
+    .select(CAMPOS_MEMBRO_COMPLETO)
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[configuracoes/actions] buscarMembroCompletoPorIdAction", error);
+    return { success: false, message: "Erro ao buscar ficha do membro." };
+  }
+  if (!data) return { success: false, message: "Membro não encontrado." };
+
+  return { success: true, data: mapMembroCompleto(data as unknown as Record<string, unknown>) };
+}
+
 // ── Busca de membro por nome (retorna vários — nome não é único) ──
 export async function buscarMembroPorNomeAction(
   nome: string
@@ -626,6 +664,41 @@ async function grantNucleoAccess(
     : `Professor salvo. Convite de acesso enviado para ${email} (nível 4, escopado a este núcleo).`;
 }
 
+// Ficha completa do professor — mesmos campos que `members`/`ead_alunos`
+// têm, sempre gravados direto em `professores` (15/09/2026: cadastro
+// unificado). Quando o professor é achado via busca de membro, esses
+// campos chegam pré-preenchidos pelo formulário (cópia, não referência —
+// mesmo padrão de Nova Matrícula); quando não é membro, a secretaria
+// preenche na mão. De qualquer forma, `professores` é sempre a fonte de
+// verdade pra exibição — não depende de leitura ao vivo de `members`.
+function extrairFicha(formData: FormData) {
+  return {
+    cpf: (formData.get("cpf") as string)?.trim() || null,
+    rg: (formData.get("rg") as string)?.trim() || null,
+    rg_orgao_emissor: (formData.get("rg_orgao_emissor") as string)?.trim() || null,
+    rg_uf: (formData.get("rg_uf") as string)?.trim() || null,
+    data_nascimento: (formData.get("data_nascimento") as string) || null,
+    genero: (formData.get("genero") as string) || null,
+    estado_civil: (formData.get("estado_civil") as string) || null,
+    escolaridade: (formData.get("escolaridade") as string) || null,
+    profissao: (formData.get("profissao") as string)?.trim() || null,
+    naturalidade_cidade: (formData.get("naturalidade_cidade") as string)?.trim() || null,
+    naturalidade_estado: (formData.get("naturalidade_estado") as string) || null,
+    nacionalidade: (formData.get("nacionalidade") as string)?.trim() || null,
+    nome_conjuge: (formData.get("nome_conjuge") as string)?.trim() || null,
+    nome_mae: (formData.get("nome_mae") as string)?.trim() || null,
+    nome_pai: (formData.get("nome_pai") as string)?.trim() || null,
+    cep: (formData.get("cep") as string)?.trim() || null,
+    endereco: (formData.get("endereco") as string)?.trim() || null,
+    endereco_numero: (formData.get("endereco_numero") as string)?.trim() || null,
+    endereco_complemento: (formData.get("endereco_complemento") as string)?.trim() || null,
+    bairro: (formData.get("bairro") as string)?.trim() || null,
+    cidade: (formData.get("cidade") as string)?.trim() || null,
+    estado: (formData.get("estado") as string) || null,
+    foto_url: (formData.get("foto_url") as string)?.trim() || null,
+  };
+}
+
 export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
@@ -638,15 +711,34 @@ export async function addProfessorAction(formData: FormData) {
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
 
+  const memberId = (formData.get("member_id") as string) || null;
+  const tipoProfessor = memberId ? "MEMBRO" : "EXTERNO";
+
+  // Professor de fora não tem matrícula de Membros pra copiar — ganha um
+  // código próprio, gerado uma única vez aqui na criação (mesmo padrão de
+  // get_next_matricula_ead, ver migration 105). Professor membro usa a
+  // matrícula que o formulário já trouxe da busca (registration_number).
+  let matricula = (formData.get("matricula") as string) || null;
+  if (tipoProfessor === "EXTERNO" && !matricula) {
+    const { data: matriculaGerada, error: matriculaError } = await supabase.rpc("get_next_matricula_professor");
+    if (matriculaError) {
+      console.error("[configuracoes/actions] get_next_matricula_professor", matriculaError);
+      return { success: false, message: "Erro ao gerar o código de cadastro. Tente novamente." };
+    }
+    matricula = matriculaGerada;
+  }
+
   const payload = {
     unit_id: unitId,
     sector_id,
     church_id,
-    member_id: (formData.get("member_id") as string) || null,
-    matricula: (formData.get("matricula") as string) || null,
+    tipo_professor: tipoProfessor,
+    member_id: memberId,
+    matricula,
     nome_completo: nomeCompleto,
     cargo: (formData.get("cargo") as string) || null,
     telefone: (formData.get("telefone") as string) || null,
+    ...extrairFicha(formData),
   };
 
   const { data, error } = await supabase
@@ -690,15 +782,34 @@ export async function updateProfessorAction(formData: FormData) {
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
 
+  const memberId = (formData.get("member_id") as string) || null;
+  const tipoProfessor = memberId ? "MEMBRO" : "EXTERNO";
+
+  // Matrícula: o formulário já manda de volta a que estava (do membro
+  // achado na busca, ou a que já tinha sido gerada pro externo) — só gera
+  // uma nova aqui se por algum motivo estiver vazia num professor EXTERNO
+  // (ex.: professor tinha vínculo de membro e a secretaria desvinculou).
+  let matricula = (formData.get("matricula") as string) || null;
+  if (tipoProfessor === "EXTERNO" && !matricula) {
+    const { data: matriculaGerada, error: matriculaError } = await supabase.rpc("get_next_matricula_professor");
+    if (matriculaError) {
+      console.error("[configuracoes/actions] get_next_matricula_professor", matriculaError);
+      return { success: false, message: "Erro ao gerar o código de cadastro. Tente novamente." };
+    }
+    matricula = matriculaGerada;
+  }
+
   const payload = {
     unit_id: unitId,
     sector_id,
     church_id,
-    member_id: (formData.get("member_id") as string) || null,
-    matricula: (formData.get("matricula") as string) || null,
+    tipo_professor: tipoProfessor,
+    member_id: memberId,
+    matricula,
     nome_completo: nomeCompleto,
     cargo: (formData.get("cargo") as string) || null,
     telefone: (formData.get("telefone") as string) || null,
+    ...extrairFicha(formData),
   };
 
   const { error } = await supabase.from("professores").update(payload).eq("id", id);
@@ -732,6 +843,57 @@ export async function deleteProfessorAction(id: string) {
   }
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true };
+}
+
+// ── Vínculos de Turma do professor (professor_turmas) ───────────
+// Granularidade decidida com o Joaquim: Turma + Turno + Dia da semana
+// (AskUserQuestion, 15/09/2026) — um professor pode ter vários
+// vínculos (turmas/turnos/dias diferentes), inclusive duas "salas"
+// (Classe A/Classe B) da mesma turma em horários distintos.
+export async function addProfessorTurmaAction(formData: FormData) {
+  const professorId = (formData.get("professor_id") as string) || "";
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const turno = (formData.get("turno") as string) || "";
+  const diaSemana = (formData.get("dia_semana") as string) || "";
+
+  if (!professorId) return { success: false, message: "Professor não identificado." };
+  if (!courseEditionId) return { success: false, message: "Selecione a turma." };
+  if (!turno) return { success: false, message: "Selecione o turno." };
+  if (!diaSemana) return { success: false, message: "Selecione o dia da semana." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("professor_turmas").insert({
+    professor_id: professorId,
+    course_edition_id: courseEditionId,
+    turno,
+    dia_semana: diaSemana,
+  });
+
+  if (error) {
+    console.error("[configuracoes/actions] addProfessorTurmaAction", error);
+    if (error.code === "23505") {
+      return { success: false, message: "Este professor já tem esse mesmo vínculo (turma + turno + dia)." };
+    }
+    return { success: false, message: "Erro ao salvar o vínculo. Tente novamente." };
+  }
+
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
+}
+
+export async function deleteProfessorTurmaAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("professor_turmas").delete().eq("id", id);
+  if (error) {
+    console.error("[configuracoes/actions] deleteProfessorTurmaAction", error);
+    return { success: false, message: "Erro ao remover o vínculo." };
+  }
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
+}
+
+export async function deleteProfessorTurmaFormAction(id: string) {
+  await deleteProfessorTurmaAction(id);
 }
 
 // ── Sedes Regionais ──────────────────────────────────────────
@@ -1023,16 +1185,33 @@ export async function atualizarPerfilUsuarioAction(formData: FormData) {
 // direto em <form action={...}> num Server Component — o tipo do
 // action de <form> exige void | Promise<void>, e uma função que só
 // termina em redirect() (never) satisfaz isso.
+// Mantém os filtros (ano/setor/igreja) na URL depois de qualquer ação
+// nessa tela — sem isso, cada Cadastrar/Salvar jogava o usuário de
+// volta pra tela sem filtro nenhum, obrigando escolher tudo de novo
+// no meio de 6.800+ turmas.
+function querystringFiltros(formData: FormData): string {
+  const params = new URLSearchParams();
+  for (const campo of ["ano", "setor_id", "igreja_id"]) {
+    const valor = formData.get(campo) as string;
+    if (valor) params.set(campo, valor);
+  }
+  const qs = params.toString();
+  return qs ? "&" + qs : "";
+}
+
 export async function addTurmaConfigAction(formData: FormData) {
   const courseId = (formData.get("course_id") as string) || "";
+  const unitId = (formData.get("unit_id") as string) || null;
   const nome = (formData.get("nome") as string)?.trim();
+  const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const dataInicio = (formData.get("data_inicio") as string) || null;
   const dataFim = (formData.get("data_fim") as string) || null;
+  const filtros = querystringFiltros(formData);
 
   if (!courseId || !nome) {
     redirect(
       "/dashboard/configuracoes/persona/turmas?error=" +
-        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+        encodeURIComponent("Selecione o curso e informe o nome da turma.") + filtros
     );
   }
 
@@ -1044,7 +1223,9 @@ export async function addTurmaConfigAction(formData: FormData) {
 
   const { error } = await supabase.from("course_editions").insert({
     course_id: courseId,
+    unit_id: unitId,
     nome: nome!.toUpperCase(),
+    classe,
     ano,
     data_inicio: dataInicio,
     data_fim: dataFim,
@@ -1054,29 +1235,32 @@ export async function addTurmaConfigAction(formData: FormData) {
   if (error) {
     console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.") + filtros
     );
   }
 
   revalidatePath("/dashboard/configuracoes/persona/turmas");
   redirect(
     "/dashboard/configuracoes/persona/turmas?msg=" +
-      encodeURIComponent(`Turma "${nome}" cadastrada.`)
+      encodeURIComponent(`Turma "${nome}" cadastrada.`) + filtros
   );
 }
 
 export async function updateTurmaConfigAction(formData: FormData) {
   const id = (formData.get("id") as string) || "";
   const courseId = (formData.get("course_id") as string) || "";
+  const unitId = (formData.get("unit_id") as string) || null;
   const nome = (formData.get("nome") as string)?.trim();
+  const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const dataInicio = (formData.get("data_inicio") as string) || null;
   const dataFim = (formData.get("data_fim") as string) || null;
   const status = (formData.get("status") as string) || "ABERTA";
+  const filtros = querystringFiltros(formData);
 
   if (!id || !courseId || !nome) {
     redirect(
       "/dashboard/configuracoes/persona/turmas?error=" +
-        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+        encodeURIComponent("Selecione o curso e informe o nome da turma.") + filtros
     );
   }
 
@@ -1090,7 +1274,9 @@ export async function updateTurmaConfigAction(formData: FormData) {
     .from("course_editions")
     .update({
       course_id: courseId,
+      unit_id: unitId,
       nome: nome!.toUpperCase(),
+      classe,
       ano,
       data_inicio: dataInicio,
       data_fim: dataFim,
@@ -1101,15 +1287,36 @@ export async function updateTurmaConfigAction(formData: FormData) {
   if (error) {
     console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.") + filtros
     );
   }
 
   revalidatePath("/dashboard/configuracoes/persona/turmas");
   redirect(
     "/dashboard/configuracoes/persona/turmas?msg=" +
-      encodeURIComponent(`Turma "${nome}" atualizada.`)
+      encodeURIComponent(`Turma "${nome}" atualizada.`) + filtros
   );
+}
+
+// Turmas de uma igreja/núcleo específico, buscadas sob demanda — usada
+// no cascata "Vínculos de Turma" do cadastro de Professor. Mesmo motivo
+// de buscarTurmasPorUnidadeAction (admin/matriculas/actions.ts): com
+// 6.800+ turmas geradas em lote, pré-carregar tudo estoura o limite
+// padrão de 1000 linhas do Supabase.
+export async function buscarTurmasPorUnidadeConfigAction(unitId: string) {
+  if (!unitId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("course_editions")
+    .select("id, nome, classe, course_id, unit_id, ano")
+    .or(`unit_id.eq.${unitId},unit_id.is.null`)
+    .order("nome");
+
+  if (error) {
+    console.error("[configuracoes/actions] buscarTurmasPorUnidadeConfigAction", error);
+    return [];
+  }
+  return data ?? [];
 }
 
 export async function deleteTurmaAction(id: string) {

@@ -5,6 +5,7 @@ import { GraduationCap, BookMarked, Award, ArrowRight, ClipboardList, UserPlus, 
 import PublicFooter from "@/components/public/PublicFooter";
 import Logo from "@/components/Logo";
 import { checkIsStaff } from "@/utils/staff";
+import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 
 // ============================================================
@@ -67,7 +68,7 @@ const modules = [
       "Simulado opcional (ilimitado) e prova final (única tentativa) de cada curso em andamento.",
     border: "border-iw-blue/30",
     iconBg: "bg-iw-blue/10",
-    iconColor: "text-iw-blue",
+    iconColor: "text-iw-navy",
     badge: "Ativo",
     badgeColor: "bg-iw-success/10 text-iw-success",
   },
@@ -96,6 +97,9 @@ export default async function PortalHubPage() {
   // Staff nunca deveria ficar navegando o hub do aluno — mesmo que caia
   // aqui por link antigo, back button, etc., manda direto pro /admin.
   if (await checkIsStaff(supabase, user.id)) redirect("/admin");
+
+  // Professor com login vinculado (Módulo 1) cai direto na área dele.
+  if (await checkIsProfessor(supabase, user.id)) redirect("/professor");
 
   // Decisão do Joaquim em 12/09/2026: "/portal" deixou de ser o destino
   // principal do aluno oficial — todo o gerenciamento passou pra própria
@@ -186,7 +190,7 @@ export default async function PortalHubPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-iw-blue text-sm font-semibold group-hover:gap-2.5 transition-all">
+                <div className="flex items-center gap-1.5 text-iw-navy text-sm font-semibold group-hover:gap-2.5 transition-all">
                   <span>Acessar</span>
                   <ArrowRight className="w-4 h-4" />
                 </div>

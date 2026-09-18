@@ -38,7 +38,7 @@ export default async function SedesPage() {
       {candidatas.length > 0 && (
         <form
           action={promoverSedeFormAction}
-          className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-5 flex flex-col sm:flex-row gap-3 sm:items-end"
+          className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-5 flex flex-col sm:flex-row gap-3 sm:items-end"
         >
           <div className="flex-1">
             <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">
@@ -47,7 +47,7 @@ export default async function SedesPage() {
             <select
               name="church_id"
               required
-              className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+              className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
             >
               <option value="">Selecione uma igreja...</option>
               {candidatas.map((c) => (
@@ -65,7 +65,7 @@ export default async function SedesPage() {
         </form>
       )}
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome da Sede (Igreja)</span>
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Setor Vinculado</span>

@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Send, Loader2 } from "lucide-react";
 import { autoMatricularAction } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -111,7 +112,7 @@ export default function AutoMatriculaForm({ campos }: { campos: CampoMinisterio[
 
       <div>
         <label className={labelCls} htmlFor="campo_ministerio_id">Campo / Ministério</label>
-        <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue="">
+        <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue={resolverCampoPadraoId(campos)}>
           <option value="">Selecione (opcional)</option>
           {campos.map((c) => (
             <option key={c.id} value={c.id}>{c.nome}</option>

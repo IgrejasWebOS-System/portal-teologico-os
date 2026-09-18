@@ -99,9 +99,9 @@ export default async function RegioesPage() {
 
       {/* Vincular setor a uma região */}
       {regioes.length > 0 && (
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
           <h3 className="flex items-center gap-2 text-xs font-black text-iw-navy uppercase tracking-widest mb-1 pb-2 border-b border-iw-border">
-            <Link2 className="w-4 h-4 text-iw-blue" />
+            <Link2 className="w-4 h-4 text-iw-navy" />
             Vincular Setor a uma Região
           </h3>
           <form action={vincularSetorRegiaoFormAction} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
@@ -110,7 +110,7 @@ export default async function RegioesPage() {
               <select
                 name="setor_id"
                 required
-                className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+                className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
               >
                 <option value="">Selecione um setor...</option>
                 {setores.map((s) => (
@@ -125,7 +125,7 @@ export default async function RegioesPage() {
               <select
                 name="regiao_id"
                 required
-                className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer"
+                className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
               >
                 <option value="">Selecione uma região...</option>
                 {regioes.map((r) => (
@@ -152,7 +152,7 @@ export default async function RegioesPage() {
       {regioes.map((regiao) => {
         const membrosRegiao = setores.filter((s) => s.regiao_id === regiao.id);
         return (
-          <div key={regiao.id} className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+          <div key={regiao.id} className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
             <div className="px-5 py-3 bg-iw-bg border-b border-iw-border flex items-center justify-between">
               <span className="text-sm font-bold text-black">{regiao.name}</span>
               <span className="text-xs text-black">{membrosRegiao.length} setor(es)</span>
@@ -189,7 +189,9 @@ export default async function RegioesPage() {
         icon={Globe2}
         title="Região"
         description="Agrupamento geográfico de setores — cada setor pertence a 1 região"
-        iconColor="text-iw-blue"
+        backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
+        backLabel="VOLTAR"
+        iconColor="text-iw-navy"
         iconBg="bg-iw-blue/10"
       />
 

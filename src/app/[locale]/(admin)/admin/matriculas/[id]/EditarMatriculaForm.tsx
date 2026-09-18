@@ -12,6 +12,7 @@ import {
   atualizarMatriculaAction, lancarPagamentoRetroativoAction, cancelarMatriculaAction,
 } from "../actions";
 import { baixarParcelaAction, cancelarParcelaAction } from "../../financeiro/actions";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type SelectItem = { id: string; name: string };
@@ -84,7 +85,7 @@ function statusEfetivoPagamento(p: Pagamento): string {
 }
 
 const boxCls =
-  "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
+  "border border-iw-navy rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-1 focus-within:ring-iw-gold/30 transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
@@ -128,7 +129,7 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
 
 const PAGAMENTO_STATUS_STYLE: Record<string, string> = {
   PAGO: "bg-iw-success-bg text-iw-success border-iw-success/30",
-  PENDENTE: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  PENDENTE: "bg-iw-blue/10 text-iw-navy border-iw-blue/30",
   ATRASADO: "bg-iw-error-bg text-iw-error border-iw-error/30",
   CANCELADO: "bg-iw-bg text-iw-muted border-iw-border",
 };
@@ -145,6 +146,7 @@ function formatarDataBr(iso: string | null): string {
 
 export default function EditarMatriculaForm({
   matricula, aluno, campos, churches, setores, turmas, professores, pagamentos, caixaAbertoId, errorMsg, successMsg,
+  voltarPara = "/admin/matriculas", voltarLabel = "Voltar para Matrículas",
 }: {
   matricula: Matricula;
   aluno: Aluno;
@@ -157,6 +159,14 @@ export default function EditarMatriculaForm({
   caixaAbertoId: string;
   errorMsg?: string;
   successMsg?: string;
+  // Esta tela é aberta de dois lugares — da lista de Matrículas E do
+  // cadastro de Aluno em Configuracões > Persona (botão "Editar cadastro
+  // completo") — o botão Voltar precisa respeitar de onde veio, senão
+  // sempre manda pra lista de Matrículas mesmo quem entrou pelo Aluno
+  // (bug reportado 15/09/2026). Vem via searchParams ?voltarPara=&voltarLabel=
+  // na page.tsx; sem eles, cai no padrão de sempre (lista de Matrículas).
+  voltarPara?: string;
+  voltarLabel?: string;
 }) {
   const [sectorId, setSectorId] = useState(aluno.sector_id ?? "");
   const [churchId, setChurchId] = useState(aluno.church_id ?? "");
@@ -218,8 +228,8 @@ export default function EditarMatriculaForm({
         icon={GraduationCap}
         title={`Editar matrícula — ${matricula.matricula}`}
         description={`${aluno.nome_completo} — ${matricula.curso_nome_snapshot}`}
-        backHref="/admin/matriculas"
-        backLabel="Voltar para Matrículas"
+        backHref={voltarPara}
+        backLabel={voltarLabel}
       />
 
       {/* Wrappers sempre montados — evita remontar os formulários (e perder
@@ -252,7 +262,7 @@ export default function EditarMatriculaForm({
             <button
               type="button"
               onClick={copiarLink}
-              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-blue hover:text-iw-navy"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-navy hover:text-iw-navy"
             >
               {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copiado ? "Copiado" : "Copiar link"}
@@ -265,7 +275,7 @@ export default function EditarMatriculaForm({
       )}
 
       {/* ── Dados pessoais + curso/vínculo ── */}
-      <form action={atualizarMatriculaAction} className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-6">
+      <form action={atualizarMatriculaAction} className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-6">
         <input type="hidden" name="matricula_id" value={matricula.id} />
         <input type="hidden" name="aluno_id" value={aluno.id} />
 
@@ -403,7 +413,7 @@ export default function EditarMatriculaForm({
         </div>
         <div className="grid grid-cols-12 gap-3">
           <Field label="Campo / Ministério" span="col-span-12 md:col-span-4">
-            <select name="campo_ministerio_id" defaultValue={aluno.campo_ministerio_id ?? ""} className={bareSelectCls}>
+            <select name="campo_ministerio_id" defaultValue={resolverCampoPadraoId(campos, aluno.campo_ministerio_id)} className={bareSelectCls}>
               <option value="">Selecione (opcional)</option>
               {campos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
@@ -438,7 +448,7 @@ export default function EditarMatriculaForm({
       </form>
 
       {/* ── Pagamentos ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <SectionHeader icon={Wallet} label="Pagamentos" />
 
         {pagamentos.length > 0 ? (
@@ -469,18 +479,18 @@ export default function EditarMatriculaForm({
 
                   {podeBaixar && (
                     <details className="group">
-                      <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-xs font-bold text-iw-blue hover:opacity-80">
+                      <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:opacity-80">
                         <Check className="w-3.5 h-3.5" />
                         Dar baixa / cancelar
                       </summary>
-                      <div className="mt-3 space-y-3 bg-white rounded-xl p-4 border border-iw-border">
+                      <div className="mt-3 space-y-3 bg-white rounded-xl p-4 border border-iw-gold">
                         <form action={baixarParcelaAction} className="grid grid-cols-1 sm:grid-cols-6 gap-3">
                           <input type="hidden" name="id" value={p.id} />
                           <input type="hidden" name="caixa_diario_id" value={caixaAbertoId} />
                           <select
                             name="forma_pagamento"
                             defaultValue={p.forma_pagamento_prevista}
-                            className="sm:col-span-2 bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm cursor-pointer"
+                            className="sm:col-span-2 bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm cursor-pointer focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
                           >
                             <option value="DINHEIRO" disabled={!caixaAbertoId}>
                               Dinheiro {!caixaAbertoId ? "(abra o caixa)" : ""}
@@ -493,12 +503,12 @@ export default function EditarMatriculaForm({
                           <input
                             name="taxa_operadora"
                             placeholder="% taxa operadora"
-                            className="sm:col-span-2 bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm"
+                            className="sm:col-span-2 bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
                           />
                           <input
                             name="taxa_antecipacao"
                             placeholder="% antecipação"
-                            className="sm:col-span-2 bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm"
+                            className="sm:col-span-2 bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
                           />
                           <button
                             type="submit"
@@ -594,7 +604,7 @@ export default function EditarMatriculaForm({
       </div>
 
       {/* ── Cancelar matrícula ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
         <SectionHeader icon={Ban} label="Cancelar matrícula" />
         <p className="text-xs text-iw-muted">
           Não apaga o cadastro nem o histórico — só marca a matrícula como cancelada (fica registrada, pra

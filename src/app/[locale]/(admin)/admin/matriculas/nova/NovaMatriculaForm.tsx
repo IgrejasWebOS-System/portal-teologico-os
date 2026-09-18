@@ -1,29 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, Plus, X, ShieldCheck, Camera, Search, Check,
+  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, ShieldCheck, Camera, Search, Check,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import PageHeader from "@/components/layout/PageHeader";
-import { matricularDiretoAction, addTurmaAction } from "../actions";
-import MatriculaLookup from "@/app/[locale]/(igreja)/dashboard/configuracoes/MatriculaLookup";
-import {
-  addProfessorAction,
-  buscarCadastroCompletoAction,
-  type MembroEncontrado,
-  type MembroCompletoEncontrado,
-} from "@/app/[locale]/(igreja)/dashboard/configuracoes/actions";
-import JaTemCadastroCard, { type TipoPessoa } from "@/components/matricula/JaTemCadastroCard";
+import { matricularDiretoAction, buscarTurmasPorUnidadeAction } from "../actions";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
+
+// Turma e Professor(a) não são mais cadastrados por aqui (14/09/2026) —
+// isso passou a acontecer só em Configurações > Turmas e no cadastro de
+// Professores; esta tela só escolhe entre o que já existe.
+const ANOS_DISPONIVEIS = [2026, 2027];
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
 type SelectItem = { id: string; name: string };
-type Church = { id: string; name: string; sector_id: string | null };
-type Turma = { id: string; nome: string; course_id: string };
+type Church = { id: string; name: string; sector_id: string | null; unit_id: string | null };
+type Turma = { id: string; nome: string; classe: string | null; course_id: string; unit_id: string | null; ano: number | null };
 type Professor = { id: string; nome_completo: string; church_id: string | null };
 type Municipio = { nome: string; uf: string };
 type Preco = {
@@ -107,12 +105,16 @@ function dataPorExtenso(br: string): string {
 // seja, o PRÓXIMO campo a preencher — via :focus-within, aplicado pelo
 // navegador sozinho assim que o campo recebe foco. Campo já preenchido,
 // sem foco, fica neutro e ganha só um ícone de check (ver Field).
+// Teste de padronização (15/09/2026, pedido do Joaquim): borda padrão
+// (sem foco) passa de cinza-claro (iw-border) pra preto institucional
+// (iw-navy = #0D0D0D) assim que a tela abre; a transição pra dourado
+// (iw-gold = #CF8403) ao focar/clicar continua igual.
 const boxCls =
-  "border border-iw-border rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
+  "border border-iw-navy rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 // Variante compacta — usada no card "Curso e Vínculo" desde que ele ficou
 // mais estreito (foi pro lado direito, dividindo espaço com a foto do aluno).
 const boxClsCompact =
-  "border border-iw-border rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
+  "border border-iw-navy rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
@@ -392,6 +394,7 @@ export default function NovaMatriculaForm({
   turmasIniciais,
   professoresIniciais,
   precos,
+  sedeUnitId,
   errorMsg,
 }: {
   campos: CampoMinisterio[];
@@ -401,10 +404,9 @@ export default function NovaMatriculaForm({
   turmasIniciais: Turma[];
   professoresIniciais: Professor[];
   precos: Preco[];
+  sedeUnitId: string | null;
   errorMsg?: string;
 }) {
-  const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
-  const [formaCobranca, setFormaCobranca] = useState("MANUAL");
   // Preenchidos automaticamente ao escolher o curso (a partir de Financeiro
   // > Preços dos Cursos) — a secretaria pode sobrescrever pontualmente sem
   // afetar o preço padrão guardado lá.
@@ -436,72 +438,28 @@ export default function NovaMatriculaForm({
   const [escolaridades, setEscolaridades] = useState<SelectItem[]>([]);
   const [profissoes, setProfissoes] = useState<SelectItem[]>([]);
 
-  // Curso e vínculo
+  // Curso e vínculo — Setor/Igreja aqui são o NÚCLEO: onde o curso é
+  // ministrado de fato, o que decide a Turma disponível. Nem sempre é a
+  // mesma igreja de onde o aluno congrega (ver "membroDestaIgreja" abaixo).
   const [courseId, setCourseId] = useState("");
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
   const [turmas, setTurmas] = useState<Turma[]>(turmasIniciais);
+  const [ano, setAno] = useState(String(ANOS_DISPONIVEIS[0]));
   const [turmaId, setTurmaId] = useState("");
-  const [professores, setProfessores] = useState<Professor[]>(professoresIniciais);
+  const [professores] = useState<Professor[]>(professoresIniciais);
   const [professorId, setProfessorId] = useState("");
-
-  const [showNovaTurma, setShowNovaTurma] = useState(false);
-  const [novaTurmaNome, setNovaTurmaNome] = useState("");
-  const [novaTurmaInicio, setNovaTurmaInicio] = useState("");
-  const [novaTurmaFim, setNovaTurmaFim] = useState("");
-  const [showNovoProfessor, setShowNovoProfessor] = useState(false);
-  const [novoProfNome, setNovoProfNome] = useState("");
-  const [novoProfCargo, setNovoProfCargo] = useState("");
-  const [novoProfTelefone, setNovoProfTelefone] = useState("");
-  const [novoProfMemberId, setNovoProfMemberId] = useState("");
-  const [isPendingExtra, startTransitionExtra] = useTransition();
   const [extraError, setExtraError] = useState("");
 
-  // ── "Já tem cadastro?" — quem está se matriculando (Aluno/Professor/
-  // Visitante), com busca por Matrícula ou CPF pré-preenchendo os dados
-  // pessoais abaixo, sem redigitar quem já é membro de alguma igreja. ──
-  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>("ALUNO");
+  // Núcleo × origem (14/09/2026) — quando o aluno não é membro da igreja
+  // núcleo (ex.: mora em outro setor/regional e só faz o curso ali por ser
+  // mais perto), a origem real dele é registrada à parte, sem afetar qual
+  // turma aparece.
+  const [membroDestaIgreja, setMembroDestaIgreja] = useState<"SIM" | "NAO">("SIM");
+  const [origemSectorId, setOrigemSectorId] = useState("");
+  const [origemChurchId, setOrigemChurchId] = useState("");
+
   const formRef = useRef<HTMLFormElement | null>(null);
-
-  const isoParaBr = (iso: string) => {
-    const [y, m, d] = iso.split("-");
-    return y && m && d ? `${d}/${m}/${y}` : "";
-  };
-
-  // Preenche campo "cru" (não controlado por state — name/email/rg-órgão/
-  // uf/nacionalidade/cônjuge/mãe/pai) direto no DOM via ref do form.
-  const preencherCampoCru = (name: string, valor: string | null) => {
-    if (!valor || !formRef.current) return;
-    const el = formRef.current.elements.namedItem(name) as HTMLInputElement | null;
-    if (el) el.value = valor;
-  };
-
-  const handleCadastroEncontrado = (m: MembroCompletoEncontrado) => {
-    preencherCampoCru("nome_completo", m.full_name?.toUpperCase() ?? null);
-    preencherCampoCru("email", m.email);
-    preencherCampoCru("rg_orgao_emissor", m.rg_issuer?.toUpperCase() ?? null);
-    preencherCampoCru("rg_uf", m.rg_state?.toUpperCase() ?? null);
-    preencherCampoCru("nacionalidade", m.nationality?.toUpperCase() ?? null);
-    preencherCampoCru("nome_conjuge", m.spouse_name?.toUpperCase() ?? null);
-    preencherCampoCru("nome_mae", m.mother_name?.toUpperCase() ?? null);
-    preencherCampoCru("nome_pai", m.father_name?.toUpperCase() ?? null);
-
-    if (m.cpf) setCpf(maskCPF(m.cpf));
-    if (m.rg) setRg(maskRG(m.rg));
-    if (m.phone) setTelefone(maskPhone(m.phone));
-    if (m.birth_date) setDataNascimento(isoParaBr(m.birth_date));
-    if (m.zip_code) setCep(m.zip_code);
-    if (m.address) setEndereco(m.address.toUpperCase());
-    if (m.neighborhood) setBairro(m.neighborhood.toUpperCase());
-    if (m.city) setCidade(m.city.toUpperCase());
-    if (m.state) setEstado(m.state.toUpperCase());
-    if (m.nationality_city) setNaturalidadeCidade(m.nationality_city.toUpperCase());
-    if (m.nationality_state) setNaturalidadeEstado(m.nationality_state.toUpperCase());
-    if (m.gender) setGenero(m.gender);
-    if (m.civil_status) setEstadoCivil(m.civil_status);
-    if (m.schooling) setEscolaridadeSel(m.schooling);
-    if (m.photo_url) setFotoUrl(m.photo_url);
-  };
 
   useEffect(() => {
     async function fetchDropdowns() {
@@ -577,38 +535,73 @@ export default function NovaMatriculaForm({
     return matriculaCentavos + parcelaCentavos * numParcelas;
   }, [valorMatricula, valorParcela, numeroParcelasPagto]);
 
-  const igrejasDoSetor = useMemo(
-    () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
-    [sectorId, churches]
+  // A Sede não é Setor nem Regional — fica acima desse nível na hierarquia
+  // (churches.sector_id dela é nulo) — por isso ela precisa ser adicionada
+  // à mão em toda lista de igrejas, senão some assim que qualquer Setor é
+  // escolhido (14/09/2026).
+  const sedeChurch = useMemo(
+    () => (sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId) ?? null : null),
+    [sedeUnitId, churches]
   );
-  const turmasDoCurso = useMemo(
-    () => (courseId ? turmas.filter((t) => t.course_id === courseId) : []),
-    [courseId, turmas]
+  const igrejasDoSetor = useMemo(() => {
+    const base = sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches;
+    if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
+    return [sedeChurch, ...base];
+  }, [sectorId, churches, sedeChurch]);
+  const igrejasDoSetorOrigem = useMemo(() => {
+    const base = origemSectorId ? churches.filter((c) => c.sector_id === origemSectorId) : churches;
+    if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
+    return [sedeChurch, ...base];
+  }, [origemSectorId, churches, sedeChurch]);
+
+  // A igreja (núcleo) carrega a unidade dela (churches.unit_id) — é isso que
+  // filtra a Turma disponível. Turma sem unit_id (criada manualmente, sem
+  // restrição) continua aparecendo pra qualquer igreja.
+  const churchUnitId = useMemo(
+    () => churches.find((c) => c.id === churchId)?.unit_id ?? null,
+    [churchId, churches]
   );
 
-  const handleCriarTurma = () => {
-    if (!courseId) { setExtraError("Selecione o curso antes de criar a turma."); return; }
-    if (!novaTurmaNome.trim()) { setExtraError("Digite o nome da turma."); return; }
-    if (novaTurmaInicio && novaTurmaFim && novaTurmaFim < novaTurmaInicio) {
-      setExtraError("O mês/ano de término não pode ser antes do início.");
+  // Assim que a igreja é escolhida, busca sob demanda só as turmas dela
+  // (ver comentário em buscarTurmasPorUnidadeAction) e mescla no state —
+  // sem isso, a lista pré-carregada só tem as turmas genéricas (sem
+  // igreja), e turmas "2/3/4" de uma igreja específica nunca apareceriam.
+  useEffect(() => {
+    if (!churchUnitId) return;
+    let cancelado = false;
+    buscarTurmasPorUnidadeAction(churchUnitId).then((turmasDaIgreja) => {
+      if (cancelado || turmasDaIgreja.length === 0) return;
+      setTurmas((prev) => {
+        const idsNovos = new Set(turmasDaIgreja.map((t) => t.id));
+        const semDuplicar = prev.filter((t) => !idsNovos.has(t.id));
+        return [...semDuplicar, ...turmasDaIgreja];
+      });
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [churchUnitId]);
+
+  const turmasDoCurso = useMemo(() => {
+    if (!courseId) return [];
+    const doAno = turmas.filter((t) => t.course_id === courseId && (!t.ano || t.ano === Number(ano)));
+    if (!churchUnitId) return doAno.filter((t) => !t.unit_id);
+    return doAno.filter((t) => !t.unit_id || t.unit_id === churchUnitId);
+  }, [courseId, turmas, churchUnitId, ano]);
+
+  // Assim que curso + igreja definem a lista de turmas daquela igreja,
+  // seleciona "Turma 1" sozinho — a secretaria pode trocar pra 2/3/4 na
+  // hora, sem precisar escolher entre dezenas de igrejas misturadas.
+  useEffect(() => {
+    if (turmasDoCurso.length === 0) {
+      setTurmaId("");
       return;
     }
-    setExtraError("");
-    const fd = new FormData();
-    fd.set("course_id", courseId);
-    fd.set("nome", novaTurmaNome.trim());
-    fd.set("data_inicio", novaTurmaInicio);
-    fd.set("data_fim", novaTurmaFim);
-    startTransitionExtra(async () => {
-      const res = await addTurmaAction(fd);
-      if (!res.success || !res.data) { setExtraError(res.message ?? "Erro ao criar turma."); return; }
-      const nova = { id: res.data.id as string, nome: res.data.nome as string, course_id: courseId };
-      setTurmas((prev) => [...prev, nova]);
-      setTurmaId(nova.id);
-      setShowNovaTurma(false);
-      setNovaTurmaNome(""); setNovaTurmaInicio(""); setNovaTurmaFim("");
-    });
-  };
+    const aindaValida = turmasDoCurso.some((t) => t.id === turmaId);
+    if (aindaValida) return;
+    const turma1 = turmasDoCurso.find((t) => /turma\s*1\b/i.test(t.nome));
+    setTurmaId(turma1?.id ?? turmasDoCurso[0].id);
+  }, [turmasDoCurso, turmaId]);
 
   // ── Upload da foto do aluno — mesmo bucket "avatars" usado no
   // cadastro de membros (dashboard/membros/novo). ──
@@ -630,27 +623,6 @@ export default function NovaMatriculaForm({
     } finally {
       setUploadingFoto(false);
     }
-  };
-
-  const handleCriarProfessor = () => {
-    if (!novoProfNome.trim()) { setExtraError("Digite o nome do professor(a)."); return; }
-    setExtraError("");
-    const fd = new FormData();
-    fd.set("nome_completo", novoProfNome.trim());
-    fd.set("cargo", novoProfCargo);
-    fd.set("telefone", novoProfTelefone);
-    fd.set("member_id", novoProfMemberId);
-    fd.set("sector_id", sectorId);
-    fd.set("church_id", churchId);
-    startTransitionExtra(async () => {
-      const res = await addProfessorAction(fd);
-      if (!res.success || !res.data) { setExtraError(res.message ?? "Erro ao criar professor(a)."); return; }
-      const criado = res.data as Professor;
-      setProfessores((prev) => [...prev, criado]);
-      setProfessorId(criado.id);
-      setShowNovoProfessor(false);
-      setNovoProfNome(""); setNovoProfCargo(""); setNovoProfTelefone(""); setNovoProfMemberId("");
-    });
   };
 
   return (
@@ -681,19 +653,15 @@ export default function NovaMatriculaForm({
         )}
       </div>
 
-      <JaTemCadastroCard<MembroCompletoEncontrado>
-        tipo={tipoPessoa}
-        onChangeTipo={setTipoPessoa}
-        onBuscar={buscarCadastroCompletoAction}
-        onEncontrado={handleCadastroEncontrado}
-      />
-
       <form
         ref={formRef}
         action={(fd: FormData) => {
-          fd.set("tipo_pessoa", tipoPessoa);
           if (!validarCPF(cpf)) {
             setExtraError("CPF inválido — confira os dígitos digitados.");
+            return;
+          }
+          if (membroDestaIgreja === "NAO" && !origemChurchId) {
+            setExtraError("Selecione o Setor e a Igreja de onde o aluno realmente vem.");
             return;
           }
           setExtraError("");
@@ -706,8 +674,14 @@ export default function NovaMatriculaForm({
           fd.set("bairro", bairro);
           fd.set("cidade", cidade);
           fd.set("estado", estado);
-          fd.set("sector_id", sectorId);
-          fd.set("church_id_aluno", churchId);
+          // Origem do aluno: se ele é membro da igreja núcleo, a origem é a
+          // própria (Setor/Igreja escolhidos acima, que também definem a
+          // Turma). Se não, usa o seletor à parte — o aluno pode ser de
+          // outro setor/regional e só estar fazendo o curso neste núcleo.
+          const sectorIdOrigem = membroDestaIgreja === "NAO" ? origemSectorId : sectorId;
+          const churchIdOrigem = membroDestaIgreja === "NAO" ? origemChurchId : churchId;
+          fd.set("sector_id", sectorIdOrigem);
+          fd.set("church_id_aluno", churchIdOrigem);
           fd.set("course_edition_id", turmaId);
           fd.set("professor_id", professorId);
           // A action lê "campo_ministerio_nome" além do id (pro PDF/telas
@@ -732,7 +706,7 @@ export default function NovaMatriculaForm({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
               ) : (
-                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-navy">
                   {uploadingFoto ? (
                     <Loader2 className="w-7 h-7 animate-spin" />
                   ) : (
@@ -752,10 +726,64 @@ export default function NovaMatriculaForm({
           </div>
 
           {/* Curso e vínculo */}
-          <div className="col-span-12 md:col-span-10 bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
-            <SectionHeader icon={GraduationCap} label="Curso e Vínculo" />
+          <div className="col-span-12 md:col-span-10 bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-iw-border flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-iw-gold/10 flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-3.5 h-3.5 text-iw-gold" />
+                </div>
+                <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">Curso e Vínculo</h2>
+              </div>
+              {/* Campo/Ministério — 14/09/2026: trazido pra mesma linha do
+                  título, na extremidade direita, com rótulo ao lado da caixa
+                  (não empilhado em cima) pra não alterar a altura desta
+                  linha. Mesma caixa/estilo compacto usado nos demais campos
+                  do formulário, só que organizada na horizontal. */}
+              <div className={`${boxClsCompact} flex items-center gap-2 shrink-0`}>
+                <label className="text-[10px] font-extrabold text-iw-muted uppercase tracking-wider whitespace-nowrap shrink-0">
+                  Campo / Ministério
+                </label>
+                <select
+                  name="campo_ministerio_id"
+                  className={bareSelectCls}
+                  defaultValue={resolverCampoPadraoId(campos)}
+                >
+                  <option value="">Selecione (opcional)</option>
+                  {campos.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="grid grid-cols-12 gap-2.5">
-              <Field compact label="Curso" required span="col-span-12 md:col-span-4">
+              {/* Ordem 14/09/2026: o aluno diz de onde vem primeiro (Setor →
+                  Igreja) e só depois entra o Curso. Setor/Igreja aqui são o
+                  NÚCLEO — onde o curso é ministrado de fato, o que decide a
+                  Turma disponível (ver toggle "membro desta igreja?" abaixo,
+                  que trata a origem real do aluno separadamente). */}
+              <Field compact label="Setor (núcleo)" span="col-span-6 md:col-span-2">
+                <select
+                  value={sectorId}
+                  onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
+                  className={bareSelectCls}
+                >
+                  <option value="">Selecione...</option>
+                  {setores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field compact label="Igreja (núcleo)" span="col-span-6 md:col-span-2">
+                <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className={bareSelectCls}>
+                  <option value="">Selecione...</option>
+                  {igrejasDoSetor.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field compact label="Curso" required span="col-span-6 md:col-span-4">
                 <select
                   name="course_id"
                   required
@@ -791,153 +819,104 @@ export default function NovaMatriculaForm({
                 </select>
               </Field>
 
-              <Field compact label="Campo / Ministério" span="col-span-12 md:col-span-4">
-                <select name="campo_ministerio_id" className={bareSelectCls} defaultValue="">
-                  <option value="">Selecione (opcional)</option>
-                  {campos.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field compact label="Setor" span="col-span-6 md:col-span-2">
-                <select
-                  value={sectorId}
-                  onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
-                  className={bareSelectCls}
-                >
-                  <option value="">Selecione...</option>
-                  {setores.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field compact label="Igreja" span="col-span-6 md:col-span-2">
-                <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className={bareSelectCls}>
-                  <option value="">Selecione...</option>
-                  {igrejasDoSetor.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <Field compact label="Aluno é membro desta igreja?" span="col-span-6 md:col-span-4">
+                <div className="flex gap-1.5 py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setMembroDestaIgreja("SIM")}
+                    className={`flex-1 text-xs font-bold py-1 rounded-md border transition-colors ${
+                      membroDestaIgreja === "SIM"
+                        ? "bg-iw-gold/15 border-iw-gold text-iw-navy"
+                        : "bg-white border-iw-border text-iw-muted"
+                    }`}
+                  >
+                    Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMembroDestaIgreja("NAO")}
+                    className={`flex-1 text-xs font-bold py-1 rounded-md border transition-colors ${
+                      membroDestaIgreja === "NAO"
+                        ? "bg-iw-gold/15 border-iw-gold text-iw-navy"
+                        : "bg-white border-iw-border text-iw-muted"
+                    }`}
+                  >
+                    Não
+                  </button>
+                </div>
               </Field>
             </div>
 
+            {/* "Dropdown" que só aparece quando a resposta é Não — origem
+                real do aluno, independente do núcleo escolhido acima. */}
+            {membroDestaIgreja === "NAO" && (
+              <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5">
+                <Field compact label="Setor (origem do aluno)" span="col-span-6 md:col-span-3">
+                  <select
+                    value={origemSectorId}
+                    onChange={(e) => { setOrigemSectorId(e.target.value); setOrigemChurchId(""); }}
+                    className={bareSelectCls}
+                  >
+                    <option value="">Selecione...</option>
+                    {setores.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field compact label="Igreja (origem do aluno)" span="col-span-6 md:col-span-3">
+                  <select
+                    value={origemChurchId}
+                    onChange={(e) => setOrigemChurchId(e.target.value)}
+                    className={bareSelectCls}
+                  >
+                    <option value="">Selecione...</option>
+                    {igrejasDoSetorOrigem.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            )}
+
             <div className="grid grid-cols-12 gap-2.5 items-start">
-              <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
+              <div className="col-span-12 md:col-span-6 grid grid-cols-[92px_1fr] gap-2">
+                <Field compact label="Ano" span="">
+                  <select
+                    value={ano}
+                    onChange={(e) => { setAno(e.target.value); setTurmaId(""); }}
+                    className={bareSelectCls}
+                  >
+                    {ANOS_DISPONIVEIS.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </Field>
                 <Field compact label="Turma" span="">
                   <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={bareSelectCls}>
                     <option value="">
                       {courseId ? "Selecione..." : "Selecione o curso primeiro"}
                     </option>
                     {turmasDoCurso.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nome}</option>
+                      <option key={t.id} value={t.id}>{t.nome}{t.classe ? ` - Classe ${t.classe}` : ""}</option>
                     ))}
                   </select>
                 </Field>
-                <button
-                  type="button"
-                  onClick={() => setShowNovaTurma((v) => !v)}
-                  className="shrink-0 h-full px-3 border border-iw-border rounded-lg bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
-                >
-                  {showNovaTurma ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Turma
-                </button>
               </div>
 
-              <div className="col-span-12 md:col-span-6 grid grid-cols-[1fr_auto] gap-2">
-                <Field compact label="Professor(a)" span="">
-                  <select value={professorId} onChange={(e) => setProfessorId(e.target.value)} className={bareSelectCls}>
-                    <option value="">Selecione...</option>
-                    {professores.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nome_completo}</option>
-                    ))}
-                  </select>
-                </Field>
-                <button
-                  type="button"
-                  onClick={() => setShowNovoProfessor((v) => !v)}
-                  className="shrink-0 h-full px-3 border border-iw-border rounded-lg bg-white hover:bg-iw-bg text-xs font-bold text-iw-navy flex items-center gap-1 transition-colors"
-                >
-                  {showNovoProfessor ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} Professor(a)
-                </button>
-              </div>
+              <Field compact label="Professor(a)" span="col-span-12 md:col-span-6">
+                <select value={professorId} onChange={(e) => setProfessorId(e.target.value)} className={bareSelectCls}>
+                  <option value="">Selecione...</option>
+                  {professores.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nome_completo}</option>
+                  ))}
+                </select>
+              </Field>
             </div>
-
-            {showNovaTurma && (
-              <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5 items-end">
-                <Field compact label="Nome da turma" span="col-span-12 md:col-span-4">
-                  <input
-                    value={novaTurmaNome}
-                    onChange={(e) => setNovaTurmaNome(e.target.value.toUpperCase())}
-                    placeholder="Ex: Edição 2026"
-                    className={`${bareCls} uppercase`}
-                  />
-                </Field>
-                <Field compact label="Mês/Ano — Início" span="col-span-6 md:col-span-3">
-                  <input
-                    type="month"
-                    value={novaTurmaInicio}
-                    onChange={(e) => setNovaTurmaInicio(e.target.value)}
-                    className={bareCls}
-                  />
-                </Field>
-                <Field compact label="Mês/Ano — Término" span="col-span-6 md:col-span-3">
-                  <input
-                    type="month"
-                    value={novaTurmaFim}
-                    onChange={(e) => setNovaTurmaFim(e.target.value)}
-                    className={bareCls}
-                  />
-                </Field>
-                <button
-                  type="button"
-                  onClick={handleCriarTurma}
-                  disabled={isPendingExtra}
-                  className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors"
-                >
-                  Salvar turma
-                </button>
-              </div>
-            )}
-
-            {showNovoProfessor && (
-              <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5 items-end">
-                <div className="col-span-12 md:col-span-3">
-                  <MatriculaLookup
-                    label="Matrícula"
-                    onFound={(m: MembroEncontrado) => {
-                      setNovoProfMemberId(m.id);
-                      setNovoProfNome(m.full_name);
-                      setNovoProfCargo(m.cargo ?? "");
-                      setNovoProfTelefone(m.phone ?? "");
-                    }}
-                    onClear={() => setNovoProfMemberId("")}
-                  />
-                </div>
-                <Field compact label="Nome completo" span="col-span-12 md:col-span-3">
-                  <input value={novoProfNome} onChange={(e) => setNovoProfNome(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
-                </Field>
-                <Field compact label="Cargo" span="col-span-6 md:col-span-2">
-                  <input value={novoProfCargo} onChange={(e) => setNovoProfCargo(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
-                </Field>
-                <Field compact label="Telefone" span="col-span-6 md:col-span-2">
-                  <input value={novoProfTelefone} onChange={(e) => setNovoProfTelefone(e.target.value)} className={bareCls} />
-                </Field>
-                <button
-                  type="button"
-                  onClick={handleCriarProfessor}
-                  disabled={isPendingExtra}
-                  className="col-span-12 md:col-span-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors"
-                >
-                  Salvar professor(a)
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Dados pessoais */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
           <SectionHeader icon={User} label="Dados Pessoais" />
 
           <div className="grid grid-cols-12 gap-3">
@@ -1100,7 +1079,7 @@ export default function NovaMatriculaForm({
         </div>
 
         {/* Endereço */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
           <SectionHeader icon={MapPin} label="Endereço" />
           <div className="grid grid-cols-12 gap-3">
             <Field label="CEP" span="col-span-6 md:col-span-2">
@@ -1146,7 +1125,7 @@ export default function NovaMatriculaForm({
         </div>
 
         {/* Pagamento */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
           <SectionHeader icon={Wallet} label="Pagamento" />
           <div className="flex items-center justify-between gap-3 flex-wrap -mt-1">
             <p className="text-xs text-iw-muted">
@@ -1190,69 +1169,30 @@ export default function NovaMatriculaForm({
                 className={bareCls}
               />
             </Field>
-            {formaCobranca === "MANUAL" ? (
-              <>
-                <Field label="1º vencimento" span="col-span-6 md:col-span-2">
-                  <input name="data_vencimento" type="date" defaultValue={hoje} className={bareCls} />
-                </Field>
-                <Field label="Forma de pagamento prevista" span="col-span-12 md:col-span-2">
-                  <select name="forma_pagamento_prevista" defaultValue="DINHEIRO" className={bareSelectCls}>
-                    <option value="DINHEIRO">Dinheiro</option>
-                    <option value="PIX">Pix</option>
-                    <option value="CARTAO">Cartão</option>
-                    <option value="BOLETO">Boleto</option>
-                    <option value="TRANSFERENCIA">Transferência</option>
-                  </select>
-                </Field>
-              </>
-            ) : (
-              <div className="col-span-12 flex items-center">
-                <p className="text-xs text-iw-muted">
-                  Um link de pagamento único Pix/Mercado Pago (Checkout Pro) será gerado no valor total (matrícula +
-                  parcelas). A cobrança fica pendente em Financeiro &gt; Contas a Receber até o Mercado Pago
-                  confirmar o pagamento — não é possível dividir esse link em parcelas separadas.
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="grid grid-cols-12 gap-3">
-            <Field label="Forma de cobrança" span="col-span-12 md:col-span-4">
-              <select
-                name="forma_cobranca"
-                value={formaCobranca}
-                onChange={(e) => setFormaCobranca(e.target.value)}
-                className={bareSelectCls}
-              >
-                <option value="MANUAL">Parcelamento manual (Contas a Receber)</option>
-                <option value="MERCADOPAGO">Link de pagamento (Mercado Pago)</option>
+            <Field label="1º vencimento" span="col-span-6 md:col-span-2">
+              <input name="data_vencimento" type="date" defaultValue={hoje} className={bareCls} />
+            </Field>
+            <Field label="Forma de pagamento prevista" span="col-span-12 md:col-span-2">
+              <select name="forma_pagamento_prevista" defaultValue="DINHEIRO" className={bareSelectCls}>
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="PIX">Pix</option>
+                <option value="CARTAO">Cartão</option>
+                <option value="BOLETO">Boleto</option>
+                <option value="TRANSFERENCIA">Transferência</option>
               </select>
             </Field>
-            <Field label="Quem paga" span="col-span-12 md:col-span-4">
-              <select
-                name="responsavel_pagamento"
-                value={responsavelPagamento}
-                onChange={(e) => setResponsavelPagamento(e.target.value)}
-                className={bareSelectCls}
-              >
-                <option value="ALUNO">O próprio aluno</option>
-                <option value="IGREJA">Igreja (financiamento interno)</option>
-              </select>
-            </Field>
-            {responsavelPagamento === "IGREJA" && (
-              <Field label="Igreja responsável" span="col-span-12 md:col-span-4">
-                <select name="church_id" defaultValue="" className={bareSelectCls}>
-                  <option value="" disabled>Selecione a igreja</option>
-                  {churches.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </Field>
-            )}
           </div>
+          {/* "Forma de cobrança" removida em 13/09/2026 e "Quem paga" (+ o
+              campo condicional "Igreja responsável") removido em 15/09/2026
+              — decisões do Joaquim. A Matrícula Direta só usa parcelamento
+              manual (dinheiro, pix, cartão, boleto) e assume sempre o
+              próprio aluno como pagador; sem esses campos no FormData, a
+              action já aplica os mesmos defaults ("MANUAL" / "ALUNO") que
+              tinha antes (ver matriculas/actions.ts). */}
         </div>
 
         {/* Consentimento LGPD */}
-        <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-3">
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
           <SectionHeader icon={ShieldCheck} label="Consentimento LGPD" />
           <label className="flex items-start gap-3 cursor-pointer">
             <input

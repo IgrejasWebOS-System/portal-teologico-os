@@ -12,7 +12,7 @@ const quarterLabel = (q: number) =>
   ["1°", "2°", "3°", "4°"][q - 1] + " Trimestre";
 
 const AUDIENCE_COLOR: Record<string, { text: string; bg: string; badge: string }> = {
-  ADULTOS: { text: "text-iw-blue",  bg: "bg-iw-blue/10",  badge: "bg-iw-blue/10 text-iw-blue"  },
+  ADULTOS: { text: "text-iw-navy",  bg: "bg-iw-blue/10",  badge: "bg-iw-blue/10 text-iw-navy"  },
   JOVENS:  { text: "text-iw-gold",  bg: "bg-iw-gold/10",  badge: "bg-iw-gold/10 text-iw-gold"  },
 };
 

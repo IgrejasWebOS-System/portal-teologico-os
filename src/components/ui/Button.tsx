@@ -42,7 +42,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     "focus-visible:ring-2 focus-visible:ring-iw-gold/40 focus-visible:ring-offset-1",
 
   outline:
-    "bg-transparent text-iw-blue border border-iw-blue " +
+    "bg-transparent text-iw-navy border border-iw-blue " +
     "hover:bg-iw-blue/8 " +
     "focus-visible:ring-2 focus-visible:ring-iw-blue/40 focus-visible:ring-offset-1",
 

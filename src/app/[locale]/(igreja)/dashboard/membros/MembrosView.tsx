@@ -14,6 +14,7 @@ import {
   Loader2,
   ImagePlus,
   MapPin,
+  FileSpreadsheet,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { archiveMemberAction, restoreMemberAction } from "./actions";
@@ -48,6 +49,22 @@ type Props = {
   // Login com uma única igreja no escopo: não mostra seletor, já
   // carrega direto (RLS garante que só essa igreja é visível mesmo).
   escopoFixo: EscopoFixo;
+  // Id da igreja "SEDE" (unit type='SEDE') -- null se não existir. Ver
+  // nota no cálculo de churchIdsSelecionados: a unidade SEDE é pai de
+  // TODOS os Setores/Regionais, então NÃO pode ser expandida como
+  // subárvore normal (senão traria todo mundo) -- selecioná-la deve
+  // mostrar só os membros da própria SEDE.
+  sedeChurchId: string | null;
+  // Deep-link vindo de /dashboard/configuracoes/igrejas (botão "Membros
+  // > Ir para Cadastro", ?igreja=<id>) -- pré-seleciona Setor + Igreja no
+  // seletor assim que a tela abre, sem precisar de mais nenhum clique.
+  // null quando a página abriu sem esse parâmetro (fluxo normal).
+  setorInicialId?: string | null;
+  igrejaInicialId?: string | null;
+  // Deep-link vindo do botão "Arquivo Morto" em Igrejas/Pontos de
+  // Pregação/Células/Sub-congregações (?arquivo=1) -- abre a tela já no
+  // modo Arquivo Morto (pedido do Joaquim em 2026-09-18).
+  arquivoInicial?: boolean;
 };
 
 const CAMPOS_MEMBRO =
@@ -60,8 +77,12 @@ export default function MembrosView({
   churches,
   accessibleUnitIds,
   escopoFixo,
+  sedeChurchId,
+  setorInicialId = null,
+  igrejaInicialId = null,
+  arquivoInicial = false,
 }: Props) {
-  const [viewMode, setViewMode] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
+  const [viewMode, setViewMode] = useState<"ACTIVE" | "ARCHIVED">(arquivoInicial ? "ARCHIVED" : "ACTIVE");
   const [members, setMembers] = useState<MemberRow[]>(initialMembers);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -70,8 +91,10 @@ export default function MembrosView({
   const primeiraCarga = useRef(true);
 
   // ── Seleção do seletor hierárquico (só usada quando não há escopoFixo) ──
-  const [setorId, setSetorId] = useState("");
-  const [igrejaId, setIgrejaId] = useState("");
+  // Semeada com o deep-link (?igreja=) quando presente, pra já abrir com
+  // Setor + Igreja escolhidos.
+  const [setorId, setSetorId] = useState(setorInicialId ?? "");
+  const [igrejaId, setIgrejaId] = useState(igrejaInicialId ?? "");
   const [subUnidadeId, setSubUnidadeId] = useState("");
   const [celulaId, setCelulaId] = useState("");
 
@@ -90,11 +113,24 @@ export default function MembrosView({
   // Quais church_id caem dentro do nó escolhido no seletor (null =
   // nada escolhido ainda). Só recalcula quando o nó escolhido muda —
   // units/churches são as mesmas referências vindas do servidor.
+  //
+  // Caso especial SEDE: a unidade SEDE é PAI de todos os Setores/
+  // Regionais (raiz da árvore), então expandir a subárvore dela traria
+  // TODO mundo, não só a SEDE. Selecionar a igreja SEDE (sem descer pra
+  // sub-unidade/célula) deve trazer só os membros dela mesma.
   const churchIdsSelecionados = useMemo(() => {
+    if (
+      igrejaSelecionada &&
+      igrejaSelecionada.id === sedeChurchId &&
+      !subUnidadeSelecionada &&
+      !celulaSelecionada
+    ) {
+      return [igrejaSelecionada.id];
+    }
     if (!noEscolhidoId) return null;
     const subarvore = expandirUnidades([noEscolhidoId], units);
     return churches.filter((c) => c.unit_id && subarvore.has(c.unit_id)).map((c) => c.id);
-  }, [noEscolhidoId, units, churches]);
+  }, [noEscolhidoId, units, churches, igrejaSelecionada, sedeChurchId, subUnidadeSelecionada, celulaSelecionada]);
 
   const escopoLabel = escopoFixo
     ? escopoFixo.nome
@@ -187,7 +223,7 @@ export default function MembrosView({
             </p>
           </div>
           {escopoFixo && (
-            <p className="flex items-center gap-1.5 text-xs text-iw-blue font-semibold mt-1">
+            <p className="flex items-center gap-1.5 text-xs text-iw-navy font-semibold mt-1">
               <MapPin className="w-3.5 h-3.5" />
               {escopoFixo.nome}
             </p>
@@ -202,7 +238,7 @@ export default function MembrosView({
             placeholder="Buscar por nome, matrícula ou CPF..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-iw-surface border border-iw-border rounded-xl py-2.5 pl-9 pr-9 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors"
+            className="w-full bg-iw-surface border border-iw-navy rounded-xl py-2.5 pl-9 pr-9 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
           />
           {search && (
             <button
@@ -225,7 +261,7 @@ export default function MembrosView({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
               isArchived
-                ? "bg-iw-blue/10 text-iw-blue border-iw-blue/30 hover:bg-iw-blue/20"
+                ? "bg-iw-blue/10 text-iw-navy border-iw-blue/30 hover:bg-iw-blue/20"
                 : "bg-iw-error/8 text-iw-error border-iw-error/20 hover:bg-iw-error/15"
             }`}
           >
@@ -236,7 +272,21 @@ export default function MembrosView({
             )}
           </button>
 
-          {!isArchived && (
+          {/* Importar CSV/Fotos só ficam soltas aqui no cabeçalho quando não
+              há caixa "Escolha o escopo" pra recebê-las (login de igreja
+              fixa) -- senão elas moram dentro da caixa (pedido do Joaquim
+              em 2026-09-18). */}
+          {escopoFixo && !isArchived && (
+            <Link
+              href="/dashboard/membros/importar-csv"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Importar CSV
+            </Link>
+          )}
+
+          {escopoFixo && !isArchived && (
             <Link
               href="/dashboard/membros/importar-fotos"
               className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
@@ -265,6 +315,7 @@ export default function MembrosView({
           units={units}
           churches={churches}
           accessibleUnitIds={accessibleUnitIds}
+          sedeChurchId={sedeChurchId}
           setorId={setorId}
           igrejaId={igrejaId}
           subUnidadeId={subUnidadeId}
@@ -273,11 +324,12 @@ export default function MembrosView({
           onIgrejaChange={setIgrejaId}
           onSubUnidadeChange={setSubUnidadeId}
           onCelulaChange={setCelulaId}
+          mostrarImportar={!isArchived}
         />
       )}
 
       {/* ── Tabela ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm overflow-hidden">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm overflow-hidden">
         {/* Header da tabela */}
         <div className="grid grid-cols-[1fr_140px_110px_110px_80px] gap-4 px-6 py-3 border-b border-iw-border bg-iw-bg/60">
           <span className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Membro</span>
@@ -339,13 +391,13 @@ export default function MembrosView({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-iw-blue font-bold text-xs">
+                        <span className="text-iw-navy font-bold text-xs">
                           {member.full_name.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-blue transition-colors">
+                      <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-navy transition-colors">
                         {member.full_name}
                       </p>
                       <p className="text-xs text-iw-muted truncate">
@@ -409,7 +461,7 @@ export default function MembrosView({
                             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-iw-navy hover:bg-iw-bg transition-colors"
                             onClick={() => setOpenMenuId(null)}
                           >
-                            <Pencil className="w-3.5 h-3.5 text-iw-blue" />
+                            <Pencil className="w-3.5 h-3.5 text-iw-navy" />
                             Editar ficha
                           </Link>
                         )}
@@ -463,7 +515,7 @@ export default function MembrosView({
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="text-xs text-iw-blue hover:text-iw-navy font-medium transition-colors"
+                className="text-xs text-iw-navy hover:text-iw-navy font-medium transition-colors"
               >
                 Limpar busca
               </button>

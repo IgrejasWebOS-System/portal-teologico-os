@@ -9,6 +9,9 @@ type Row = {
   nome_completo: string;
   cargo: string | null;
   telefone: string | null;
+  tipo_professor: string | null;
+  member_id: string | null;
+  matricula: string | null;
   sectors: { name: string } | null;
   churches: { name: string } | null;
 };
@@ -18,7 +21,7 @@ export default async function ProfessoresPage() {
 
   const { data } = await supabase
     .from("professores")
-    .select("id, nome_completo, cargo, telefone, sectors(name), churches(name)")
+    .select("id, nome_completo, cargo, telefone, tipo_professor, member_id, matricula, sectors(name), churches(name)")
     .order("nome_completo");
 
   const rows = (data ?? []) as unknown as Row[];
@@ -34,7 +37,7 @@ export default async function ProfessoresPage() {
           iconBg="bg-iw-gold/10"
         />
         <Link
-          href="/dashboard/configuracoes/professores/novo"
+          href="/dashboard/configuracoes/professores/novo/membro"
           className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -63,8 +66,22 @@ export default async function ProfessoresPage() {
           <ul className="divide-y divide-iw-border">
             {rows.map((r) => (
               <li key={r.id} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
-                <span className="text-sm font-semibold text-iw-navy truncate">{r.nome_completo}</span>
-                <span className="text-xs text-iw-muted truncate">{r.cargo ?? "—"}</span>
+                <span className="text-sm font-semibold text-iw-navy truncate inline-flex items-center gap-1.5">
+                  {r.nome_completo}
+                  <span
+                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
+                      r.tipo_professor === "MEMBRO" && r.member_id
+                        ? "bg-iw-blue/10 text-iw-navy"
+                        : "bg-iw-gold/10 text-iw-gold"
+                    }`}
+                  >
+                    {r.tipo_professor === "MEMBRO" && r.member_id ? "Membro" : "De fora"}
+                  </span>
+                </span>
+                <span className="text-xs text-iw-muted truncate">
+                  {r.cargo ?? "—"}
+                  {r.matricula && <span className="text-iw-muted/60"> · {r.matricula}</span>}
+                </span>
                 <span className="text-xs text-iw-muted truncate">
                   {r.churches?.name ?? "—"} {r.sectors?.name ? `· ${r.sectors.name}` : ""}
                 </span>
@@ -72,7 +89,7 @@ export default async function ProfessoresPage() {
                 <div className="flex items-center gap-3">
                   <Link
                     href={`/dashboard/configuracoes/professores/editar/${r.id}`}
-                    className="text-iw-muted hover:text-iw-blue transition-colors"
+                    className="text-iw-muted hover:text-iw-navy transition-colors"
                     title="Editar"
                   >
                     <Pencil className="w-3.5 h-3.5" />

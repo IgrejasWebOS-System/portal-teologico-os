@@ -302,6 +302,111 @@ export async function createMemberAction(formData: FormData) {
   redirect("/dashboard/membros");
 }
 
+// ── AÇÃO 4b: IMPORTAÇÃO EM LOTE (importar-csv) ───────────────
+// Usada só por /dashboard/membros/importar-csv. Roda inteiramente contra o
+// banco do ambiente onde a Next.js app está de pé (staging quando rodada em
+// localhost/preview; produção só depois do merge em main e deploy — nunca
+// via script separado, ver DESIGN_SYSTEM.md / AGENTS.md).
+export type ImportarCsvRow = {
+  igreja: string;
+  church_id: string | null;
+  cargo_sigla: string;
+  cargo_mapeado: string;
+  role_id: string | null;
+  nome_completo: string;
+  matricula: string;
+  estado_civil: string;
+  data_nascimento: string;
+  telefone: string;
+  endereco: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  cep: string;
+  aviso: string;
+};
+
+export async function importarMembrosCsvAction(rows: ImportarCsvRow[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, message: "Não autenticado.", resumo: undefined, detalhes: undefined };
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return { success: false, message: "Nenhuma linha para importar.", resumo: undefined, detalhes: undefined };
+  }
+
+  const semIgreja = rows.filter((r) => !r.church_id);
+  const semMatricula = rows.filter((r) => r.church_id && !r.matricula?.trim());
+  const validas = rows.filter((r) => r.church_id && r.matricula?.trim());
+
+  let jaExistiam: ImportarCsvRow[] = [];
+  let novas = validas;
+
+  if (validas.length > 0) {
+    const matriculas = validas.map((r) => r.matricula.trim());
+    const { data: existentes } = await supabase
+      .from("members")
+      .select("registration_number")
+      .in("registration_number", matriculas);
+
+    const existentesSet = new Set((existentes ?? []).map((e) => e.registration_number));
+    jaExistiam = validas.filter((r) => existentesSet.has(r.matricula.trim()));
+    novas = validas.filter((r) => !existentesSet.has(r.matricula.trim()));
+  }
+
+  let inseridos = 0;
+  let erroInsercao: string | null = null;
+
+  if (novas.length > 0) {
+    const payload = novas.map((r) => ({
+      church_id: r.church_id,
+      role_id: r.role_id,
+      full_name: r.nome_completo,
+      registration_number: r.matricula.trim(),
+      civil_status: r.estado_civil || null,
+      birth_date: r.data_nascimento || null,
+      phone: r.telefone || null,
+      address: r.endereco || null,
+      neighborhood: r.bairro || null,
+      city: r.cidade || null,
+      state: r.uf || null,
+      zip_code: r.cep || null,
+      status: "ACTIVE",
+      ecclesiastical_status: "ACTIVE",
+      financial_status: "PENDING",
+      created_at: new Date().toISOString(),
+    }));
+
+    const { data, error } = await supabase.from("members").insert(payload).select("id");
+    if (error) {
+      erroInsercao = error.message;
+    } else {
+      inseridos = data?.length ?? 0;
+    }
+  }
+
+  revalidatePath("/dashboard/membros");
+
+  return {
+    success: !erroInsercao,
+    message: erroInsercao ?? undefined,
+    resumo: {
+      total: rows.length,
+      inseridos,
+      jaExistiam: jaExistiam.length,
+      semIgreja: semIgreja.length,
+      semMatricula: semMatricula.length,
+    },
+    detalhes: {
+      semIgreja: semIgreja.map((r) => `${r.nome_completo} (igreja "${r.igreja}" não encontrada em churches)`),
+      jaExistiam: jaExistiam.map((r) => `${r.nome_completo} (matrícula ${r.matricula} já existe)`),
+      semMatricula: semMatricula.map((r) => r.nome_completo),
+    },
+  };
+}
+
 // ── AÇÃO 5: ATUALIZAR MEMBRO ─────────────────────────────────
 export async function updateMemberAction(formData: FormData) {
   const supabase = await createClient();

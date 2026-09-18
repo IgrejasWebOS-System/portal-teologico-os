@@ -284,7 +284,7 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
 
                   {(c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "ATRASADO") && (
                     <details className="group">
-                      <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-xs font-bold text-iw-blue hover:opacity-80">
+                      <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:opacity-80">
                         <Check className="w-3.5 h-3.5" />
                         Dar baixa / cancelar
                       </summary>

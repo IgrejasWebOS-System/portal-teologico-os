@@ -105,7 +105,7 @@ export default async function AdminEbdTrimestrePage({ params }: PageProps) {
                   <div className="flex items-center gap-2 justify-end">
                     <Link
                       href={`/admin/ebd/${quarterId}/nova?edit=${l.id}`}
-                      className="flex items-center gap-1 text-xs text-iw-blue font-semibold hover:text-iw-navy transition-colors"
+                      className="flex items-center gap-1 text-xs text-iw-navy font-semibold hover:text-iw-navy transition-colors"
                     >
                       <Pencil className="w-3 h-3" /> Editar
                     </Link>

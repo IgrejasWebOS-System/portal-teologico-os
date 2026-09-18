@@ -1,28 +1,42 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { resolverAlunoEMatricula } from "@/utils/aluno/matriculaAtiva";
+import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
 
 export const metadata = { title: "Ficha do Aluno" };
+
+interface PageProps {
+  searchParams: Promise<{ alunoId?: string }>;
+}
 
 function fmtData(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso.length === 10 ? iso + "T00:00:00" : iso).toLocaleDateString("pt-BR");
 }
 
-export default async function FichaAlunoPage() {
+export default async function FichaAlunoPage({ searchParams }: PageProps) {
+  const { alunoId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const dados = await resolverAlunoEMatricula(user.id);
+  const dados = await resolverAlunoParaImpressao(supabase, user.id, alunoId);
   if (!dados) redirect("/portal");
   const { aluno, matricula } = dados;
 
   return (
-    <ImpressaoShell titulo="Ficha do Aluno" voltarPara={matricula?.course_id ? `/escola/${matricula.course_id}` : "/escola"}>
+    <ImpressaoShell
+      titulo="Ficha do Aluno"
+      voltarPara={
+        alunoId
+          ? `/dashboard/configuracoes/persona/alunos/${alunoId}`
+          : matricula?.course_id
+            ? `/escola/${matricula.course_id}`
+            : "/escola"
+      }
+    >
       <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
         <Campo label="Nome completo" valor={aluno.nome_completo} full />
         <Campo label="CPF" valor={aluno.cpf ?? "—"} />

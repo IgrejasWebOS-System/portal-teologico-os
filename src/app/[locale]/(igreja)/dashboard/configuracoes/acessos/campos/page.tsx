@@ -78,7 +78,7 @@ export default async function CamposPage() {
         }
       />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         {linhas.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <Building className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
@@ -93,7 +93,7 @@ export default async function CamposPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-iw-navy">{campo.name}</p>
                       {campo.ministerio_id && (
-                        <span className="text-[10px] font-bold text-iw-blue bg-iw-blue/10 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        <span className="text-[10px] font-bold text-iw-gold bg-iw-gold/10 px-2 py-0.5 rounded-full uppercase tracking-wide">
                           {ministerioNome.get(campo.ministerio_id) ?? "Ministério"}
                         </span>
                       )}
@@ -133,7 +133,7 @@ export default async function CamposPage() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Link
                         href={`/dashboard/configuracoes/acessos/campos/${campo.id}/editar`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-iw-gold hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-gold/8"
                       >
                         <Pencil className="w-3 h-3" />
                         Editar

@@ -4,14 +4,21 @@ import { useState, useTransition, useRef } from "react";
 import { Trash2, Plus, Pencil, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 
-type Item = { id: string; name: string };
+type Item = { id: string; name: string; sigla?: string | null };
 
 interface Props {
   items: Item[];
   placeholder?: string;
   onAdd: (fd: FormData) => Promise<{ success: boolean; message?: string }>;
   onDelete: (id: string) => Promise<{ success: boolean; message?: string }>;
-  onUpdate?: (id: string, name: string) => Promise<{ success: boolean; message?: string }>;
+  onUpdate?: (id: string, name: string, sigla?: string) => Promise<{ success: boolean; message?: string }>;
+  // Cargos (Configurações > Cargos) ganhou um segundo campo — sigla — em
+  // 15/09/2026, pra abreviar o cargo em outras telas do sistema (ex.:
+  // PASTOR = PR). As demais tabelas simples (Profissões, Gênero, Estado
+  // Civil, Escolaridade) continuam com um campo só; esse prop opcional
+  // liga a UI de dois campos sem mexer nos outros consumidores.
+  showSigla?: boolean;
+  siglaPlaceholder?: string;
 }
 
 export default function SimpleSettingsCRUD({
@@ -20,24 +27,29 @@ export default function SimpleSettingsCRUD({
   onAdd,
   onDelete,
   onUpdate,
+  showSigla = false,
+  siglaPlaceholder = "Sigla",
 }: Props) {
   const [list, setList] = useState<Item[]>(items);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editSigla, setEditSigla] = useState("");
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
   const startEdit = (item: Item) => {
     setEditingId(item.id);
     setEditValue(item.name);
+    setEditSigla(item.sigla ?? "");
     setError("");
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditValue("");
+    setEditSigla("");
   };
 
   const handleSaveEdit = (id: string) => {
@@ -46,15 +58,16 @@ export default function SimpleSettingsCRUD({
     if (!trimmed) { setError("Digite um nome antes de salvar."); return; }
     setError("");
     startTransition(async () => {
-      const res = await onUpdate(id, trimmed);
+      const res = await onUpdate(id, trimmed, showSigla ? editSigla.trim() : undefined);
       if (!res.success) { setError(res.message ?? "Erro ao salvar."); return; }
       setList((prev) =>
         prev
-          .map((i) => (i.id === id ? { ...i, name: trimmed.toUpperCase() } : i))
+          .map((i) => (i.id === id ? { ...i, name: trimmed.toUpperCase(), sigla: showSigla ? editSigla.trim().toUpperCase() || null : i.sigla } : i))
           .sort((a, b) => a.name.localeCompare(b.name))
       );
       setEditingId(null);
       setEditValue("");
+      setEditSigla("");
     });
   };
 
@@ -62,6 +75,8 @@ export default function SimpleSettingsCRUD({
     const name = (fd.get("name") as string)?.trim();
     if (!name) { setError("Digite um nome antes de cadastrar."); return; }
     setError("");
+
+    const sigla = (fd.get("sigla") as string)?.trim() || null;
 
     startTransition(async () => {
       const res = await onAdd(fd);
@@ -72,7 +87,7 @@ export default function SimpleSettingsCRUD({
       // Optimistic update — revalidatePath vai buscar o real na próxima navegação
       setList((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), name: name.toUpperCase() },
+        { id: crypto.randomUUID(), name: name.toUpperCase(), sigla: sigla ? sigla.toUpperCase() : null },
       ].sort((a, b) => a.name.localeCompare(b.name)));
       formRef.current?.reset();
     });
@@ -105,8 +120,17 @@ export default function SimpleSettingsCRUD({
           type="text"
           placeholder={placeholder}
           onChange={aplicarMaiusculaNoEvento}
-          className="flex-1 bg-white border border-iw-border rounded-xl px-4 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors font-medium uppercase"
+          className="flex-1 bg-white border border-iw-navy rounded-xl px-4 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors font-medium uppercase"
         />
+        {showSigla && (
+          <input
+            name="sigla"
+            type="text"
+            placeholder={siglaPlaceholder}
+            onChange={aplicarMaiusculaNoEvento}
+            className="w-32 shrink-0 bg-white border border-iw-navy rounded-xl px-4 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors font-medium uppercase"
+          />
+        )}
         <button
           type="submit"
           disabled={isPending}
@@ -129,11 +153,16 @@ export default function SimpleSettingsCRUD({
       )}
 
       {/* List */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
-        <div className="grid grid-cols-[1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
+        <div className={`grid ${showSigla ? "grid-cols-[1fr_120px_auto]" : "grid-cols-[1fr_auto]"} px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-3`}>
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">
             Descrição do Registro
           </span>
+          {showSigla && (
+            <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">
+              Sigla
+            </span>
+          )}
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">
             Ação
           </span>
@@ -150,7 +179,7 @@ export default function SimpleSettingsCRUD({
               return (
                 <li
                   key={item.id}
-                  className="grid grid-cols-[1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors group"
+                  className={`grid ${showSigla ? "grid-cols-[1fr_120px_auto]" : "grid-cols-[1fr_auto]"} items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors group gap-3`}
                 >
                   {isEditing ? (
                     <input
@@ -169,6 +198,25 @@ export default function SimpleSettingsCRUD({
                     </span>
                   )}
 
+                  {showSigla && (
+                    isEditing ? (
+                      <input
+                        value={editSigla}
+                        onChange={(e) => setEditSigla(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(item.id); }
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        placeholder={siglaPlaceholder}
+                        className="bg-white border border-iw-blue rounded-lg px-2.5 py-1 text-sm font-semibold text-iw-navy uppercase focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-iw-muted">
+                        {item.sigla || "—"}
+                      </span>
+                    )
+                  )}
+
                   <div className="flex items-center gap-1">
                     {isEditing ? (
                       <>
@@ -176,7 +224,7 @@ export default function SimpleSettingsCRUD({
                           type="button"
                           onClick={() => handleSaveEdit(item.id)}
                           disabled={isPending}
-                          className="p-1.5 text-iw-blue hover:text-iw-navy disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-blue/8"
+                          className="p-1.5 text-iw-navy hover:text-iw-navy disabled:opacity-40 transition-colors rounded-lg hover:bg-iw-blue/8"
                           title="Salvar"
                         >
                           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -197,7 +245,7 @@ export default function SimpleSettingsCRUD({
                           <button
                             type="button"
                             onClick={() => startEdit(item)}
-                            className="p-1.5 text-iw-muted hover:text-iw-blue transition-colors rounded-lg hover:bg-iw-blue/8"
+                            className="p-1.5 text-iw-muted hover:text-iw-navy transition-colors rounded-lg hover:bg-iw-blue/8"
                             title="Editar"
                           >
                             <Pencil className="w-4 h-4" />

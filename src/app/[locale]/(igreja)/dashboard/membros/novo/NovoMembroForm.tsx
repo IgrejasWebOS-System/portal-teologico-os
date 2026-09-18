@@ -141,11 +141,11 @@ function SectionHeader({
 // ── Input / Select styles ────────────────────────────────────
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const inputErrCls =
   "w-full bg-white border border-iw-error rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-error focus:outline-none transition-colors";
 const selectCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none transition-colors cursor-pointer";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors cursor-pointer";
 const labelCls =
   "block text-xs font-semibold text-iw-muted uppercase tracking-wider mb-1.5";
 
@@ -483,7 +483,7 @@ export default function NovoMembroForm() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-navy">
                     {uploading ? (
                       <Loader2 className="w-7 h-7 animate-spin" />
                     ) : (
@@ -556,7 +556,7 @@ export default function NovoMembroForm() {
                 {/* Igreja (somente leitura) */}
                 <div>
                   <label className={labelCls}>
-                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                     Igreja
                   </label>
                   <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-muted truncate">
@@ -567,7 +567,7 @@ export default function NovoMembroForm() {
                 {/* Cargo */}
                 <div>
                   <label className={labelCls}>
-                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                     Cargo
                   </label>
                   <select
@@ -768,7 +768,7 @@ export default function NovoMembroForm() {
               <div className="flex gap-2">
                 <select
                   required
-                  className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  className="w-20 bg-white border border-iw-navy rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
                   value={formData.nationality_state}
                   onChange={(e) => {
                     const uf = e.target.value;
@@ -790,7 +790,7 @@ export default function NovoMembroForm() {
 
                 <select
                   required
-                  className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  className="flex-1 bg-white border border-iw-navy rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
                   value={formData.nationality_city}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, nationality_city: e.target.value }))
@@ -808,7 +808,7 @@ export default function NovoMembroForm() {
 
             <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>
-                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                 Nacionalidade *
               </label>
               <input
@@ -992,7 +992,7 @@ export default function NovoMembroForm() {
                 <Search
                   className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
                     loadingCep
-                      ? "text-iw-blue animate-pulse"
+                      ? "text-iw-navy animate-pulse"
                       : "text-iw-muted"
                   }`}
                 />

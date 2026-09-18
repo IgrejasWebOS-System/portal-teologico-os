@@ -358,9 +358,9 @@ export default function HistoricoRelatorio() {
       {/* ── Trigger button ── */}
       <button
         onClick={() => setStep("searching")}
-        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border border-iw-blue/30 bg-iw-blue/8 text-iw-blue hover:bg-iw-blue/15 transition-all"
+        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#CF8403] text-white hover:bg-iw-navy transition-colors shadow-sm"
       >
-        <History className="w-3.5 h-3.5" />
+        <History className="w-4 h-4" />
         Histórico
       </button>
 
@@ -372,7 +372,7 @@ export default function HistoricoRelatorio() {
             {/* Header */}
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-8 h-8 rounded-xl bg-iw-blue/10 flex items-center justify-center">
-                <Search className="w-4 h-4 text-iw-blue" />
+                <Search className="w-4 h-4 text-iw-navy" />
               </div>
               <div>
                 <h2 className="text-sm font-bold text-iw-navy">Buscar Histórico</h2>
@@ -394,7 +394,7 @@ export default function HistoricoRelatorio() {
                   placeholder="Ex: 1020"
                   value={matricula}
                   onChange={e => { setMatricula(e.target.value); setSearchErr(""); }}
-                  className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy font-mono text-center placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors"
+                  className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy font-mono text-center placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
                 />
                 {searchErr && (
                   <p className="flex items-center gap-1.5 mt-1.5 text-xs text-iw-error font-medium">
@@ -435,7 +435,7 @@ export default function HistoricoRelatorio() {
 
             {/* ── Modal header ── */}
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-iw-border shrink-0">
-              <FileText className="w-4 h-4 text-iw-blue shrink-0" />
+              <FileText className="w-4 h-4 text-iw-navy shrink-0" />
               <span className="text-sm font-bold text-iw-navy">Relatório Eclesiástico</span>
               <span className="text-xs text-iw-muted hidden sm:inline">— Documento Oficial de Consulta</span>
 
@@ -445,7 +445,7 @@ export default function HistoricoRelatorio() {
                   onClick={() => setTab("ficha")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     tab === "ficha"
-                      ? "bg-iw-surface text-iw-blue shadow-sm border border-iw-border"
+                      ? "bg-iw-surface text-iw-navy shadow-sm border border-iw-border"
                       : "text-iw-muted hover:text-iw-navy"
                   }`}
                 >
@@ -456,13 +456,13 @@ export default function HistoricoRelatorio() {
                   onClick={() => setTab("historico")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     tab === "historico"
-                      ? "bg-iw-surface text-iw-blue shadow-sm border border-iw-border"
+                      ? "bg-iw-surface text-iw-navy shadow-sm border border-iw-border"
                       : "text-iw-muted hover:text-iw-navy"
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5" />
                   Histórico
-                  <span className="ml-1 px-1.5 py-0.5 bg-iw-blue/10 text-iw-blue rounded-full text-[9px] font-bold">
+                  <span className="ml-1 px-1.5 py-0.5 bg-iw-blue/10 text-iw-navy rounded-full text-[9px] font-bold">
                     {timeline.length}
                   </span>
                 </button>
@@ -485,14 +485,14 @@ export default function HistoricoRelatorio() {
                       onClick={() => { openPrint(wrap(`Ficha — ${p.full_name}`, fichaBody(p))); setShowPdf(false); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-iw-navy hover:bg-iw-bg transition-colors"
                     >
-                      <User className="w-3.5 h-3.5 text-iw-blue" />
+                      <User className="w-3.5 h-3.5 text-iw-navy" />
                       Ficha do Membro
                     </button>
                     <button
                       onClick={() => { openPrint(wrap(`Histórico — ${p.full_name}`, historicoBody(p, timeline))); setShowPdf(false); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-iw-navy hover:bg-iw-bg transition-colors"
                     >
-                      <Clock className="w-3.5 h-3.5 text-iw-blue" />
+                      <Clock className="w-3.5 h-3.5 text-iw-navy" />
                       Histórico do Membro
                     </button>
                     <div className="border-t border-iw-border my-1" />
@@ -504,7 +504,7 @@ export default function HistoricoRelatorio() {
                       }}
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-iw-navy hover:bg-iw-bg transition-colors"
                     >
-                      <FileText className="w-3.5 h-3.5 text-iw-blue" />
+                      <FileText className="w-3.5 h-3.5 text-iw-navy" />
                       Histórico Completo
                     </button>
                   </div>
@@ -538,7 +538,7 @@ export default function HistoricoRelatorio() {
                         />
                       ) : (
                         <div className="w-20 h-20 rounded-full bg-iw-blue/12 border-2 border-iw-blue/20 flex items-center justify-center">
-                          <span className="text-iw-blue font-black text-2xl">
+                          <span className="text-iw-navy font-black text-2xl">
                             {p.full_name.charAt(0)}
                           </span>
                         </div>
@@ -634,7 +634,7 @@ export default function HistoricoRelatorio() {
                     </div>
                     <button
                       onClick={() => { setShowAddForm(v => !v); setAddErr(""); setAddOk(false); }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-iw-blue/8 text-iw-blue border border-iw-blue/25 hover:bg-iw-blue/15 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-iw-blue/8 text-iw-navy border border-iw-blue/25 hover:bg-iw-blue/15 transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Adicionar Ocorrência
@@ -655,7 +655,7 @@ export default function HistoricoRelatorio() {
                           <select
                             value={evType}
                             onChange={e => setEvType(e.target.value)}
-                            className="w-full bg-white border border-iw-border rounded-xl px-2.5 py-2 text-xs text-iw-navy focus:border-iw-blue focus:outline-none"
+                            className="w-full bg-white border border-iw-navy rounded-xl px-2.5 py-2 text-xs text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40"
                           >
                             {["OCORRÊNCIA","OBSERVAÇÃO","DISCIPLINA","TRANSFERÊNCIA","BATISMO","CASAMENTO","FALECIMENTO","ATUALIZAÇÃO"].map(t => (
                               <option key={t} value={t}>{t}</option>
@@ -672,7 +672,7 @@ export default function HistoricoRelatorio() {
                             onChange={e => setEvDesc(e.target.value.toUpperCase())}
                             placeholder="Descreva a ocorrência..."
                             required
-                            className="w-full bg-white border border-iw-border rounded-xl px-2.5 py-2 text-xs text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none uppercase"
+                            className="w-full bg-white border border-iw-navy rounded-xl px-2.5 py-2 text-xs text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 uppercase"
                           />
                         </div>
                       </div>

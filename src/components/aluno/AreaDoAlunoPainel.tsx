@@ -21,6 +21,9 @@ import {
 import { signOutGlobalAction } from "@/app/actions";
 import { trocarSenhaAlunoAction } from "@/app/[locale]/(escola)/aluno-actions";
 import { cn } from "@/utils/cn";
+import { montarPayloadPix, DADOS_PIX_CETADP } from "@/utils/financeiro/pix";
+import QRCode from "qrcode";
+import { QrCode, Copy, Check } from "lucide-react";
 
 // ============================================================
 // "Minha Área" — bloco embutido no próprio Sidebar (não é mais um
@@ -51,6 +54,7 @@ export interface MatriculaResumo {
 }
 
 export interface ParcelaResumo {
+  id: string;
   descricao: string;
   numeroParcela: number;
   totalParcelas: number;
@@ -89,6 +93,7 @@ const ITENS_IMPRESSAO: { href: string; label: string }[] = [
   { href: "/portal/impressao/prova", label: "Prova" },
   { href: "/portal/impressao/declaracao", label: "Declaração" },
   { href: "/portal/impressao/certificado", label: "Certificado" },
+  { href: "/portal/impressao/irpf", label: "Informe IRPF" },
 ];
 
 const STATUS_PARCELA_CLS: Record<string, string> = {
@@ -112,11 +117,32 @@ export default function AreaDoAlunoPainel({
   matriculas,
   parcelas,
   avaliacoes,
+  expandido = true,
+  onToggleExpandido,
+  modoStaff = false,
+  alunoId,
 }: {
   aluno: AlunoResumo;
   matriculas: MatriculaResumo[];
   parcelas: ParcelaResumo[];
   avaliacoes: AvaliacaoResumo[];
+  // "Aberto" = ícone + rótulo (padrão). "Recolhido" = só ícone, sem
+  // sanfona de conteúdo. Estado movido pra SidebarShell em 13/09/2026 —
+  // antes vivia só aqui e recolhia só o miolo deste bloco, deixando os
+  // ícones flutuando centralizados numa barra ainda larga; agora o
+  // toggle recolhe a barra INTEIRA (ver Sidebar.tsx/SidebarShell.tsx).
+  expandido?: boolean;
+  onToggleExpandido?: () => void;
+  // Painel acessado pela secretaria (Cadastro de Alunos > gerenciar em
+  // nome do aluno), em vez do próprio aluno logado (15/09/2026). Nesse
+  // modo escondemos "Trocar senha" e "Sair de todos os dispositivos" —
+  // essas ações agem sobre a sessão de quem está logado (o STAFF), não
+  // sobre a conta do aluno, então mostrá-las aqui seria enganoso/perigoso.
+  modoStaff?: boolean;
+  // ead_alunos.id — só precisa ser passado em modoStaff, pra anexar
+  // ?alunoId= nos links de Impressão (ver checagem de staff em
+  // resolverAlunoEMatricula/utils/aluno/matriculaAtiva.ts).
+  alunoId?: string;
 }) {
   const pathname = usePathname();
   const locale = useLocale();
@@ -125,10 +151,37 @@ export default function AreaDoAlunoPainel({
   const contaError = searchParams.get("contaError") ?? undefined;
   const returnPath = pathname;
 
-  // "Aberto" = ícone + rótulo (padrão). "Recolhido" = só ícone,
-  // sem sanfona de conteúdo.
-  const [expandido, setExpandido] = useState(true);
   const [secaoAtiva, setSecaoAtiva] = useState<Secao | null>(contaMsg || contaError ? "conta" : null);
+
+  // Pix estático (14/09/2026) — QR gerado no client, sem confirmação
+  // automática de pagamento (ver utils/financeiro/pix.ts).
+  const [parcelaPagando, setParcelaPagando] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  async function abrirPagamento(p: ParcelaResumo) {
+    if (parcelaPagando === p.id) {
+      setParcelaPagando(null);
+      setQrDataUrl(null);
+      return;
+    }
+    setParcelaPagando(p.id);
+    setCopiado(false);
+    const payload = montarPayloadPix({
+      valorCentavos: p.valorBrutoCentavos,
+      txid: p.id,
+      descricao: p.descricao,
+    });
+    const url = await QRCode.toDataURL(payload, { margin: 1, width: 220, errorCorrectionLevel: "M" });
+    setQrDataUrl(url);
+  }
+
+  function copiarCodigoPix(p: ParcelaResumo) {
+    const payload = montarPayloadPix({ valorCentavos: p.valorBrutoCentavos, txid: p.id, descricao: p.descricao });
+    navigator.clipboard.writeText(payload);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
 
   function renderSecao(key: Secao) {
     switch (key) {
@@ -160,44 +213,53 @@ export default function AreaDoAlunoPainel({
 
             <Campo label="Login" valor={aluno.email} />
 
-            <form action={trocarSenhaAlunoAction} className="space-y-2 pt-2 border-t border-white/10">
-              <input type="hidden" name="returnPath" value={returnPath} />
-              <p className="text-xs font-bold text-iw-sky/50 uppercase tracking-wider flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5" /> Trocar senha
+            {modoStaff ? (
+              <p className="text-xs text-iw-sky/50 pt-2 border-t border-white/10">
+                Troca de senha e encerramento de sessão só podem ser feitos pelo próprio aluno,
+                logado com sua própria conta — aqui é só consulta e gerenciamento pela secretaria.
               </p>
-              <input
-                type="password"
-                name="password"
-                placeholder="Nova senha"
-                required
-                minLength={6}
-                className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
-              />
-              <input
-                type="password"
-                name="confirm"
-                placeholder="Confirmar nova senha"
-                required
-                minLength={6}
-                className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
-              />
-              <button
-                type="submit"
-                className="w-full py-2 rounded-lg bg-iw-blue text-gray-900 text-xs font-bold hover:opacity-90 transition-opacity"
-              >
-                Atualizar senha
-              </button>
-            </form>
+            ) : (
+              <>
+                <form action={trocarSenhaAlunoAction} className="space-y-2 pt-2 border-t border-white/10">
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <p className="text-xs font-bold text-iw-sky/50 uppercase tracking-wider flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5" /> Trocar senha
+                  </p>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Nova senha"
+                    required
+                    minLength={6}
+                    className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
+                  />
+                  <input
+                    type="password"
+                    name="confirm"
+                    placeholder="Confirmar nova senha"
+                    required
+                    minLength={6}
+                    className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-sm text-white placeholder:text-iw-sky/40"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-lg bg-iw-blue text-gray-900 text-xs font-bold hover:opacity-90 transition-opacity"
+                  >
+                    Atualizar senha
+                  </button>
+                </form>
 
-            <form action={signOutGlobalAction} className="pt-2 border-t border-white/10">
-              <input type="hidden" name="locale" value={locale} />
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-red-300 hover:bg-red-500/10 transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Sair de todos os dispositivos
-              </button>
-            </form>
+                <form action={signOutGlobalAction} className="pt-2 border-t border-white/10">
+                  <input type="hidden" name="locale" value={locale} />
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-red-300 hover:bg-red-500/10 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Sair de todos os dispositivos
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         );
 
@@ -212,7 +274,7 @@ export default function AreaDoAlunoPainel({
                   <p className="text-sm font-bold text-white">{m.cursoNomeSnapshot}</p>
                   <p className="text-xs text-iw-sky/60">Matrícula {m.matricula}</p>
                   <p className="text-xs text-iw-sky/60">Desde {fmtData(m.dataMatricula)}</p>
-                  <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-iw-blue/20 text-iw-blue mt-1">
+                  <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-iw-blue/20 text-iw-navy mt-1">
                     {m.status}
                   </span>
                 </div>
@@ -241,6 +303,46 @@ export default function AreaDoAlunoPainel({
                   {p.responsavelPagamento === "IGREJA" && (
                     <p className="text-[10px] text-iw-gold font-semibold">Financiamento interno (igreja)</p>
                   )}
+
+                  {p.status === "PENDENTE" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => abrirPagamento(p)}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-iw-gold hover:text-white transition-colors"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        {parcelaPagando === p.id ? "Fechar pagamento" : "Pagar esta parcela"}
+                      </button>
+
+                      {parcelaPagando === p.id && (
+                        <div className="mt-2 bg-black/30 border border-white/10 rounded-xl p-3 space-y-2">
+                          <p className="text-[10px] text-iw-sky/60">
+                            Pix estático — {fmt(p.valorBrutoCentavos)} para {DADOS_PIX_CETADP.razaoSocial}.
+                            Após pagar, avise a secretaria ou seu professor para confirmar a baixa.
+                          </p>
+                          {qrDataUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={qrDataUrl} alt="QR Code Pix" className="w-28 h-28 rounded-lg bg-white p-1.5 mx-auto" />
+                          ) : (
+                            <p className="text-[10px] text-iw-sky/50 text-center">Gerando QR…</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => copiarCodigoPix(p)}
+                            className="w-full flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-[11px] font-bold py-1.5 rounded-lg transition-colors"
+                          >
+                            {copiado ? <Check className="w-3.5 h-3.5 text-iw-success" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiado ? "Código copiado!" : "Copiar código Pix (copia e cola)"}
+                          </button>
+                          <p className="text-[10px] text-iw-sky/50 leading-relaxed">
+                            Ou transferência: {DADOS_PIX_CETADP.banco}, agência {DADOS_PIX_CETADP.agencia}, conta{" "}
+                            {DADOS_PIX_CETADP.contaCorrente}, CNPJ {DADOS_PIX_CETADP.cnpjFormatado}.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               ))
             )}
@@ -257,7 +359,7 @@ export default function AreaDoAlunoPainel({
                 <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold text-white">{a.tipo === "PROVA" ? "Prova final" : "Simulado"}</p>
-                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-iw-blue/20 text-iw-blue">
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-iw-blue/20 text-iw-navy">
                       {a.status}
                     </span>
                   </div>
@@ -284,7 +386,7 @@ export default function AreaDoAlunoPainel({
             {ITENS_IMPRESSAO.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={modoStaff && alunoId ? `${item.href}?alunoId=${alunoId}` : item.href}
                 className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-iw-sky/80 hover:bg-white/8 hover:text-white transition-colors"
               >
                 {item.label}
@@ -304,8 +406,8 @@ export default function AreaDoAlunoPainel({
         <button
           type="button"
           onClick={() => {
-            setExpandido((v) => !v);
             if (expandido) setSecaoAtiva(null);
+            onToggleExpandido?.();
           }}
           className={cn(
             "w-6 h-6 rounded-lg flex items-center justify-center text-iw-sky/50 hover:bg-white/10 hover:text-white transition-colors shrink-0",
@@ -327,7 +429,7 @@ export default function AreaDoAlunoPainel({
                 type="button"
                 onClick={() => {
                   if (!expandido) {
-                    setExpandido(true);
+                    onToggleExpandido?.();
                     setSecaoAtiva(s.key);
                   } else {
                     setSecaoAtiva(ativo ? null : s.key);

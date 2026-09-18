@@ -48,7 +48,7 @@ export default async function AlunosPage() {
         }
       />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
           <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Matrícula</span>
@@ -68,18 +68,23 @@ export default async function AlunosPage() {
         ) : (
           <ul className="divide-y divide-iw-border">
             {rows.map((r) => (
-              <li key={r.id} className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
-                <span className="text-sm font-semibold text-iw-navy truncate">{r.nome_completo}</span>
-                <span className="text-xs text-iw-muted truncate">{r.matricula}</span>
-                <span className="text-xs text-iw-muted truncate">{r.curso_pretendido ?? "—"}</span>
-                <span className="text-xs text-iw-muted truncate">{r.campo_ministerio_nome ?? "—"}</span>
-                <span
-                  className={`text-[11px] font-bold uppercase px-2 py-1 rounded-full text-center ${
-                    STATUS_STYLE[r.status] ?? "bg-iw-bg text-iw-muted"
-                  }`}
+              <li key={r.id}>
+                <Link
+                  href={`/dashboard/configuracoes/persona/alunos/${r.id}`}
+                  className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4"
                 >
-                  {r.status}
-                </span>
+                  <span className="text-sm font-semibold text-iw-navy truncate">{r.nome_completo}</span>
+                  <span className="text-xs text-iw-muted truncate">{r.matricula}</span>
+                  <span className="text-xs text-iw-muted truncate">{r.curso_pretendido ?? "—"}</span>
+                  <span className="text-xs text-iw-muted truncate">{r.campo_ministerio_nome ?? "—"}</span>
+                  <span
+                    className={`text-[11px] font-bold uppercase px-2 py-1 rounded-full text-center ${
+                      STATUS_STYLE[r.status] ?? "bg-iw-bg text-iw-muted"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -107,3 +107,47 @@ público.
 - Página pública nova: registrar o prefixo em `PUBLIC_PATHS` no middleware; importar `PublicHeader`/`PublicFooter` diretamente.
 - Antes de duplicar um componente (ex.: um segundo "player de aula"), verificar se já existe algo parecido para generalizar em vez de copiar — o projeto já teve esse problema (`EscolaLessonPlayer` e `CursosLessonPlayer` eram idênticos).
 - **Pegadinha conhecida:** `globals.css` tem uma regra global `h1,h2,h3,h4,h5,h6 { color: #111111 }` fora de `@layer`, que tem precedência sobre utilities do Tailwind. Qualquer `<h1>`–`<h6>` colocado sobre fundo escuro (navy) precisa forçar a cor com `!text-white` (com `!`), não só `text-white` — senão o título fica escuro sobre fundo escuro. Já aconteceu no rodapé ("Ensino"/"Institucional") e foi corrigido em 2026-07-12.
+- Bordas de campo/caixa/card: seguir sempre o padrão descrito na seção 9, abaixo.
+
+## 9. Padrão de bordas (campos, caixas e cards) — definido em 2026-09-15
+
+Padrão único aplicado a **todos os formulários e telas de Configurações e
+Membros** nesta data, a pedido do Joaquim. Usar sempre que criar ou tocar
+numa tela nova — não reinventar caso a caso.
+
+**Campos de preenchimento** (`<input>`, `<select>`, `<textarea>` editáveis):
+
+- Borda padrão (estado de repouso, ao abrir a tela): `border-iw-navy`
+  (`#0D0D0D`).
+- Ao focar/clicar: `focus:border-iw-gold` (`#CF8403`) +
+  `focus:ring-2 focus:ring-iw-gold/40` + `focus:outline-none`.
+- Sempre incluir `transition-colors` para a troca de cor ficar suave.
+- Classe de referência (`inputCls`/`selectCls`, usada em praticamente todo
+  formulário do projeto):
+  ```
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
+  ```
+
+**Caixas e cards** (wrappers `bg-iw-surface rounded-2xl border ... shadow-sm
+p-6` e caixas menores que agrupam itens dentro de uma tela):
+
+- Borda padrão (sempre, não só no foco): `border-iw-gold` (`#CF8403`).
+
+**Exceções deliberadas — não aplicar o padrão acima:**
+
+- Botões (mantêm suas próprias variantes de cor).
+- Indicador de "linha em edição" nas listas (`SimpleSettingsCRUD.tsx`,
+  `SetoresManager.tsx`, `UsersList.tsx`): continua `border-iw-blue` +
+  `focus:ring-iw-blue/20` — é um sinal semântico diferente (edição), não o
+  estado padrão/foco normal.
+- Bordas de erro de validação (`inputErrCls`, `border-iw-error`): estado de
+  erro, não relacionado a este padrão.
+- Overlays efêmeros (dropdown de autocomplete, menus flutuantes): ficam
+  como estavam.
+- Caixas já dentro de um alerta colorido (ex.: link dentro do aviso
+  "cadastro pendente" em `EditarMatriculaForm.tsx`): mantidas neutras para
+  não conflitar visualmente com a cor do próprio alerta.
+
+Arquivos de referência de implementação: `NovaMatriculaForm.tsx` (primeiro
+teste aprovado), `SimpleSettingsCRUD.tsx`, `ProfessorForm.tsx`,
+`NovoMembroForm.tsx`/`EditarMembroForm.tsx`, `EditarMatriculaForm.tsx`.

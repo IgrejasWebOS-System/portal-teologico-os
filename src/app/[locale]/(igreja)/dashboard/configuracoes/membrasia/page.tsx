@@ -63,7 +63,7 @@ export default function MembrasiaPage() {
             <Link
               key={panel.href}
               href={panel.href}
-              className="group bg-iw-surface border border-iw-border rounded-2xl p-5 flex flex-col gap-4 hover:border-iw-blue/40 hover:shadow-md transition-all duration-150"
+              className="group bg-iw-surface border border-iw-gold rounded-2xl p-5 flex flex-col gap-4 hover:shadow-md transition-all duration-150"
             >
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${panel.accent}`}>
                 <Icon className="w-5 h-5" />
@@ -80,7 +80,7 @@ export default function MembrasiaPage() {
                 <span className="text-xs font-bold text-iw-navy uppercase tracking-wider">
                   {panel.cta}
                 </span>
-                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-navy group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
           );

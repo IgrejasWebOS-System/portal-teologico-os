@@ -44,7 +44,7 @@ export default function AddMemberFunctionForm({
   const [sectorId, setSectorId] = useState(setorPadraoId ?? "");
 
   const selectCls =
-    "bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer";
+    "bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer";
 
   return (
     <form action={addMemberFunctionAction} className="space-y-3 pt-1">

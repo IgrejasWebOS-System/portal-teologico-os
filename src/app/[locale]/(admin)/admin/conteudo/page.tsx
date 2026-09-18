@@ -105,7 +105,7 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
       {courseList.length === 0 ? (
         <div className="bg-iw-surface rounded-2xl border border-iw-border p-12 text-center text-iw-muted text-sm">
           Nenhum curso cadastrado ainda.{" "}
-          <Link href="/admin/conteudo/trilhas" className="text-iw-blue font-semibold hover:underline">
+          <Link href="/admin/conteudo/trilhas" className="text-iw-navy font-semibold hover:underline">
             Criar trilha
           </Link>
         </div>
@@ -123,7 +123,7 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${
                       course.module === "escola"
-                        ? "bg-iw-blue/10 text-iw-blue"
+                        ? "bg-iw-blue/10 text-iw-navy"
                         : "bg-iw-gold/10 text-iw-gold"
                     }`}>
                       {course.module === "escola" ? "Escola" : "Cursos"}
@@ -161,7 +161,7 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
                     Nenhuma aula nesta trilha.{" "}
                     <Link
                       href={`/admin/conteudo/nova?course_id=${course.id}`}
-                      className="text-iw-blue font-semibold hover:underline"
+                      className="text-iw-navy font-semibold hover:underline"
                     >
                       Inserir primeira aula
                     </Link>
@@ -189,7 +189,7 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
                             </span>
                             <Link
                               href={`/admin/conteudo/nova?edit=${lesson.id}`}
-                              className="flex items-center gap-1 text-xs text-iw-blue font-semibold hover:text-iw-navy transition-colors"
+                              className="flex items-center gap-1 text-xs text-iw-navy font-semibold hover:text-iw-navy transition-colors"
                             >
                               <Pencil className="w-3 h-3" /> Editar
                             </Link>
@@ -204,7 +204,7 @@ export default async function AdminConteudoPage({ searchParams }: PageProps) {
                 <div className="px-6 py-3 border-t border-iw-border bg-iw-bg/20">
                   <Link
                     href={`/admin/conteudo/nova?course_id=${course.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy hover:text-iw-navy transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Adicionar aula nesta trilha

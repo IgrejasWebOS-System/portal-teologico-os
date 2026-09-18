@@ -283,6 +283,28 @@ export async function addTurmaAction(formData: FormData) {
   return { success: true, data };
 }
 
+// Turmas de UMA igreja específica, buscadas sob demanda assim que a
+// secretaria escolhe a igreja na Nova Matrícula — evita pré-carregar as
+// 6.800+ turmas geradas em lote (isso estourava o limite padrão de 1000
+// linhas do Supabase e cortava turmas "2", "3", "4" de quase toda igreja,
+// ver nova/page.tsx). Inclui também as turmas sem unit_id (genéricas,
+// não restritas a nenhuma igreja específica).
+export async function buscarTurmasPorUnidadeAction(unitId: string) {
+  const { supabase } = await requireStaff();
+
+  const { data, error } = await supabase
+    .from("course_editions")
+    .select("id, nome, classe, course_id, unit_id, ano")
+    .or(`unit_id.eq.${unitId},unit_id.is.null`)
+    .order("nome");
+
+  if (error) {
+    console.error("[matriculas/actions] buscarTurmasPorUnidadeAction", error);
+    return [];
+  }
+  return data ?? [];
+}
+
 export async function matricularDiretoAction(formData: FormData) {
   const { supabase, userId } = await requireStaff();
   const admin = createAdminClient();
@@ -343,12 +365,14 @@ export async function matricularDiretoAction(formData: FormData) {
 
   if (!curso) fail("Curso inválido.");
 
-  // M10c: a unidade do aluno vem da igreja selecionada (churches.unit_id,
-  // ver M4/058). Se a turma escolhida for restrita a uma unidade
-  // (course_editions.unit_id, ver M8/062), o aluno só pode ser
-  // matriculado se pertencer a essa unidade ou a uma descendente dela
-  // (unit_is_within, também do M8) — turma sem unit_id continua aberta
-  // a qualquer aluno, como sempre foi.
+  // M10c (revisado 14/09/2026 — conceito de "igreja núcleo"): a unidade do
+  // aluno vem da igreja de ORIGEM selecionada no formulário (churches.unit_id),
+  // guardada aqui só pra fins de relatório (de onde os alunos realmente vêm).
+  // A turma (course_editions.unit_id) representa o NÚCLEO — a igreja onde o
+  // curso é ministrado de fato — e não precisa mais bater com a unidade do
+  // aluno: é normal e esperado que um aluno de outro setor/regional faça o
+  // curso num núcleo mais próximo dele. Por isso a trava antiga
+  // (unit_is_within) foi removida — ela bloqueava exatamente esse caso.
   let alunoUnitId: string | null = null;
   if (church_id_aluno) {
     const { data: churchRow } = await admin
@@ -357,29 +381,6 @@ export async function matricularDiretoAction(formData: FormData) {
       .eq("id", church_id_aluno)
       .single();
     alunoUnitId = churchRow?.unit_id ?? null;
-  }
-
-  if (course_edition_id) {
-    const { data: turma } = await admin
-      .from("course_editions")
-      .select("unit_id, nome")
-      .eq("id", course_edition_id)
-      .single();
-
-    if (turma?.unit_id) {
-      if (!alunoUnitId) {
-        fail(
-          `A turma "${turma.nome}" é restrita a uma unidade específica. Selecione a igreja do aluno (vinculada à árvore de unidades) ou escolha outra turma.`
-        );
-      }
-      const { data: dentroDaUnidade } = await admin.rpc("unit_is_within", {
-        p_unit_id: alunoUnitId,
-        p_ancestor_id: turma.unit_id,
-      });
-      if (!dentroDaUnidade) {
-        fail(`A turma "${turma.nome}" é restrita a outra unidade — este aluno não pertence a ela.`);
-      }
-    }
   }
 
   // Identidade por CPF: reaproveita se a pessoa já existir

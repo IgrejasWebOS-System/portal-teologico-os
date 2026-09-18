@@ -188,7 +188,7 @@ export default async function AdminDashboardPage() {
           icon={UserCheck}
           label="Matrículas em andamento"
           value={String(matriculasEmAndamento ?? 0)}
-          color="text-iw-blue"
+          color="text-iw-navy"
           bg="bg-iw-blue/10"
         />
         <KpiCard
@@ -241,7 +241,7 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-iw-blue" />
+            <BarChart3 className="w-4 h-4 text-iw-navy" />
             <h2 className="font-bold text-iw-navy text-sm">Matrículas por mês (últimos 6 meses)</h2>
           </div>
           <MonthlyBarChart data={matriculasPorMes} color="bg-iw-blue" />
