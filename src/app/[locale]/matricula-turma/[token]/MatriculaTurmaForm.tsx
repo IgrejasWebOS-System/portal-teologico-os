@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Mail, Phone, User, Hash } from "lucide-react";
 import { matricularPorLinkAction } from "./actions";
+import { validarCPF } from "@/utils/cpf";
+import { validarEmail } from "@/utils/email";
 
 interface Props {
   token: string;
@@ -43,8 +45,8 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
   const handleSubmit = (fd: FormData) => {
     setError("");
     if (!nome.trim()) return setError("Digite seu nome completo.");
-    if (!email.trim() || !email.includes("@")) return setError("Informe um e-mail válido — é por ele que você vai acessar o portal.");
-    if (!cpf.trim()) return setError("Informe seu CPF.");
+    if (!email.trim() || !validarEmail(email)) return setError("Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com) — é por ele que você vai acessar o portal.");
+    if (!cpf.trim() || !validarCPF(cpf)) return setError("Informe um CPF válido.");
 
     fd.set("token", token);
     fd.set("nome_completo", nome.trim());
@@ -131,7 +133,7 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full flex items-center justify-center gap-2 bg-iw-blue hover:bg-iw-navy disabled:opacity-50 text-white px-6 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm"
+        className="w-full flex items-center justify-center gap-2 bg-[#CF8403] hover:opacity-90 disabled:opacity-50 text-white px-6 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm"
       >
         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
         Concluir matrícula

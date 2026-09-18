@@ -23,7 +23,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: professor }, unitsRes, churchesRes, { data: cursos }, { data: vinculosRaw }, { data: generos }, { data: estadosCivis }, { data: escolaridadesOpts }, { data: profissoesOpts }] = await Promise.all([
+  const [{ data: professor }, unitsRes, churchesRes, { data: cursos }, { data: vinculosRaw }, { data: generos }, { data: estadosCivis }, { data: escolaridadesOpts }, { data: profissoesOpts }, { data: cargosOpts }] = await Promise.all([
     supabase.from("professores").select(CAMPOS_PROFESSOR).eq("id", id).maybeSingle(),
     supabase.from("units").select("id, type, name, parent_id"),
     supabase.from("churches").select("id, unit_id"),
@@ -37,6 +37,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
     supabase.from("settings_civil_status").select("id, name").order("name"),
     supabase.from("settings_schooling").select("id, name").order("name"),
     supabase.from("settings_professions").select("id, name").order("name"),
+    supabase.from("ecclesiastical_roles").select("id, name").order("name"),
   ]);
 
   if (!professor) notFound();
@@ -77,6 +78,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
         estadosCivis={estadosCivis ?? []}
         escolaridades={escolaridadesOpts ?? []}
         profissoes={profissoesOpts ?? []}
+        cargos={cargosOpts ?? []}
         submitLabel="Salvar alterações"
         existing={{
           id: professor.id,

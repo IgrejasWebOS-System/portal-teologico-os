@@ -2,6 +2,10 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { checkIsStaff } from "@/utils/staff";
+import { checkIsProfessor } from "@/utils/professor";
+import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
+import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
 
 export async function definirSenhaAction(formData: FormData) {
   const password = formData.get("password") as string;
@@ -38,5 +42,20 @@ export async function definirSenhaAction(formData: FormData) {
     );
   }
 
-  redirect("/portal");
+  // Pra onde vai depois de definir a senha — mesmo critério do middleware
+  // em /login (checkIsStaff → checkIsProfessor → resolverDestinoPosLogin),
+  // senão todo mundo caía em /portal, mesmo quem é professor e devia cair
+  // direto na Área do Professor (pedido do Joaquim, 18/09/2026: mutirão de
+  // cadastro).
+  const isStaff = await checkIsStaff(supabase, user.id);
+  const professor = isStaff ? null : await checkIsProfessor(supabase, user.id);
+  const gate = isStaff ? null : await resolverGateCompletarCadastro(supabase, user.id, professor);
+  const destino = isStaff
+    ? "/admin"
+    : gate
+      ? gate
+      : professor
+        ? "/professor"
+        : await resolverDestinoPosLogin(supabase, user.id);
+  redirect(destino);
 }

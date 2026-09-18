@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/admin";
-import CadastroProfessorForm, { type UnitLite } from "./CadastroProfessorForm";
+import Logo from "@/components/Logo";
+import CadastroProfessorForm, { type UnitLite, type CargoLite } from "./CadastroProfessorForm";
 
 export const metadata = { title: "Cadastro de Professor — CETADP" };
 
@@ -17,16 +18,20 @@ export const metadata = { title: "Cadastro de Professor — CETADP" };
 export default async function CadastroProfessorPage() {
   const admin = createAdminClient();
 
-  const { data: unitsRaw } = await admin
-    .from("units")
-    .select("id, type, name, parent_id")
-    .in("type", ["SETOR", "IGREJA", "SEDE"]);
+  const [{ data: unitsRaw }, { data: cargosRaw }] = await Promise.all([
+    admin.from("units").select("id, type, name, parent_id").in("type", ["SETOR", "IGREJA", "SEDE"]),
+    admin.from("ecclesiastical_roles").select("id, name").order("name"),
+  ]);
 
   const units = (unitsRaw ?? []) as UnitLite[];
+  const cargos = (cargosRaw ?? []) as CargoLite[];
 
   return (
     <div className="min-h-screen bg-iw-bg flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
+        <div className="flex justify-center mb-4">
+          <Logo size="md" variant="dark" />
+        </div>
         <div className="text-center mb-6">
           <p className="text-[11px] font-bold uppercase tracking-widest text-iw-gold">
             Campo AD Brás Piracicaba
@@ -41,7 +46,7 @@ export default async function CadastroProfessorPage() {
         </div>
 
         <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 sm:p-8">
-          <CadastroProfessorForm units={units} />
+          <CadastroProfessorForm units={units} cargos={cargos} />
         </div>
       </div>
     </div>

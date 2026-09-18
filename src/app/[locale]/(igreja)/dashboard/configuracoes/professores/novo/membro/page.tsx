@@ -6,13 +6,14 @@ import ProfessorForm from "../../ProfessorForm";
 export default async function NovoProfessorPage() {
   const supabase = await createClient();
 
-  const [{ data: units }, { data: churches }, { data: generos }, { data: estadosCivis }, { data: escolaridades }, { data: profissoes }] = await Promise.all([
+  const [{ data: units }, { data: churches }, { data: generos }, { data: estadosCivis }, { data: escolaridades }, { data: profissoes }, { data: cargos }] = await Promise.all([
     supabase.from("units").select("id, type, name, parent_id"),
     supabase.from("churches").select("id, unit_id"),
     supabase.from("settings_gender").select("id, name").order("name"),
     supabase.from("settings_civil_status").select("id, name").order("name"),
     supabase.from("settings_schooling").select("id, name").order("name"),
     supabase.from("settings_professions").select("id, name").order("name"),
+    supabase.from("ecclesiastical_roles").select("id, name").order("name"),
   ]);
 
   return (
@@ -48,6 +49,7 @@ export default async function NovoProfessorPage() {
         estadosCivis={estadosCivis ?? []}
         escolaridades={escolaridades ?? []}
         profissoes={profissoes ?? []}
+        cargos={cargos ?? []}
       />
     </div>
   );

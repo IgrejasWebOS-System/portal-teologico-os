@@ -1,6 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/utils/supabase/admin";
+import { validarCPF } from "@/utils/cpf";
+import { validarEmail } from "@/utils/email";
 
 // ============================================================
 // Autocadastro público de professor (mutirão, 18/09/2026). Sem sessão —
@@ -44,11 +46,25 @@ export async function cadastrarProfessorPublicoAction(formData: FormData): Promi
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
 
+  // Validação server-side espelha a do client (CadastroProfessorForm.tsx) --
+  // nunca confiar só na validação do navegador (mesmo padrão adotado em
+  // ProfessorForm.tsx/configuracoes/actions.ts nesta mesma sessão). Tudo
+  // obrigatório a partir de 18/09/2026 (pedido do Joaquim), exceto Setor
+  // quando a igreja escolhida é a Sede (que não pertence a nenhum setor).
   if (!nomeCompleto) return { success: false, message: "Nome completo é obrigatório." };
-  if (!email || !email.includes("@")) return { success: false, message: "Informe um e-mail válido." };
+  if (!validarEmail(email)) return { success: false, message: "Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com)." };
+  if (!telefone) return { success: false, message: "Informe seu telefone." };
+  if (!cpf || !validarCPF(cpf)) return { success: false, message: "Informe um CPF válido." };
+  if (!cargo) return { success: false, message: "Selecione seu cargo." };
   if (!unitId) return { success: false, message: "Selecione a igreja onde você dá aula." };
 
   const admin = createAdminClient();
+
+  const { data: igrejaUnit } = await admin.from("units").select("type").eq("id", unitId).maybeSingle();
+  const igrejaEhSede = igrejaUnit?.type === "SEDE";
+  if (!setorUnitId && !igrejaEhSede) {
+    return { success: false, message: "Selecione o Setor/Regional onde você dá aula." };
+  }
 
   // Convite de acesso -- à prova de erro (mesmo espírito de
   // matricularAlunoEmCurso). Extraído em função porque é reaproveitado em

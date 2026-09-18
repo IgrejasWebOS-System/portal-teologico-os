@@ -703,6 +703,14 @@ export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
 
+  // Acesso ao núcleo de ensino virou obrigatório (pedido do Joaquim,
+  // 18/09/2026) -- validação repetida aqui porque o client pode ser
+  // contornado; sem isso o professor ficaria sem login algum.
+  const emailAcessoObrigatorio = ((formData.get("email") as string) || "").trim().toLowerCase();
+  if (!emailAcessoObrigatorio || !emailAcessoObrigatorio.includes("@")) {
+    return { success: false, message: "Informe um e-mail válido — o acesso ao núcleo de ensino é obrigatório." };
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
@@ -751,16 +759,11 @@ export async function addProfessorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
 
-  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
   let avisoAcesso: string | undefined;
-  if (email) {
-    if (!email.includes("@")) {
-      avisoAcesso = "Professor salvo, mas o e-mail informado é inválido — acesso não foi concedido.";
-    } else if (!unitId) {
-      avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
-    } else {
-      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
-    }
+  if (!unitId) {
+    avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
+  } else {
+    avisoAcesso = await grantNucleoAccess(user.id, emailAcessoObrigatorio, nomeCompleto, unitId);
   }
 
   revalidatePath("/dashboard/configuracoes/professores");

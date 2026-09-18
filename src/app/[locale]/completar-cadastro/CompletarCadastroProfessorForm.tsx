@@ -1,17 +1,20 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, Mail, Map, Church, User, Phone, FileText } from "lucide-react";
-import { cadastrarProfessorPublicoAction } from "./actions";
+import { AlertTriangle, Loader2, Map, Church, Phone, FileText } from "lucide-react";
+import { completarCadastroProfessorAction } from "./actions";
 import { validarCPF } from "@/utils/cpf";
-import { validarEmail } from "@/utils/email";
-
-export type UnitLite = { id: string; type: string; name: string; parent_id: string | null };
-export type CargoLite = { id: string; name: string };
+import type { UnitLite, CargoLite } from "../cadastro-professor/CadastroProfessorForm";
 
 interface Props {
   units: UnitLite[];
   cargos: CargoLite[];
+  atual: {
+    telefone: string | null;
+    cpf: string | null;
+    cargo: string | null;
+    unit_id: string | null;
+  };
 }
 
 const inputCls =
@@ -37,16 +40,15 @@ function maskPhone(raw: string): string {
   return v;
 }
 
-export default function CadastroProfessorForm({ units, cargos }: Props) {
-  const [setorId, setSetorId] = useState("");
-  const [igrejaId, setIgrejaId] = useState("");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [cargo, setCargo] = useState("");
+export default function CompletarCadastroProfessorForm({ units, cargos, atual }: Props) {
+  const unitAtual = units.find((u) => u.id === atual.unit_id) ?? null;
+
+  const [setorId, setSetorId] = useState(unitAtual?.parent_id ?? "");
+  const [igrejaId, setIgrejaId] = useState(atual.unit_id ?? "");
+  const [telefone, setTelefone] = useState(atual.telefone ? maskPhone(atual.telefone) : "");
+  const [cpf, setCpf] = useState(atual.cpf ? maskCPF(atual.cpf) : "");
+  const [cargo, setCargo] = useState(atual.cargo ?? "");
   const [error, setError] = useState("");
-  const [sucesso, setSucesso] = useState<{ matricula: string; avisoConvite: string | null } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const setores = useMemo(
@@ -62,22 +64,16 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
     [units, setorId]
   );
 
-  // Setor/Regional é obrigatório -- exceto quando a pessoa atua direto na
-  // Sede, que não pertence a nenhum Setor (pedido do Joaquim, 18/09/2026).
   const igrejaEhSede = units.find((u) => u.id === igrejaId)?.type === "SEDE";
 
   const handleSubmit = (fd: FormData) => {
     setError("");
-    if (!nome.trim()) return setError("Digite seu nome completo.");
-    if (!email.trim() || !validarEmail(email)) return setError("Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com) — é por ele que você vai acessar o sistema.");
     if (!telefone.trim()) return setError("Informe seu telefone.");
     if (!cpf.trim() || !validarCPF(cpf)) return setError("Informe um CPF válido.");
     if (!cargo.trim()) return setError("Selecione seu cargo.");
     if (!igrejaId) return setError("Selecione a Igreja onde você dá aula.");
     if (!setorId && !igrejaEhSede) return setError("Selecione o Setor/Regional onde você dá aula.");
 
-    fd.set("nome_completo", nome.trim());
-    fd.set("email", email.trim());
     fd.set("telefone", telefone);
     fd.set("cpf", cpf);
     fd.set("cargo", cargo);
@@ -85,38 +81,12 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
     fd.set("setor_unit_id", setorId);
 
     startTransition(async () => {
-      const res = await cadastrarProfessorPublicoAction(fd);
-      if (!res.success) {
-        setError(res.message ?? "Erro ao enviar o cadastro. Tente novamente.");
-        return;
+      const res = await completarCadastroProfessorAction(fd);
+      if (res && !res.success) {
+        setError(res.message ?? "Erro ao salvar. Tente novamente.");
       }
-      setSucesso({ matricula: res.matricula ?? "", avisoConvite: res.avisoConvite ?? null });
     });
   };
-
-  if (sucesso) {
-    return (
-      <div className="text-center space-y-4 py-4">
-        <CheckCircle2 className="w-12 h-12 text-iw-success mx-auto" />
-        <div>
-          <p className="font-bold text-iw-navy text-lg">Cadastro enviado com sucesso!</p>
-          {sucesso.matricula && (
-            <p className="text-sm text-iw-muted mt-1">Seu código de professor: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
-          )}
-        </div>
-        {sucesso.avisoConvite ? (
-          <p className="text-sm text-iw-warning bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-md mx-auto">
-            {sucesso.avisoConvite}
-          </p>
-        ) : (
-          <p className="text-sm text-iw-muted max-w-md mx-auto">
-            Confira seu e-mail (inclusive a caixa de spam) — enviamos um link pra você criar sua
-            senha. Depois de entrar, acesse a Área do Professor pra cadastrar suas turmas.
-          </p>
-        )}
-      </div>
-    );
-  }
 
   return (
     <form action={handleSubmit} className="space-y-5">
@@ -128,38 +98,9 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          <label className={labelCls}><span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> Nome completo *</span></label>
-          <input
-            value={nome}
-            onChange={(e) => setNome(e.target.value.toUpperCase())}
-            placeholder="Seu nome completo"
-            className={`${inputCls} uppercase`}
-            required
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}><span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail *</span></label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            className={inputCls}
-            required
-          />
-        </div>
-
         <div>
           <label className={labelCls}><span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" /> Telefone *</span></label>
-          <input
-            value={telefone}
-            onChange={(e) => setTelefone(maskPhone(e.target.value))}
-            placeholder="(00) 00000-0000"
-            className={inputCls}
-            required
-          />
+          <input value={telefone} onChange={(e) => setTelefone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" className={inputCls} required />
         </div>
 
         <div>
@@ -167,7 +108,7 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
           <input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" className={inputCls} required />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <label className={labelCls}><span className="inline-flex items-center gap-1"><FileText className="w-3 h-3" /> Cargo *</span></label>
           <select value={cargo} onChange={(e) => setCargo(e.target.value)} className={selectCls} required>
             <option value="">Selecione...</option>
@@ -216,7 +157,7 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
         className="w-full flex items-center justify-center gap-2 bg-[#CF8403] hover:opacity-90 disabled:opacity-50 text-white px-6 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm"
       >
         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        Concluir cadastro
+        Concluir cadastro e entrar na Área do Professor
       </button>
     </form>
   );

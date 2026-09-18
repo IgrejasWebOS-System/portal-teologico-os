@@ -16,7 +16,7 @@ num componente — sempre um destes tokens:
 | Categoria | Tokens | Uso |
 |---|---|---|
 | Base | `iw-navy` (#111111) | Texto principal, títulos, fundos escuros institucionais |
-| Ação | `iw-blue` (#BCE5FF), `iw-sky` (#88CDF6) | Botões primários, hover, bordas suaves |
+| Ação | `iw-blue` (#BCE5FF), `iw-sky` (#88CDF6) | Hover, bordas suaves, variante `outline` do Button — **não é mais a cor de botão primário** (ver nota abaixo) |
 | Destaque | `iw-gold` (#C5A059), `iw-gold-alt` (#D4AF37) | Badges, ícones de sistema, CTAs de destaque (dourado = identidade CETADP) |
 | Neutros | `iw-bg` (#E8E8E8), `iw-surface` (#FFFFFF), `iw-muted`, `iw-border` | Fundo de página, cards, texto secundário, bordas |
 | Semânticas | `iw-success`/`-bg`, `iw-error`/`-bg`, `iw-warning`/`-bg` | Estados de feedback (sempre com a variante `-bg` para fundo claro do alerta) |
@@ -42,6 +42,16 @@ manualmente.
 - **Badge** — variantes `default/primary/success/warning/danger/gold`, tamanhos `sm/md`.
 
 Regra: **toda tela nova usa esses primitivos**, não escreve `<button>`/`<input>` cru. A tela de login (`(auth)/login/page.tsx`) foi migrada para esse padrão em 2026-07-12 e serve de referência de como usar `Label` + `TextInput`/`PasswordInput` + `Button` (via um pequeno client component `LoginButton.tsx` para o estado de `loading` com `useFormStatus`).
+
+**Cor de botão primário — decisão do Joaquim em 18/09/2026:** todo botão
+primário do sistema usa fundo **`#CF8403`** (texto branco), sem excessão.
+`Button` (variante `primary`, `src/components/ui/Button.tsx`) já está
+fixado nesse hex — não usar `iw-blue` nem outro laranja/dourado próximo
+(ex.: o antigo `#E88D0C`) em botão novo. Telas que ainda escrevem
+`<button>` cru em vez do primitivo (ex.: formulários públicos de
+autocadastro, `ProfessorForm.tsx`) devem seguir a mesma cor manualmente
+até serem migradas pro primitivo — não é uma migração retroativa
+automática de toda a base, só a cor precisa bater desde já.
 
 ## 4. Marca / Logo (`src/components/Logo.tsx`)
 

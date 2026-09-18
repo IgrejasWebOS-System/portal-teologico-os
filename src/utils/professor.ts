@@ -12,6 +12,15 @@
 export interface ProfessorLogado {
   id: string;
   nome_completo: string;
+  // Campos abaixo (mutirão de cadastro, 18/09/2026) só existem pra
+  // resolverGateCompletarCadastro() decidir se a ficha está completa --
+  // os outros chamadores (checkIsProfessor usado só pra saber "é
+  // professor?") ignoram e continuam funcionando normalmente.
+  cadastro_publico: boolean;
+  telefone: string | null;
+  cpf: string | null;
+  cargo: string | null;
+  unit_id: string | null;
 }
 
 export async function checkIsProfessor(
@@ -21,7 +30,7 @@ export async function checkIsProfessor(
 ): Promise<ProfessorLogado | null> {
   const { data } = await supabase
     .from("professores")
-    .select("id, nome_completo")
+    .select("id, nome_completo, cadastro_publico, telefone, cpf, cargo, unit_id")
     .eq("user_id", userId)
     .maybeSingle();
 

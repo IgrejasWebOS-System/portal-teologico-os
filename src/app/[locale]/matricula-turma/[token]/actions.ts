@@ -3,6 +3,8 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { matricularAlunoEmCurso } from "@/utils/ead/matricular";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
+import { validarCPF } from "@/utils/cpf";
+import { validarEmail } from "@/utils/email";
 
 // ============================================================
 // Matrícula pública por link de turma (mutirão de cadastro, 18/09/2026).
@@ -38,9 +40,14 @@ export async function matricularPorLinkAction(formData: FormData): Promise<Matri
   const cpf = (formData.get("cpf") as string)?.trim() || null;
   const matriculaMembroInformada = (formData.get("matricula_membro_informada") as string)?.trim() || null;
 
+  // Validação server-side espelha a do client (MatriculaTurmaForm.tsx) --
+  // nunca confiar só no navegador. Telefone e matrícula de membro
+  // permanecem opcionais (pedido explícito do Joaquim: mesmo que a pessoa
+  // seja membro e não lembre a matrícula, o cadastro segue normalmente).
   if (!token) return { success: false, message: "Link inválido." };
   if (!nomeCompleto) return { success: false, message: "Nome completo é obrigatório." };
-  if (!email || !email.includes("@")) return { success: false, message: "Informe um e-mail válido." };
+  if (!validarEmail(email)) return { success: false, message: "Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com)." };
+  if (!cpf || !validarCPF(cpf)) return { success: false, message: "Informe um CPF válido." };
 
   const admin = createAdminClient();
 
