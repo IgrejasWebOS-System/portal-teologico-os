@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Filter } from "lucide-react";
 
 // ============================================================
@@ -113,13 +114,13 @@ export default function FiltroMatriculas({
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" name="todas" value="1" defaultChecked={todas} className="w-3.5 h-3.5 accent-iw-gold" />
-              <span className="text-xs text-iw-navy">Ver todas as datas (sem o filtro padrão "hoje")</span>
+              <span className="text-xs text-iw-navy">Ver todas as datas (sem o filtro padrão &ldquo;hoje&rdquo;)</span>
             </label>
 
             <div className="flex items-center justify-between gap-2 pt-1">
-              <a href="/admin/matriculas" className="text-xs font-semibold text-iw-muted hover:text-iw-navy">
+              <Link href="/admin/matriculas" className="text-xs font-semibold text-iw-muted hover:text-iw-navy">
                 Limpar
-              </a>
+              </Link>
               <button
                 type="submit"
                 className="bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2 rounded-lg transition-opacity"
