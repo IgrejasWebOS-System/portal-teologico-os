@@ -21,12 +21,13 @@ export default async function FuncoesPage() {
         description="Papéis operacionais (Líder, Secretário, Tesoureiro...) atribuídos a membros por departamento e escopo"
         iconColor="text-iw-sky"
         iconBg="bg-iw-sky/20"
+        backHref="/dashboard/configuracoes/membrasia"
         backNovoPadrao
       />
       <p className="text-xs text-iw-muted bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
-        Aqui você cadastra só os papéis (Líder, Secretário, Tesoureiro...). A atribuição de cada
-        função a um membro específico — em qual departamento e se é da Igreja ou do Setor — é
-        feita na ficha de edição do próprio membro.
+        Aqui você cadastra só os papéis (Líder, Secretário, Tesoureiro, Pastor...). A atribuição de cada
+        função a um membro específico — em qual departamento — é feita na ficha de edição do próprio membro
+        (escopo Igreja) ou em Configurações → Líderes de Setor (escopo Setor).
       </p>
       <SimpleSettingsCRUD
         items={items}

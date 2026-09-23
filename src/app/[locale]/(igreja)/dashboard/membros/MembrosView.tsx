@@ -305,7 +305,7 @@ export default function MembrosView({
           )}
 
           <Link
-            href="/dashboard"
+            href="/dashboard/configuracoes/membrasia"
             className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />

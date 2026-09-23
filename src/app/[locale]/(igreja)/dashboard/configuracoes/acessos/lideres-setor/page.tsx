@@ -1,7 +1,9 @@
-import { Users2, Plus, X } from "lucide-react";
+import { Users2, Plus, X, UserCog } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "@/components/layout/PageHeader";
 import { definirLiderSetorFormAction, removerLiderSetorFormAction } from "../../actions";
+import LiderancaSetorCard from "./LiderancaSetorCard";
 
 type SectorLeader = {
   id: string;
@@ -10,25 +12,62 @@ type SectorLeader = {
   churches: { name: string } | null;
 };
 
-export default async function LidereSetorPage() {
+type FuncaoSetorRow = {
+  id: string;
+  members: { full_name: string } | null;
+  departments: { name: string } | null;
+  function_roles: { name: string } | null;
+};
+
+interface PageProps {
+  searchParams: Promise<{ setor?: string; msg?: string; error?: string }>;
+}
+
+export default async function LidereSetorPage({ searchParams }: PageProps) {
+  const { setor: setorSelecionado, msg, error } = await searchParams;
   const supabase = await createClient();
 
-  const [sectorsRes, churchesRes] = await Promise.all([
+  const [sectorsRes, churchesRes, departamentosRes, papeisRes] = await Promise.all([
     supabase
+      // 23/09/2026, achado do Joaquim: sectors tem DUAS FKs pra churches
+      // (mother_church_id e headquarters_id) — sem apontar qual delas usar
+      // no embed, o PostgREST retorna erro de ambiguidade (PGRST201) e a
+      // página engolia isso silenciosamente, mostrando o dropdown vazio.
       .from("sectors")
-      .select("id, name, mother_church_id, churches(name)")
+      .select("id, name, mother_church_id, churches!sectors_mother_church_id_fkey(name)")
       .order("name"),
     supabase
       .from("churches")
       .select("id, name")
       .eq("church_type", "CHURCH")
       .order("name"),
+    supabase.from("departments").select("id, name").order("name"),
+    supabase.from("function_roles").select("id, name").order("name"),
   ]);
 
   const sectors = (sectorsRes.data ?? []) as unknown as SectorLeader[];
   const churches = churchesRes.data ?? [];
+  const departamentos = departamentosRes.data ?? [];
+  const papeis = papeisRes.data ?? [];
   const withLeader    = sectors.filter((s) => s.mother_church_id);
   const withoutLeader = sectors.filter((s) => !s.mother_church_id);
+
+  const setorAtual = setorSelecionado ? sectors.find((s) => s.id === setorSelecionado) : null;
+  let funcoesSetor: { id: string; member_name: string; department_name: string; function_role_name: string }[] = [];
+  if (setorAtual) {
+    const { data } = await supabase
+      .from("member_functions")
+      .select("id, members(full_name), departments(name), function_roles(name)")
+      .eq("escopo", "SETOR")
+      .eq("sector_id", setorAtual.id)
+      .order("created_at");
+    funcoesSetor = ((data ?? []) as unknown as FuncaoSetorRow[]).map((f) => ({
+      id: f.id,
+      member_name: f.members?.full_name ?? "—",
+      department_name: f.departments?.name ?? "—",
+      function_role_name: f.function_roles?.name ?? "—",
+    }));
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -40,6 +79,17 @@ export default async function LidereSetorPage() {
         backLabel="Voltar"
         backNovoPadrao
       />
+
+      {msg && (
+        <div className="px-4 py-3 rounded-lg bg-iw-success-bg border border-iw-success text-iw-success text-sm font-medium">
+          {decodeURIComponent(msg)}
+        </div>
+      )}
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
+          {decodeURIComponent(error)}
+        </div>
+      )}
 
       {/* Definir / alterar líder de um setor */}
       <form
@@ -83,6 +133,19 @@ export default async function LidereSetorPage() {
         </button>
       </form>
 
+      {setorAtual && (
+        <div id="lideranca-setor">
+          <LiderancaSetorCard
+            sectorId={setorAtual.id}
+            sectorName={setorAtual.name}
+            sectors={sectors.map((s) => ({ id: s.id, name: s.name }))}
+            funcoes={funcoesSetor}
+            departamentos={departamentos}
+            papeis={papeis}
+          />
+        </div>
+      )}
+
       {withLeader.length > 0 && (
         <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
           <div className="grid grid-cols-[1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
@@ -95,16 +158,30 @@ export default async function LidereSetorPage() {
               <li key={s.id} className="grid grid-cols-[1fr_1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 gap-4">
                 <span className="text-sm font-semibold text-iw-navy">{s.name}</span>
                 <span className="text-sm text-iw-muted">{s.churches?.name ?? "—"}</span>
-                <form action={removerLiderSetorFormAction.bind(null, s.id)}>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1 text-xs font-semibold text-iw-muted hover:text-iw-error transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-error-bg ml-auto"
-                    title="Remover liderança"
+                <div className="flex items-center gap-3 ml-auto">
+                  <Link
+                    href={`/dashboard/configuracoes/acessos/lideres-setor?setor=${s.id}#lideranca-setor`}
+                    className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                      setorSelecionado === s.id
+                        ? "bg-iw-navy text-white border-iw-navy"
+                        : "bg-white text-iw-navy border-iw-navy hover:bg-iw-bg"
+                    }`}
+                    title="Gerenciar liderança do setor"
                   >
-                    <X className="w-3.5 h-3.5" />
-                    Remover
-                  </button>
-                </form>
+                    <UserCog className="w-3.5 h-3.5" />
+                    Liderança
+                  </Link>
+                  <form action={removerLiderSetorFormAction.bind(null, s.id)}>
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1 text-xs font-semibold text-iw-muted hover:text-iw-error transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-error-bg"
+                      title="Remover liderança"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      Remover
+                    </button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
@@ -122,6 +199,18 @@ export default async function LidereSetorPage() {
             {withoutLeader.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-iw-bg/50">
                 <span className="text-sm font-semibold text-iw-navy">{s.name}</span>
+                <Link
+                  href={`/dashboard/configuracoes/acessos/lideres-setor?setor=${s.id}#lideranca-setor`}
+                  className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                    setorSelecionado === s.id
+                      ? "bg-iw-navy text-white border-iw-navy"
+                      : "bg-white text-iw-navy border-iw-navy hover:bg-iw-bg"
+                  }`}
+                  title="Gerenciar liderança do setor"
+                >
+                  <UserCog className="w-3.5 h-3.5" />
+                  Liderança
+                </Link>
               </li>
             ))}
           </ul>
