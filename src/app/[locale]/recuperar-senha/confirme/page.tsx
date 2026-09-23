@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { MailCheck } from "lucide-react";
+import { ArrowLeft, MailCheck } from "lucide-react";
 import Logo from "@/components/Logo";
 
 export async function generateMetadata() {
@@ -25,13 +25,14 @@ export default function ConfirmeRecuperacaoPage() {
           <h1 className="text-xl font-black text-iw-navy mb-2">
             {t("confirmeRecuperacao.titulo")}
           </h1>
-          <p className="text-iw-muted text-sm leading-relaxed mb-6">
+          <p className="text-[#0D0D0D] text-sm leading-relaxed mb-6">
             {t("confirmeRecuperacao.texto")}
           </p>
           <Link
             href="/login"
-            className="inline-block border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
+            <ArrowLeft className="w-3.5 h-3.5" />
             {t("confirmeRecuperacao.voltarLogin")}
           </Link>
         </div>

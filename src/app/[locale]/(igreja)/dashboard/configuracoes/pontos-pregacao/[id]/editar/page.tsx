@@ -30,6 +30,7 @@ export default async function EditarPontoPregacaoPage({ params }: { params: Prom
         description="Altere os dados cadastrais deste ponto de pregação."
         backHref="/dashboard/configuracoes/pontos-pregacao"
         backLabel="Voltar para Pontos de Pregação"
+        backNovoPadrao
       />
 
       <CongregacaoEditForm

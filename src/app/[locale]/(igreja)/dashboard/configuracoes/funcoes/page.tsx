@@ -21,6 +21,7 @@ export default async function FuncoesPage() {
         description="Papéis operacionais (Líder, Secretário, Tesoureiro...) atribuídos a membros por departamento e escopo"
         iconColor="text-iw-sky"
         iconBg="bg-iw-sky/20"
+        backNovoPadrao
       />
       <p className="text-xs text-iw-muted bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
         Aqui você cadastra só os papéis (Líder, Secretário, Tesoureiro...). A atribuição de cada

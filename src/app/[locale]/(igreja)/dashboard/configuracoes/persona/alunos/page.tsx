@@ -37,6 +37,7 @@ export default async function AlunosPage() {
         description={`${rows.length} aluno${rows.length === 1 ? "" : "s"} matriculado${rows.length === 1 ? "" : "s"} na Escola de Teologia.`}
         backHref="/dashboard/configuracoes/persona"
         backLabel="Voltar para Persona"
+        backNovoPadrao
         actions={
           <Link
             href="/admin/matriculas/nova"

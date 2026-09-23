@@ -10,6 +10,7 @@ import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 import { validarCPF } from "@/utils/cpf";
 import { gerarPdfMatricula, type DadosPagamentoPdf } from "@/utils/pdf/matricula";
+import { upsertProfissaoLivre } from "@/utils/profissoes";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -53,6 +54,38 @@ async function requireStaff() {
 
 function fail(message: string): never {
   redirect("/admin/matriculas/nova?error=" + encodeURIComponent(message));
+}
+
+// 21/09/2026, achado de segurança: requireStaff() só checa "é staff (algum
+// nível)?" — GLOBAL_ADMIN, SECTOR_ADMIN e LOCAL_ADMIN passam igual. Como
+// estas actions usam createAdminClient() (service_role), a RLS escopada por
+// unidade da migration 111 não se aplica aqui — um LOCAL_ADMIN (nível 4,
+// "núcleo de ensino") conseguia editar/cancelar/lançar pagamento de
+// matrículas de QUALQUER unidade, não só da própria. Esta função replica
+// a mesma checagem de escopo da RLS (get_accessible_unit_ids), na mão,
+// pras actions que seguem usando o cliente admin.
+async function assertAlunoNoEscopo(alunoId: string, matriculaIdParaErro: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: meProfile } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", user.id)
+    .single();
+
+  if (meProfile?.system_role === "GLOBAL_ADMIN") return; // Super-Master/GLOBAL_ADMIN — mesmo bypass da RLS
+
+  const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids");
+  const unitIds = new Set((acessiveis ?? []).map((r: { unit_id: string }) => r.unit_id));
+
+  const admin = createAdminClient();
+  const { data: aluno } = await admin.from("ead_alunos").select("unit_id").eq("id", alunoId).maybeSingle();
+
+  if (!aluno?.unit_id || !unitIds.has(aluno.unit_id)) {
+    failEdicao(matriculaIdParaErro, "Você não tem acesso a este aluno — ele pertence a outra unidade.");
+  }
 }
 
 // ============================================================
@@ -123,6 +156,20 @@ export async function gerarLinkPdfMatriculaAction(
   const { data: aluno } = await admin.from("ead_alunos").select("*").eq("id", alunoId).maybeSingle();
   if (!aluno) {
     return { success: false, message: "Aluno não encontrado." };
+  }
+  {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: meProfile } = user
+      ? await supabase.from("profiles").select("system_role").eq("id", user.id).single()
+      : { data: null };
+    if (meProfile?.system_role !== "GLOBAL_ADMIN") {
+      const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids");
+      const unitIds = new Set((acessiveis ?? []).map((r: { unit_id: string }) => r.unit_id));
+      if (!aluno.unit_id || !unitIds.has(aluno.unit_id)) {
+        return { success: false, message: "Você não tem acesso a este aluno — ele pertence a outra unidade." };
+      }
+    }
   }
 
   const { data: matriculaRow } = await admin
@@ -415,6 +462,8 @@ export async function matricularDiretoAction(formData: FormData) {
     fail("Erro ao gerar matrícula: " + (matriculaError?.message ?? "desconhecido"));
   }
 
+  await upsertProfissaoLivre(admin, profissao);
+
   if (!aluno) {
     const { data: novoAluno, error: alunoError } = await admin
       .from("ead_alunos")
@@ -507,6 +556,22 @@ export async function matricularDiretoAction(formData: FormData) {
     fail("Erro ao registrar matrícula: " + (matriculaInsertError?.message ?? "desconhecido"));
   }
 
+  // Também garante a matrícula no sistema genérico de aulas (enrollments),
+  // que é quem controla o player de vídeo/progresso em /escola — bug real
+  // encontrado em teste (20/09/2026): sem isso, o aluno tinha ead_matriculas
+  // ativa mas ainda caía na tela de "Matricule-se para assistir" ao abrir a
+  // própria aula, porque só matricularAlunoEmCurso() (utils/ead/matricular.ts)
+  // fazia esse upsert — Matrícula Direta é uma implementação paralela que
+  // nunca tocava em "enrollments". Mesmo padrão exato usado lá.
+  if (aluno.user_id) {
+    await admin
+      .from("enrollments")
+      .upsert(
+        { user_id: aluno.user_id, course_id: curso!.id, status: "ENROLLED" },
+        { onConflict: "user_id,course_id", ignoreDuplicates: true }
+      );
+  }
+
   // Pagamento (opcional) — só gera cobrança em Contas a Receber se algum
   // valor foi informado. Vem pré-preenchido a partir do preço fixo do
   // curso (course_pricing, ver Financeiro > Preços dos Cursos), mas a
@@ -545,7 +610,7 @@ export async function matricularDiretoAction(formData: FormData) {
         valorTotalCentavos: valorMatriculaCentavos,
         totalParcelas: 1,
         primeiroVencimento: dataVencimento,
-        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
       });
     }
 
@@ -561,7 +626,7 @@ export async function matricularDiretoAction(formData: FormData) {
         valorTotalCentavos: valorParcelaCentavos * totalParcelas,
         totalParcelas,
         primeiroVencimento: dataVencimento,
-        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
       });
     }
   } else if (valorTotalCentavos > 0 && formaCobranca === "MERCADOPAGO") {
@@ -578,7 +643,10 @@ export async function matricularDiretoAction(formData: FormData) {
         numero_parcela: 1,
         total_parcelas: 1,
         valor_bruto_centavos: valorTotalCentavos,
-        forma_pagamento_prevista: "CARTAO",
+        // "CARTAO" virou DEBITO/CREDITO (migration 109) -- placeholder até
+        // o Mercado Pago confirmar via webhook, mesma simplificação que já
+        // existia antes.
+        forma_pagamento_prevista: "CREDITO",
         data_vencimento: new Date().toISOString().slice(0, 10),
         status: "PENDENTE",
       })
@@ -763,10 +831,19 @@ export async function atualizarMatriculaAction(formData: FormData) {
   const matriculaId = (formData.get("matricula_id") as string) || "";
   const alunoId = (formData.get("aluno_id") as string) || "";
   if (!matriculaId || !alunoId) fail("Matrícula inválida.");
+  await assertAlunoNoEscopo(alunoId, matriculaId);
 
   const nome_completo = (formData.get("nome_completo") as string)?.trim();
   const email = (formData.get("email") as string)?.trim();
   const telefone = (formData.get("telefone") as string)?.trim() || null;
+  // 21/09/2026, achado em teste (imagem 9): CPF não tinha campo nem
+  // tratamento aqui — Editar Matrícula deixava o CPF gravado na inscrição
+  // inacessível pra correção pela secretaria. Igual nome_completo/email, é
+  // sempre obrigatório (já vem preenchido desde o primeiro cadastro mínimo).
+  const cpf = (formData.get("cpf") as string)?.trim() || "";
+  if (cpf && !validarCPF(cpf)) {
+    failEdicao(matriculaId, "CPF inválido — confira os dígitos digitados.");
+  }
   const campo_ministerio_id = (formData.get("campo_ministerio_id") as string) || null;
   const sector_id = (formData.get("sector_id") as string) || null;
   const church_id_aluno = (formData.get("church_id_aluno") as string) || null;
@@ -796,8 +873,8 @@ export async function atualizarMatriculaAction(formData: FormData) {
   const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
   const foto_url = (formData.get("foto_url") as string)?.trim() || null;
 
-  if (!nome_completo || !email) {
-    failEdicao(matriculaId, "Nome completo e e-mail são obrigatórios.");
+  if (!nome_completo || !email || !cpf) {
+    failEdicao(matriculaId, "Nome completo, CPF e e-mail são obrigatórios.");
   }
 
   // Resolve o nome do campo/ministério pelo id direto no servidor — evita
@@ -813,10 +890,12 @@ export async function atualizarMatriculaAction(formData: FormData) {
     campo_ministerio_nome = campoRow?.nome ?? null;
   }
 
+  await upsertProfissaoLivre(admin, profissao);
+
   const { error: alunoError } = await admin
     .from("ead_alunos")
     .update({
-      nome_completo, email, telefone,
+      nome_completo, email, telefone, cpf,
       campo_ministerio_id, campo_ministerio_nome,
       sector_id, church_id: church_id_aluno,
       rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao,
@@ -850,6 +929,7 @@ export async function lancarPagamentoRetroativoAction(formData: FormData) {
   const matriculaId = (formData.get("matricula_id") as string) || "";
   const alunoId = (formData.get("aluno_id") as string) || "";
   if (!matriculaId || !alunoId) fail("Matrícula inválida.");
+  await assertAlunoNoEscopo(alunoId, matriculaId);
 
   const valorTotalCentavos = centavosMatricula((formData.get("valor_total") as string) || "");
   const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
@@ -886,6 +966,71 @@ export async function lancarPagamentoRetroativoAction(formData: FormData) {
   redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent("Pagamento retroativo lançado."));
 }
 
+// 21/09/2026, achado em teste (Ana Magna, Teste 3): matrículas feitas pelo
+// link do mutirão antes desta correção ficaram só com a parcela de
+// Matrícula (R$25), sem a Mensalidade — porque matricularPorLinkAction
+// lançava uma parcela cedo demais e isso fazia a "Conferência de
+// mensalidades" (/completar-cadastro/pagamento) pular achando que já
+// tinha rodado. Aquele bug foi corrigido pra matrículas novas; esta action
+// é o jeito da secretaria consertar quem já ficou nesse estado — gera o
+// plano de mensalidade (course_pricing) que ficou faltando, sem duplicar
+// se já existir.
+export async function gerarParcelasMensalidadeAction(formData: FormData) {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) fail("Matrícula inválida.");
+  await assertAlunoNoEscopo(alunoId, matriculaId);
+
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("course_id, curso_nome_snapshot")
+    .eq("id", matriculaId)
+    .maybeSingle();
+  if (!matricula) failEdicao(matriculaId, "Matrícula não encontrada.");
+
+  const { count: jaTemMensalidade } = await admin
+    .from("fin_contas_receber")
+    .select("id", { count: "exact", head: true })
+    .eq("origem_id", matriculaId)
+    .ilike("descricao", "Mensalidade —%");
+  if (jaTemMensalidade && jaTemMensalidade > 0) {
+    failEdicao(matriculaId, "Esta matrícula já tem mensalidade lançada.");
+  }
+
+  const { data: preco } = await admin
+    .from("course_pricing")
+    .select("valor_parcela_centavos, numero_parcelas")
+    .eq("course_id", matricula!.course_id)
+    .maybeSingle();
+
+  if (!preco || preco.valor_parcela_centavos <= 0) {
+    failEdicao(matriculaId, "Este curso não tem valor de mensalidade cadastrado (Financeiro > Preços dos Cursos).");
+  }
+
+  const primeiroVencimento = (formData.get("data_vencimento") as string) || new Date().toISOString().slice(0, 10);
+
+  const { error } = await gerarParcelasContasReceber(admin, {
+    origemTipo: "MATRICULA_DIRETA",
+    origemId: matriculaId,
+    alunoId,
+    responsavelPagamento: "ALUNO",
+    descricaoBase: `Mensalidade — ${matricula!.curso_nome_snapshot}`,
+    valorTotalCentavos: preco!.valor_parcela_centavos * preco!.numero_parcelas,
+    totalParcelas: preco!.numero_parcelas,
+    primeiroVencimento,
+    formaPagamentoPrevista: "PIX",
+  });
+
+  if (error) failEdicao(matriculaId, "Erro ao gerar as parcelas: " + error.message);
+
+  revalidatePath(`/admin/matriculas/${matriculaId}`);
+  revalidatePath("/admin/financeiro/contas-a-receber");
+  redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent("Parcelas de mensalidade geradas."));
+}
+
 // Cancelamento — nunca apaga a linha de verdade (perderia o histórico
 // pra auditoria/inventário), só muda o status pra CANCELADO.
 export async function cancelarMatriculaAction(formData: FormData) {
@@ -894,6 +1039,14 @@ export async function cancelarMatriculaAction(formData: FormData) {
 
   const matriculaId = (formData.get("matricula_id") as string) || "";
   if (!matriculaId) fail("Matrícula inválida.");
+
+  const { data: matriculaAtual } = await admin
+    .from("ead_matriculas")
+    .select("aluno_id")
+    .eq("id", matriculaId)
+    .maybeSingle();
+  if (!matriculaAtual) fail("Matrícula não encontrada.");
+  await assertAlunoNoEscopo(matriculaAtual.aluno_id, matriculaId);
 
   const { error } = await admin
     .from("ead_matriculas")

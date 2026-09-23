@@ -31,10 +31,10 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
       <div className="max-w-xl mx-auto px-6 py-12">
         <Link
           href="/portal"
-          className="inline-flex items-center gap-1.5 text-xs text-iw-muted hover:text-iw-navy font-medium transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Voltar ao Portal
+          VOLTAR
         </Link>
 
         <div className="flex items-center gap-3 mb-6">
@@ -61,9 +61,10 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
             </p>
             <Link
               href="/portal"
-              className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
+              className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
             >
-              Voltar ao Portal
+              <ArrowLeft className="w-3.5 h-3.5" />
+              VOLTAR
             </Link>
           </div>
         ) : (

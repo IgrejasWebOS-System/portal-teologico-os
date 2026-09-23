@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkIsStaff } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
+import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
 import { routing } from "@/i18n/routing";
 
 // Rotas acessíveis sem autenticação (prefixo)
@@ -19,6 +20,10 @@ const PUBLIC_PATHS = [
   "/matricula/pagamento",
   "/api/webhooks/mercadopago",
   "/confirmar-cadastro",
+  // Mutirão de cadastro (18/09/2026) — links públicos de autocadastro de
+  // professor e de aluno (vinculado a professor+turma), sem login.
+  "/cadastro-professor",
+  "/matricula-turma",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
@@ -100,11 +105,14 @@ export async function updateSession(
     const url = request.nextUrl.clone();
     const isStaff = await checkIsStaff(supabase, user.id);
     const professor = isStaff ? null : await checkIsProfessor(supabase, user.id);
+    const gate = isStaff ? null : await resolverGateCompletarCadastro(supabase, user.id, professor);
     const destino = isStaff
       ? "/admin"
-      : professor
-        ? "/professor"
-        : await resolverDestinoPosLogin(supabase, user.id);
+      : gate
+        ? gate
+        : professor
+          ? "/professor"
+          : await resolverDestinoPosLogin(supabase, user.id);
     url.pathname = comPrefixoDeIdioma(locale, destino);
     return NextResponse.redirect(url);
   }
@@ -142,6 +150,7 @@ export async function updateSession(
     !isPublic &&
     path !== "/trocar-senha" &&
     path !== "/escolher-modo" &&
+    path !== "/completar-cadastro" &&
     !path.startsWith("/provas")
   ) {
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(

@@ -15,6 +15,7 @@ import {
   ImagePlus,
   MapPin,
   FileSpreadsheet,
+  ArrowLeft,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { archiveMemberAction, restoreMemberAction } from "./actions";
@@ -218,9 +219,6 @@ export default function MembrosView({
             <h1 className="text-2xl font-black text-iw-navy tracking-tight">
               {isArchived ? "Arquivo Morto" : "Gestão de Membros"}
             </h1>
-            <p className="text-iw-muted text-sm">
-              {isArchived ? "Membros arquivados — fora do rol ativo." : "Membros ativos da congregação."}
-            </p>
           </div>
           {escopoFixo && (
             <p className="flex items-center gap-1.5 text-xs text-iw-navy font-semibold mt-1">
@@ -305,6 +303,14 @@ export default function MembrosView({
               Novo Membro
             </Link>
           )}
+
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
+          </Link>
         </div>
       </div>
 

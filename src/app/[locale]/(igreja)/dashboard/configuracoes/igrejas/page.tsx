@@ -59,6 +59,7 @@ export default async function IgrejasPage() {
         description="Congregações, sub-congregações e células"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="VOLTAR"
+        backNovoPadrao
         actions={
           <div className="flex items-center gap-2">
             <ImportarMembrosLinks />

@@ -13,30 +13,33 @@ type VinculoRow = {
   id: string;
   turno: string;
   dia_semana: string;
+  link_token: string | null;
+  link_ativo: boolean | null;
   course_editions: { nome: string; classe: string | null; units: { name: string } | null; courses: { title: string } | null } | null;
 };
 
 const CAMPOS_PROFESSOR =
-  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, tipo_professor, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado";
+  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, email, tipo_professor, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado";
 
 export default async function EditarProfessorPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: professor }, unitsRes, churchesRes, { data: cursos }, { data: vinculosRaw }, { data: generos }, { data: estadosCivis }, { data: escolaridadesOpts }, { data: profissoesOpts }] = await Promise.all([
+  const [{ data: professor }, unitsRes, churchesRes, { data: cursos }, { data: vinculosRaw }, { data: generos }, { data: estadosCivis }, { data: escolaridadesOpts }, { data: profissoesOpts }, { data: cargosOpts }] = await Promise.all([
     supabase.from("professores").select(CAMPOS_PROFESSOR).eq("id", id).maybeSingle(),
     supabase.from("units").select("id, type, name, parent_id"),
     supabase.from("churches").select("id, unit_id"),
     supabase.from("courses").select("id, title").order("title"),
     supabase
       .from("professor_turmas")
-      .select("id, turno, dia_semana, course_editions(nome, classe, units(name), courses(title))")
+      .select("id, turno, dia_semana, link_token, link_ativo, course_editions(nome, classe, units(name), courses(title))")
       .eq("professor_id", id)
       .order("dia_semana"),
     supabase.from("settings_gender").select("id, name").order("name"),
     supabase.from("settings_civil_status").select("id, name").order("name"),
     supabase.from("settings_schooling").select("id, name").order("name"),
     supabase.from("settings_professions").select("id, name").order("name"),
+    supabase.from("ecclesiastical_roles").select("id, name").order("name"),
   ]);
 
   if (!professor) notFound();
@@ -49,6 +52,8 @@ export default async function EditarProfessorPage({ params }: PageProps) {
     classe: v.course_editions?.classe ?? null,
     cursoTitle: v.course_editions?.courses?.title ?? null,
     igrejaNome: v.course_editions?.units?.name ?? null,
+    linkToken: v.link_token,
+    linkAtivo: v.link_ativo ?? true,
   }));
 
   const unitsParaCascata = (unitsRes.data ?? []).filter((u) => ["SETOR", "IGREJA", "SEDE"].includes(u.type));
@@ -63,10 +68,10 @@ export default async function EditarProfessorPage({ params }: PageProps) {
         </div>
         <Link
           href="/dashboard/configuracoes/professores"
-          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm inline-flex items-center gap-2"
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
+          <ArrowLeft className="w-3.5 h-3.5" />
+          VOLTAR
         </Link>
       </div>
 
@@ -77,6 +82,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
         estadosCivis={estadosCivis ?? []}
         escolaridades={escolaridadesOpts ?? []}
         profissoes={profissoesOpts ?? []}
+        cargos={cargosOpts ?? []}
         submitLabel="Salvar alterações"
         existing={{
           id: professor.id,
@@ -86,6 +92,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
           nome: professor.nome_completo,
           cargo: professor.cargo,
           telefone: professor.telefone,
+          email: professor.email,
           cpf: professor.cpf,
           rg: professor.rg,
           rgOrgaoEmissor: professor.rg_orgao_emissor,
@@ -116,6 +123,7 @@ export default async function EditarProfessorPage({ params }: PageProps) {
         units={unitsParaCascata}
         cursos={cursos ?? []}
         vinculos={vinculos}
+        appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
       />
     </div>
   );

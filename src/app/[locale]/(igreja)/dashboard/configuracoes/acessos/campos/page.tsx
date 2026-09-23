@@ -65,6 +65,7 @@ export default async function CamposPage() {
         description="Campo → Sede → Setor → Igreja, isolados entre si"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="Voltar para Ministério · Setores · Igrejas"
+        backNovoPadrao
         actions={
           souGlobalAdmin ? (
             <Link

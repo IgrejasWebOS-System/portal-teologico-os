@@ -38,6 +38,7 @@ export default async function LidereSetorPage() {
         description="Defina a Igreja-Mãe responsável por cada setor"
         backHref="/dashboard/configuracoes/acessos"
         backLabel="Voltar"
+        backNovoPadrao
       />
 
       {/* Definir / alterar líder de um setor */}

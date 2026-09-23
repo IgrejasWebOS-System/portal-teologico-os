@@ -44,6 +44,7 @@ export default function AcessosPage() {
         description="Gestão de Sedes Regionais, Líderes de Setor e Permissões (RBAC)."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Warning */}

@@ -30,6 +30,7 @@ export default async function EditarSubCongregacaoPage({ params }: { params: Pro
         description="Altere os dados cadastrais desta sub-congregação."
         backHref="/dashboard/configuracoes/sub-congregacoes"
         backLabel="Voltar para Sub-congregações"
+        backNovoPadrao
       />
 
       <CongregacaoEditForm

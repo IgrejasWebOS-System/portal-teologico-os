@@ -18,6 +18,7 @@ interface Props {
   // 2026-09-18). O padrão de todas as outras ~14 telas continua igual.
   backHref?: string;
   backLabel?: string;
+  backNovoPadrao?: boolean;
   /** Botões extras antes do link "Voltar" (ex.: Importar CSV/Fotos em
    * Igrejas/Pontos de Pregação/Células/Sub-congregações). */
   actions?: ReactNode;
@@ -35,6 +36,7 @@ export default function ConfiguracoesPageHeader({
   description,
   backHref = "/dashboard/configuracoes",
   backLabel = "Voltar para Configurações",
+  backNovoPadrao,
   actions,
 }: Props) {
   return (
@@ -44,6 +46,7 @@ export default function ConfiguracoesPageHeader({
       description={description}
       backHref={backHref}
       backLabel={backLabel}
+      backNovoPadrao={backNovoPadrao}
       actions={actions}
     />
   );

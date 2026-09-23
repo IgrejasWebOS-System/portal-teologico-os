@@ -235,6 +235,7 @@ export default function FichaRapidaForm({
           description={`Matrícula ${resultado.matricula} — ${resultado.nomeCompleto}`}
           backHref="/admin/matriculas"
           backLabel="Voltar para Matrículas"
+          backNovoPadrao
         />
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4 text-center">
           {resultado.linkPagamento && (
@@ -343,6 +344,7 @@ export default function FichaRapidaForm({
         description="Cadastro mínimo a partir da ficha de papel — o resto (endereço, foto, dados pessoais) o aluno completa sozinho pelo celular."
         backHref="/admin/matriculas"
         backLabel="Voltar para Matrículas"
+        backNovoPadrao
       />
 
       {/* Wrapper sempre montado — evita remontar o <form> (e perder os

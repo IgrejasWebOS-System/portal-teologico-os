@@ -25,6 +25,7 @@ export default async function CargosPage() {
         description="Funções eclesiásticas e administrativas"
         iconColor="text-iw-gold"
         iconBg="bg-iw-gold/10"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}

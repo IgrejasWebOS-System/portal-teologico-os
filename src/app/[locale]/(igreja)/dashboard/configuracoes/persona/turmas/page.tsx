@@ -90,6 +90,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
         description="Edições de turma por curso, período, setor e igreja."
         backHref="/dashboard/configuracoes/persona"
         backLabel="Voltar para Persona"
+        backNovoPadrao
       />
 
       {msg && (

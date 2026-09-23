@@ -11,16 +11,14 @@ interface PageProps {
   searchParams: Promise<{ msg?: string; error?: string; voltar?: string }>;
 }
 
-function resolveVoltarHref(voltar: string | undefined): { href: string; label: string } {
+function resolveVoltarHref(voltar: string | undefined): string {
   const isPathInterno =
     !!voltar &&
     voltar.startsWith("/") &&
     !voltar.startsWith("//") &&
     (voltar.startsWith("/escola/") || voltar.startsWith("/cursos/"));
 
-  return isPathInterno
-    ? { href: voltar as string, label: "Voltar à sala de aula" }
-    : { href: "/portal", label: "Voltar ao Portal" };
+  return isPathInterno ? (voltar as string) : "/portal";
 }
 
 const STATUS_MATRICULA_LABEL: Record<string, string> = {
@@ -32,7 +30,7 @@ const STATUS_MATRICULA_LABEL: Record<string, string> = {
 
 export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const { msg, error, voltar } = await searchParams;
-  const { href: voltarHref, label: voltarLabel } = resolveVoltarHref(voltar);
+  const voltarHref = resolveVoltarHref(voltar);
 
   const supabase = await createClient();
   const {
@@ -56,10 +54,10 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
           </p>
           <Link
             href={voltarHref}
-            className="inline-flex items-center gap-1.5 text-iw-gold font-semibold text-sm hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
-            <ArrowLeft className="w-4 h-4" />
-            {voltarLabel}
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
           </Link>
         </div>
       </div>
@@ -108,10 +106,10 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
             href={voltarHref}
-            className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {voltarLabel}
+            VOLTAR
           </Link>
         </div>
       </header>

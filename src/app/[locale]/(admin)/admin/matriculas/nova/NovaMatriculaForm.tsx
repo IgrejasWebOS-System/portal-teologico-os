@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, ShieldCheck, Camera, Search, Check,
+  Send, Loader2, AlertTriangle, User, MapPin, GraduationCap, Wallet, ShieldCheck, Camera, Check,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
@@ -11,6 +11,7 @@ import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, buscarTurmasPorUnidadeAction } from "../actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
+import { BuscaOuCriarInput, SeletorBuscaDropdown, type ItemBusca } from "@/components/forms/BuscaOuCriarInput";
 
 // Turma e Professor(a) não são mais cadastrados por aqui (14/09/2026) —
 // isso passou a acontecer só em Configurações > Turmas e no cadastro de
@@ -165,139 +166,41 @@ function Field({
   );
 }
 
-interface ItemSelecao {
-  id: string;
-  label: string;
-  sublabel?: string;
-}
-
-// Dropdown de busca ancorado sob o campo — usado na tela de secretaria
-// (desktop). Uma versão em tela cheia (SeletorBuscaTelaCheia) existe à
-// parte pro formulário do próprio aluno no celular (confirmar-cadastro),
-// onde a lista ficaria escondida atrás do teclado; aqui, num monitor
-// normal, tela cheia só tampava a tela toda sem necessidade — daí o
-// dropdown compacto, igual um combobox comum.
-function SeletorBuscaDropdown({
-  titulo, valorInicial, itens, onFechar, onSelecionar, placeholder, permitirLivre,
-}: {
-  titulo: string;
-  valorInicial: string;
-  itens: ItemSelecao[];
-  onFechar: () => void;
-  onSelecionar: (item: ItemSelecao) => void;
-  placeholder?: string;
-  permitirLivre?: boolean;
-}) {
-  const [busca, setBusca] = useState(valorInicial);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const resultados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    if (!q) return itens.slice(0, 50);
-    return itens.filter((i) => i.label.toLowerCase().startsWith(q)).slice(0, 50);
-  }, [busca, itens]);
-
-  return (
-    <>
-      {/* Camada invisível atrás do dropdown — clicar fora fecha, sem
-          escurecer/tampar o resto da tela como um modal faria. */}
-      <div className="fixed inset-0 z-40" onClick={onFechar} />
-      <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-iw-border rounded-xl shadow-lg flex flex-col max-h-80 overflow-hidden">
-        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-iw-border shrink-0">
-          <Search className="w-3.5 h-3.5 text-iw-muted shrink-0" />
-          <input
-            ref={inputRef}
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder={placeholder ?? `Buscar ${titulo.toLowerCase()}...`}
-            autoComplete="off"
-            className="flex-1 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none py-1 bg-transparent"
-          />
-        </div>
-
-        <ul className="flex-1 overflow-auto">
-          {resultados.length === 0 && (
-            <li className="px-3 py-4 text-center text-xs text-iw-muted">
-              Nenhum resultado encontrado{permitirLivre ? " — pode usar o botão abaixo" : ""}.
-            </li>
-          )}
-          {resultados.map((item) => (
-            <li key={item.id} className="border-b border-iw-border/60 last:border-b-0">
-              <button
-                type="button"
-                onClick={() => onSelecionar(item)}
-                className="w-full text-left px-3 py-2 text-sm text-iw-navy hover:bg-iw-bg active:bg-iw-gold/10"
-              >
-                {item.label}
-                {item.sublabel && <span className="text-iw-muted text-xs"> — {item.sublabel}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        {permitirLivre && busca.trim().length > 0 && (
-          <div className="p-2 border-t border-iw-border shrink-0">
-            <button
-              type="button"
-              onClick={() => onSelecionar({ id: busca.trim(), label: busca.trim() })}
-              className="w-full text-center text-xs font-bold text-iw-navy bg-iw-gold/10 hover:bg-iw-gold/20 px-3 py-2 rounded-lg transition-colors"
-            >
-              Usar &ldquo;{busca.trim()}&rdquo; mesmo assim
-            </button>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-// Campo "de escolha" — mostra um botão/campo somente-leitura que abre o
-// SeletorBuscaDropdown ao clicar, com busca.
+// Campo "de escolha" — mostra um botão/campo somente-leitura que abre um
+// dropdown de busca ao clicar (com opção de "usar mesmo assim" quando não
+// encontra). A busca em si (BuscaOuCriarInput/SeletorBuscaDropdown) é
+// compartilhada com EditarMatriculaForm.tsx (campo Profissão da ficha do
+// aluno) — ver components/forms/BuscaOuCriarInput.tsx.
 function CampoDeEscolha({
   label, name, span, itens, placeholder, required, permitirLivre,
 }: {
   label: string;
   name: string;
   span?: string;
-  itens: ItemSelecao[];
+  itens: ItemBusca[];
   placeholder?: string;
   required?: boolean;
   permitirLivre?: boolean;
 }) {
   const [valor, setValor] = useState("");
-  const [aberto, setAberto] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <Field label={label} required={required} span={span} className="relative" filled={valor.length > 0}>
-      <input
-        ref={inputRef}
-        name={name}
-        value={valor}
-        readOnly
-        onClick={() => setAberto(true)}
-        placeholder={placeholder}
-        className={`${bareCls} cursor-pointer uppercase`}
-      />
-      {aberto && (
-        <SeletorBuscaDropdown
-          titulo={label}
-          valorInicial={valor}
+      <div ref={wrapperRef}>
+        <BuscaOuCriarInput
+          name={name}
           itens={itens}
-          permitirLivre={permitirLivre}
           placeholder={placeholder}
-          onFechar={() => setAberto(false)}
-          onSelecionar={(item) => {
-            setValor(item.label.toUpperCase());
-            setAberto(false);
-            if (inputRef.current) focarProximoCampo(inputRef.current);
+          permitirLivre={permitirLivre}
+          className={`${bareCls} cursor-pointer uppercase`}
+          onValorChange={(novoValor) => {
+            setValor(novoValor);
+            const input = wrapperRef.current?.querySelector("input");
+            if (input) focarProximoCampo(input);
           }}
         />
-      )}
+      </div>
     </Field>
   );
 }
@@ -638,6 +541,7 @@ export default function NovaMatriculaForm({
         description="Cadastro completo do aluno + matrícula gerada na hora, sem passar pela inscrição pública nem pelo pagamento online."
         backHref="/admin/matriculas"
         backLabel="Voltar para Matrículas"
+        backNovoPadrao
       />
 
       {/* Wrapper sempre montado — evita que o <form> logo abaixo remonte (e
@@ -1182,7 +1086,8 @@ export default function NovaMatriculaForm({
               <select name="forma_pagamento_prevista" defaultValue="DINHEIRO" className={bareSelectCls}>
                 <option value="DINHEIRO">Dinheiro</option>
                 <option value="PIX">Pix</option>
-                <option value="CARTAO">Cartão</option>
+                <option value="DEBITO">Débito</option>
+                <option value="CREDITO">Crédito</option>
                 <option value="BOLETO">Boleto</option>
                 <option value="TRANSFERENCIA">Transferência</option>
               </select>

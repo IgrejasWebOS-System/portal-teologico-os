@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
 
@@ -35,9 +35,10 @@ export default async function InscricaoObrigadoPage({ searchParams }: PageProps)
           </p>
           <Link
             href="/"
-            className="inline-block bg-[#E88D0C] hover:opacity-90 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
-            Voltar para o início
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
           </Link>
         </div>
       </main>

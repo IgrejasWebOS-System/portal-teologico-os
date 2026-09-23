@@ -16,7 +16,7 @@ num componente — sempre um destes tokens:
 | Categoria | Tokens | Uso |
 |---|---|---|
 | Base | `iw-navy` (#111111) | Texto principal, títulos, fundos escuros institucionais |
-| Ação | `iw-blue` (#BCE5FF), `iw-sky` (#88CDF6) | Botões primários, hover, bordas suaves |
+| Ação | `iw-blue` (#BCE5FF), `iw-sky` (#88CDF6) | Hover, bordas suaves, variante `outline` do Button — **não é mais a cor de botão primário** (ver nota abaixo) |
 | Destaque | `iw-gold` (#C5A059), `iw-gold-alt` (#D4AF37) | Badges, ícones de sistema, CTAs de destaque (dourado = identidade CETADP) |
 | Neutros | `iw-bg` (#E8E8E8), `iw-surface` (#FFFFFF), `iw-muted`, `iw-border` | Fundo de página, cards, texto secundário, bordas |
 | Semânticas | `iw-success`/`-bg`, `iw-error`/`-bg`, `iw-warning`/`-bg` | Estados de feedback (sempre com a variante `-bg` para fundo claro do alerta) |
@@ -42,6 +42,48 @@ manualmente.
 - **Badge** — variantes `default/primary/success/warning/danger/gold`, tamanhos `sm/md`.
 
 Regra: **toda tela nova usa esses primitivos**, não escreve `<button>`/`<input>` cru. A tela de login (`(auth)/login/page.tsx`) foi migrada para esse padrão em 2026-07-12 e serve de referência de como usar `Label` + `TextInput`/`PasswordInput` + `Button` (via um pequeno client component `LoginButton.tsx` para o estado de `loading` com `useFormStatus`).
+
+**Cor de botão primário — decisão do Joaquim em 18/09/2026:** todo botão
+primário do sistema usa fundo **`#CF8403`** (texto branco), sem excessão.
+`Button` (variante `primary`, `src/components/ui/Button.tsx`) já está
+fixado nesse hex — não usar `iw-blue` nem outro laranja/dourado próximo
+(ex.: o antigo `#E88D0C`) em botão novo. Telas que ainda escrevem
+`<button>` cru em vez do primitivo (ex.: formulários públicos de
+autocadastro, `ProfessorForm.tsx`) devem seguir a mesma cor manualmente
+até serem migradas pro primitivo — não é uma migração retroativa
+automática de toda a base, só a cor precisa bater desde já.
+
+**Botão "VOLTAR" — decisão do Joaquim em 19/09/2026:** todo botão de
+navegação "Voltar" do sistema usa o mesmo padrão visual, aplicado em
+rollout gradual (não é retroativo automático em massa — cada tela é
+revisada/ligada uma a uma, mas já está aplicado nas ~55 ocorrências
+existentes até esta data):
+
+- Fundo `#0D0D0D` (preto), borda **2px** `#CF8403`, texto `#CF8403` em
+  caixa alta (`uppercase`).
+- Ícone `ArrowLeft` (lucide-react) antes do texto.
+- Texto é **sempre só a palavra "VOLTAR"** (ou a tradução em caixa alta:
+  `BACK` em en-US, `VOLVER` em es-419) — nunca "Voltar para X" ou frase
+  maior, mesmo que o botão anterior tivesse mais informação.
+- O destino (`href`) de cada botão é revisado individualmente ao aplicar
+  o padrão — em algumas telas o "Voltar" antigo apontava para o lugar
+  errado; corrigir isso faz parte do mesmo procedimento, não é uma
+  segunda etapa.
+
+Implementação: o componente compartilhado `PageHeader`
+(`src/components/layout/PageHeader.tsx`) tem uma prop `backNovoPadrao?:
+boolean` — quando `true`, força esse visual e o texto "VOLTAR",
+ignorando `backLabel`. O wrapper local
+`src/app/[locale]/(igreja)/dashboard/configuracoes/PageHeader.tsx`
+repassa essa mesma prop. Botões escritos à mão (fora do `PageHeader`,
+ex.: `ImpressaoShell.tsx`, formulários de Membros/Professores, telas
+públicas de autenticação) seguem a mesma classe de estilo aplicada
+manualmente, sem o componente compartilhado.
+
+Ao abrir uma tela que ainda não foi revisada (visual antigo: borda
+preta, texto laranja `#E88D0C`, label longo), aplicar este padrão faz
+parte do trabalho normal da tela — não precisa esperar pedido explícito
+do Joaquim pra cada uma.
 
 ## 4. Marca / Logo (`src/components/Logo.tsx`)
 
@@ -151,3 +193,60 @@ p-6` e caixas menores que agrupam itens dentro de uma tela):
 Arquivos de referência de implementação: `NovaMatriculaForm.tsx` (primeiro
 teste aprovado), `SimpleSettingsCRUD.tsx`, `ProfessorForm.tsx`,
 `NovoMembroForm.tsx`/`EditarMembroForm.tsx`, `EditarMatriculaForm.tsx`.
+
+## 10. Unificação visual — ficha de Membro x ficha de Matrícula (análise técnica, 19/09/2026) — IMPLEMENTAÇÃO PENDENTE
+
+**Pedido do Joaquim:** deixar o *layout* dos campos de
+`/dashboard/membros/novo` (`NovoMembroForm.tsx`) e de
+`/admin/matriculas/nova` (`NovaMatriculaForm.tsx`) visualmente idênticos —
+mesma ordem de blocos, mesmo agrupamento, mesmo estilo de campo — para que
+secretaria/admin/professor tenham uma experiência única ao cadastrar
+pessoas, **sem unificar banco de dados**. Nenhuma mudança foi feita ainda;
+isto é só o levantamento técnico que embasa a implementação futura.
+
+**Situação real hoje (confirmada lendo o código, não suposta):**
+
+- `NovoMembroForm.tsx` grava em `public.members` (cliente Supabase do
+  navegador). Identidade do membro = `members.cpf` +
+  `members.registration_number`. Tem `role_id` (FK para
+  `ecclesiastical_roles` — é o "cargo" tipo MB, AUAB etc.) e
+  `financial_status` (`UP_TO_DATE`/atrasado), mas esse campo é só uma
+  bandeira manual — não existe hoje nenhuma tabela de cobrança recorrente
+  (dízimo/taxa mensal) ligada a `members`. É por isso que o Joaquim
+  descreveu esse acompanhamento como manual.
+- `NovaMatriculaForm.tsx` (via `matricularDiretoAction` em
+  `admin/matriculas/actions.ts`) grava em `public.ead_alunos` (identidade
+  do aluno = `ead_alunos.cpf`, independente de `members.cpf`) e depois em
+  `public.ead_matriculas` (a matrícula em si). Opcionalmente também cria
+  uma cobrança em `public.fin_contas_receber` (`origem_tipo =
+  'MATRICULA_DIRETA'`), tabela que só aceita `aluno_id` (de
+  `ead_alunos`) — não aceita `member_id`.
+- **Não existe nenhuma FK entre `members` e `ead_alunos` hoje.** São duas
+  tabelas de identidade totalmente separadas; uma mesma pessoa pode (e
+  provavelmente vai) existir como duas linhas diferentes, uma em cada
+  tabela, sem nenhum vínculo automático — mesmo que o CPF seja igual.
+  Isso responde diretamente à pergunta do Joaquim: sim, hoje elas
+  alimentam bancos diferentes.
+
+**Por que dá para unificar o visual sem unificar o banco:** os dois
+formulários já usam os mesmos primitivos de UI (`inputCls`/`selectCls`,
+seção 9) e já têm blocos de conteúdo quase equivalentes (dados pessoais,
+naturalidade/nacionalidade, endereço). O trabalho de unificação visual é
+puramente de front-end: definir um único componente de "seção de
+formulário" (ex. `<FichaDadosPessoais>`, `<FichaEndereco>`) reutilizado
+pelos dois forms, cada um continuando a submeter para sua própria tabela
+(`members` de um lado, `ead_alunos`/`ead_matriculas` do outro). Nenhuma
+migration é necessária para isso.
+
+**Sobre o exemplo do Joaquim (cargo MB → AUAB passa a pagar taxa mensal de
+R$ 10,00):** isso é um requisito de **dado**, não de layout — hoje não tem
+onde gravar essa regra nem essa cobrança recorrente em `members`. Fica
+registrado aqui como **pendência separada e maior**: exigiria (a) uma
+tabela de cobrança recorrente ligada a `members` (hoje só existe ligada a
+`ead_alunos`, via `fin_contas_receber`), e (b) uma regra de negócio
+disparada na troca de `role_id` do membro. Não deve ser confundido com a
+unificação visual pedida acima, que é só de front-end.
+
+**Status:** análise concluída, nenhum código alterado. Implementação da
+unificação visual e da regra de cobrança por cargo ficam como próximos
+passos, a serem priorizados pelo Joaquim.

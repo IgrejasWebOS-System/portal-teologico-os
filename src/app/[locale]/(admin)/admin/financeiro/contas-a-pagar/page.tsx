@@ -117,6 +117,7 @@ export default async function ContasAPagarPage({ searchParams }: PageProps) {
         description="Despesas com fornecedores, professores e serviços — aluguel, contas, material, honorários."
         backHref="/admin/financeiro"
         backLabel="Voltar para Financeiro"
+        backNovoPadrao
       />
 
       {msg && (

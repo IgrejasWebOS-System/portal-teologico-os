@@ -61,6 +61,7 @@ export default async function AlunoDetalhePage({ params }: PageProps) {
         description={`Matrícula ${aluno.matricula} — gerenciamento pela secretaria`}
         backHref="/dashboard/configuracoes/persona/alunos"
         backLabel="Voltar para Alunos"
+        backNovoPadrao
         actions={
           matriculaPrincipal ? (
             <Link

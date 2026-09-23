@@ -48,6 +48,7 @@ export default async function UsuariosPage() {
         description="Controle de operadores e permissões (RBAC)"
         backHref="/dashboard/configuracoes/acessos"
         backLabel="Voltar para Administração de Acessos"
+        backNovoPadrao
       />
 
       {!souGlobalAdmin && (

@@ -53,6 +53,7 @@ export default function MembrasiaPage() {
         description="Membros, cargos, departamentos e função."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Grid */}

@@ -20,6 +20,18 @@ const nextConfig: NextConfig = {
       // comprimida no navegador antes de enviar, deixa uma folga.
       bodySizeLimit: "8mb",
     },
+    // Desativado em 19/09/2026: cache persistente do Turbopack pro `next
+    // dev` (default true desde o Next 16.1), gravado em
+    // .next/dev/cache/turbopack. Causou pelo menos duas rodadas de 404
+    // fantasma em rotas dinâmicas existentes (ex.:
+    // configuracoes/professores/editar/[id]) durante testes reais nesta
+    // sessão, sempre coincidindo com a mensagem "Finished filesystem
+    // cache database compaction" no terminal — é um problema conhecido
+    // desse recurso ainda recente, não um bug do app. Limpar `.next`
+    // manualmente não resolve de forma confiável porque o próprio cache
+    // se recorrompe ao reconstruir. Reavaliar religar quando o recurso
+    // amadurecer em versões futuras do Next.
+    turbopackFileSystemCacheForDev: false,
   },
 };
 

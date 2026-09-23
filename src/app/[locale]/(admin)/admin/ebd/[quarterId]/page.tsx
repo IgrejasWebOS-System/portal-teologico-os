@@ -53,6 +53,7 @@ export default async function AdminEbdTrimestrePage({ params }: PageProps) {
         description={`${quarter.theme ?? "Sem tema definido"} · ${quarter.publisher} · ${lessons.length}/${quarter.lesson_count} lições`}
         backHref="/admin/ebd"
         backLabel="Voltar para EBD"
+        backNovoPadrao
         actions={
           <>
             <Link

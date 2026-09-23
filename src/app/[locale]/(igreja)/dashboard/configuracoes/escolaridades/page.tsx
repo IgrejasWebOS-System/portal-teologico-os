@@ -21,6 +21,7 @@ export default async function EscolaridadesPage() {
         description="Níveis de formação acadêmica"
         iconColor="text-iw-success"
         iconBg="bg-iw-success/10"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}

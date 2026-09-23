@@ -17,21 +17,16 @@ interface PageProps {
   searchParams: Promise<{ error?: string; voltar?: string }>;
 }
 
-function resolveVoltarHref(voltar: string | undefined): { href: string; label: string } {
+function resolveVoltarHref(voltar: string | undefined): string {
   const isInterno = !!voltar && voltar.startsWith("/") && !voltar.startsWith("//");
-  if (!isInterno) return { href: "/portal/avaliacoes", label: "Voltar" };
-
-  const caminho = voltar as string;
-  if (caminho.startsWith("/escola/") || caminho.startsWith("/cursos/")) {
-    return { href: caminho, label: "Voltar à sala de aula" };
-  }
-  return { href: caminho, label: "Voltar" };
+  if (!isInterno) return "/portal/avaliacoes";
+  return voltar as string;
 }
 
 export default async function AvaliacaoPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { error, voltar } = await searchParams;
-  const { href: voltarHref, label: voltarLabel } = resolveVoltarHref(voltar);
+  const voltarHref = resolveVoltarHref(voltar);
 
   const supabase = await createClient();
   const {
@@ -70,10 +65,10 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
         <div className="max-w-2xl mx-auto px-6 py-5">
           <Link
             href={voltarHref}
-            className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {voltarLabel}
+            VOLTAR
           </Link>
         </div>
       </header>

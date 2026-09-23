@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -703,9 +704,25 @@ export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
 
+  // Acesso ao núcleo de ensino virou obrigatório (pedido do Joaquim,
+  // 18/09/2026) -- validação repetida aqui porque o client pode ser
+  // contornado; sem isso o professor ficaria sem login algum.
+  const emailAcessoObrigatorio = ((formData.get("email") as string) || "").trim().toLowerCase();
+  if (!emailAcessoObrigatorio || !emailAcessoObrigatorio.includes("@")) {
+    return { success: false, message: "Informe um e-mail válido — o acesso ao núcleo de ensino é obrigatório." };
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
+
+  // 21/09/2026, achado de segurança: esta action nunca checava se quem
+  // chama é staff -- só a RLS de `professores` (migration 111) barrava
+  // de fato. Checagem explícita aqui é defesa em profundidade, no mesmo
+  // padrão de inviteStaffAction (que já checa system_role antes de agir).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
 
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
@@ -751,16 +768,11 @@ export async function addProfessorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
 
-  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
   let avisoAcesso: string | undefined;
-  if (email) {
-    if (!email.includes("@")) {
-      avisoAcesso = "Professor salvo, mas o e-mail informado é inválido — acesso não foi concedido.";
-    } else if (!unitId) {
-      avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
-    } else {
-      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
-    }
+  if (!unitId) {
+    avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
+  } else {
+    avisoAcesso = await grantNucleoAccess(user.id, emailAcessoObrigatorio, nomeCompleto, unitId);
   }
 
   revalidatePath("/dashboard/configuracoes/professores");
@@ -777,6 +789,12 @@ export async function updateProfessorAction(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
+
+  // 21/09/2026, achado de segurança: idem addProfessorAction -- checagem
+  // explícita de staff, além da RLS (migration 111).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
 
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
@@ -836,6 +854,11 @@ export async function updateProfessorAction(formData: FormData) {
 
 export async function deleteProfessorAction(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
   const { error } = await supabase.from("professores").delete().eq("id", id);
   if (error) {
     console.error("[configuracoes/actions]", error);

@@ -19,6 +19,7 @@ export default async function ProfissoesPage() {
         icon={User}
         title="Profissões"
         description="Cadastro de ocupações profissionais"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}

@@ -58,6 +58,7 @@ export default async function SetoresPage() {
         iconBg="bg-iw-sky/20"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="VOLTAR"
+        backNovoPadrao
       />
       <SetoresManager
         setores={setoresRes.data ?? []}

@@ -32,6 +32,7 @@ export default async function SedesPage() {
         description="Gestão de igrejas elevadas ao status de Sede de Campo"
         backHref="/dashboard/configuracoes/acessos"
         backLabel="Voltar"
+        backNovoPadrao
       />
 
       {/* Promover igreja a sede */}

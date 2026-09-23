@@ -44,6 +44,7 @@ export default function PersonaPage() {
         description="Professor, aluno e turmas."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Grid */}

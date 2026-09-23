@@ -6,13 +6,14 @@ import ProfessorForm from "../../ProfessorForm";
 export default async function NovoProfessorExternoPage() {
   const supabase = await createClient();
 
-  const [{ data: units }, { data: churches }, { data: generos }, { data: estadosCivis }, { data: escolaridades }, { data: profissoes }] = await Promise.all([
+  const [{ data: units }, { data: churches }, { data: generos }, { data: estadosCivis }, { data: escolaridades }, { data: profissoes }, { data: cargos }] = await Promise.all([
     supabase.from("units").select("id, type, name, parent_id"),
     supabase.from("churches").select("id, unit_id"),
     supabase.from("settings_gender").select("id, name").order("name"),
     supabase.from("settings_civil_status").select("id, name").order("name"),
     supabase.from("settings_schooling").select("id, name").order("name"),
     supabase.from("settings_professions").select("id, name").order("name"),
+    supabase.from("ecclesiastical_roles").select("id, name").order("name"),
   ]);
 
   return (
@@ -25,10 +26,10 @@ export default async function NovoProfessorExternoPage() {
         </div>
         <Link
           href="/dashboard/configuracoes/professores/novo/membro"
-          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm inline-flex items-center gap-2"
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
+          <ArrowLeft className="w-3.5 h-3.5" />
+          VOLTAR
         </Link>
       </div>
 
@@ -39,6 +40,7 @@ export default async function NovoProfessorExternoPage() {
         estadosCivis={estadosCivis ?? []}
         escolaridades={escolaridades ?? []}
         profissoes={profissoes ?? []}
+        cargos={cargos ?? []}
         mostrarBusca={false}
       />
     </div>

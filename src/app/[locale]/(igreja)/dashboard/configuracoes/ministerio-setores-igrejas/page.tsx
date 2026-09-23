@@ -89,6 +89,7 @@ export default function MinisterioSetoresIgrejasPage() {
         description="Campos, setores, igrejas, sub-congregações, células e região."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Grid */}
