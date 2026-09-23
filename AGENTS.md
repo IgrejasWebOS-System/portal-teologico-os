@@ -38,6 +38,15 @@ Ver `staging/governance/ERROS-COMUNS-IA.md`).
 
 Essa regra vale para qualquer trabalho no projeto a partir desta data — inclusive para mim (Claude), que devo seguir esse fluxo por padrão em toda tarefa futura, sem precisar ser lembrado.
 
+**Reforço de 23/09/2026 (decisão do Joaquim, ver `staging/governance/ERROS-COMUNS-IA.md`):**
+nenhuma mudança de código ou banco vai direto pra produção, nem em caráter de urgência/hotfix — nem um
+`UPDATE`/`DELETE`/`ALTER` avulso colado no SQL Editor de produção, mesmo que pareça pequeno ou reversível.
+Toda mudança de banco em produção passa por uma migration numerada em `supabase/migrations/`, testada antes
+em staging. Sequência sempre: implementar → testar local → validar (Preview + Supabase staging) →
+**documentar** (este arquivo, `staging/governance/` ou `staging/evidence/`, conforme o caso) → commit + push →
+só então replicar em produção. Se um bug em produção parecer urgente, resolvo em staging primeiro e sigo essa
+sequência mesmo assim — "urgente" não é motivo pra pular etapa.
+
 ## Padrão Action-First
 
 - Comece cada resposta com a próxima ação executável, um caminho, uma função, um comando ou um snippet.

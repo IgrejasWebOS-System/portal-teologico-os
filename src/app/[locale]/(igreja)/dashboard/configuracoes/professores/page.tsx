@@ -34,6 +34,7 @@ export default async function ProfessoresPage() {
         description="Membros responsáveis por turmas, por setor e igreja"
         iconColor="text-iw-gold"
         iconBg="bg-iw-gold/10"
+        backHref="/dashboard/configuracoes/persona"
         backNovoPadrao
         actions={
           <Link

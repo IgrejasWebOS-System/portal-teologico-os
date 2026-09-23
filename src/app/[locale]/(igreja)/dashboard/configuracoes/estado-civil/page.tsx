@@ -21,6 +21,7 @@ export default async function EstadoCivilPage() {
         description="Situação conjugal dos membros"
         iconColor="text-pink-600"
         iconBg="bg-pink-50"
+        backHref="/dashboard/configuracoes/complementos"
         backNovoPadrao
       />
       <SimpleSettingsCRUD

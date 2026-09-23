@@ -21,10 +21,13 @@ export default async function DepartamentosPage() {
         description="CIBEPI, EBD, Jovens, Mocidade e demais ministérios"
         iconColor="text-purple-600"
         iconBg="bg-purple-50"
+        backHref="/dashboard/configuracoes/membrasia"
         backNovoPadrao
       />
-      <p className="text-xs text-iw-muted bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
-        Cadastro reservado: nenhuma tela do sistema hoje vincula um registro (membro, conta financeira etc.) a um Departamento. Serve como lista de referência até que essa ligação seja implementada.
+      <p className="text-xs text-iw-warning bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
+        Usado em Membros → Funções (vínculo de membro a departamento + papel, escopo Igreja) e em Configurações →
+        Líderes de Setor (mesmo vínculo, escopo Setor). <strong>Atenção:</strong> apagar um Departamento aqui apaga
+        junto, sem aviso, todas as funções (de qualquer membro ou setor) que usam esse Departamento.
       </p>
       <SimpleSettingsCRUD
         items={items}

@@ -22,6 +22,7 @@ export default async function RegioesDFPage() {
         description="Mapeamento de regiões administrativas do Distrito Federal"
         iconColor="text-iw-warning"
         iconBg="bg-iw-warning-bg"
+        backHref="/dashboard/configuracoes/complementos"
         backNovoPadrao
       />
       <p className="text-xs text-iw-muted bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
