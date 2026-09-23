@@ -21,6 +21,7 @@ export default async function GeneroPage() {
         description="Classificação oficial do sistema"
         iconColor="text-iw-sky"
         iconBg="bg-iw-sky/20"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}

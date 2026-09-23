@@ -162,10 +162,10 @@ export default function ImportarCsvView({ churches, roles }: { churches: Church[
         <h1 className="text-2xl font-black text-iw-navy tracking-tight">Importar Membros via CSV</h1>
         <Link
           href="/dashboard/membros"
-          className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-iw-muted hover:text-iw-navy border border-iw-border rounded-xl hover:border-iw-navy/30 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
+          <ArrowLeft className="w-3.5 h-3.5" />
+          VOLTAR
         </Link>
       </div>
 

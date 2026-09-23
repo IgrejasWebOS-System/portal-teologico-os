@@ -30,10 +30,10 @@ export default async function MeusCertificadosPage() {
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
             href="/portal"
-            className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar ao Portal
+            VOLTAR
           </Link>
         </div>
       </header>

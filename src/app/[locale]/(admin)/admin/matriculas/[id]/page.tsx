@@ -53,6 +53,8 @@ export default async function EditarMatriculaPage({ params, searchParams }: Page
     { data: setores },
     { data: turmas },
     { data: professores },
+    { data: profissoes },
+    { data: escolaridades },
     { data: pagamentos },
     { data: caixaHoje },
   ] = await Promise.all([
@@ -61,6 +63,8 @@ export default async function EditarMatriculaPage({ params, searchParams }: Page
     supabase.from("sectors").select("id, name").order("name"),
     supabase.from("course_editions").select("id, nome, course_id").order("nome"),
     supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+    supabase.from("settings_professions").select("id, name").order("name"),
+    supabase.from("settings_schooling").select("id, name").order("name"),
     supabase
       .from("fin_contas_receber")
       .select("id, descricao, valor_bruto_centavos, status, forma_pagamento_prevista, data_vencimento, pago_em, numero_parcela, total_parcelas")
@@ -81,6 +85,8 @@ export default async function EditarMatriculaPage({ params, searchParams }: Page
       setores={setores ?? []}
       turmas={turmas ?? []}
       professores={professores ?? []}
+      profissoes={profissoes ?? []}
+      escolaridades={escolaridades ?? []}
       pagamentos={pagamentos ?? []}
       caixaAbertoId={caixaAbertoId}
       errorMsg={error ? decodeURIComponent(error) : undefined}

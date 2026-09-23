@@ -18,53 +18,22 @@ export type CadastroProfessorResultado =
   | { success: true; matricula: string; avisoConvite: string | null }
   | { success: false; message: string };
 
-async function resolverBridgeUnits(
-  admin: ReturnType<typeof createAdminClient>,
-  unitId: string | null,
-  setorUnitId: string | null
-): Promise<{ church_id: string | null; sector_id: string | null }> {
-  let church_id: string | null = null;
-  let sector_id: string | null = null;
-
-  if (unitId) {
-    const { data: church } = await admin.from("churches").select("id").eq("unit_id", unitId).maybeSingle();
-    church_id = church?.id ?? null;
-  }
-  if (setorUnitId) {
-    const { data: sector } = await admin.from("sectors").select("id").eq("unit_id", setorUnitId).maybeSingle();
-    sector_id = sector?.id ?? null;
-  }
-  return { church_id, sector_id };
-}
-
 export async function cadastrarProfessorPublicoAction(formData: FormData): Promise<CadastroProfessorResultado> {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   const email = ((formData.get("email") as string) || "").trim().toLowerCase();
   const telefone = (formData.get("telefone") as string)?.trim() || null;
   const cpf = (formData.get("cpf") as string)?.trim() || null;
-  const cargo = (formData.get("cargo") as string)?.trim() || null;
-  const unitId = (formData.get("unit_id") as string) || null;
-  const setorUnitId = (formData.get("setor_unit_id") as string) || null;
 
-  // Validação server-side espelha a do client (CadastroProfessorForm.tsx) --
-  // nunca confiar só na validação do navegador (mesmo padrão adotado em
-  // ProfessorForm.tsx/configuracoes/actions.ts nesta mesma sessão). Tudo
-  // obrigatório a partir de 18/09/2026 (pedido do Joaquim), exceto Setor
-  // quando a igreja escolhida é a Sede (que não pertence a nenhum setor).
+  // Reduzido a 4 campos (pedido do Joaquim, 20/09/2026) -- Cargo e
+  // Campo/Setor/Igreja saíram daqui; a ficha completa (com essas
+  // informações) é preenchida depois, no primeiro login, em
+  // /completar-cadastro (mesma tela de "Novo Professor" da secretaria).
   if (!nomeCompleto) return { success: false, message: "Nome completo é obrigatório." };
   if (!validarEmail(email)) return { success: false, message: "Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com)." };
   if (!telefone) return { success: false, message: "Informe seu telefone." };
   if (!cpf || !validarCPF(cpf)) return { success: false, message: "Informe um CPF válido." };
-  if (!cargo) return { success: false, message: "Selecione seu cargo." };
-  if (!unitId) return { success: false, message: "Selecione a igreja onde você dá aula." };
 
   const admin = createAdminClient();
-
-  const { data: igrejaUnit } = await admin.from("units").select("type").eq("id", unitId).maybeSingle();
-  const igrejaEhSede = igrejaUnit?.type === "SEDE";
-  if (!setorUnitId && !igrejaEhSede) {
-    return { success: false, message: "Selecione o Setor/Regional onde você dá aula." };
-  }
 
   // Convite de acesso -- à prova de erro (mesmo espírito de
   // matricularAlunoEmCurso). Extraído em função porque é reaproveitado em
@@ -132,8 +101,6 @@ export async function cadastrarProfessorPublicoAction(formData: FormData): Promi
     return { success: true, matricula: professorExistente.matricula, avisoConvite };
   }
 
-  const { church_id, sector_id } = await resolverBridgeUnits(admin, unitId, setorUnitId);
-
   // Casamento "soft" com o cadastro de membros por CPF -- nunca bloqueia
   // o cadastro, só enriquece (tipo_professor=MEMBRO, member_id) quando bate.
   let memberId: string | null = null;
@@ -148,18 +115,18 @@ export async function cadastrarProfessorPublicoAction(formData: FormData): Promi
     return { success: false, message: "Erro ao gerar seu código de cadastro. Tente novamente em instantes." };
   }
 
+  // unit_id/sector_id/church_id/cargo ficam vazios aqui -- só são
+  // preenchidos na ficha completa de /completar-cadastro, no primeiro
+  // login (ver professorPrecisaCompletar em utils/completarCadastro.ts).
   const { data: professor, error: professorError } = await admin
     .from("professores")
     .insert({
-      unit_id: unitId,
-      sector_id,
-      church_id,
       tipo_professor: memberId ? "MEMBRO" : "EXTERNO",
       member_id: memberId,
       matricula,
       nome_completo: nomeCompleto,
-      cargo,
       telefone,
+      cpf,
       email,
       cadastro_publico: true,
     })

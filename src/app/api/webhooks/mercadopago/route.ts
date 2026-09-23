@@ -36,7 +36,10 @@ async function lancarContaReceberOnline(
       valor_bruto_centavos: brutoCentavos,
       valor_liquido_centavos: liquidoCentavos,
       taxa_operadora_percentual: percentualTaxa || null,
-      forma_pagamento_prevista: "CARTAO",
+      // "CARTAO" virou DEBITO/CREDITO (migration 109) -- o Checkout Pro não
+      // distingue isso pra nós aqui, então mantém a mesma simplificação de
+      // sempre que já existia antes, só trocando o rótulo pro mais comum.
+      forma_pagamento_prevista: "CREDITO",
       data_vencimento: new Date().toISOString().slice(0, 10),
       status: "PAGO",
       pago_em: new Date().toISOString(),

@@ -21,6 +21,7 @@ export default async function MinisteriosPage() {
         description="Agrupamento de Campos por Ministério."
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="Voltar para Ministério · Setores · Igrejas"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}

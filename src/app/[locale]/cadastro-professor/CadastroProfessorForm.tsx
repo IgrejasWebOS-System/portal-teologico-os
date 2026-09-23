@@ -1,23 +1,24 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, Mail, Map, Church, User, Phone, FileText } from "lucide-react";
+import { useState, useTransition } from "react";
+import { AlertTriangle, CheckCircle2, Loader2, Mail, User, Phone } from "lucide-react";
 import { cadastrarProfessorPublicoAction } from "./actions";
 import { validarCPF } from "@/utils/cpf";
 import { validarEmail } from "@/utils/email";
 
+// ============================================================
+// Autocadastro público de professor (mutirão) — reduzido a 4 campos
+// (pedido do Joaquim, 20/09/2026): Nome completo, CPF, E-mail, Telefone.
+// Cargo e Campo/Setor/Igreja saíram daqui e passaram a ser preenchidos na
+// ficha completa de /completar-cadastro, no primeiro login (mesma tela
+// que a secretaria usa em "Novo Professor").
+// ============================================================
+
 export type UnitLite = { id: string; type: string; name: string; parent_id: string | null };
 export type CargoLite = { id: string; name: string };
 
-interface Props {
-  units: UnitLite[];
-  cargos: CargoLite[];
-}
-
 const inputCls =
   "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
-const selectCls =
-  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 
 function maskCPF(raw: string): string {
@@ -37,34 +38,14 @@ function maskPhone(raw: string): string {
   return v;
 }
 
-export default function CadastroProfessorForm({ units, cargos }: Props) {
-  const [setorId, setSetorId] = useState("");
-  const [igrejaId, setIgrejaId] = useState("");
+export default function CadastroProfessorForm() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
-  const [cargo, setCargo] = useState("");
   const [error, setError] = useState("");
   const [sucesso, setSucesso] = useState<{ matricula: string; avisoConvite: string | null } | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const setores = useMemo(
-    () => units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [units]
-  );
-  const igrejas = useMemo(
-    () =>
-      [
-        ...(setorId ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorId) : []),
-        ...units.filter((u) => u.type === "SEDE"),
-      ].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [units, setorId]
-  );
-
-  // Setor/Regional é obrigatório -- exceto quando a pessoa atua direto na
-  // Sede, que não pertence a nenhum Setor (pedido do Joaquim, 18/09/2026).
-  const igrejaEhSede = units.find((u) => u.id === igrejaId)?.type === "SEDE";
 
   const handleSubmit = (fd: FormData) => {
     setError("");
@@ -72,17 +53,11 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
     if (!email.trim() || !validarEmail(email)) return setError("Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com) — é por ele que você vai acessar o sistema.");
     if (!telefone.trim()) return setError("Informe seu telefone.");
     if (!cpf.trim() || !validarCPF(cpf)) return setError("Informe um CPF válido.");
-    if (!cargo.trim()) return setError("Selecione seu cargo.");
-    if (!igrejaId) return setError("Selecione a Igreja onde você dá aula.");
-    if (!setorId && !igrejaEhSede) return setError("Selecione o Setor/Regional onde você dá aula.");
 
     fd.set("nome_completo", nome.trim());
     fd.set("email", email.trim());
     fd.set("telefone", telefone);
     fd.set("cpf", cpf);
-    fd.set("cargo", cargo);
-    fd.set("unit_id", igrejaId);
-    fd.set("setor_unit_id", setorId);
 
     startTransition(async () => {
       const res = await cadastrarProfessorPublicoAction(fd);
@@ -101,7 +76,7 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
         <div>
           <p className="font-bold text-iw-navy text-lg">Cadastro enviado com sucesso!</p>
           {sucesso.matricula && (
-            <p className="text-sm text-iw-muted mt-1">Seu código de professor: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
+            <p className="text-sm text-[#0D0D0D] mt-1">Seu código de professor: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
           )}
         </div>
         {sucesso.avisoConvite ? (
@@ -109,9 +84,9 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
             {sucesso.avisoConvite}
           </p>
         ) : (
-          <p className="text-sm text-iw-muted max-w-md mx-auto">
+          <p className="text-sm text-[#0D0D0D] max-w-md mx-auto">
             Confira seu e-mail (inclusive a caixa de spam) — enviamos um link pra você criar sua
-            senha. Depois de entrar, acesse a Área do Professor pra cadastrar suas turmas.
+            senha. Depois de entrar, você completa sua ficha e, se já tiver turma, se vincula a ela.
           </p>
         )}
       </div>
@@ -140,15 +115,8 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
         </div>
 
         <div>
-          <label className={labelCls}><span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail *</span></label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            className={inputCls}
-            required
-          />
+          <label className={labelCls}>CPF *</label>
+          <input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" className={inputCls} required />
         </div>
 
         <div>
@@ -162,51 +130,17 @@ export default function CadastroProfessorForm({ units, cargos }: Props) {
           />
         </div>
 
-        <div>
-          <label className={labelCls}>CPF *</label>
-          <input value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00" className={inputCls} required />
-        </div>
-
-        <div>
-          <label className={labelCls}><span className="inline-flex items-center gap-1"><FileText className="w-3 h-3" /> Cargo *</span></label>
-          <select value={cargo} onChange={(e) => setCargo(e.target.value)} className={selectCls} required>
-            <option value="">Selecione...</option>
-            {cargos.map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="border-t border-iw-border pt-4">
-        <p className={labelCls}>Onde você dá aula</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
-          <div>
-            <label className={labelCls}><span className="inline-flex items-center gap-1"><Map className="w-3 h-3" /> Setor / Regional {!igrejaEhSede && "*"}</span></label>
-            <select
-              value={setorId}
-              onChange={(e) => { setSetorId(e.target.value); setIgrejaId(""); }}
-              disabled={igrejaEhSede}
-              className={selectCls}
-              required={!igrejaEhSede}
-            >
-              <option value="">{igrejaEhSede ? "Não se aplica à Sede" : "Selecione..."}</option>
-              {setores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}><span className="inline-flex items-center gap-1"><Church className="w-3 h-3" /> Igreja *</span></label>
-            <select
-              value={igrejaId}
-              onChange={(e) => setIgrejaId(e.target.value)}
-              disabled={igrejas.length === 0}
-              className={selectCls}
-              required
-            >
-              <option value="">{igrejas.length > 0 ? "Selecione..." : "Escolha o setor primeiro"}</option>
-              {igrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
-            </select>
-          </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}><span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail *</span></label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            className={inputCls}
+            required
+          />
+          <p className="text-[11px] text-iw-muted mt-1">É por ele que você vai entrar no sistema — enviaremos um link pra criar sua senha.</p>
         </div>
       </div>
 

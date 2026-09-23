@@ -191,6 +191,7 @@ export default async function RegioesPage() {
         description="Agrupamento geográfico de setores — cada setor pertence a 1 região"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="VOLTAR"
+        backNovoPadrao
         iconColor="text-iw-navy"
         iconBg="bg-iw-blue/10"
       />

@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import Logo from "@/components/Logo";
 import { Label, TextInput, PasswordInput } from "@/components/ui";
@@ -26,8 +27,9 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
         <div className="text-center mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-black hover:text-iw-navy text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
+            <ArrowLeft className="w-3.5 h-3.5" />
             {t("login.voltarInicio")}
           </Link>
         </div>

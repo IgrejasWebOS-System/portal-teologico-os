@@ -69,6 +69,7 @@ export default function NovaAulaForm({ courses, defaultCourseId, existingLesson 
         description={isEdit ? `Editando: ${existingLesson?.title}` : "Preencha os dados e escolha o formato do vídeo."}
         backHref="/admin/conteudo"
         backLabel="Voltar para Biblioteca"
+        backNovoPadrao
       />
 
       {serverError && (

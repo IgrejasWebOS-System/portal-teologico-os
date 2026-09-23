@@ -49,6 +49,7 @@ export default async function SubCongregacoesPage() {
         description="Congregações vinculadas a uma igreja-mãe"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="VOLTAR"
+        backNovoPadrao
         actions={
           <div className="flex items-center gap-2">
             <ImportarMembrosLinks />

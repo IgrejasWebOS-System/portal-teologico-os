@@ -19,6 +19,7 @@ export default async function NovaSubCongregacaoPage() {
         description="Vinculada a uma igreja-mãe e a um setor."
         backHref="/dashboard/configuracoes/sub-congregacoes"
         backLabel="Voltar para Sub-congregações"
+        backNovoPadrao
       />
 
       <NovaIgrejaForm

@@ -28,22 +28,23 @@ export default async function ProfessoresPage() {
 
   return (
     <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          icon={GraduationCap}
-          title="Professores"
-          description="Membros responsáveis por turmas, por setor e igreja"
-          iconColor="text-iw-gold"
-          iconBg="bg-iw-gold/10"
-        />
-        <Link
-          href="/dashboard/configuracoes/professores/novo/membro"
-          className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Professor
-        </Link>
-      </div>
+      <PageHeader
+        icon={GraduationCap}
+        title="Professores"
+        description="Membros responsáveis por turmas, por setor e igreja"
+        iconColor="text-iw-gold"
+        iconBg="bg-iw-gold/10"
+        backNovoPadrao
+        actions={
+          <Link
+            href="/dashboard/configuracoes/professores/novo/membro"
+            className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Professor
+          </Link>
+        }
+      />
 
       <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">

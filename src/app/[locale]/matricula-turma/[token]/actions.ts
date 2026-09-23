@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/utils/supabase/admin";
 import { matricularAlunoEmCurso } from "@/utils/ead/matricular";
-import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { validarCPF } from "@/utils/cpf";
 import { validarEmail } from "@/utils/email";
 
@@ -103,35 +102,18 @@ export async function matricularPorLinkAction(formData: FormData): Promise<Matri
     return { success: false, message: resultado.erro };
   }
 
-  // Parcelamento (se o curso tiver preço de matrícula) — mesmo padrão de
-  // professorCriarMatriculaAction: cobrança fica pendente, o professor dá
-  // baixa depois em /professor quando receber (PIX/cartão/boleto/
-  // transferência em pessoa — dinheiro só pela secretaria, Caixa Diário).
-  try {
-    const { data: preco } = await admin
-      .from("course_pricing")
-      .select("valor_matricula_centavos")
-      .eq("course_id", turma.course_id)
-      .maybeSingle();
-
-    if (preco?.valor_matricula_centavos) {
-      await gerarParcelasContasReceber(admin, {
-        origemTipo: "MATRICULA_DIRETA",
-        origemId: resultado.matriculaId,
-        alunoId: resultado.alunoId,
-        responsavelPagamento: "ALUNO",
-        descricaoBase: `Matrícula — ${curso?.title ?? turma.nome}`,
-        valorTotalCentavos: preco.valor_matricula_centavos,
-        totalParcelas: 1,
-        primeiroVencimento: new Date().toISOString().slice(0, 10),
-        formaPagamentoPrevista: "PIX",
-      });
-    }
-  } catch (err) {
-    // Parcelamento é best-effort — a matrícula já está garantida acima;
-    // se isso falhar, a secretaria lança a cobrança manualmente depois.
-    console.error("[matricula-turma] erro ao gerar parcela de matrícula:", err);
-  }
+  // 21/09/2026, achado em teste (Ana Magna, Teste 3): esta action chegou a
+  // gerar aqui, na hora, a parcela de MATRÍCULA (best-effort) — mas isso
+  // conflita direto com /completar-cadastro/pagamento (salvarPagamentoInicialAlunoAction),
+  // que é a etapa OFICIAL de gerar o plano de parcelas (matrícula + as N
+  // mensalidades de course_pricing) e deixar o próprio aluno conferir quais
+  // já pagou. Aquela tela checa "já existe fin_contas_receber com
+  // origem_tipo=MATRICULA_DIRETA pra esta matrícula?" antes de rodar —
+  // como esta action aqui já tinha criado 1 linha, a checagem dava
+  // positivo e a "Conferência de mensalidades" era pulada inteira, deixando
+  // só a matrícula (R$25) lançada e a mensalidade nunca gerada. Correto é
+  // NÃO gerar nenhuma cobrança aqui — o fluxo completo (ficha → conferência
+  // de mensalidades) cuida disso logo em seguida.
 
   // Vincula o campo/setor/igreja da turma na ficha do aluno (além de
   // church_id/sector_id/unit_id já gravados por matricularAlunoEmCurso) —

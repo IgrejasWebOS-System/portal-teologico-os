@@ -72,6 +72,7 @@ export default async function EditarCampoPage({ params }: PageProps) {
         description={church ? "Atualize os dados do Campo e da Sede." : "Este campo ainda não tem a igreja da Sede detalhada — preencha abaixo."}
         backHref="/dashboard/configuracoes/acessos/campos"
         backLabel="Voltar para Campos"
+        backNovoPadrao
       />
 
       <CampoForm

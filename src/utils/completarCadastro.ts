@@ -16,6 +16,14 @@ import type { ProfessorLogado } from "@/utils/professor";
 // Usado nos três pontos de entrada pós-autenticação: loginAction
 // (submit de /login), updateSession (usuário já logado reabrindo
 // /login) e definirSenhaAction (primeiro acesso via convite).
+//
+// 20/09/2026 (pedido do Joaquim) -- aluno passou a ter ficha completa
+// igual ao professor (RG, data de nascimento, endereço etc.), não só
+// telefone. O critério de "precisa completar" trocou de "telefone em
+// branco" pra "data de nascimento em branco" -- telefone já vem
+// preenchido desde o formulário público (/matricula-turma/[token]),
+// então não serve mais de sinal; data_nascimento nunca é pedida ali,
+// só nesta ficha, então é um sinal confiável de "ainda não completou".
 // ============================================================
 
 export function professorPrecisaCompletar(professor: ProfessorLogado): boolean {
@@ -34,17 +42,15 @@ export async function resolverGateCompletarCadastro(
   }
 
   // Não é professor -- checa se é aluno vindo de um link de mutirão
-  // (ead_matriculas.origem='MUTIRAO_LINK') com telefone ainda em
-  // branco (telefone é opcional no cadastro público em si, pedido
-  // explícito do Joaquim, mas vira obrigatório aqui no primeiro
-  // acesso).
+  // (ead_matriculas.origem='MUTIRAO_LINK') que ainda não completou a
+  // ficha (data_nascimento em branco -- ver comentário acima).
   const { data: aluno } = await supabase
     .from("ead_alunos")
-    .select("id, telefone")
+    .select("id, data_nascimento")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!aluno || aluno.telefone) return null;
+  if (!aluno || aluno.data_nascimento) return null;
 
   const { data: matriculaMutirao } = await supabase
     .from("ead_matriculas")

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -715,6 +716,14 @@ export async function addProfessorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
+  // 21/09/2026, achado de segurança: esta action nunca checava se quem
+  // chama é staff -- só a RLS de `professores` (migration 111) barrava
+  // de fato. Checagem explícita aqui é defesa em profundidade, no mesmo
+  // padrão de inviteStaffAction (que já checa system_role antes de agir).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
@@ -781,6 +790,12 @@ export async function updateProfessorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
+  // 21/09/2026, achado de segurança: idem addProfessorAction -- checagem
+  // explícita de staff, além da RLS (migration 111).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
@@ -839,6 +854,11 @@ export async function updateProfessorAction(formData: FormData) {
 
 export async function deleteProfessorAction(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
   const { error } = await supabase.from("professores").delete().eq("id", id);
   if (error) {
     console.error("[configuracoes/actions]", error);

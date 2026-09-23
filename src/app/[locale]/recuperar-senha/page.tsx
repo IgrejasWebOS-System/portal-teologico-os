@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import Logo from "@/components/Logo";
 import { Label, TextInput } from "@/components/ui";
@@ -26,8 +27,9 @@ export default async function RecuperarSenhaPage({ params, searchParams }: PageP
         <div className="text-center mb-6">
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 text-iw-muted hover:text-iw-navy text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
+            <ArrowLeft className="w-3.5 h-3.5" />
             {t("recuperarSenha.voltarLogin")}
           </Link>
         </div>
@@ -39,7 +41,7 @@ export default async function RecuperarSenhaPage({ params, searchParams }: PageP
           <h1 className="text-2xl font-black text-iw-navy tracking-tight">
             {t("recuperarSenha.titulo")}
           </h1>
-          <p className="text-iw-muted text-sm mt-1">
+          <p className="text-[#0D0D0D] text-sm mt-1">
             {t("recuperarSenha.subtitulo")}
           </p>
         </div>

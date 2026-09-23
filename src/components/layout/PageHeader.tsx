@@ -13,6 +13,16 @@ interface PageHeaderProps {
   backHref?: string;
   /** Texto do link de volta (ex.: "Voltar para Matrículas"). Só é usado se `backHref` for informado. */
   backLabel?: string;
+  /**
+   * Padrão visual do botão "Voltar" em rollout gradual (19/09/2026):
+   * borda #CF8403 (2px), fundo #0D0D0D, texto #CF8403, sempre só a
+   * palavra "VOLTAR" em caixa alta (ignora `backLabel`, mesmo que ele
+   * tenha mais texto, ex.: "Voltar para Configurações"). Passar `true` só
+   * nas páginas já revisadas uma a uma — o padrão (`false`/omitido)
+   * continua com o visual antigo, pra não mudar em massa páginas
+   * que ainda não foram confirmadas.
+   */
+  backNovoPadrao?: boolean;
   /** Botões/ações extras exibidos ao lado do link "Voltar", na extremidade direita. */
   actions?: ReactNode;
 }
@@ -24,7 +34,7 @@ interface PageHeaderProps {
  * quando houver, fica na extremidade direita da mesma linha, com borda
  * preta de 1,5pt.
  */
-export default function PageHeader({ icon: Icon, title, description, backHref, backLabel, actions }: PageHeaderProps) {
+export default function PageHeader({ icon: Icon, title, description, backHref, backLabel, backNovoPadrao, actions }: PageHeaderProps) {
   return (
     <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C] flex items-start justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -44,10 +54,14 @@ export default function PageHeader({ icon: Icon, title, description, backHref, b
           {backHref && (
             <Link
               href={backHref}
-              className="inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+              className={
+                backNovoPadrao
+                  ? "inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+                  : "inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+              }
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              {backLabel}
+              {backNovoPadrao ? "VOLTAR" : backLabel}
             </Link>
           )}
         </div>

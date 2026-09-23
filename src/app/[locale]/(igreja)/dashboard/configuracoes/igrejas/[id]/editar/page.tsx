@@ -12,7 +12,7 @@ export default async function EditarIgrejaPage({ params }: { params: Promise<{ i
     supabase
       .from("churches")
       .select(
-        "id, unit_id, name, church_type, sector_id, parent_id, pastor_matricula, pastor_name, pastor_role, pastor_phone, church_phone, zip_code, address, address_number, address_complement, neighborhood, city, state"
+        "id, unit_id, name, church_type, sector_id, parent_id, pastor_matricula, pastor_name, pastor_role, pastor_phone, church_phone, zip_code, address, address_number, address_complement, neighborhood, city, state, is_nucleo_ensino"
       )
       .eq("id", id)
       .single(),
@@ -29,6 +29,7 @@ export default async function EditarIgrejaPage({ params }: { params: Promise<{ i
         description="Altere os dados cadastrais desta congregação."
         backHref="/dashboard/configuracoes/igrejas"
         backLabel="Voltar para Igrejas"
+        backNovoPadrao
       />
 
       <CongregacaoEditForm

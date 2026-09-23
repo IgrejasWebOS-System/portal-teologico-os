@@ -21,6 +21,7 @@ export default async function DepartamentosPage() {
         description="CIBEPI, EBD, Jovens, Mocidade e demais ministérios"
         iconColor="text-purple-600"
         iconBg="bg-purple-50"
+        backNovoPadrao
       />
       <p className="text-xs text-iw-muted bg-iw-warning-bg border border-iw-warning/20 rounded-xl px-4 py-2.5">
         Cadastro reservado: nenhuma tela do sistema hoje vincula um registro (membro, conta financeira etc.) a um Departamento. Serve como lista de referência até que essa ligação seja implementada.

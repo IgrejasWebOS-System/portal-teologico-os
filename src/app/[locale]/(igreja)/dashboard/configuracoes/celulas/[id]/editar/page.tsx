@@ -30,6 +30,7 @@ export default async function EditarCelulaPage({ params }: { params: Promise<{ i
         description="Altere os dados cadastrais desta célula."
         backHref="/dashboard/configuracoes/celulas"
         backLabel="Voltar para Células"
+        backNovoPadrao
       />
 
       <CongregacaoEditForm

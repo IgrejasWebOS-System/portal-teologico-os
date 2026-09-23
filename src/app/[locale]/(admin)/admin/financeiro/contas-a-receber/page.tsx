@@ -21,6 +21,28 @@ function fmtData(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR");
 }
 
+// 21/09/2026, pedido do Joaquim: mesmos 3 graus de "não pago" e mesma
+// paleta (fundo branco + borda dourada, só o texto muda de cor por
+// urgência) já usados em admin/matriculas/[id]/EditarMatriculaForm.tsx
+// (statusEfetivoPagamento/PAGAMENTO_STATUS_STYLE) — duplicado aqui porque
+// as duas telas não compartilham um util comum ainda.
+function statusEfetivoConta(status: string, dataVencimento: string, hoje: string): string {
+  if (status !== "PENDENTE") return status;
+  if (dataVencimento < hoje) return "ATRASADO";
+  const diasParaVencer = Math.round(
+    (new Date(dataVencimento).getTime() - new Date(hoje).getTime()) / 86_400_000
+  );
+  return diasParaVencer <= 7 ? "PENDENTE" : "EM_DIA";
+}
+
+const STATUS_BADGE_STYLE: Record<string, string> = {
+  PAGO: "bg-iw-success-bg text-iw-success",
+  EM_DIA: "bg-[#FFFFFF] text-[#0000FF] border-[1.5px] border-[#CF8403]",
+  PENDENTE: "bg-[#FFFFFF] text-[#CF8403] border-[1.5px] border-[#CF8403]",
+  ATRASADO: "bg-[#FFFFFF] text-[#EE4B2B] border-[1.5px] border-[#CF8403]",
+  CANCELADO: "bg-iw-bg text-iw-muted",
+};
+
 interface ContaReceber {
   id: string;
   origem_tipo: string;
@@ -83,18 +105,20 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
 
   const comAtraso = contas.map((c) => ({
     ...c,
-    statusEfetivo: c.status === "PENDENTE" && c.data_vencimento < hoje ? "ATRASADO" : c.status,
+    statusEfetivo: statusEfetivoConta(c.status, c.data_vencimento, hoje),
   }));
 
   const filtro = filtroStatus ?? "ABERTAS";
   const listaFiltrada = comAtraso.filter((c) => {
     if (filtro === "TODAS") return true;
-    if (filtro === "ABERTAS") return c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "ATRASADO";
+    if (filtro === "ABERTAS") {
+      return c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "ATRASADO" || c.statusEfetivo === "EM_DIA";
+    }
     return c.statusEfetivo === filtro;
   });
 
   const totalPendente = comAtraso
-    .filter((c) => c.statusEfetivo === "PENDENTE")
+    .filter((c) => c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "EM_DIA")
     .reduce((a, c) => a + c.valor_bruto_centavos, 0);
   const totalAtrasado = comAtraso
     .filter((c) => c.statusEfetivo === "ATRASADO")
@@ -119,6 +143,7 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
         description="Mensalidades, matrículas parceladas e vendas online — separado do Caixa Diário físico."
         backHref="/admin/financeiro"
         backLabel="Voltar para Financeiro"
+        backNovoPadrao
       />
 
       {msg && (
@@ -192,7 +217,8 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
           >
             <option value="DINHEIRO">Dinheiro</option>
             <option value="PIX">Pix</option>
-            <option value="CARTAO">Cartão</option>
+            <option value="DEBITO">Débito</option>
+            <option value="CREDITO">Crédito</option>
             <option value="BOLETO">Boleto</option>
             <option value="TRANSFERENCIA">Transferência</option>
           </select>
@@ -254,14 +280,7 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
                   ? c.churches?.name ?? "Igreja"
                   : c.ead_alunos?.nome_completo ?? "Aluno";
 
-              const badgeCls =
-                c.statusEfetivo === "PAGO"
-                  ? "bg-iw-success-bg text-iw-success"
-                  : c.statusEfetivo === "ATRASADO"
-                    ? "bg-iw-error-bg text-iw-error"
-                    : c.statusEfetivo === "CANCELADO"
-                      ? "bg-iw-bg text-iw-muted"
-                      : "bg-iw-gold/10 text-iw-gold";
+              const badgeCls = STATUS_BADGE_STYLE[c.statusEfetivo] ?? STATUS_BADGE_STYLE.PENDENTE;
 
               return (
                 <li key={c.id} className="px-5 py-4 space-y-2">
@@ -277,12 +296,12 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-sm font-bold text-iw-navy">{fmt(c.valor_bruto_centavos)}</span>
                       <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${badgeCls}`}>
-                        {c.statusEfetivo}
+                        {c.statusEfetivo.replace("_", " ")}
                       </span>
                     </div>
                   </div>
 
-                  {(c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "ATRASADO") && (
+                  {(c.statusEfetivo === "PENDENTE" || c.statusEfetivo === "ATRASADO" || c.statusEfetivo === "EM_DIA") && (
                     <details className="group">
                       <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:opacity-80">
                         <Check className="w-3.5 h-3.5" />
@@ -301,7 +320,8 @@ export default async function ContasAReceberPage({ searchParams }: PageProps) {
                               Dinheiro {!caixaAbertoId ? "(abra o caixa)" : ""}
                             </option>
                             <option value="PIX">Pix</option>
-                            <option value="CARTAO">Cartão</option>
+                            <option value="DEBITO">Débito</option>
+                            <option value="CREDITO">Crédito</option>
                             <option value="BOLETO">Boleto</option>
                             <option value="TRANSFERENCIA">Transferência</option>
                           </select>

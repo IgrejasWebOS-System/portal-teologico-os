@@ -62,6 +62,7 @@ export default function ComplementosPage() {
         description="Estado civil, sexo, profissões, escolaridade e regiões DF."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Grid */}

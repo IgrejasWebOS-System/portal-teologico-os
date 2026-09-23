@@ -204,7 +204,7 @@ export async function gerarParcelamentoAvulsoAction(formData: FormData) {
     valorTotalCentavos,
     totalParcelas,
     primeiroVencimento,
-    formaPagamentoPrevista: forma as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+    formaPagamentoPrevista: forma as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
   });
 
   if (error) {

@@ -49,6 +49,7 @@ export default async function CelulasPage() {
         description="Grupos vinculados a uma igreja ou sub-congregação"
         backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
         backLabel="VOLTAR"
+        backNovoPadrao
         actions={
           <div className="flex items-center gap-2">
             <ImportarMembrosLinks />

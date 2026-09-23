@@ -11,6 +11,7 @@ export default function OcorrenciasPage() {
         description="Dossiê disciplinar e registros de ocorrências."
         backHref="/dashboard"
         backLabel="Voltar para Visão Geral"
+        backNovoPadrao
       />
 
       <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-12 text-center">

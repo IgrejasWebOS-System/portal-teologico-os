@@ -140,25 +140,6 @@ export default function SeletorHierarquico({
         <p className="text-xs text-iw-muted">
           — selecione ao menos o Setor/Regional para carregar os membros
         </p>
-
-        {mostrarImportar && (
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <Link
-              href="/dashboard/membros/importar-csv"
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Importar CSV
-            </Link>
-            <Link
-              href="/dashboard/membros/importar-fotos"
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
-            >
-              <ImagePlus className="w-3.5 h-3.5" />
-              Importar Fotos
-            </Link>
-          </div>
-        )}
       </div>
 
       <div className="grid sm:grid-cols-4 gap-3">
@@ -253,6 +234,30 @@ export default function SeletorHierarquico({
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {mostrarImportar && (
+          <div className="flex flex-col sm:col-start-4">
+            <span className={`${labelCls} invisible`} aria-hidden="true">
+              Importar
+            </span>
+            <div className="flex items-center justify-end gap-2">
+              <Link
+                href="/dashboard/membros/importar-csv"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Importar CSV
+              </Link>
+              <Link
+                href="/dashboard/membros/importar-fotos"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+              >
+                <ImagePlus className="w-3.5 h-3.5" />
+                Importar Fotos
+              </Link>
+            </div>
           </div>
         )}
       </div>

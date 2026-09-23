@@ -32,6 +32,7 @@ export type CongregacaoExistente = {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  is_nucleo_ensino?: boolean | null;
 };
 
 interface Props {
@@ -67,6 +68,7 @@ export default function CongregacaoEditForm({
 }: Props) {
   const router = useRouter();
   const churchType = lockedType ?? (existing.church_type as string) ?? "CHURCH";
+  const [nucleoEnsino, setNucleoEnsino] = useState(existing.is_nucleo_ensino ?? false);
   const [pastorName, setPastorName] = useState(existing.pastor_name ?? "");
   const [pastorPhone, setPastorPhone] = useState(existing.pastor_phone ?? "");
   const [pastorRole, setPastorRole] = useState(existing.pastor_role ?? "");
@@ -139,6 +141,7 @@ export default function CongregacaoEditForm({
         neighborhood:       (fd.get("neighborhood") as string)?.trim() || null,
         city:               (fd.get("city") as string)?.trim() || null,
         state:              (fd.get("state") as string)?.toUpperCase() || null,
+        is_nucleo_ensino:   nucleoEnsino,
       };
 
       if (!payload.name) { setError("Nome da congregação é obrigatório."); return; }
@@ -212,6 +215,25 @@ export default function CongregacaoEditForm({
             </div>
           )}
         </div>
+
+        {/* Núcleo de ensino (21/09/2026, pedido do Joaquim) -- flag manual,
+            controlada aqui pela secretaria, usada só pra filtrar a tela de
+            Matrículas por "igreja núcleo" dentro de um Setor/Regional. Não
+            existe hoje derivação automática (professor vinculado etc.) --
+            decisão consciente de manter simples e controlável na hora. */}
+        {churchType === "CHURCH" && (
+          <label className="flex items-center gap-2.5 cursor-pointer bg-iw-bg rounded-xl px-4 py-3 border border-iw-border">
+            <input
+              type="checkbox"
+              checked={nucleoEnsino}
+              onChange={(e) => setNucleoEnsino(e.target.checked)}
+              className="w-4 h-4 accent-iw-gold shrink-0"
+            />
+            <span className="text-sm text-iw-navy">
+              <span className="font-bold">Núcleo de ensino</span> — esta igreja ministra cursos do CETADP (aparece no filtro "Igreja núcleo" da tela de Matrículas)
+            </span>
+          </label>
+        )}
       </div>
 
       {/* ── LIDERANÇA E CONTATO ── */}

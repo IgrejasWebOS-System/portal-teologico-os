@@ -168,6 +168,7 @@ export default function LicaoForm({
         description={`${["1°", "2°", "3°", "4°"][quarter.quarter - 1]} Trimestre ${quarter.year} — ${quarter.theme ?? "Sem tema"}`}
         backHref={`/admin/ebd/${quarter.id}`}
         backLabel="Voltar para o trimestre"
+        backNovoPadrao
       />
 
       {error && (

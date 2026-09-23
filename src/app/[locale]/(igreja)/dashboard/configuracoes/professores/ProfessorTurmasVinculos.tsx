@@ -12,7 +12,7 @@
 // ============================================================
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CalendarDays, Trash2, Plus, Loader2, Map, Church, BookOpen } from "lucide-react";
+import { CalendarDays, Trash2, Plus, Loader2, Map, Church, BookOpen, Link2, Copy, Check } from "lucide-react";
 import { addProfessorTurmaAction, deleteProfessorTurmaFormAction, buscarTurmasPorUnidadeConfigAction } from "../actions";
 import type { UnitLite } from "../persona/turmas/TurmasFiltros";
 
@@ -28,6 +28,13 @@ export type VinculoExistente = {
   classe: string | null;
   cursoTitle: string | null;
   igrejaNome: string | null;
+  // 21/09/2026, pedido do Joaquim (achado em teste, imagem 19): o admin
+  // conseguia ver o vínculo mas não tinha como gerar/copiar o link de
+  // matrícula pro aluno (caso o professor esqueça de mandar) -- o token já
+  // existe desde a criação do vínculo (default no banco, migration 108),
+  // só faltava mostrar aqui.
+  linkToken: string | null;
+  linkAtivo: boolean;
 };
 
 interface Props {
@@ -35,6 +42,29 @@ interface Props {
   units: UnitLite[];
   cursos: Curso[];
   vinculos: VinculoExistente[];
+  appUrl: string;
+}
+
+function CopiarLinkButton({ url }: { url: string }) {
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopiado(true);
+          setTimeout(() => setCopiado(false), 2000);
+        } catch {
+          // link já está visível na tela pra copiar manualmente
+        }
+      }}
+      className="shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white bg-iw-blue hover:bg-iw-navy px-2.5 py-1.5 rounded-lg transition-colors"
+    >
+      {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+      {copiado ? "Copiado" : "Copiar link"}
+    </button>
+  );
 }
 
 const ANOS_DISPONIVEIS = [2027, 2026];
@@ -62,7 +92,7 @@ const selectCls =
   "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 
-export default function ProfessorTurmasVinculos({ professorId, units, cursos, vinculos }: Props) {
+export default function ProfessorTurmasVinculos({ professorId, units, cursos, vinculos, appUrl }: Props) {
   const [ano, setAno] = useState(String(ANOS_DISPONIVEIS[0]));
   const [setorId, setSetorId] = useState("");
   const [igrejaId, setIgrejaId] = useState("");
@@ -279,21 +309,43 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
           <p className="text-xs text-iw-muted italic">Nenhum vínculo de turma cadastrado ainda.</p>
         ) : (
           <ul className="divide-y divide-iw-border border border-iw-border rounded-xl overflow-hidden">
-            {vinculos.map((v) => (
-              <li key={v.id} className="flex items-center justify-between gap-3 px-4 py-2.5 bg-iw-bg/40">
-                <div className="text-xs text-iw-navy">
-                  <span className="font-bold">{v.turmaNome}{v.classe ? ` - Classe ${v.classe}` : ""}</span>
-                  {v.cursoTitle && <span className="text-iw-muted"> · {v.cursoTitle}</span>}
-                  {v.igrejaNome && <span className="text-iw-muted"> · {v.igrejaNome}</span>}
-                  <span className="text-iw-muted"> · {DIA_LABEL[v.dia_semana] ?? v.dia_semana} · {TURNO_LABEL[v.turno] ?? v.turno}</span>
-                </div>
-                <form action={deleteProfessorTurmaFormAction.bind(null, v.id)}>
-                  <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover vínculo">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </form>
-              </li>
-            ))}
+            {vinculos.map((v) => {
+              const link = v.linkToken ? `${appUrl}/matricula-turma/${v.linkToken}` : null;
+              return (
+                <li key={v.id} className="flex flex-col gap-2 px-4 py-2.5 bg-iw-bg/40">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-iw-navy">
+                      <span className="font-bold">{v.turmaNome}{v.classe ? ` - Classe ${v.classe}` : ""}</span>
+                      {v.cursoTitle && <span className="text-iw-muted"> · {v.cursoTitle}</span>}
+                      {v.igrejaNome && <span className="text-iw-muted"> · {v.igrejaNome}</span>}
+                      <span className="text-iw-muted"> · {DIA_LABEL[v.dia_semana] ?? v.dia_semana} · {TURNO_LABEL[v.turno] ?? v.turno}</span>
+                      {!v.linkAtivo && (
+                        <span className="ml-1.5 text-[10px] font-bold uppercase text-iw-muted bg-iw-muted/10 px-1.5 py-0.5 rounded">
+                          Link desativado
+                        </span>
+                      )}
+                    </div>
+                    <form action={deleteProfessorTurmaFormAction.bind(null, v.id)}>
+                      <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover vínculo">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
+                  </div>
+                  {/* 21/09/2026 (imagem 19): link de matrícula pro aluno, na
+                      mesma linha do vínculo -- pra secretaria gerar/copiar
+                      caso o professor esqueça de mandar. */}
+                  {link && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0 bg-white border border-iw-border rounded-lg px-2.5 py-1.5">
+                        <Link2 className="w-3.5 h-3.5 text-iw-muted shrink-0" />
+                        <span className="text-[11px] text-iw-navy truncate font-mono">{link}</span>
+                      </div>
+                      <CopiarLinkButton url={link} />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

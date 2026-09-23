@@ -267,7 +267,15 @@ export async function matricularAlunoEmCurso(
         sector_id: params.sectorId ?? null,
         member_id: params.memberId ?? null,
         matricula_membro_informada: params.matriculaMembroInformada ?? null,
-        tipo_aluno: params.memberId ? "MEMBRO" : "EXTERNO",
+        // `tipo_aluno` tem CHECK constraint no banco (IGREJA | INTERNET |
+        // OUTRA_IGREJA | NULL) -- "MEMBRO"/"EXTERNO" nunca foram valores
+        // válidos, e isso quebrava todo INSERT por aqui (INSCRICAO_PUBLICA,
+        // AUTO_MATRICULA e MUTIRAO_LINK) com
+        // "violates check constraint ead_alunos_tipo_aluno_check". Corrigido
+        // 20/09/2026 pra seguir a mesma convenção já usada em
+        // admin/matriculas/actions.ts e ficha-rapida/actions.ts: IGREJA
+        // quando já se sabe a igreja do aluno, null quando não.
+        tipo_aluno: params.churchId ? "IGREJA" : null,
         nacionalidade: "Brasileira",
       })
       .select("id, user_id")

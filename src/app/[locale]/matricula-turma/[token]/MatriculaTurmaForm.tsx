@@ -72,15 +72,15 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
         <div>
           <p className="font-bold text-iw-navy text-lg">Matrícula concluída!</p>
           {sucesso.matricula && (
-            <p className="text-sm text-iw-muted mt-1">Sua matrícula: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
+            <p className="text-sm text-[#0D0D0D] mt-1">Sua matrícula: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
           )}
         </div>
         {sucesso.avisoConvite ? (
-          <p className="text-sm text-iw-warning bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-md mx-auto">
+          <p className="text-sm font-bold uppercase bg-[#0D0D0D] text-[#CF8403] border-[1.5px] border-[#CF8403] rounded-xl px-4 py-3 max-w-md mx-auto">
             {sucesso.avisoConvite}
           </p>
         ) : (
-          <p className="text-sm text-iw-muted max-w-md mx-auto">
+          <p className="text-sm text-[#0D0D0D] max-w-md mx-auto">
             Confira seu e-mail (inclusive a caixa de spam) — enviamos um link pra você definir sua
             senha e acessar {cursoTitulo} no portal.
           </p>

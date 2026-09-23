@@ -18,6 +18,7 @@ export default async function NovoCampoPage() {
         description="Cria o Campo, a Sede e a igreja da Sede juntos."
         backHref="/dashboard/configuracoes/acessos/campos"
         backLabel="Voltar para Campos"
+        backNovoPadrao
       />
 
       <CampoForm submitLabel="Cadastrar Campo" ministerios={ministerios ?? []} igrejasDisponiveis={igrejasDisponiveis ?? []} />

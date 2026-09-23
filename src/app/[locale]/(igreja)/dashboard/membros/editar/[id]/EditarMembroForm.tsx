@@ -385,9 +385,10 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
         </div>
         <Link
           href="/dashboard/membros"
-          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm"
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
-          Voltar
+          <ArrowLeft className="w-3.5 h-3.5" />
+          VOLTAR
         </Link>
       </div>
 

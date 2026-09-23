@@ -40,6 +40,7 @@ export default async function TrilhasPage() {
         description="Organize as trilhas de conteúdo por módulo."
         backHref="/admin/conteudo"
         backLabel="Voltar para Biblioteca"
+        backNovoPadrao
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
