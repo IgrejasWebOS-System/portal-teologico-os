@@ -230,7 +230,7 @@ export default function CongregacaoEditForm({
               className="w-4 h-4 accent-iw-gold shrink-0"
             />
             <span className="text-sm text-iw-navy">
-              <span className="font-bold">Núcleo de ensino</span> — esta igreja ministra cursos do CETADP (aparece no filtro "Igreja núcleo" da tela de Matrículas)
+              <span className="font-bold">Núcleo de ensino</span> — esta igreja ministra cursos do CETADP (aparece no filtro &ldquo;Igreja núcleo&rdquo; da tela de Matrículas)
             </span>
           </label>
         )}
