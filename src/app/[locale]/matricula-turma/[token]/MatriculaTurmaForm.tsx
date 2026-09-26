@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, Mail, Phone, User, Hash } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Mail, Phone, User, Hash, CalendarDays } from "lucide-react";
 import { matricularPorLinkAction } from "./actions";
 import { validarCPF } from "@/utils/cpf";
 import { validarEmail } from "@/utils/email";
+import { maskPhone } from "@/utils/maskPhone";
 
 interface Props {
   token: string;
@@ -12,8 +13,8 @@ interface Props {
 }
 
 const inputCls =
-  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
-const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-black placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
+const labelCls = "block text-[11px] font-bold text-black uppercase tracking-wider mb-1.5";
 
 function maskCPF(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 11);
@@ -23,14 +24,6 @@ function maskCPF(raw: string): string {
   return v;
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
   const [nome, setNome] = useState("");
@@ -38,6 +31,13 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [matriculaMembro, setMatriculaMembro] = useState("");
+  // 25/09/2026, pedido do Joaquim: perguntar aqui a data em que a pessoa já
+  // começou a cursar (mutirão é pra quem já estuda desde janeiro/2026, não
+  // só matrícula nova) — essa data vira ead_matriculas.data_matricula e é
+  // reaproveitada como âncora do cálculo de parcelas em
+  // /completar-cadastro/pagamento (ver page.tsx de lá), no lugar de "hoje".
+  // Opcional: em branco, mantém o comportamento de sempre (data de hoje).
+  const [dataMatricula, setDataMatricula] = useState("");
   const [error, setError] = useState("");
   const [sucesso, setSucesso] = useState<{ matricula: string; avisoConvite: string | null } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -47,6 +47,9 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
     if (!nome.trim()) return setError("Digite seu nome completo.");
     if (!email.trim() || !validarEmail(email)) return setError("Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com) — é por ele que você vai acessar o portal.");
     if (!cpf.trim() || !validarCPF(cpf)) return setError("Informe um CPF válido.");
+    if (dataMatricula && dataMatricula > new Date().toISOString().slice(0, 10)) {
+      return setError("A data que você começou a cursar não pode ser no futuro.");
+    }
 
     fd.set("token", token);
     fd.set("nome_completo", nome.trim());
@@ -54,6 +57,7 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
     fd.set("telefone", telefone);
     fd.set("cpf", cpf);
     fd.set("matricula_membro_informada", matriculaMembro);
+    fd.set("data_matricula_informada", dataMatricula);
 
     startTransition(async () => {
       const res = await matricularPorLinkAction(fd);
@@ -70,9 +74,9 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
       <div className="text-center space-y-4 py-4">
         <CheckCircle2 className="w-12 h-12 text-iw-success mx-auto" />
         <div>
-          <p className="font-bold text-iw-navy text-lg">Matrícula concluída!</p>
+          <p className="font-bold text-black text-lg">Matrícula concluída!</p>
           {sucesso.matricula && (
-            <p className="text-sm text-[#0D0D0D] mt-1">Sua matrícula: <span className="font-bold text-iw-navy">{sucesso.matricula}</span></p>
+            <p className="text-sm text-black mt-1">Sua matrícula: <span className="font-bold text-black">{sucesso.matricula}</span></p>
           )}
         </div>
         {sucesso.avisoConvite ? (
@@ -80,9 +84,10 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
             {sucesso.avisoConvite}
           </p>
         ) : (
-          <p className="text-sm text-[#0D0D0D] max-w-md mx-auto">
-            Confira seu e-mail (inclusive a caixa de spam) — enviamos um link pra você definir sua
-            senha e acessar {cursoTitulo} no portal.
+          <p className="text-base text-[#0D0D0D] max-w-md mx-auto">
+            Confira seu e-mail (
+            <span className="bg-blue-100 text-red-600 font-semibold px-1 rounded">inclusive a caixa de spam</span>
+            ) — enviamos um link pra você definir sua senha e acessar {cursoTitulo} no portal.
           </p>
         )}
       </div>
@@ -117,7 +122,23 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
       <div>
         <label className={labelCls}><span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail *</span></label>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className={inputCls} required />
-        <p className="text-[11px] text-iw-muted mt-1">É por ele que você vai entrar no portal — enviaremos um link pra criar sua senha.</p>
+        <p className="text-[11px] text-black mt-1">É por ele que você vai entrar no portal — enviaremos um link pra criar sua senha.</p>
+      </div>
+
+      <div>
+        <label className={labelCls}><span className="inline-flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Desde quando você já cursa? (opcional)</span></label>
+        <input
+          type="date"
+          value={dataMatricula}
+          onChange={(e) => setDataMatricula(e.target.value)}
+          max={new Date().toISOString().slice(0, 10)}
+          className={inputCls}
+        />
+        <p className="text-[11px] text-black mt-1">
+          Se você já vem estudando desde antes (ex.: turma que começou em janeiro), informe a data —
+          isso ajusta suas mensalidades pra começarem do mês certo, não de hoje. Se está começando
+          agora, pode deixar em branco.
+        </p>
       </div>
 
       <div>

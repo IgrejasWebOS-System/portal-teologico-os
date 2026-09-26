@@ -98,8 +98,10 @@ export default async function PagamentoInicialPage() {
           </h1>
         </div>
 
-        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3.5 rounded-xl text-sm">
-          <p>
+        {/* 25/09/2026, pedido do Joaquim: texto em caixa alta e cor preta
+            (antes vinha em itálico/âmbar, de leitura mais difícil). */}
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-black px-4 py-3.5 rounded-xl text-sm">
+          <p className="uppercase font-semibold">
             Antes de entrar no curso, confirme quais mensalidades você já pagou (se alguma) e a forma
             de pagamento de cada uma. As mensalidades futuras ficam pendentes normalmente — a
             secretaria vai acompanhar isso com você ao longo do curso.

@@ -8,6 +8,7 @@ import {
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { maskPhone } from "@/utils/maskPhone";
 import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, buscarTurmasPorUnidadeAction } from "../actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
@@ -64,15 +65,6 @@ function maskRG(raw: string): string {
   if (v.length > 7) v = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}-${v.slice(8)}`;
   else if (v.length > 4) v = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
   else if (v.length > 2) v = `${v.slice(0, 2)}.${v.slice(2)}`;
-  return v;
-}
-
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
   return v;
 }
 
@@ -446,6 +438,18 @@ export default function NovaMatriculaForm({
     () => (sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId) ?? null : null),
     [sedeUnitId, churches]
   );
+  // 25/09/2026, achado em teste (Joaquim, imagem 9): `sectors` vem
+  // ordenado alfabeticamente do banco, o que põe "REGIONAL 0xx" antes de
+  // "SETOR 0xx" (R < S) — mesma inconsistência já corrigida em
+  // ProfessorForm.tsx/SeletorHierarquico.tsx/NovaTurmaForm.tsx/
+  // TurmasDoProfessor.tsx. Aqui não tem type="SEDE/SETOR" (a Sede é
+  // resolvida à parte via sedeUnitId/sedeChurch acima) — só reordena pra
+  // SETOR aparecer antes de REGIONAL.
+  const setoresOrdenados = useMemo(() => {
+    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
+    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
+    return [...naoRegional, ...regional];
+  }, [setores]);
   const igrejasDoSetor = useMemo(() => {
     const base = sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches;
     if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
@@ -678,7 +682,7 @@ export default function NovaMatriculaForm({
                   className={bareSelectCls}
                 >
                   <option value="">Selecione...</option>
-                  {setores.map((s) => (
+                  {setoresOrdenados.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
@@ -768,7 +772,7 @@ export default function NovaMatriculaForm({
                     className={bareSelectCls}
                   >
                     <option value="">Selecione...</option>
-                    {setores.map((s) => (
+                    {setoresOrdenados.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>

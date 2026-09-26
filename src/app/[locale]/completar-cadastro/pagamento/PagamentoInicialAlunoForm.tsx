@@ -48,13 +48,30 @@ export default function PagamentoInicialAlunoForm({
   const [totalParcelas, setTotalParcelas] = useState(totalParcelasSugerido);
   const [pagas, setPagas] = useState<Record<number, boolean>>({});
   const [formas, setFormas] = useState<Record<number, string>>({});
+  const [datas, setDatas] = useState<Record<number, string>>({});
+  // 26/09/2026, pedido do Joaquim: campo de data visível entre o seletor de
+  // meses e o botão "Selecionar todas" — vem pré-preenchido com a mesma
+  // data informada pelo aluno no link de inscrição ("Desde quando você já
+  // cursa?", matricula-turma) e pode ser ajustado aqui se precisar.
+  const [dataReferencia, setDataReferencia] = useState(primeiroVencimento);
   const [pending, startTransition] = useTransition();
 
   const linhas = Array.from({ length: totalParcelas }, (_, i) => i + 1);
 
+  // 25/09/2026, pedido do Joaquim: em vez de clicar parcela por parcela,
+  // o aluno escolhe quantos meses já pagou e clica um botão só que marca
+  // todas de uma vez (1..totalParcelas) como pagas.
+  function selecionarTodas() {
+    setPagas((prev) => {
+      const next = { ...prev };
+      for (const n of linhas) next[n] = true;
+      return next;
+    });
+  }
+
   function handleSubmit(formData: FormData) {
     formData.set("total_parcelas_exibidas", String(totalParcelas));
-    formData.set("data_inicio", primeiroVencimento);
+    formData.set("data_inicio", dataReferencia || primeiroVencimento);
     startTransition(() => {
       action(formData);
     });
@@ -74,17 +91,34 @@ export default function PagamentoInicialAlunoForm({
 
           <div>
             <Label htmlFor="qtd_parcelas">Quantos meses já decorridos você já pagou?</Label>
-            <SelectInput
-              id="qtd_parcelas"
-              value={totalParcelas}
-              onChange={(e) => setTotalParcelas(Number(e.target.value))}
-            >
-              {Array.from({ length: Math.min(totalParcelasSugerido, numeroParcelasCurso) }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? "mês" : "meses"}
-                </option>
-              ))}
-            </SelectInput>
+            {/* 26/09/2026, pedido do Joaquim: botão "Selecionar todas" na
+                extremidade direita (justify-between), e no meio um campo de
+                data — vem preenchido com a data informada no link de
+                inscrição (matricula-turma), editável se precisar ajustar. */}
+            <div className="flex items-center justify-between gap-3">
+              <SelectInput
+                id="qtd_parcelas"
+                value={totalParcelas}
+                onChange={(e) => setTotalParcelas(Number(e.target.value))}
+                className="max-w-[10rem]"
+              >
+                {Array.from({ length: Math.min(totalParcelasSugerido, numeroParcelasCurso) }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} {n === 1 ? "mês" : "meses"}
+                  </option>
+                ))}
+              </SelectInput>
+              <input
+                type="date"
+                aria-label="Data de referência (início da contagem)"
+                value={dataReferencia}
+                onChange={(e) => setDataReferencia(e.target.value)}
+                className="bg-white border border-iw-border rounded-xl px-2.5 py-2 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/30"
+              />
+              <Button type="button" variant="secondary" onClick={selecionarTodas} className="ml-auto">
+                Selecionar todas
+              </Button>
+            </div>
             <p className="text-xs text-iw-muted mt-1">
               Não é possível conferir mais meses do que já decorreram desde o início da turma.
             </p>
@@ -118,11 +152,21 @@ export default function PagamentoInicialAlunoForm({
                 <span className="text-sm text-iw-muted">{formatarCentavos(valorLinha)}</span>
 
                 {marcada && (
+                  <input
+                    type="date"
+                    name={`data_${n}`}
+                    value={datas[n] ?? ""}
+                    onChange={(e) => setDatas((prev) => ({ ...prev, [n]: e.target.value }))}
+                    className="ml-auto w-[9.5rem] bg-white border border-iw-border rounded-xl px-2.5 py-2 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/30"
+                  />
+                )}
+
+                {marcada && (
                   <SelectInput
                     name={`forma_${n}`}
                     value={formas[n] ?? "DINHEIRO"}
                     onChange={(e) => setFormas((prev) => ({ ...prev, [n]: e.target.value }))}
-                    className="ml-auto max-w-[10rem]"
+                    className="max-w-[10rem]"
                   >
                     {FORMAS_PAGAMENTO.map((f) => (
                       <option key={f.value} value={f.value}>

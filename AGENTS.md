@@ -176,6 +176,62 @@ de erro no Supabase do ambiente correspondente (produção ou branch
 staging). Não existe checagem agendada automática — só quando solicitado
 explicitamente.
 
+## Atualizar este arquivo faz parte da entrega, não é passo à parte
+
+Sempre que uma mudança desta sessão criar ou alterar uma convenção, um
+padrão de código, uma regra de ambiente/segurança, ou qualquer decisão que
+uma sessão futura precisaria saber pra não repetir um erro já corrigido
+(ex: um campo que passou a ser obrigatório, uma ordem de exibição
+definida, um fluxo de e-mail/convite que mudou), a atualização deste
+`AGENTS.md` (ou do arquivo de governança específico em `staging/`, quando
+o `AGENTS.md` só referencia) entra na mesma entrega — no mesmo commit/PR,
+não num pedido separado depois. Não esperar o Joaquim pedir "atualiza o
+AGENTS.md" pra isso acontecer; é parte padrão de "terminar a tarefa".
+
+Mudança pontual de UI/texto/estilo sem nenhum padrão novo por trás não
+precisa virar entrada aqui — só o que muda a forma de trabalhar ou evita
+um erro repetido.
+
+## Zerar staging agora zera literalmente tudo (professor/turma inclusos)
+
+Revogada a regra de 06/09/2026 que mandava preservar `professores` e
+`course_editions` (turma) ao rodar o reset de staging. Motivo: o Joaquim
+precisa testar o fluxo de `/cadastro-professor` do zero, com o banco
+totalmente vazio, sem nenhuma conta de professor/turma sobrando de rodadas
+anteriores.
+
+A partir de 26/09/2026, "zerar staging" (`scripts/zerar-staging.mjs`, ou o
+SQL equivalente) apaga, nesta ordem (filhos antes dos pais):
+`fin_contas_receber`, `fin_contas_pagar`, `fin_lancamentos`,
+`fin_caixa_diario`, `ead_matriculas`, `ead_alunos`, `professor_turmas`,
+`professores` — e por fim todo `auth.users` exceto contas
+`GLOBAL_ADMIN` (login de staff). Não recria mais nada automaticamente
+(nem "Marcelo Teste", nem "Edição 2026", nem `alunobasico`/`alunomedio`)
+— o próprio Joaquim recria testando os fluxos públicos
+(`/cadastro-professor`, `/inscricao`, mutirão) do zero.
+
+Se uma sessão futura receber um pedido de "zerar staging" e encontrar
+menção à regra antiga (preservar professor/turma) em algum lugar não
+atualizado, esta seção aqui é a versão vigente — a de 06/09 está revogada.
+
+## Máscara de telefone — utilitário único, não duplicar
+
+Até 25/09/2026 a função `maskPhone` (formatação `(00) 00000-0000`) estava
+colada, idêntica, em 11 arquivos diferentes — e um formulário novo
+(`ProfessorNovaMatriculaForm.tsx`) chegou a ser criado com o campo
+Telefone SEM nenhuma máscara, porque não havia um lugar óbvio de onde
+importar. Isso foi corrigido: agora existe `src/utils/maskPhone.ts`, e
+**todo campo de telefone deve importar `maskPhone` de lá** — nunca
+redeclarar a função localmente de novo.
+
+A versão atual também aceita formato internacional: sem "+" formata como
+sempre (`(11) 96742-8655`, compatível com todo dado já digitado); com "+"
+reconhece o Brasil (`+55 11 9 6742-8655`) e agrupa outros países de forma
+genérica. Isso existe porque o sistema vai abrir acesso a igrejas de
+outros países. Não é uma biblioteca de validação por país (tipo
+`libphonenumber-js`, que não está instalada) — é só formatação visual;
+trocar por uma lib de verdade é uma melhoria futura, não urgente.
+
 ## Outras regras fixas de comunicação
 
 - Nunca fabricar dado ou resultado — sempre verificar o estado real

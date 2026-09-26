@@ -65,11 +65,18 @@ export default async function EditarMatriculaPage({ params, searchParams }: Page
     supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
     supabase.from("settings_professions").select("id, name").order("name"),
     supabase.from("settings_schooling").select("id, name").order("name"),
+    // 25/09/2026, achado em teste (Joaquim): ordenar por created_at
+    // mostrava as parcelas fora de ordem (9/12, 11/12, 12/12, 1/12...) —
+    // a ordem de inserção não é garantida crescente por competência.
+    // Ordenar direto por data de vencimento (cronológico: jan, fev, mar...
+    // de um ano, depois jan, fev... do ano seguinte) é o que reflete a
+    // ordem real de pagamento que o Joaquim pediu.
     supabase
       .from("fin_contas_receber")
       .select("id, descricao, valor_bruto_centavos, status, forma_pagamento_prevista, data_vencimento, pago_em, numero_parcela, total_parcelas")
       .eq("aluno_id", matricula.aluno_id)
-      .order("created_at", { ascending: false }),
+      .order("data_vencimento", { ascending: true })
+      .order("numero_parcela", { ascending: true }),
     supabase.from("fin_caixa_diario").select("id, status").eq("data", hoje).maybeSingle(),
   ]);
 

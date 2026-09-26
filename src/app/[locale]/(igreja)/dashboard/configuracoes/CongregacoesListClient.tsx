@@ -228,16 +228,16 @@ export default function CongregacoesListClient({
         >
           <option value="">— Selecione —</option>
           {sedeChurchId && <option value={SEDE_SENTINEL}>SEDE</option>}
-          {regionais.length > 0 && (
-            <optgroup label="Regional">
-              {regionais.map((s) => (
+          {setoresComuns.length > 0 && (
+            <optgroup label="Setor">
+              {setoresComuns.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </optgroup>
           )}
-          {setoresComuns.length > 0 && (
-            <optgroup label="Setor">
-              {setoresComuns.map((s) => (
+          {regionais.length > 0 && (
+            <optgroup label="Regional">
+              {regionais.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </optgroup>

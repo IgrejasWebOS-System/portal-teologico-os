@@ -67,7 +67,7 @@ export default async function CompletarCadastroPage() {
       admin.from("settings_schooling").select("id, name").order("name"),
       admin.from("settings_professions").select("id, name").order("name"),
       admin.from("ecclesiastical_roles").select("id, name").order("name"),
-      admin.from("courses").select("id, title").eq("status", "PUBLISHED").order("title"),
+      admin.from("courses").select("id, title").eq("status", "PUBLISHED").eq("visivel_busca", true).order("title"),
     ]);
 
     if (!professor) redirect("/professor");
@@ -89,9 +89,9 @@ export default async function CompletarCadastroPage() {
             </h1>
           </div>
 
-          <div className="mb-6 flex items-start gap-2.5 bg-amber-50 border border-amber-200 px-4 py-3.5 rounded-xl">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-800" />
-            <p className="text-[#0D0D0D] text-base">
+          <div className="mb-6 flex flex-col items-center gap-2 text-center bg-amber-50 border border-amber-200 px-4 py-3.5 rounded-xl">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-800" />
+            <p className="text-black text-base uppercase">
               <span className="font-bold">Cadastro incompleto.</span> O preenchimento integral dos seus
               dados é pré-requisito operacional deste núcleo. Complete a ficha abaixo pra liberar o
               acesso à sua área.
@@ -197,9 +197,9 @@ export default async function CompletarCadastroPage() {
           <Logo size="md" variant="dark" />
         </div>
 
-        <div className="mb-6 flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3.5 rounded-xl text-sm">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p>
+        <div className="mb-6 flex flex-col items-center gap-2 text-center bg-amber-50 border border-amber-200 px-4 py-3.5 rounded-xl text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-800" />
+          <p className="text-black uppercase">
             Complete sua ficha pra liberar o acesso ao curso — seus dados de curso/turma já vieram
             preenchidos automaticamente pelo link que você usou.
           </p>

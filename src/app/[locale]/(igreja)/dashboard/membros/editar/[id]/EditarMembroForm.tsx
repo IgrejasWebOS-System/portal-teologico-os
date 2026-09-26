@@ -20,6 +20,7 @@ import {
   Flag,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { maskPhone } from "@/utils/maskPhone";
 import {
   updateMemberAction,
   getNextRegistrationNumberAction,
@@ -69,14 +70,6 @@ function maskDate(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 8);
   if (v.length > 4) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
   else if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
-  return v;
-}
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
   return v;
 }
 function maskCPF(raw: string): string {

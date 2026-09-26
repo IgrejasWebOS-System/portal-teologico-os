@@ -59,13 +59,13 @@ export default async function MatriculaTurmaPage({ params }: PageProps) {
     <div className="min-h-screen bg-iw-bg flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-xl">
         <div className="text-center mb-6">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-iw-gold">
+          <p className="text-[13px] font-bold uppercase tracking-widest text-iw-gold">
             {igreja?.name ?? "Campo AD Brás Piracicaba"}
           </p>
-          <h1 className="text-2xl sm:text-3xl font-black text-iw-navy tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight mt-1">
             Matrícula — {curso?.title ?? "Curso"}
           </h1>
-          <p className="text-iw-muted text-sm mt-2 max-w-md mx-auto">
+          <p className="text-black text-sm mt-2 max-w-md mx-auto">
             Turma {turma?.nome ?? ""}
             {turma?.classe ? ` (Classe ${turma.classe})` : ""} · Professor(a) {professor?.nome_completo ?? "—"}
           </p>

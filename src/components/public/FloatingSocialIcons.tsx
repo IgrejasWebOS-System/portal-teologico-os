@@ -8,6 +8,13 @@ import WhatsAppIcon from "@/components/icons/WhatsAppIcon";
 //
 // Padrão visual único pros 5 ícones: fundo preto, borda laranja
 // (#E88D0C), desenho interno também laranja (#E88D0C).
+//
+// `hidden lg:flex`: em telas estreitas (mobile) não tem espaço sobrando
+// nas laterais do conteúdo — a coluna ficava sobreposta ao formulário
+// (achado em teste real de responsividade em /inscricao, 23/09/2026,
+// cortando texto e os botões de "quem está se cadastrando"). Os mesmos
+// links já existem no rodapé (PublicFooter), então esconder em mobile não
+// tira acesso, só remove a decoração fixa que não cabia.
 // ============================================================
 
 const ICON_BASE =
@@ -15,7 +22,7 @@ const ICON_BASE =
 
 export default function FloatingSocialIcons() {
   return (
-    <div className="fixed right-4 top-1/2 translate-y-[calc(-50%-88px)] z-40 flex flex-col items-center gap-3">
+    <div className="hidden lg:flex fixed right-4 top-1/2 translate-y-[calc(-50%-88px)] z-40 flex-col items-center gap-3">
       <a
         href="https://instagram.com/cetadp"
         target="_blank"

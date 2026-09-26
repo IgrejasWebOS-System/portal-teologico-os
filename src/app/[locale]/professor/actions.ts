@@ -15,12 +15,14 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import { validarCPF } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
+import { gerarPdfMatricula } from "@/utils/pdf/matricula";
 
 async function requireProfessor() {
   const supabase = await createClient();
@@ -141,6 +143,17 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   const bairro = (formData.get("bairro") as string)?.trim() || null;
   const cidade = (formData.get("cidade") as string)?.trim() || null;
   const estado = (formData.get("estado") as string)?.trim() || null;
+  // 25/09/2026, achado em teste (Joaquim): layout da ficha reescrito pra
+  // bater com o padrão admin (ver ProfessorNovaMatriculaForm.tsx), que
+  // inclui foto do aluno — sem isso aqui o upload seria descartado.
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
+  // 25/09/2026, achados em teste (Joaquim): a ficha nunca perguntava Setor/
+  // Igreja do aluno (ficava sempre sem essa informação) nem a data desde
+  // quando ele já cursa (pra alunos antigos sendo migrados pro sistema —
+  // mesma lógica já usada no link público de matrícula, ver matricular.ts).
+  const sector_id = (formData.get("sector_id") as string) || null;
+  const church_id = (formData.get("church_id") as string) || null;
+  const dataMatriculaInformada = (formData.get("data_matricula_informada") as string) || null;
 
   if (
     // 22/09/2026, pedido do Joaquim: RG (número) não é mais obrigatório em
@@ -149,7 +162,8 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     !nome_completo || !cpf || !email || !telefone || !course_edition_id ||
     !rg_orgao_emissor || !rg_uf || !data_nascimento || !genero || !estado_civil ||
     !escolaridade || !naturalidade_cidade || !naturalidade_estado || !nome_mae ||
-    !cep || !endereco || !endereco_numero || !bairro || !cidade || !estado
+    !cep || !endereco || !endereco_numero || !bairro || !cidade || !estado ||
+    !sector_id || !church_id
   ) {
     erro("Preencha todos os campos obrigatórios da ficha.");
   }
@@ -158,12 +172,16 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     erro("CPF inválido — confira os dígitos digitados.");
   }
 
+  if (dataMatriculaInformada && dataMatriculaInformada > new Date().toISOString().slice(0, 10)) {
+    erro("A data informada não pode ser no futuro.");
+  }
+
   // Professor só matricula em turma que ele já leciona de verdade (evita
   // course_edition_id arbitrário vindo de um form manipulado no client) —
   // fonte de verdade é professor_turmas, não as matrículas que já existem.
   const { data: vinculo } = await admin
     .from("professor_turmas")
-    .select("course_edition_id, course_editions(course_id, courses(id, title))")
+    .select("course_edition_id, course_editions(nome, classe, course_id, courses(id, title))")
     .eq("professor_id", professor.id)
     .eq("course_edition_id", course_edition_id)
     .maybeSingle();
@@ -173,11 +191,14 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const courseEdition = (Array.isArray((vinculo as any).course_editions) ? (vinculo as any).course_editions[0] : (vinculo as any).course_editions) as { course_id: string; courses: { id: string; title: string } | { id: string; title: string }[] | null } | null;
+  const courseEdition = (Array.isArray((vinculo as any).course_editions) ? (vinculo as any).course_editions[0] : (vinculo as any).course_editions) as { nome: string | null; classe: string | null; course_id: string; courses: { id: string; title: string } | { id: string; title: string }[] | null } | null;
   const cursoRaw = courseEdition?.courses;
   const curso = (Array.isArray(cursoRaw) ? cursoRaw[0] : cursoRaw) as { id: string; title: string } | null;
   const course_id = courseEdition?.course_id ?? "";
   if (!curso || !course_id) erro("Curso não encontrado para esta turma.");
+  const turmaNome = courseEdition?.nome
+    ? `${courseEdition.nome}${courseEdition.classe ? ` - Classe ${courseEdition.classe}` : ""}`
+    : null;
 
   const { data: alunoExistente } = await admin.from("ead_alunos").select("id, user_id").eq("cpf", cpf).maybeSingle();
   if (alunoExistente) {
@@ -230,6 +251,9 @@ export async function professorCriarMatriculaAction(formData: FormData) {
         bairro,
         cidade,
         estado,
+        foto_url,
+        sector_id,
+        church_id,
       })
       .select("id, user_id")
       .single();
@@ -274,6 +298,11 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       status: "EM_ANDAMENTO",
       origem: "MATRICULA_DIRETA",
       professor_id: professor.id,
+      // 25/09/2026, pedido do Joaquim: aluno antigo sendo cadastrado agora
+      // no sistema informa desde quando já cursa — essa data vira a base do
+      // 1º vencimento (mesma lógica de matricular.ts/data_matricula
+      // informada no link público). Em branco = hoje (comportamento antigo).
+      ...(dataMatriculaInformada ? { data_matricula: dataMatriculaInformada } : {}),
     })
     .select("id")
     .single();
@@ -309,7 +338,11 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     .eq("course_id", course_id)
     .maybeSingle();
 
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  // 25/09/2026, pedido do Joaquim: aluno antigo (já cursando) informado com
+  // uma data anterior usa ELA como base do 1º vencimento, não a data de
+  // hoje — senão um aluno que já cursa desde janeiro nasceria com a
+  // primeira parcela vencendo hoje, empurrando o cronograma inteiro.
+  const primeiroVencimento = dataMatriculaInformada ?? new Date().toISOString().slice(0, 10);
 
   if (preco?.valor_matricula_centavos) {
     await gerarParcelasContasReceber(admin, {
@@ -321,7 +354,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       descricaoBase: `Matrícula — ${curso!.title}`,
       valorTotalCentavos: preco.valor_matricula_centavos,
       totalParcelas: 1,
-      primeiroVencimento: hojeIso,
+      primeiroVencimento,
       formaPagamentoPrevista: "PIX",
     });
   }
@@ -336,13 +369,161 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       descricaoBase: `Mensalidade — ${curso!.title}`,
       valorTotalCentavos: preco.valor_parcela_centavos * preco.numero_parcelas,
       totalParcelas: preco.numero_parcelas,
-      primeiroVencimento: hojeIso,
+      primeiroVencimento,
       formaPagamentoPrevista: "PIX",
     });
   }
 
+  // 25/09/2026, achado em teste (Joaquim): a matrícula feita pela Área do
+  // Professor nunca gerava o PDF da ficha (por isso "Baixar PDF" não
+  // aparecia na listagem de /admin/matriculas para esses alunos) — o
+  // mesmo bug antigo do link público da turma, mas aqui ainda não tinha
+  // sido corrigido. Mesmo bloco de matricularDiretoAction
+  // (admin/matriculas/actions.ts): gera o PDF na hora e salva o caminho
+  // em ead_alunos.pdf_matricula_path; nunca bloqueia a matrícula se falhar.
+  try {
+    let setorNome: string | null = null;
+    let igrejaNome: string | null = null;
+    if (sector_id) {
+      const { data: setor } = await admin.from("sectors").select("name").eq("id", sector_id).maybeSingle();
+      setorNome = setor?.name ?? null;
+    }
+    if (church_id) {
+      const { data: igreja } = await admin.from("churches").select("name").eq("id", church_id).maybeSingle();
+      igrejaNome = igreja?.name ?? null;
+    }
+
+    let fotoParaPdf: Uint8Array | null = null;
+    if (foto_url) {
+      try {
+        const res = await fetch(foto_url);
+        if (res.ok) fotoParaPdf = new Uint8Array(await res.arrayBuffer());
+      } catch (err) {
+        console.error("[professor/actions] erro ao buscar foto pro PDF:", err);
+      }
+    }
+
+    const hdrs = await headers();
+    const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || hdrs.get("x-real-ip") || "desconhecido";
+    const userAgent = hdrs.get("user-agent") || "desconhecido";
+
+    const pdfBytes = await gerarPdfMatricula(
+      {
+        nomeCompleto: nome_completo,
+        matricula: numero,
+        cursoPretendido: curso!.title,
+        cpf,
+        email,
+        telefone,
+        dataNascimento: data_nascimento,
+        rg,
+        rgOrgaoEmissor: rg_orgao_emissor,
+        rgUf: rg_uf,
+        genero,
+        estadoCivil: estado_civil,
+        escolaridade,
+        profissao,
+        naturalidadeCidade: naturalidade_cidade,
+        naturalidadeEstado: naturalidade_estado,
+        nacionalidade,
+        nomeConjuge: nome_conjuge,
+        nomeMae: nome_mae,
+        nomePai: nome_pai,
+        cep,
+        endereco,
+        enderecoNumero: endereco_numero,
+        enderecoComplemento: endereco_complemento,
+        bairro,
+        cidade,
+        estado,
+        turmaNome,
+        professorNome: professor.nome_completo,
+        setorNome,
+        igrejaNome,
+        pagamento: preco
+          ? {
+              valorMatriculaCentavos: preco.valor_matricula_centavos ?? null,
+              valorParcelaCentavos: preco.valor_parcela_centavos ?? 0,
+              parcelas: preco.numero_parcelas ?? 1,
+              formaPagamento: "PIX",
+              responsavelPagamento: "ALUNO",
+              primeiroVencimento,
+            }
+          : null,
+      },
+      null, // sem assinatura eletrônica — ficha preenchida pelo professor, não pelo aluno
+      { ip, userAgent, assinadoEm: new Date() },
+      fotoParaPdf
+    );
+
+    const pdfFileName = `matricula-${aluno!.id}-${Date.now()}.pdf`;
+    const { error: pdfUploadError } = await admin.storage
+      .from("matriculas-pdf")
+      .upload(pdfFileName, Buffer.from(pdfBytes), { contentType: "application/pdf" });
+
+    if (pdfUploadError) {
+      console.error("[professor/actions] upload do PDF falhou:", pdfUploadError.message);
+    } else {
+      await admin.from("ead_alunos").update({ pdf_matricula_path: pdfFileName }).eq("id", aluno!.id);
+    }
+  } catch (err) {
+    console.error("[professor/actions] erro inesperado ao gerar PDF da matrícula:", err);
+  }
+
   revalidatePath("/professor");
-  redirect("/professor?msg=" + encodeURIComponent(`${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`));
+  revalidatePath("/admin/matriculas");
+  // 25/09/2026, pedido do Joaquim: alguns professores preferem cadastrar o
+  // aluno direto pela Área do Professor em vez de mandar o link da turma —
+  // nesse caso o único jeito de o aluno acessar era o e-mail de convite
+  // (que às vezes cai no spam ou demora). Manda o id do aluno recém-criado
+  // na query pra /professor mostrar um cartão com botão de copiar o link
+  // de definir senha na hora (ver LinkSenhaAlunoCard.tsx + ação abaixo).
+  redirect(
+    "/professor?msg=" +
+      encodeURIComponent(`${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`) +
+      "&novoAlunoId=" + encodeURIComponent(aluno!.id) +
+      "&novoAlunoNome=" + encodeURIComponent(nome_completo)
+  );
+}
+
+// ── AÇÃO 2b: GERAR LINK DE DEFINIR SENHA PRO ALUNO (cópia manual) ──
+// 25/09/2026, pedido do Joaquim: depois de matricular pela Área do
+// Professor, o professor pode querer encaminhar o link de acesso ele
+// mesmo (WhatsApp, por exemplo) em vez de depender só do e-mail de
+// convite — principalmente se o e-mail cair no spam ou demorar. Gera um
+// link de recuperação de senha válido pro aluno já convidado (mesmo
+// destino final do convite: /definir-senha), sem reenviar e-mail nenhum.
+export async function professorGerarLinkSenhaAction(alunoId: string): Promise<{ success: boolean; url?: string; message?: string }> {
+  const { professor, admin } = await requireProfessor();
+
+  if (!alunoId) return { success: false, message: "Aluno não informado." };
+
+  // Confere que este aluno pertence mesmo a uma matrícula deste professor
+  // antes de gerar qualquer link de acesso pra ele.
+  const { data: vinculo } = await admin
+    .from("ead_matriculas")
+    .select("id")
+    .eq("aluno_id", alunoId)
+    .eq("professor_id", professor.id)
+    .maybeSingle();
+
+  if (!vinculo) return { success: false, message: "Esse aluno não pertence a você." };
+
+  const { data: aluno } = await admin.from("ead_alunos").select("email, user_id").eq("id", alunoId).maybeSingle();
+  if (!aluno?.email) return { success: false, message: "Aluno sem e-mail cadastrado." };
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: aluno.user_id ? "recovery" : "invite",
+    email: aluno.email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha` },
+  });
+
+  if (error || !data?.properties?.action_link) {
+    console.error("[professor/actions] gerar link senha", error);
+    return { success: false, message: "Erro ao gerar o link. Tente novamente." };
+  }
+
+  return { success: true, url: data.properties.action_link };
 }
 
 // ── AÇÃO 3: CRIAR TURMA (mutirão de cadastro, 18/09/2026) ───────

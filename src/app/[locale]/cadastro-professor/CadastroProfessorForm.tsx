@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Mail, User, Phone } from "lucide-
 import { cadastrarProfessorPublicoAction } from "./actions";
 import { validarCPF } from "@/utils/cpf";
 import { validarEmail } from "@/utils/email";
+import { maskPhone } from "@/utils/maskPhone";
 
 // ============================================================
 // Autocadastro público de professor (mutirão) — reduzido a 4 campos
@@ -29,14 +30,6 @@ function maskCPF(raw: string): string {
   return v;
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 export default function CadastroProfessorForm() {
   const [nome, setNome] = useState("");
@@ -80,13 +73,18 @@ export default function CadastroProfessorForm() {
           )}
         </div>
         {sucesso.avisoConvite ? (
-          <p className="text-sm text-iw-warning bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-md mx-auto">
+          // 26/09/2026, pedido do Joaquim: texto preto (era âmbar, baixo
+          // contraste) e fonte +2pt (mesma convenção usada no aviso de
+          // "confira seu e-mail" — text-sm → text-base).
+          <p className="text-base text-black bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-md mx-auto">
             {sucesso.avisoConvite}
           </p>
         ) : (
-          <p className="text-sm text-[#0D0D0D] max-w-md mx-auto">
-            Confira seu e-mail (inclusive a caixa de spam) — enviamos um link pra você criar sua
-            senha. Depois de entrar, você completa sua ficha e, se já tiver turma, se vincula a ela.
+          <p className="text-base text-[#0D0D0D] max-w-md mx-auto">
+            Confira seu e-mail (
+            <span className="bg-blue-100 text-red-600 font-semibold px-1 rounded">inclusive a caixa de spam</span>
+            ) — enviamos um link pra você criar sua senha. Depois de entrar, você completa sua
+            ficha e, se já tiver turma, se vincula a ela.
           </p>
         )}
       </div>

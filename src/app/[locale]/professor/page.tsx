@@ -10,6 +10,7 @@ import { professorBaixarParcelaAction, professorCriarMatriculaAction } from "./a
 import { type TurmaVinculo } from "./TurmasDoProfessor";
 import ProfessorNovaMatriculaForm from "./ProfessorNovaMatriculaForm";
 import ProfessorPainel from "./ProfessorPainel";
+import LinkSenhaAlunoCard from "./LinkSenhaAlunoCard";
 
 export const metadata = { title: "Área do Professor — CETADP" };
 
@@ -47,9 +48,9 @@ type Parcela = {
 export default async function AreaDoProfessorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ msg?: string; error?: string }>;
+  searchParams: Promise<{ msg?: string; error?: string; novoAlunoId?: string; novoAlunoNome?: string }>;
 }) {
-  const { msg, error } = await searchParams;
+  const { msg, error, novoAlunoId, novoAlunoNome } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -65,7 +66,7 @@ export default async function AreaDoProfessorPage({
   // criar as próprias turmas, e as turmas que ele já criou (com o link
   // público de cada uma) pra listar/copiar.
   const [{ data: cursosRaw }, { data: unitsRaw }, { data: turmasRaw }, { data: profissoesRaw }] = await Promise.all([
-    admin.from("courses").select("id, title").order("title"),
+    admin.from("courses").select("id, title").eq("visivel_busca", true).order("title"),
     admin.from("units").select("id, type, name, parent_id").in("type", ["SETOR", "IGREJA", "SEDE"]),
     admin
       .from("professor_turmas")
@@ -241,10 +242,14 @@ export default async function AreaDoProfessorPage({
           </div>
         )}
 
+        {novoAlunoId && novoAlunoNome && (
+          <LinkSenhaAlunoCard alunoId={novoAlunoId} nome={novoAlunoNome} />
+        )}
+
         {professor.cadastro_publico && turmasDoProfessor.length === 0 && (
-          <div className="mb-6 flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3.5 rounded-xl text-sm">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>
+          <div className="mb-6 flex flex-col items-center gap-2 bg-amber-50 border border-amber-200 text-black px-4 py-3.5 rounded-xl text-sm text-center">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="uppercase font-bold">
               Você ainda não cadastrou nenhuma turma. Sem ao menos uma turma, o sistema não tem como
               gerar o link de matrícula para seus alunos — cadastre a primeira abaixo.
             </span>
@@ -264,6 +269,7 @@ export default async function AreaDoProfessorPage({
                 action={professorCriarMatriculaAction}
                 turmasDoProfessor={turmasFiltroOptions}
                 profissoes={profissoesRaw ?? []}
+                justMatriculadoId={novoAlunoId}
               />
             ) : null
           }

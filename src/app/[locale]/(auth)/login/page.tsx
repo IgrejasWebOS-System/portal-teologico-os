@@ -22,7 +22,11 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
   const t = await getTranslations("auth");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-iw-bg px-4 py-12 pb-28">
+      {/* pb-28: espaço extra pro FaqWidget (botão flutuante fixed bottom-6
+          right-6, global) não sobrepor o último link nessa tela — em
+          mobile o conteúdo enche a viewport e o texto final ficava atrás
+          do botão. Achado em teste real de responsividade em 23/09/2026. */}
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <Link

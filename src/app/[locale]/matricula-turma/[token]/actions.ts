@@ -38,6 +38,7 @@ export async function matricularPorLinkAction(formData: FormData): Promise<Matri
   const telefone = (formData.get("telefone") as string)?.trim() || null;
   const cpf = (formData.get("cpf") as string)?.trim() || null;
   const matriculaMembroInformada = (formData.get("matricula_membro_informada") as string)?.trim() || null;
+  const dataMatriculaInformada = (formData.get("data_matricula_informada") as string)?.trim() || null;
 
   // Validação server-side espelha a do client (MatriculaTurmaForm.tsx) --
   // nunca confiar só no navegador. Telefone e matrícula de membro
@@ -47,6 +48,9 @@ export async function matricularPorLinkAction(formData: FormData): Promise<Matri
   if (!nomeCompleto) return { success: false, message: "Nome completo é obrigatório." };
   if (!validarEmail(email)) return { success: false, message: "Informe um e-mail válido, com domínio completo (ex.: nome@provedor.com)." };
   if (!cpf || !validarCPF(cpf)) return { success: false, message: "Informe um CPF válido." };
+  if (dataMatriculaInformada && dataMatriculaInformada > new Date().toISOString().slice(0, 10)) {
+    return { success: false, message: "A data que você começou a cursar não pode ser no futuro." };
+  }
 
   const admin = createAdminClient();
 
@@ -95,6 +99,7 @@ export async function matricularPorLinkAction(formData: FormData): Promise<Matri
     sectorId: sector_id,
     memberId,
     matriculaMembroInformada,
+    dataMatriculaInformada,
     origem: "MUTIRAO_LINK",
   });
 

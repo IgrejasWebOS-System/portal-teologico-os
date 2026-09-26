@@ -47,7 +47,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
   const supabase = await createClient();
 
   const [{ data: cursos }, { data: unitsRaw }] = await Promise.all([
-    supabase.from("courses").select("id, title").order("title"),
+    supabase.from("courses").select("id, title").eq("visivel_busca", true).order("title"),
     // SEDE entra também — ela não é Setor nem Regional (fica acima desse
     // nível, direto embaixo do Campo), mas é um núcleo com turma própria
     // (14/09/2026), então precisa aparecer nos seletores de igreja mesmo
@@ -211,8 +211,8 @@ export default async function TurmasPage({ searchParams }: PageProps) {
                       </select>
                       <input
                         name="classe"
-                        placeholder="Classe (opcional, ex: A)"
-                        maxLength={1}
+                        placeholder="Classe (opcional)"
+                        maxLength={40}
                         defaultValue={r.classe ?? ""}
                         className="sm:col-span-1 bg-white border border-iw-navy rounded-xl px-3.5 py-2.5 text-sm uppercase focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
                       />

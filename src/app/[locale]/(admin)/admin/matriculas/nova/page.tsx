@@ -40,7 +40,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     { data: sedeUnit },
   ] = await Promise.all([
     supabase.from("ead_campos_ministerios").select("id, nome, tipo").eq("ativo", true).order("nome"),
-    supabase.from("courses").select("id, title, module").order("title"),
+    supabase.from("courses").select("id, title, module").eq("visivel_busca", true).order("title"),
     supabase.from("churches").select("id, name, sector_id, unit_id").order("name"),
     supabase.from("sectors").select("id, name").order("name"),
     // Só as turmas SEM igreja específica (genéricas) entram pré-carregadas —
