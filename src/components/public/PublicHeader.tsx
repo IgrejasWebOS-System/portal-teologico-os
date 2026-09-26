@@ -109,12 +109,15 @@ export default function PublicHeader() {
                 >
                   {t("entrar")}
                 </Link>
-                <Link
-                  href="/inscricao"
-                  className="bg-[#E88D0C] hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-md transition-all border border-black"
+                {/* 26/09/2026, pedido do Joaquim: inscrições pausadas
+                    temporariamente -- botão desabilitado, sem link.
+                    Reverter trocando de volta pra <Link href="/inscricao">. */}
+                <span
+                  aria-disabled="true"
+                  className="bg-[#E88D0C] opacity-50 cursor-not-allowed text-white font-semibold text-xs px-4 py-2 rounded-md border border-black select-none"
                 >
                   {t("inscrevaSe")}
-                </Link>
+                </span>
               </>
             )}
             {emPaginaDaLoja && (
@@ -194,13 +197,14 @@ export default function PublicHeader() {
                   >
                     {t("entrar")}
                   </Link>
-                  <Link
-                    href="/inscricao"
-                    onClick={() => setMenuAberto(false)}
-                    className="w-full text-center bg-[#E88D0C] text-white font-bold py-2.5 rounded-md text-sm border border-black"
+                  {/* 26/09/2026, pedido do Joaquim: inscrições pausadas
+                      temporariamente -- botão desabilitado, sem link. */}
+                  <span
+                    aria-disabled="true"
+                    className="w-full text-center bg-[#E88D0C] opacity-50 cursor-not-allowed text-white font-bold py-2.5 rounded-md text-sm border border-black select-none"
                   >
                     {t("inscrevaSe")}
-                  </Link>
+                  </span>
                 </>
               )}
               {emPaginaDaLoja && (

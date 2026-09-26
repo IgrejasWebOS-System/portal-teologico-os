@@ -154,23 +154,53 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   const sector_id = (formData.get("sector_id") as string) || null;
   const church_id = (formData.get("church_id") as string) || null;
   const dataMatriculaInformada = (formData.get("data_matricula_informada") as string) || null;
+  // 26/09/2026, pedido do Joaquim (achado em teste): campo novo, separado
+  // de "data_matricula_informada" -- antes a ficha do professor não tinha
+  // nenhum controle de lançamento financeiro, e matrícula + 1ª parcela da
+  // mensalidade sempre nasciam vencendo no mesmo dia sem jeito de mudar.
+  // Mesmo campo/nome já usado na Nova Matrícula da secretaria
+  // (NovaMatriculaForm.tsx: "1º vencimento" / data_vencimento).
+  const dataVencimentoInformada = (formData.get("data_vencimento") as string) || null;
 
-  if (
-    // 22/09/2026, pedido do Joaquim: RG (número) não é mais obrigatório em
-    // nenhum formulário — o novo documento de identidade unificado não tem
-    // esse número. Órgão emissor/UF do RG continuam obrigatórios por ora.
-    // 26/09/2026, padronização (varredura geral): sector_id NÃO é mais
-    // obrigatório aqui — quando o aluno é da SEDE, não existe Setor (a
-    // Sede não pertence a nenhum Setor), então sector_id chega vazio de
-    // propósito; church_id continua obrigatório (é ele que garante que
-    // algum local — igreja ou Sede — foi escolhido).
-    !nome_completo || !cpf || !email || !telefone || !course_edition_id ||
-    !rg_orgao_emissor || !rg_uf || !data_nascimento || !genero || !estado_civil ||
-    !escolaridade || !naturalidade_cidade || !naturalidade_estado || !nome_mae ||
-    !cep || !endereco || !endereco_numero || !bairro || !cidade || !estado ||
-    !church_id
-  ) {
-    erro("Preencha todos os campos obrigatórios da ficha.");
+  // 26/09/2026, achado em teste (Joaquim: "não salvou, o que é essa tarja
+  // vermelha?"): a mensagem genérica "preencha todos os campos" não dizia
+  // QUAL campo estava faltando -- lista aqui pra apontar exatamente o que
+  // falta preencher, em vez do professor ter que adivinhar rolando a ficha
+  // inteira de novo.
+  // 22/09/2026, pedido do Joaquim: RG (número) não é mais obrigatório em
+  // nenhum formulário — o novo documento de identidade unificado não tem
+  // esse número. Órgão emissor/UF do RG continuam obrigatórios por ora.
+  // 26/09/2026, padronização (varredura geral): sector_id NÃO é mais
+  // obrigatório aqui — quando o aluno é da SEDE, não existe Setor (a
+  // Sede não pertence a nenhum Setor), então sector_id chega vazio de
+  // propósito; church_id continua obrigatório (é ele que garante que
+  // algum local — igreja ou Sede — foi escolhido).
+  const camposObrigatorios: [string, unknown][] = [
+    ["Nome completo", nome_completo],
+    ["CPF", cpf],
+    ["E-mail", email],
+    ["Telefone", telefone],
+    ["Turma", course_edition_id],
+    ["Órgão emissor do RG", rg_orgao_emissor],
+    ["UF do RG", rg_uf],
+    ["Data de nascimento", data_nascimento],
+    ["Gênero", genero],
+    ["Estado civil", estado_civil],
+    ["Escolaridade", escolaridade],
+    ["Naturalidade — cidade", naturalidade_cidade],
+    ["Naturalidade — UF", naturalidade_estado],
+    ["Nome da mãe", nome_mae],
+    ["CEP", cep],
+    ["Endereço", endereco],
+    ["Número", endereco_numero],
+    ["Bairro", bairro],
+    ["Cidade", cidade],
+    ["UF", estado],
+    ["Igreja", church_id],
+  ];
+  const faltando = camposObrigatorios.filter(([, valor]) => !valor).map(([label]) => label);
+  if (faltando.length > 0) {
+    erro(`Preencha os campos obrigatórios que faltam: ${faltando.join(", ")}.`);
   }
 
   if (!validarCPF(cpf)) {
@@ -343,11 +373,13 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     .eq("course_id", course_id)
     .maybeSingle();
 
-  // 25/09/2026, pedido do Joaquim: aluno antigo (já cursando) informado com
-  // uma data anterior usa ELA como base do 1º vencimento, não a data de
-  // hoje — senão um aluno que já cursa desde janeiro nasceria com a
-  // primeira parcela vencendo hoje, empurrando o cronograma inteiro.
-  const primeiroVencimento = dataMatriculaInformada ?? new Date().toISOString().slice(0, 10);
+  // 26/09/2026, pedido do Joaquim: "1º vencimento" (campo novo, explícito)
+  // manda em quem manda a data — só cai pra "Data matrícula" ou pra hoje se
+  // o professor deixar o campo de vencimento em branco (não deveria
+  // acontecer, já vem preenchido com hoje por padrão, mas evita quebrar se
+  // algum form antigo em cache mandar sem esse campo).
+  const primeiroVencimento =
+    dataVencimentoInformada ?? dataMatriculaInformada ?? new Date().toISOString().slice(0, 10);
 
   if (preco?.valor_matricula_centavos) {
     await gerarParcelasContasReceber(admin, {
