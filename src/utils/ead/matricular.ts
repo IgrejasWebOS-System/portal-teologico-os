@@ -61,6 +61,14 @@ export interface MatricularParams {
   sectorId?: string | null;
   memberId?: string | null;
   matriculaMembroInformada?: string | null;
+  // 25/09/2026, pedido do Joaquim: no mutirão de cadastro por link, a
+  // pessoa pode dizer que já cursa desde uma data anterior (ex.: turma que
+  // começou em janeiro/2026). Quando informada, vira ead_matriculas.
+  // data_matricula na hora da inserção em vez do default do banco (hoje) —
+  // é essa mesma coluna que /completar-cadastro/pagamento já usa como
+  // âncora pro cálculo de quantas mensalidades já decorreram, então nada
+  // mais precisa mudar lá. Formato esperado: "YYYY-MM-DD".
+  dataMatriculaInformada?: string | null;
 }
 
 export type MatricularResultado =
@@ -303,6 +311,7 @@ export async function matricularAlunoEmCurso(
       matricula,
       status: "EM_ANDAMENTO",
       origem: params.origem,
+      ...(params.dataMatriculaInformada ? { data_matricula: params.dataMatriculaInformada } : {}),
     })
     .select("id")
     .single();

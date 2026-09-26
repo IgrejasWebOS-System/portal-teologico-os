@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Send, Loader2, AlertTriangle, QrCode, Copy, Check, UserPlus, Mail, CheckCircle2, Wallet, ExternalLink } from "lucide-react";
 import { validarCPF } from "@/utils/cpf";
+import { maskPhone } from "@/utils/maskPhone";
 import PageHeader from "@/components/layout/PageHeader";
 import { criarFichaPendenteAction, enviarLinkFichaEmailAction } from "./actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
@@ -31,15 +32,6 @@ function maskCPF(raw: string): string {
   v = v.replace(/(\d{3})(\d)/, "$1.$2");
   v = v.replace(/(\d{3})(\d)/, "$1.$2");
   v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  return v;
-}
-
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
   return v;
 }
 
@@ -156,6 +148,15 @@ export default function FichaRapidaForm({
     () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
     [sectorId, churches]
   );
+  // 25/09/2026, achado em teste (Joaquim): mesma correção aplicada em
+  // NovaMatriculaForm.tsx/EditarMatriculaForm.tsx — `sectors` vem ordenado
+  // alfabeticamente do banco, o que põe "REGIONAL 0xx" antes de "SETOR
+  // 0xx" (R < S).
+  const setoresOrdenados = useMemo(() => {
+    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
+    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
+    return [...naoRegional, ...regional];
+  }, [setores]);
   const turmasDoCurso = useMemo(
     () => (courseId ? turmas.filter((t) => t.course_id === courseId) : []),
     [courseId, turmas]
@@ -447,7 +448,7 @@ export default function FichaRapidaForm({
               className={bareSelectCls}
             >
               <option value="">Selecione...</option>
-              {setores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {setoresOrdenados.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
           <Field label="Igreja" span="col-span-6 md:col-span-2" filled={churchId.length > 0}>

@@ -25,8 +25,16 @@ export default function ConfirmeRecuperacaoPage() {
           <h1 className="text-xl font-black text-iw-navy mb-2">
             {t("confirmeRecuperacao.titulo")}
           </h1>
-          <p className="text-[#0D0D0D] text-sm leading-relaxed mb-6">
-            {t("confirmeRecuperacao.texto")}
+          {/* 25/09/2026, pedido do Joaquim: mesmo destaque (fundo azul claro +
+              fonte vermelha) já aplicado ao aviso de spam em
+              cadastro-professor/matricula-turma — aqui a frase de spam vem
+              de uma chave de tradução separada (spamDestaque) só pra poder
+              envolver ela num <span> sem quebrar o i18n. */}
+          <p className="text-black text-base leading-relaxed mb-6">
+            {t("confirmeRecuperacao.texto")}{" "}
+            <span className="bg-blue-100 text-red-600 font-semibold px-1 rounded">
+              {t("confirmeRecuperacao.spamDestaque")}
+            </span>
           </p>
           <Link
             href="/login"

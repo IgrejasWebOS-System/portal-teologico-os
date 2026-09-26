@@ -90,8 +90,31 @@ function CopiarLinkButton({ url }: { url: string }) {
 export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, headerRight }: Props) {
   const router = useRouter();
 
+  // 25/09/2026, pedido do Joaquim: ordem de exibição no seletor precisa
+  // ser SEDE, depois SETOR, depois REGIONAL — mas "Regional" não é um
+  // `type` próprio em `units` (migration 094_regionais_bridge_sectors.sql
+  // trouxe os regionais pra dentro de type="SETOR" também), só dá pra
+  // distinguir pelo prefixo do nome ("REGIONAL 0xx" vs "SETOR 0xx").
+  // Ordenar só por nome (localeCompare) colocava REGIONAL antes de SETOR
+  // porque "R" vem antes de "S" no alfabeto — por isso o agrupamento
+  // manual abaixo, igual ao já corrigido em ProfessorForm/SeletorHierarquico
+  // /CongregacoesListClient.
+  const sedes = useMemo(
+    () => units.filter((u) => u.type === "SEDE").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [units]
+  );
   const setores = useMemo(
-    () => units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && !u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [units]
+  );
+  const regionais = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [units]
   );
 
@@ -118,12 +141,13 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
 
   const carregandoTurmas = buscaIgrejaId !== "" && buscaIgrejaId !== igrejaCarregada;
 
+  const sedeSelecionada = sedes.find((s) => s.id === buscaSetorId);
+
   const buscaIgrejas = useMemo(
     () =>
-      (buscaSetorId
-        ? units.filter((u) => u.type === "IGREJA" && u.parent_id === buscaSetorId)
-        : units.filter((u) => u.type === "SEDE")
-      ).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      units
+        .filter((u) => u.type === "IGREJA" && u.parent_id === buscaSetorId)
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [units, buscaSetorId]
   );
 
@@ -265,20 +289,31 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
 
             <select
               value={buscaSetorId}
-              onChange={(e) => { setBuscaSetorId(e.target.value); setBuscaIgrejaId(""); setBuscaCourseId(""); setBuscaTurmaId(""); }}
+              onChange={(e) => {
+                const valor = e.target.value;
+                setBuscaSetorId(valor);
+                const sedeEscolhida = sedes.find((s) => s.id === valor);
+                setBuscaIgrejaId(sedeEscolhida ? sedeEscolhida.id : "");
+                setBuscaCourseId("");
+                setBuscaTurmaId("");
+              }}
               className={selectCls}
             >
               <option value="">Setor / Regional...</option>
+              {sedes.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
               {setores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              {regionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>
 
             <select
               value={buscaIgrejaId}
               onChange={(e) => { setBuscaIgrejaId(e.target.value); setBuscaCourseId(""); setBuscaTurmaId(""); }}
-              disabled={buscaIgrejas.length === 0}
+              disabled={!!sedeSelecionada || buscaIgrejas.length === 0}
               className={selectCls}
             >
-              <option value="">{buscaIgrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}</option>
+              <option value="">
+                {sedeSelecionada ? "Sede selecionada" : buscaIgrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}
+              </option>
               {buscaIgrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
             </select>
 

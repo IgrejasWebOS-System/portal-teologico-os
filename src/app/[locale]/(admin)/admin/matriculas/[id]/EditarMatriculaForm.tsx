@@ -366,6 +366,14 @@ export default function EditarMatriculaForm({
     () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
     [sectorId, churches]
   );
+  // 25/09/2026, achado em teste (Joaquim): mesma correção aplicada em
+  // NovaMatriculaForm.tsx — `sectors` vem ordenado alfabeticamente do
+  // banco, o que põe "REGIONAL 0xx" antes de "SETOR 0xx" (R < S).
+  const setoresOrdenados = useMemo(() => {
+    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
+    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
+    return [...naoRegional, ...regional];
+  }, [setores]);
   const turmasDoCurso = useMemo(
     () => turmas.filter((t) => t.course_id === matricula.course_id),
     [turmas, matricula.course_id]
@@ -455,28 +463,30 @@ export default function EditarMatriculaForm({
         <input type="hidden" name="matricula_id" value={matricula.id} />
         <input type="hidden" name="aluno_id" value={aluno.id} />
 
-        {/* Foto do aluno + Curso e vínculo — foto à esquerda, quadro à direita */}
+        {/* Foto do aluno + Curso e vínculo — foto à esquerda, quadro à direita.
+            25/09/2026, achado em teste (Joaquim): a foto estava escondida no
+            fluxo selfService (ficha do aluno em /completar-cadastro) — o
+            campo de upload precisa aparecer ali também, é o mesmo padrão de
+            ficha usado pela secretaria. */}
         <div className="grid grid-cols-12 gap-4 items-stretch">
-          {!selfService && (
-            <div className="col-span-12 md:col-span-2 flex flex-col items-start justify-start gap-2">
-              <div className="w-full aspect-square rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
-                {fotoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-navy">
-                    {uploadingFoto ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
-                    <span className="text-[10px] font-semibold uppercase text-center px-2">Foto do aluno</span>
-                  </div>
-                )}
-                <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-              </div>
-              <p className="text-[11px] text-iw-muted">Aparece na ficha e no PDF de matrícula.</p>
-              <input type="hidden" name="foto_url" value={fotoUrl} />
+          <div className="col-span-12 md:col-span-2 flex flex-col items-start justify-start gap-2">
+            <div className="w-full aspect-square rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
+              {fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt="Foto do aluno" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-navy">
+                  {uploadingFoto ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
+                  <span className="text-[10px] font-semibold uppercase text-center px-2">Foto do aluno</span>
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
-          )}
+            <p className="text-[11px] text-iw-muted">Aparece na ficha e no PDF de matrícula.</p>
+            <input type="hidden" name="foto_url" value={fotoUrl} />
+          </div>
 
-          <div className={`${selfService ? "col-span-12" : "col-span-12 md:col-span-10"} bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3`}>
+          <div className="col-span-12 md:col-span-10 bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
             <SectionHeader icon={GraduationCap} label="Curso e Vínculo" />
             {selfService ? (
               <>
@@ -540,7 +550,7 @@ export default function EditarMatriculaForm({
                       className={bareSelectCls}
                     >
                       <option value="">Selecione...</option>
-                      {setores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      {setoresOrdenados.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </Field>
                   <Field compact label="Igreja" span="col-span-6 md:col-span-4">

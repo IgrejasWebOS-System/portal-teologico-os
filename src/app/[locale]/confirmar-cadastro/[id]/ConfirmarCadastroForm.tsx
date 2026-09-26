@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, Loader2, AlertTriangle, CheckCircle2, Send, User, MapPin, ImageIcon, X, RotateCcw, PenLine, Eraser, FileText, ChevronLeft, Search, Check } from "lucide-react";
 import { confirmarCadastroAction } from "./actions";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { maskPhone } from "@/utils/maskPhone";
 
 interface Aluno {
   id: string;
@@ -568,14 +569,6 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
   );
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 export default function ConfirmarCadastroForm({
   aluno, escolaridades, profissoes,
@@ -693,9 +686,9 @@ export default function ConfirmarCadastroForm({
         <div className="max-w-sm space-y-3">
           <CheckCircle2 className="w-12 h-12 text-iw-gold mx-auto" />
           <p className="text-iw-navy font-bold text-lg">Cadastro confirmado!</p>
-          <p className="text-sm text-iw-muted">
+          <p className="text-base text-iw-muted">
             Matrícula {aluno.matricula} concluída. Enviamos um e-mail de acesso ao portal — confira sua
-            caixa de entrada (e spam) pra criar sua senha.
+            caixa de entrada (<span className="bg-blue-100 text-red-600 font-semibold px-1 rounded">e spam</span>) pra criar sua senha.
           </p>
           {pdfUrl && (
             <a

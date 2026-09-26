@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, GraduationCap, BookOpen } from "lucide-react";
 import type { Course } from "@/types";
-import { createCourseVoidAction, toggleCourseStatusAction } from "../actions";
+import { createCourseVoidAction, toggleCourseStatusAction, toggleCourseVisivelBuscaAction } from "../actions";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
@@ -103,6 +103,23 @@ export default async function TrilhasPage() {
                   {c.status === "PUBLISHED" ? "Publicado" : "Rascunho"}
                 </button>
               </form>
+              {/* 25/09/2026, pedido do Joaquim: liga/desliga se o curso
+                  aparece nas listas de seleção de nova turma/matrícula,
+                  separado do status de publicação de conteúdo acima. */}
+              <form action={toggleCourseVisivelBuscaAction} title="Aparece nas listas de nova turma/matrícula?">
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="visivel_busca" value={(!c.visivel_busca).toString()} />
+                <button
+                  type="submit"
+                  className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                    c.visivel_busca
+                      ? "bg-iw-success/10 text-iw-success"
+                      : "bg-iw-muted/10 text-iw-muted"
+                  }`}
+                >
+                  {c.visivel_busca ? "Na busca" : "Oculto da busca"}
+                </button>
+              </form>
               <Link
                 href={`/admin/conteudo/nova?course_id=${c.id}`}
                 className="text-xs text-iw-navy font-semibold hover:text-iw-navy transition-colors"
@@ -163,6 +180,15 @@ export default async function TrilhasPage() {
                   c.status === "PUBLISHED" ? "bg-iw-success/10 text-iw-success" : "bg-iw-warning/10 text-iw-warning"
                 }`}>
                   {c.status === "PUBLISHED" ? "Publicado" : "Rascunho"}
+                </button>
+              </form>
+              <form action={toggleCourseVisivelBuscaAction} title="Aparece nas listas de nova turma/matrícula?">
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="visivel_busca" value={(!c.visivel_busca).toString()} />
+                <button type="submit" className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                  c.visivel_busca ? "bg-iw-success/10 text-iw-success" : "bg-iw-muted/10 text-iw-muted"
+                }`}>
+                  {c.visivel_busca ? "Na busca" : "Oculto da busca"}
                 </button>
               </form>
               <Link href={`/admin/conteudo/nova?course_id=${c.id}`} className="text-xs text-iw-gold font-semibold hover:text-iw-navy transition-colors">

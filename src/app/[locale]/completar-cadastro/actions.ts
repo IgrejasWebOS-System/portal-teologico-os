@@ -221,6 +221,10 @@ export async function salvarFichaAlunoAction(formData: FormData): Promise<void> 
     bairro: (formData.get("bairro") as string)?.trim() || null,
     cidade: (formData.get("cidade") as string)?.trim() || null,
     estado: (formData.get("estado") as string) || null,
+    // 25/09/2026, achado em teste (Joaquim): o campo de foto foi liberado
+    // na tela (EditarMatriculaForm.tsx, bloco de upload que antes só
+    // aparecia fora do selfService) mas o valor nunca era salvo aqui.
+    foto_url: (formData.get("foto_url") as string)?.trim() || null,
   };
 
   // Ficha completa obrigatória no mutirão (20/09/2026, pedido do Joaquim):
@@ -385,14 +389,14 @@ export async function salvarPagamentoInicialAlunoAction(formData: FormData): Pro
   // "baixador" da própria parcela.
   const agora = new Date().toISOString();
 
-  const darBaixa = async (id: string, valorBrutoCentavos: number, forma: string) => {
+  const darBaixa = async (id: string, valorBrutoCentavos: number, forma: string, pagoEm: string) => {
     await admin
       .from("fin_contas_receber")
       .update({
         status: "PAGO",
         forma_pagamento_prevista: forma,
         valor_liquido_centavos: valorBrutoCentavos,
-        pago_em: agora,
+        pago_em: pagoEm,
         baixado_por: user.id,
         updated_at: agora,
       })
@@ -403,19 +407,25 @@ export async function salvarPagamentoInicialAlunoAction(formData: FormData): Pro
     const pago = formData.get(`pago_${n}`) === "true";
     if (!pago) continue;
     const forma = (formData.get(`forma_${n}`) as string) || "DINHEIRO";
+    // 25/09/2026, pedido do Joaquim: o aluno anota antes (em papel) as datas
+    // em que efetivamente pagou cada mensalidade, e agora informa cada uma
+    // aqui — isso vira o `pago_em` real da parcela em vez de sempre usar o
+    // momento do cadastro (`agora`), pra bater com o financeiro de verdade.
+    const dataInformada = (formData.get(`data_${n}`) as string) || "";
+    const pagoEm = dataInformada ? `${dataInformada}T12:00:00` : agora;
 
     const parcelaMensalidade = (parcelasGeradas ?? []).find(
       (p) => p.numero_parcela === n && p.descricao.startsWith("Mensalidade")
     );
     if (parcelaMensalidade) {
-      await darBaixa(parcelaMensalidade.id, parcelaMensalidade.valor_bruto_centavos, forma);
+      await darBaixa(parcelaMensalidade.id, parcelaMensalidade.valor_bruto_centavos, forma, pagoEm);
     }
 
     // Parcela 1 do Básico já inclui a matrícula na mesma cobrança.
     if (n === 1 && preco!.valor_matricula_centavos > 0) {
       const parcelaMatricula = (parcelasGeradas ?? []).find((p) => p.descricao.startsWith("Matrícula"));
       if (parcelaMatricula) {
-        await darBaixa(parcelaMatricula.id, parcelaMatricula.valor_bruto_centavos, forma);
+        await darBaixa(parcelaMatricula.id, parcelaMatricula.valor_bruto_centavos, forma, pagoEm);
       }
     }
   }

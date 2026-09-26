@@ -160,16 +160,16 @@ export default function SeletorHierarquico({
           >
             <option value="">— Selecione —</option>
             {sedeChurch && <option value={SEDE_SENTINEL}>SEDE</option>}
-            {regionaisDisponiveis.length > 0 && (
-              <optgroup label="Regional">
-                {regionaisDisponiveis.map((s) => (
+            {setoresComunsDisponiveis.length > 0 && (
+              <optgroup label="Setor">
+                {setoresComunsDisponiveis.map((s) => (
                   <option key={s.id} value={s.id}>{formatarLabelSetor(s)}</option>
                 ))}
               </optgroup>
             )}
-            {setoresComunsDisponiveis.length > 0 && (
-              <optgroup label="Setor">
-                {setoresComunsDisponiveis.map((s) => (
+            {regionaisDisponiveis.length > 0 && (
+              <optgroup label="Regional">
+                {regionaisDisponiveis.map((s) => (
                   <option key={s.id} value={s.id}>{formatarLabelSetor(s)}</option>
                 ))}
               </optgroup>

@@ -29,6 +29,7 @@ import { addProfessorAction, updateProfessorAction, type MembroCompletoEncontrad
 import { ancestryChain, type UnitNode } from "../unitsChain";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
+import { maskPhone } from "@/utils/maskPhone";
 
 type ChurchLink = { id: string; unit_id: string | null };
 type SelectItem = { id: string; name: string };
@@ -152,14 +153,6 @@ function maskRG(raw: string): string {
   return v;
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 export default function ProfessorForm({
   units, churches, generos, estadosCivis, escolaridades, profissoes, cargos, existing, submitLabel = "Cadastrar Professor", mostrarBusca = true,
@@ -487,14 +480,14 @@ export default function ProfessorForm({
                   unidade mal cadastradas (ex.: nome "001" sem o prefixo, sem
                   nenhum vínculo hoje) ficam de fora em vez de aparecer soltas
                   no fim da lista. */}
-              <optgroup label="Regional">
-                {setores
-                  .filter((s) => /^REGIONAL\s+\d+/i.test(s.name))
-                  .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-              </optgroup>
               <optgroup label="Setor">
                 {setores
                   .filter((s) => /^SETOR\s+\d+/i.test(s.name))
+                  .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              </optgroup>
+              <optgroup label="Regional">
+                {setores
+                  .filter((s) => /^REGIONAL\s+\d+/i.test(s.name))
                   .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
               </optgroup>
             </select>

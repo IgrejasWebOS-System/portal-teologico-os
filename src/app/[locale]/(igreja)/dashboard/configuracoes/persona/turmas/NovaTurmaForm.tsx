@@ -31,11 +31,16 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
   const [igrejaSel, setIgrejaSel] = useState(igrejaId);
 
   const setores = units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name));
-  // Sede não é Setor nem Regional — entra sempre na lista, mesmo sem Setor.
-  const igrejas = [
-    ...(setorSel ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorSel) : []),
-    ...units.filter((u) => u.type === "SEDE"),
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  const sedes = units.filter((u) => u.type === "SEDE");
+  // Sede não é Setor nem Regional — mas precisa aparecer como opção direta
+  // no mesmo seletor (senão fica escondida, só implícita na lista de
+  // Igreja) — mesmo padrão do seletor de Campo/Setor/Igreja no cadastro de
+  // professor (achado em teste, 24/09/2026: "não está aparecendo a opção
+  // de selecionar sede"). Selecionar uma Sede aqui já resolve o unit_id
+  // direto, sem precisar escolher Igreja depois.
+  const igrejas = setorSel
+    ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorSel).sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   return (
     <details className="bg-iw-surface border border-iw-border rounded-2xl p-5 group">
@@ -58,10 +63,18 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
 
         <select
           value={setorSel}
-          onChange={(e) => { setSetorSel(e.target.value); setIgrejaSel(""); }}
+          onChange={(e) => {
+            const valor = e.target.value;
+            setSetorSel(valor);
+            const sedeSelecionada = sedes.find((s) => s.id === valor);
+            setIgrejaSel(sedeSelecionada ? sedeSelecionada.id : "");
+          }}
           className={`${selectCls} sm:col-span-2`}
         >
           <option value="">Setor / Regional...</option>
+          {sedes.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
           {setores.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
@@ -71,10 +84,12 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
           name="unit_id"
           value={igrejaSel}
           onChange={(e) => setIgrejaSel(e.target.value)}
-          disabled={igrejas.length === 0}
+          disabled={!!sedes.find((s) => s.id === setorSel) || igrejas.length === 0}
           className={`${selectCls} sm:col-span-2`}
         >
-          <option value="">{igrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}</option>
+          <option value="">
+            {sedes.find((s) => s.id === setorSel) ? "Sede selecionada" : igrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}
+          </option>
           {igrejas.map((i) => (
             <option key={i.id} value={i.id}>{i.name}</option>
           ))}
@@ -88,8 +103,8 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
         />
         <input
           name="classe"
-          placeholder="Classe (opcional, ex: A)"
-          maxLength={1}
+          placeholder="Classe (opcional)"
+          maxLength={40}
           className={`${inputCls} sm:col-span-1 uppercase`}
         />
         <input name="data_inicio" type="date" className={`${inputCls} sm:col-span-1`} />

@@ -19,6 +19,35 @@ export interface AlunoFicha {
   telefone: string | null;
   campo_ministerio_nome: string | null;
   status: string;
+  // Campos adicionais (24/09/2026, pedido do Joaquim: padronizar a Ficha
+  // do Aluno em /portal/impressao/ficha pro mesmo layout da MATRIZ FICHA
+  // ALUNO.pdf, que já é o padrão usado em gerarPdfMatricula) — resolver
+  // continua compartilhado pelas 6 telas de Impressão, os outros 5 só
+  // ignoram esses campos extras.
+  rg: string | null;
+  rg_orgao_emissor: string | null;
+  rg_uf: string | null;
+  data_nascimento: string | null;
+  genero: string | null;
+  estado_civil: string | null;
+  escolaridade: string | null;
+  profissao: string | null;
+  naturalidade_cidade: string | null;
+  naturalidade_estado: string | null;
+  nacionalidade: string | null;
+  nome_conjuge: string | null;
+  nome_mae: string | null;
+  nome_pai: string | null;
+  cep: string | null;
+  endereco: string | null;
+  endereco_numero: string | null;
+  endereco_complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  foto_url: string | null;
+  sector_id: string | null;
+  church_id: string | null;
 }
 
 export interface MatriculaAtiva {
@@ -28,6 +57,8 @@ export interface MatriculaAtiva {
   matricula: string;
   status: string;
   data_matricula: string;
+  course_edition_id: string | null;
+  professor_id: string | null;
 }
 
 export async function resolverAlunoEMatricula(
@@ -37,13 +68,13 @@ export async function resolverAlunoEMatricula(
 
   const { data: aluno } = await admin
     .from("ead_alunos")
-    .select("id, user_id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .select(CAMPOS_ALUNO_FICHA)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!aluno) return null;
 
-  return montarAlunoEMatricula(admin, aluno);
+  return montarAlunoEMatricula(admin, aluno as unknown as AlunoFicha);
 }
 
 // ============================================================
@@ -63,14 +94,17 @@ export async function resolverAlunoEMatriculaPorAlunoId(
 
   const { data: aluno } = await admin
     .from("ead_alunos")
-    .select("id, user_id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .select(CAMPOS_ALUNO_FICHA)
     .eq("id", alunoId)
     .maybeSingle();
 
   if (!aluno) return null;
 
-  return montarAlunoEMatricula(admin, aluno);
+  return montarAlunoEMatricula(admin, aluno as unknown as AlunoFicha);
 }
+
+const CAMPOS_ALUNO_FICHA =
+  "id, user_id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, foto_url, sector_id, church_id";
 
 // ============================================================
 // Ponto único usado pelas 6 telas de /portal/impressao/* — decide se
@@ -104,7 +138,7 @@ async function montarAlunoEMatricula(
 ): Promise<{ aluno: AlunoFicha; matricula: MatriculaAtiva | null }> {
   const { data: matriculas } = await admin
     .from("ead_matriculas")
-    .select("id, course_id, curso_nome_snapshot, matricula, status, data_matricula")
+    .select("id, course_id, curso_nome_snapshot, matricula, status, data_matricula, course_edition_id, professor_id")
     .eq("aluno_id", aluno.id)
     .order("data_matricula", { ascending: false });
 
