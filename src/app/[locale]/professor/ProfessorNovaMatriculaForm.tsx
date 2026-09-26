@@ -244,14 +244,22 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   };
 
   // Fecha e limpa sozinho assim que a página recebe o `novoAlunoId` da
-  // matrícula recém-criada (ver comentário no tipo Props acima).
-  useEffect(() => {
+  // matrícula recém-criada (ver comentário no tipo Props acima). Ajuste de
+  // estado a partir de mudança de prop feito durante a renderização (não
+  // dentro de um efeito) — padrão "Adjusting state when a prop changes" da
+  // documentação do React. Usa useState (não useRef) pra guardar o valor
+  // anterior, porque o React Compiler deste projeto proíbe leitura/escrita
+  // de ref durante o render (react-hooks/refs) — só useState é permitido
+  // aqui. Evita tanto o cascading render do setState-dentro-de-effect
+  // quanto o acesso a ref durante render.
+  const [justMatriculadoIdAnterior, setJustMatriculadoIdAnterior] = useState(justMatriculadoId);
+  if (justMatriculadoIdAnterior !== justMatriculadoId) {
+    setJustMatriculadoIdAnterior(justMatriculadoId);
     if (justMatriculadoId) {
       setAberto(false);
       resetarFormulario();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [justMatriculadoId]);
+  }
 
   useEffect(() => {
     async function fetchDropdowns() {
