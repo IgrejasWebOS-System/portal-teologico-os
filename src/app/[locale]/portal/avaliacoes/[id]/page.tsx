@@ -197,17 +197,25 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
                 const opcoes = q.opcoes as string[];
 
                 if (avaliacao.tipo === "TESTE_LICAO") {
+                  // 26/09/2026, pedido do Joaquim: botão de resposta na mesma
+                  // linha da pergunta, sem o texto "Certo"/"Errado" -- só a
+                  // letra. Correção do mesmo dia: só o texto da PERGUNTA
+                  // deveria crescer (text-sm -> text-base); o botão tinha
+                  // sido aumentado por engano e ficou desproporcional --
+                  // voltou menor que o tamanho original (text-sm -> text-xs,
+                  // w-14/h-11 -> w-12/h-9). Vale pra todos os testes
+                  // (TESTE_LICAO usa este mesmo bloco em todos eles).
                   return (
-                    <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4">
-                      <p className="text-sm font-semibold text-iw-navy mb-3">{q.ordem}. {q.enunciado}</p>
-                      <div className="flex gap-3">
-                        <label className="flex-1 flex items-center justify-center gap-2 border-2 border-iw-success/40 bg-iw-success-bg hover:bg-iw-success/15 has-[:checked]:bg-iw-success has-[:checked]:border-iw-success has-[:checked]:text-white text-iw-success font-black text-sm rounded-xl py-2.5 cursor-pointer transition-colors">
+                    <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4 flex items-center justify-between gap-4">
+                      <p className="text-base font-semibold text-iw-navy flex-1">{q.ordem}. {q.enunciado}</p>
+                      <div className="flex gap-2 shrink-0">
+                        <label className="w-12 h-9 flex items-center justify-center border-2 border-iw-success/40 bg-iw-success-bg hover:bg-iw-success/15 has-[:checked]:bg-iw-success has-[:checked]:border-iw-success has-[:checked]:text-white text-iw-success font-black text-xs rounded-xl cursor-pointer transition-colors">
                           <input type="radio" name={`questao_${q.id}`} value={0} required className="sr-only" />
-                          C — Certo
+                          C
                         </label>
-                        <label className="flex-1 flex items-center justify-center gap-2 border-2 border-iw-error/40 bg-iw-error-bg hover:bg-iw-error/15 has-[:checked]:bg-iw-error has-[:checked]:border-iw-error has-[:checked]:text-white text-iw-error font-black text-sm rounded-xl py-2.5 cursor-pointer transition-colors">
+                        <label className="w-12 h-9 flex items-center justify-center border-2 border-iw-error/40 bg-iw-error-bg hover:bg-iw-error/15 has-[:checked]:bg-iw-error has-[:checked]:border-iw-error has-[:checked]:text-white text-iw-error font-black text-xs rounded-xl cursor-pointer transition-colors">
                           <input type="radio" name={`questao_${q.id}`} value={1} required className="sr-only" />
-                          E — Errado
+                          E
                         </label>
                       </div>
                     </div>

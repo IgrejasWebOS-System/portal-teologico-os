@@ -270,6 +270,7 @@ export default async function AreaDoProfessorPage({
                 turmasDoProfessor={turmasFiltroOptions}
                 profissoes={profissoesRaw ?? []}
                 justMatriculadoId={novoAlunoId}
+                errorMsg={error}
               />
             ) : null
           }

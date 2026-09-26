@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { UserPlus, User, MapPin, GraduationCap, Loader2, Send, X, Camera } from "lucide-react";
+import { UserPlus, User, MapPin, GraduationCap, Loader2, Send, X, Camera, AlertTriangle } from "lucide-react";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import { BuscaOuCriarInput, SeletorBuscaDropdown } from "@/components/forms/BuscaOuCriarInput";
 import { validarCPF } from "@/utils/cpf";
@@ -169,11 +169,25 @@ interface Props {
   // limpar o modal (ver useEffect abaixo), nunca pra decidir se a
   // matrícula deu certo de outra forma.
   justMatriculadoId?: string;
+  // 26/09/2026, achado em teste (Joaquim: "acabei de salvar matricular um
+  // novo aluno, não fechou o formulário e voltou com dados") -- o modal
+  // já ficava aberto de propósito com os dados intactos quando a matrícula
+  // falha (ver comentário do `formKey` acima), mas o aviso de erro que a
+  // page.tsx mostra via `?error=` fica atrás do fundo escuro do modal,
+  // invisível. Passa o erro pra dentro do modal e mostra ele aqui.
+  errorMsg?: string;
 }
 
-export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, profissoes, justMatriculadoId }: Props) {
+export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, profissoes, justMatriculadoId, errorMsg }: Props) {
   const [pending, startTransition] = useTransition();
-  const [aberto, setAberto] = useState(false);
+  // 26/09/2026, achado em teste (Joaquim: depois do erro a página tinha
+  // sido recarregada de verdade -- ex.: F5 -- e o modal nascia fechado de
+  // novo, mostrando só a tarja vermelha da page.tsx sem contexto nenhum de
+  // qual ficha ela se referia). Se a página já chega com um erro (mount
+  // inicial), o modal já nasce aberto -- o ajuste "reabre sozinho" mais
+  // abaixo só cobre a troca de erro numa navegação client-side já em
+  // andamento, não o carregamento inicial.
+  const [aberto, setAberto] = useState(!!errorMsg);
   // 25/09/2026, achado em teste (Joaquim, "ainda não fechou o formulário,
   // voltou com sujeira de informações"): o Next.js App Router só troca os
   // searchParams ao redirecionar pro sucesso — como a rota continua sendo
@@ -204,6 +218,16 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
   const [sedeUnitId, setSedeUnitId] = useState<string | null>(null);
+  // 26/09/2026, pedido do Joaquim (achado em teste): "1º vencimento"
+  // obrigava digitar a data duas vezes quando é igual à "Data matrícula"
+  // (o caso mais comum). Agora "1º vencimento" acompanha "Data matrícula"
+  // sozinho, só "solta" desse acompanhamento quando o próprio "1º
+  // vencimento" é editado manualmente (pra digitar uma data diferente,
+  // se for o caso).
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const [dataMatricula, setDataMatricula] = useState("");
+  const [dataVencimento, setDataVencimento] = useState(hojeIso);
+  const [vencimentoTocado, setVencimentoTocado] = useState(false);
   // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): SEDE
   // agora é uma OPÇÃO dentro da própria caixa "Setor" (igual
   // ProfessorForm.tsx), não mais um estado implícito de "Setor vazio"
@@ -253,6 +277,7 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
     setFotoUrl("");
     setNaturalidadeEstado("");
     setSectorId(""); setChurchId("");
+    setDataMatricula(""); setDataVencimento(hojeIso); setVencimentoTocado(false);
     setFormKey((k) => k + 1);
   }
 
@@ -279,6 +304,17 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
       setAberto(false);
       resetarFormulario();
     }
+  }
+
+  // 26/09/2026, mesmo padrão acima: se chegar um erro novo (a matrícula foi
+  // rejeitada -- CPF inválido, campo obrigatório em branco etc.), garante
+  // que o modal esteja aberto pra mostrar o aviso onde o professor está
+  // olhando, mesmo se por algum motivo ele tivesse fechado antes do
+  // redirect.
+  const [errorMsgAnterior, setErrorMsgAnterior] = useState(errorMsg);
+  if (errorMsgAnterior !== errorMsg) {
+    setErrorMsgAnterior(errorMsg);
+    if (errorMsg) setAberto(true);
   }
 
   useEffect(() => {
@@ -437,11 +473,20 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
             </div>
 
             <form key={formKey} action={handleSubmit} className="p-5 pt-4 space-y-5 max-h-[80vh] overflow-y-auto">
+              {errorMsg && (
+                <div className="flex items-center gap-2 text-iw-error text-sm bg-iw-error-bg border border-iw-error/20 px-4 py-3 rounded-xl">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               {/* Foto do aluno + Turma — mesmo layout de
                   NovaMatriculaForm.tsx/EditarMatriculaForm.tsx: foto à
                   esquerda, primeiro cartão à direita. */}
               <div className="grid grid-cols-12 gap-4 items-stretch">
-                <div className="col-span-12 md:col-span-3 flex flex-col items-start justify-start gap-2">
+                {/* 26/09/2026, achado em teste (Joaquim): círculo estava
+                    maior que o padrão (col-span-3) -- mesma medida de
+                    NovaMatriculaForm.tsx (secretaria, col-span-2). */}
+                <div className="col-span-12 md:col-span-2 flex flex-col items-start justify-start gap-2">
                   <div className="w-full aspect-square rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
                     {fotoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -458,7 +503,7 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                   <input type="hidden" name="foto_url" value={fotoUrl} />
                 </div>
 
-                <div className={`col-span-12 md:col-span-9 ${cardCls}`}>
+                <div className={`col-span-12 md:col-span-10 ${cardCls}`}>
                   <SectionHeader icon={GraduationCap} label="Turma" />
                   <div className="grid grid-cols-12 gap-3">
                     <Field label="Curso e turma" required span="col-span-12">
@@ -517,22 +562,47 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                         ))}
                       </select>
                     </Field>
-                    <Field label="Data matrícula" span="col-span-12 md:col-span-6">
+                    <Field label="Data matrícula" span="col-span-12 md:col-span-3">
                       <input
                         name="data_matricula_informada"
                         type="date"
-                        max={new Date().toISOString().slice(0, 10)}
+                        value={dataMatricula}
+                        max={hojeIso}
+                        onChange={(e) => {
+                          const valor = e.target.value;
+                          setDataMatricula(valor);
+                          // Acompanha "1º vencimento" sozinho enquanto o
+                          // usuário não tiver editado ele na mão — cobre o
+                          // caso mais comum (as duas datas iguais) sem
+                          // obrigar digitar a mesma data duas vezes.
+                          if (!vencimentoTocado) setDataVencimento(valor || hojeIso);
+                        }}
+                        className={bareCls}
+                      />
+                    </Field>
+                    {/* 26/09/2026, pedido do Joaquim (achado em teste): a ficha
+                        do professor não tinha "lançamento financeiro" nenhum —
+                        matrícula e 1ª parcela da mensalidade sempre nasciam
+                        vencendo no mesmo dia, sem jeito de mudar isso por aqui.
+                        Campo separado, igual ao "1º vencimento" que já existe
+                        na Nova Matrícula da secretaria (NovaMatriculaForm.tsx)
+                        -- decide só a data de vencimento; "Data matrícula"
+                        continua controlando desde quando o aluno já cursa.
+                        Acompanha "Data matrícula" sozinho até ser editado na
+                        mão (ver onChange abaixo). */}
+                    <Field label="1º vencimento" span="col-span-12 md:col-span-3">
+                      <input
+                        name="data_vencimento"
+                        type="date"
+                        value={dataVencimento}
+                        onChange={(e) => { setDataVencimento(e.target.value); setVencimentoTocado(true); }}
                         className={bareCls}
                       />
                     </Field>
                   </div>
-                  <p className="text-[11px] text-iw-muted">
-                    Só aparecem aqui as turmas já vinculadas a você (seção &ldquo;Minhas Turmas&rdquo;, acima). A
-                    matrícula (se houver) e as mensalidades do curso são geradas automaticamente, com base no
-                    preço já cadastrado em Financeiro — não precisa informar valor aqui. Data matrícula em
-                    branco assume a data de hoje (aluno novo); preenchida com uma data anterior define o 1º
-                    vencimento e as parcelas seguintes (aluno que já cursa há mais tempo).
-                  </p>
+                  {/* 26/09/2026, pedido do Joaquim: texto explicativo removido
+                      -- o treinamento dos professores vai cobrir isso, não
+                      precisa ficar escrito na própria ficha. */}
                 </div>
               </div>
 
@@ -733,18 +803,22 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* 26/09/2026, achado em teste (Joaquim): botão "Matricular"
+                  esticando com flex-1 fugia do padrão estético das outras
+                  fichas (ex.: ProfessorForm.tsx) -- botões de largura fixa,
+                  alinhados à direita, não ocupando a largura toda. */}
+              <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setAberto(false)}
-                  className="px-5 py-3 rounded-xl text-sm font-bold text-iw-navy border border-iw-border hover:bg-iw-bg transition-colors"
+                  className="px-5 py-3 rounded-xl text-sm font-bold text-iw-navy border border-black hover:bg-iw-bg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={pending || !!cpfError}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm py-3 rounded-xl transition-opacity border border-black"
+                  className="inline-flex items-center justify-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity border border-black"
                 >
                   {pending ? (
                     <>
