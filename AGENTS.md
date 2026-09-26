@@ -232,6 +232,21 @@ outros países. Não é uma biblioteca de validação por país (tipo
 `libphonenumber-js`, que não está instalada) — é só formatação visual;
 trocar por uma lib de verdade é uma melhoria futura, não urgente.
 
+## Material de treinamento — pasta `material/` (26/09/2026)
+
+Guias passo a passo com capturas de tela reais dos fluxos do sistema,
+organizados por público, em `material/<publico>/` (ex.: `material/professores/`,
+`material/alunos/`, `material/secretaria/`). Cada subpasta tem um `README.md`
+descrevendo o fluxo esperado e recebe capturas numeradas (`01-...png`,
+`02-...png`, ...) na ordem real da tela. Ver `material/README.md` pra
+detalhe completo da convenção.
+
+Produzido sempre testando em **staging** (nunca em produção — evita ter que
+criar e depois apagar dado de teste em prod). Uso imediato: montar PDFs/
+mensagens pra mandar nos grupos de WhatsApp de professores/alunos/secretaria.
+Uso futuro combinado com o Joaquim: alimentar uma Central de Ajuda dentro do
+próprio sistema em produção.
+
 ## Outras regras fixas de comunicação
 
 - Nunca fabricar dado ou resultado — sempre verificar o estado real

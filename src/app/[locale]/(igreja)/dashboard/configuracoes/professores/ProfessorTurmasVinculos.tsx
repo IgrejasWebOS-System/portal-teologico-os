@@ -111,19 +111,41 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const setores = useMemo(
-    () => units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name)),
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral, achado
+  // em teste: com um Setor específico escolhido, a Sede ainda aparecia
+  // misturada na lista de Igreja). Segue o mesmo padrão de
+  // ProfessorForm.tsx: SEDE vira uma opção dentro da própria caixa
+  // "Setor" (ela não pertence a nenhum Setor, então nunca deve aparecer
+  // misturada na caixa de Igreja de um Setor real).
+  const setoresComuns = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && !u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [units]
   );
-  // Sede não é Setor nem Regional — entra sempre na lista, mesmo sem Setor.
+  const regionais = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [units]
+  );
+  const sedes = useMemo(() => units.filter((u) => u.type === "SEDE"), [units]);
+  const sedeSelecionada = sedes.find((s) => s.id === setorId);
   const igrejas = useMemo(
     () =>
-      [
-        ...(setorId ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorId) : []),
-        ...units.filter((u) => u.type === "SEDE"),
-      ].sort((a, b) => a.name.localeCompare(b.name)),
+      setorId
+        ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorId).sort((a, b) => a.name.localeCompare(b.name))
+        : [],
     [units, setorId]
   );
+
+  const handleSetorChange = (value: string) => {
+    const sedeEscolhida = sedes.find((s) => s.id === value);
+    setSetorId(value);
+    setIgrejaId(sedeEscolhida ? sedeEscolhida.id : "");
+  };
 
   // Troca de igreja reseta a turma escolhida e a lista antiga -- ajuste de
   // estado durante a renderização (não em useEffect), padrão recomendado
@@ -211,13 +233,23 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
           </label>
           <select
             value={setorId}
-            onChange={(e) => { setSetorId(e.target.value); setIgrejaId(""); }}
+            onChange={(e) => handleSetorChange(e.target.value)}
             className={selectCls}
           >
             <option value="">Setor / Regional...</option>
-            {setores.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+            {sedes.map((s) => (
+              <option key={s.id} value={s.id}>SEDE — {s.name}</option>
             ))}
+            <optgroup label="Setor">
+              {setoresComuns.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Regional">
+              {regionais.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </optgroup>
           </select>
         </div>
 
@@ -228,10 +260,12 @@ export default function ProfessorTurmasVinculos({ professorId, units, cursos, vi
           <select
             value={igrejaId}
             onChange={(e) => setIgrejaId(e.target.value)}
-            disabled={igrejas.length === 0}
+            disabled={!setorId || !!sedeSelecionada}
             className={selectCls}
           >
-            <option value="">{igrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}</option>
+            <option value="">
+              {sedeSelecionada ? "SEDE selecionada acima" : setorId ? "Igreja..." : "Escolha o setor primeiro"}
+            </option>
             {igrejas.map((i) => (
               <option key={i.id} value={i.id}>{i.name}</option>
             ))}

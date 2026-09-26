@@ -203,28 +203,48 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   const [churches, setChurches] = useState<ChurchItem[]>([]);
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
-  // 25/09/2026, achado em teste (Joaquim, imagem 1): faltava a Sede na
-  // lista — mesmo padrão de nova/NovaMatriculaForm.tsx: a Sede não é Setor
-  // nem Regional (fica acima na hierarquia, church.sector_id dela é nulo),
-  // então ela é injetada à mão na lista de Igreja, não na de Setor.
   const [sedeUnitId, setSedeUnitId] = useState<string | null>(null);
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): SEDE
+  // agora é uma OPÇÃO dentro da própria caixa "Setor" (igual
+  // ProfessorForm.tsx), não mais um estado implícito de "Setor vazio"
+  // (3ª rodada, substitui a correção de ontem).
+  const [naSede, setNaSede] = useState(false);
 
-  // Reordena SETOR antes de REGIONAL — mesma correção aplicada nos
-  // formulários admin (`sectors` vem alfabético do banco, R < S).
-  const setoresOrdenados = useMemo(() => {
-    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
-    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
-    return [...naoRegional, ...regional];
-  }, [setores]);
+  // Separa Setor/Regional em dois grupos (optgroup) — mesma correção já
+  // aplicada nos formulários admin (`sectors` vem alfabético do banco, o
+  // que juntaria REGIONAL antes de SETOR se não fosse separado assim).
+  const setoresComuns = useMemo(
+    () => setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL")),
+    [setores]
+  );
+  const setoresRegionais = useMemo(
+    () => setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL")),
+    [setores]
+  );
   const sedeChurch = useMemo(
     () => (sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId) ?? null : null),
     [sedeUnitId, churches]
   );
+  // Sem Setor/SEDE escolhido → lista vazia (Igreja fica desabilitada);
+  // com SEDE escolhida → só ela; com um Setor escolhido → só as igrejas
+  // daquele Setor, sem a Sede misturada (church.sector_id dela é nulo).
   const igrejasDoSetor = useMemo(() => {
-    const base = sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches;
-    if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
-    return [sedeChurch, ...base];
-  }, [sectorId, churches, sedeChurch]);
+    if (naSede) return sedeChurch ? [sedeChurch] : [];
+    if (!sectorId) return [];
+    return churches.filter((c) => c.sector_id === sectorId);
+  }, [naSede, sectorId, churches, sedeChurch]);
+
+  const handleSectorChange = (value: string) => {
+    if (sedeChurch && value === sedeChurch.id) {
+      setNaSede(true);
+      setSectorId("");
+      setChurchId(sedeChurch.id);
+    } else {
+      setNaSede(false);
+      setSectorId(value);
+      setChurchId("");
+    }
+  };
 
   function resetarFormulario() {
     setCpf(""); setCpfError("");
@@ -371,6 +391,12 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
 
   function handleSubmit(formData: FormData) {
     if (cpfError) return;
+    // 26/09/2026: quando o Setor escolhido é a SEDE, o valor exibido na
+    // caixa (pro <select> mostrar "SEDE — nome" selecionado) é o id da
+    // igreja Sede, não um sector_id de verdade (Sede não pertence a
+    // nenhum Setor) — corrige aqui antes de enviar, senão o servidor
+    // salvaria um sector_id inválido (id de igreja, não de setor).
+    formData.set("sector_id", naSede ? "" : sectorId);
     startTransition(() => {
       action(formData);
     });
@@ -456,15 +482,22 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                     <Field label="Setor" required span="col-span-6 md:col-span-3">
                       <select
                         name="sector_id"
-                        required
-                        value={sectorId}
-                        onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
+                        value={naSede ? (sedeChurch?.id ?? "") : sectorId}
+                        onChange={(e) => handleSectorChange(e.target.value)}
                         className={bareSelectCls}
                       >
                         <option value="">Selecione...</option>
-                        {setoresOrdenados.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
+                        {sedeChurch && <option value={sedeChurch.id}>SEDE — {sedeChurch.name}</option>}
+                        <optgroup label="Setor">
+                          {setoresComuns.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Regional">
+                          {setoresRegionais.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </Field>
                     <Field label="Igreja" required span="col-span-6 md:col-span-3">
@@ -473,9 +506,12 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                         required
                         value={churchId}
                         onChange={(e) => setChurchId(e.target.value)}
+                        disabled={!sectorId && !naSede}
                         className={bareSelectCls}
                       >
-                        <option value="">Selecione...</option>
+                        <option value="">
+                          {naSede ? "SEDE selecionada acima" : sectorId ? "Selecione..." : "Escolha o setor primeiro"}
+                        </option>
                         {igrejasDoSetor.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}

@@ -339,6 +339,10 @@ export default function NovaMatriculaForm({
   const [courseId, setCourseId] = useState("");
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): SEDE
+  // agora é uma OPÇÃO dentro da própria caixa "Setor" (igual
+  // ProfessorForm.tsx), não mais um estado implícito de "Setor vazio".
+  const [nucleoNaSede, setNucleoNaSede] = useState(false);
   const [turmas, setTurmas] = useState<Turma[]>(turmasIniciais);
   const [ano, setAno] = useState(String(ANOS_DISPONIVEIS[0]));
   const [turmaId, setTurmaId] = useState("");
@@ -353,6 +357,7 @@ export default function NovaMatriculaForm({
   const [membroDestaIgreja, setMembroDestaIgreja] = useState<"SIM" | "NAO">("SIM");
   const [origemSectorId, setOrigemSectorId] = useState("");
   const [origemChurchId, setOrigemChurchId] = useState("");
+  const [origemNaSede, setOrigemNaSede] = useState(false);
 
   const formRef = useRef<HTMLFormElement | null>(null);
 
@@ -430,36 +435,63 @@ export default function NovaMatriculaForm({
     return matriculaCentavos + parcelaCentavos * numParcelas;
   }, [valorMatricula, valorParcela, numeroParcelasPagto]);
 
-  // A Sede não é Setor nem Regional — fica acima desse nível na hierarquia
-  // (churches.sector_id dela é nulo) — por isso ela precisa ser adicionada
-  // à mão em toda lista de igrejas, senão some assim que qualquer Setor é
-  // escolhido (14/09/2026).
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral pra
+  // igualar o padrão de ProfessorForm.tsx/SeletorHierarquico.tsx/
+  // CongregacoesListClient.tsx em todo o sistema): "Setor" e "Regional"
+  // viram dois grupos (optgroup) dentro da MESMA caixa, com SEDE como
+  // opção separada acima dos dois grupos — nada mais de "Setor vazio =
+  // Sede" implícito (2ª rodada de correção, 26/09/2026, agora substituída
+  // por esta 3ª e definitiva).
+  const setoresComuns = useMemo(
+    () => setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL")),
+    [setores]
+  );
+  const setoresRegionais = useMemo(
+    () => setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL")),
+    [setores]
+  );
   const sedeChurch = useMemo(
     () => (sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId) ?? null : null),
     [sedeUnitId, churches]
   );
-  // 25/09/2026, achado em teste (Joaquim, imagem 9): `sectors` vem
-  // ordenado alfabeticamente do banco, o que põe "REGIONAL 0xx" antes de
-  // "SETOR 0xx" (R < S) — mesma inconsistência já corrigida em
-  // ProfessorForm.tsx/SeletorHierarquico.tsx/NovaTurmaForm.tsx/
-  // TurmasDoProfessor.tsx. Aqui não tem type="SEDE/SETOR" (a Sede é
-  // resolvida à parte via sedeUnitId/sedeChurch acima) — só reordena pra
-  // SETOR aparecer antes de REGIONAL.
-  const setoresOrdenados = useMemo(() => {
-    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
-    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
-    return [...naoRegional, ...regional];
-  }, [setores]);
+  // Sem Setor/SEDE escolhido → lista vazia (a caixa de Igreja fica
+  // desabilitada nesse estado); com SEDE escolhida → só ela; com um Setor
+  // escolhido → só as igrejas daquele Setor (a Sede nunca entra
+  // misturada — church.sector_id dela é nulo, ela não pertence a Setor
+  // nenhum).
   const igrejasDoSetor = useMemo(() => {
-    const base = sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches;
-    if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
-    return [sedeChurch, ...base];
-  }, [sectorId, churches, sedeChurch]);
+    if (nucleoNaSede) return sedeChurch ? [sedeChurch] : [];
+    if (!sectorId) return [];
+    return churches.filter((c) => c.sector_id === sectorId);
+  }, [nucleoNaSede, sectorId, churches, sedeChurch]);
   const igrejasDoSetorOrigem = useMemo(() => {
-    const base = origemSectorId ? churches.filter((c) => c.sector_id === origemSectorId) : churches;
-    if (!sedeChurch || base.some((c) => c.id === sedeChurch.id)) return base;
-    return [sedeChurch, ...base];
-  }, [origemSectorId, churches, sedeChurch]);
+    if (origemNaSede) return sedeChurch ? [sedeChurch] : [];
+    if (!origemSectorId) return [];
+    return churches.filter((c) => c.sector_id === origemSectorId);
+  }, [origemNaSede, origemSectorId, churches, sedeChurch]);
+
+  const handleSectorChange = (value: string) => {
+    if (sedeChurch && value === sedeChurch.id) {
+      setNucleoNaSede(true);
+      setSectorId("");
+      setChurchId(sedeChurch.id);
+    } else {
+      setNucleoNaSede(false);
+      setSectorId(value);
+      setChurchId("");
+    }
+  };
+  const handleOrigemSectorChange = (value: string) => {
+    if (sedeChurch && value === sedeChurch.id) {
+      setOrigemNaSede(true);
+      setOrigemSectorId("");
+      setOrigemChurchId(sedeChurch.id);
+    } else {
+      setOrigemNaSede(false);
+      setOrigemSectorId(value);
+      setOrigemChurchId("");
+    }
+  };
 
   // A igreja (núcleo) carrega a unidade dela (churches.unit_id) — é isso que
   // filtra a Turma disponível. Turma sem unit_id (criada manualmente, sem
@@ -677,20 +709,35 @@ export default function NovaMatriculaForm({
                   que trata a origem real do aluno separadamente). */}
               <Field compact label="Setor (núcleo)" span="col-span-6 md:col-span-2">
                 <select
-                  value={sectorId}
-                  onChange={(e) => { setSectorId(e.target.value); setChurchId(""); }}
+                  value={nucleoNaSede ? (sedeChurch?.id ?? "") : sectorId}
+                  onChange={(e) => handleSectorChange(e.target.value)}
                   className={bareSelectCls}
                 >
                   <option value="">Selecione...</option>
-                  {setoresOrdenados.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
+                  {sedeChurch && <option value={sedeChurch.id}>SEDE — {sedeChurch.name}</option>}
+                  <optgroup label="Setor">
+                    {setoresComuns.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Regional">
+                    {setoresRegionais.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </Field>
 
               <Field compact label="Igreja (núcleo)" span="col-span-6 md:col-span-2">
-                <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className={bareSelectCls}>
-                  <option value="">Selecione...</option>
+                <select
+                  value={churchId}
+                  onChange={(e) => setChurchId(e.target.value)}
+                  disabled={!sectorId && !nucleoNaSede}
+                  className={bareSelectCls}
+                >
+                  <option value="">
+                    {nucleoNaSede ? "SEDE selecionada acima" : sectorId ? "Selecione..." : "Escolha o setor primeiro"}
+                  </option>
                   {igrejasDoSetor.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -767,23 +814,34 @@ export default function NovaMatriculaForm({
               <div className="bg-iw-bg rounded-xl p-3 grid grid-cols-12 gap-2.5">
                 <Field compact label="Setor (origem do aluno)" span="col-span-6 md:col-span-3">
                   <select
-                    value={origemSectorId}
-                    onChange={(e) => { setOrigemSectorId(e.target.value); setOrigemChurchId(""); }}
+                    value={origemNaSede ? (sedeChurch?.id ?? "") : origemSectorId}
+                    onChange={(e) => handleOrigemSectorChange(e.target.value)}
                     className={bareSelectCls}
                   >
                     <option value="">Selecione...</option>
-                    {setoresOrdenados.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
+                    {sedeChurch && <option value={sedeChurch.id}>SEDE — {sedeChurch.name}</option>}
+                    <optgroup label="Setor">
+                      {setoresComuns.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Regional">
+                      {setoresRegionais.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </Field>
                 <Field compact label="Igreja (origem do aluno)" span="col-span-6 md:col-span-3">
                   <select
                     value={origemChurchId}
                     onChange={(e) => setOrigemChurchId(e.target.value)}
+                    disabled={!origemSectorId && !origemNaSede}
                     className={bareSelectCls}
                   >
-                    <option value="">Selecione...</option>
+                    <option value="">
+                      {origemNaSede ? "SEDE selecionada acima" : origemSectorId ? "Selecione..." : "Escolha o setor primeiro"}
+                    </option>
                     {igrejasDoSetorOrigem.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
