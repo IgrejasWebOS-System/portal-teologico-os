@@ -300,9 +300,13 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
               className={selectCls}
             >
               <option value="">Setor / Regional...</option>
-              {sedes.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-              {setores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-              {regionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              {sedes.map((s) => (<option key={s.id} value={s.id}>SEDE — {s.name}</option>))}
+              <optgroup label="Setor">
+                {setores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              </optgroup>
+              <optgroup label="Regional">
+                {regionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              </optgroup>
             </select>
 
             <select

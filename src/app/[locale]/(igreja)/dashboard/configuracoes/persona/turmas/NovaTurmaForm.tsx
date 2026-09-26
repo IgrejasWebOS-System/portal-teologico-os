@@ -30,7 +30,15 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
   const [setorSel, setSetorSel] = useState(setorId);
   const [igrejaSel, setIgrejaSel] = useState(igrejaId);
 
-  const setores = units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name));
+  // 26/09/2026, padronização (varredura geral): separa Setor/Regional em
+  // dois grupos (optgroup) — mesmo padrão de ProfessorForm.tsx/
+  // SeletorHierarquico.tsx/CongregacoesListClient.tsx.
+  const setoresComuns = units
+    .filter((u) => u.type === "SETOR" && !u.name.toUpperCase().startsWith("REGIONAL"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const regionais = units
+    .filter((u) => u.type === "SETOR" && u.name.toUpperCase().startsWith("REGIONAL"))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const sedes = units.filter((u) => u.type === "SEDE");
   // Sede não é Setor nem Regional — mas precisa aparecer como opção direta
   // no mesmo seletor (senão fica escondida, só implícita na lista de
@@ -73,11 +81,18 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
         >
           <option value="">Setor / Regional...</option>
           {sedes.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+            <option key={s.id} value={s.id}>SEDE — {s.name}</option>
           ))}
-          {setores.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
+          <optgroup label="Setor">
+            {setoresComuns.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Regional">
+            {regionais.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </optgroup>
         </select>
 
         <select

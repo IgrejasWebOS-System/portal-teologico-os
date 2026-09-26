@@ -92,21 +92,42 @@ export default function CompletarCadastroProfessorFluxo({
 
   const carregandoTurmas = turmaIgrejaId !== "" && turmaIgrejaId !== turmaIgrejaCarregada;
 
-  const turmaSetores = useMemo(
-    () => units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): SEDE
+  // agora é uma OPÇÃO dentro da própria caixa "Setor" (igual
+  // ProfessorForm.tsx), não mais um estado implícito de "Setor vazio".
+  const turmaSetoresComuns = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && !u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [units]
   );
-  // SEDE não pertence a nenhum Setor -- é alternativa a ele, não igreja
-  // "dentro" dele: com Setor escolhido, só igrejas daquele Setor; sem
-  // Setor, só a(s) Sede(s).
+  const turmaRegionais = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "SETOR" && u.name.toUpperCase().startsWith("REGIONAL"))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [units]
+  );
+  const turmaSedes = useMemo(() => units.filter((u) => u.type === "SEDE"), [units]);
+  const turmaSedeSelecionada = turmaSedes.find((s) => s.id === turmaSetorId);
+  // SEDE não pertence a nenhum Setor -- por isso é tratada à parte: com
+  // Setor escolhido, só igrejas daquele Setor; com SEDE escolhida, só ela.
   const turmaIgrejas = useMemo(
     () =>
-      (turmaSetorId
-        ? units.filter((u) => u.type === "IGREJA" && u.parent_id === turmaSetorId)
-        : units.filter((u) => u.type === "SEDE")
-      ).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [units, turmaSetorId]
+      turmaSetorId && !turmaSedeSelecionada
+        ? units.filter((u) => u.type === "IGREJA" && u.parent_id === turmaSetorId).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+        : [],
+    [units, turmaSetorId, turmaSedeSelecionada]
   );
+
+  const handleTurmaSetorChange = (value: string) => {
+    const sedeEscolhida = turmaSedes.find((s) => s.id === value);
+    setTurmaSetorId(value);
+    setTurmaIgrejaId(sedeEscolhida ? sedeEscolhida.id : "");
+    setTurmaCourseId("");
+    setTurmaId("");
+  };
 
   useEffect(() => {
     if (!turmaIgrejaId) return;
@@ -236,11 +257,17 @@ export default function CompletarCadastroProfessorFluxo({
           <label className={labelCls}><span className="inline-flex items-center gap-1"><Map className="w-3 h-3" /> Setor</span></label>
           <select
             value={turmaSetorId}
-            onChange={(e) => { setTurmaSetorId(e.target.value); setTurmaIgrejaId(""); setTurmaCourseId(""); setTurmaId(""); }}
+            onChange={(e) => handleTurmaSetorChange(e.target.value)}
             className={selectCls}
           >
             <option value="">Setor / Regional...</option>
-            {turmaSetores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+            {turmaSedes.map((s) => (<option key={s.id} value={s.id}>SEDE — {s.name}</option>))}
+            <optgroup label="Setor">
+              {turmaSetoresComuns.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+            </optgroup>
+            <optgroup label="Regional">
+              {turmaRegionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+            </optgroup>
           </select>
         </div>
         <div>
@@ -248,10 +275,12 @@ export default function CompletarCadastroProfessorFluxo({
           <select
             value={turmaIgrejaId}
             onChange={(e) => { setTurmaIgrejaId(e.target.value); setTurmaCourseId(""); setTurmaId(""); }}
-            disabled={turmaIgrejas.length === 0}
+            disabled={!turmaSetorId || !!turmaSedeSelecionada}
             className={selectCls}
           >
-            <option value="">{turmaIgrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}</option>
+            <option value="">
+              {turmaSedeSelecionada ? "SEDE selecionada acima" : turmaSetorId ? "Igreja..." : "Escolha o setor primeiro"}
+            </option>
             {turmaIgrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
           </select>
         </div>

@@ -30,13 +30,27 @@ const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-w
 export default function TurmasFiltros({ anos, units, anoAtual, setorAtual, igrejaAtual }: Props) {
   const router = useRouter();
 
-  const setores = units.filter((u) => u.type === "SETOR").sort((a, b) => a.name.localeCompare(b.name));
-  // Sede não é Setor nem Regional — fica acima desse nível na hierarquia —
-  // por isso entra sempre na lista de igrejas, mesmo sem Setor escolhido.
-  const igrejas = [
-    ...(setorAtual ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorAtual) : []),
-    ...units.filter((u) => u.type === "SEDE"),
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral, achado
+  // em teste: com um Setor específico escolhido, a Sede ainda aparecia
+  // misturada na lista de Igreja — igual ao bug já corrigido nas
+  // matrículas). Agora segue o mesmo padrão de ProfessorForm.tsx: SEDE
+  // vira uma opção dentro da própria caixa "Setor / Regional" (ela não
+  // pertence a nenhum Setor, então nunca deve aparecer misturada na
+  // caixa de Igreja de um Setor real).
+  const setoresComuns = units
+    .filter((u) => u.type === "SETOR" && !u.name.toUpperCase().startsWith("REGIONAL"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const regionais = units
+    .filter((u) => u.type === "SETOR" && u.name.toUpperCase().startsWith("REGIONAL"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const sedes = units.filter((u) => u.type === "SEDE");
+  const sedeSelecionada = sedes.find((s) => s.id === igrejaAtual);
+
+  const igrejas = setorAtual
+    ? units
+        .filter((u) => u.type === "IGREJA" && u.parent_id === setorAtual)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   function navegar(params: { ano?: string; setor_id?: string; igreja_id?: string }) {
     const qs = new URLSearchParams();
@@ -44,6 +58,17 @@ export default function TurmasFiltros({ anos, units, anoAtual, setorAtual, igrej
     if (params.setor_id) qs.set("setor_id", params.setor_id);
     if (params.igreja_id) qs.set("igreja_id", params.igreja_id);
     router.push(`/dashboard/configuracoes/persona/turmas${qs.toString() ? "?" + qs.toString() : ""}`);
+  }
+
+  function handleSetorChange(value: string) {
+    const sedeEscolhida = sedes.find((s) => s.id === value);
+    if (sedeEscolhida) {
+      // SEDE resolve direto pra Igreja (é ela mesma o núcleo) — não
+      // existe "setor" nesse caso.
+      navegar({ ano: anoAtual, igreja_id: sedeEscolhida.id });
+    } else {
+      navegar({ ano: anoAtual, setor_id: value });
+    }
   }
 
   return (
@@ -69,15 +94,25 @@ export default function TurmasFiltros({ anos, units, anoAtual, setorAtual, igrej
           <span className="inline-flex items-center gap-1"><Map className="w-3 h-3" /> Setor / Regional</span>
         </label>
         <select
-          value={setorAtual}
-          onChange={(e) => navegar({ ano: anoAtual, setor_id: e.target.value })}
+          value={sedeSelecionada ? sedeSelecionada.id : setorAtual}
+          onChange={(e) => handleSetorChange(e.target.value)}
           disabled={!anoAtual}
           className={selectCls}
         >
           <option value="">{anoAtual ? "Todos os setores" : "Escolha o ano primeiro"}</option>
-          {setores.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+          {sedes.map((s) => (
+            <option key={s.id} value={s.id}>SEDE — {s.name}</option>
           ))}
+          <optgroup label="Setor">
+            {setoresComuns.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Regional">
+            {regionais.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </optgroup>
         </select>
       </div>
 
@@ -88,11 +123,15 @@ export default function TurmasFiltros({ anos, units, anoAtual, setorAtual, igrej
         <select
           value={igrejaAtual}
           onChange={(e) => navegar({ ano: anoAtual, setor_id: setorAtual, igreja_id: e.target.value })}
-          disabled={igrejas.length === 0}
+          disabled={!setorAtual || !!sedeSelecionada}
           className={selectCls}
         >
           <option value="">
-            {setorAtual ? "Todas as igrejas do setor" : igrejas.length > 0 ? "Selecione..." : "Escolha o setor primeiro"}
+            {sedeSelecionada
+              ? "SEDE selecionada acima"
+              : setorAtual
+                ? "Todas as igrejas do setor"
+                : "Escolha o setor primeiro"}
           </option>
           {igrejas.map((i) => (
             <option key={i.id} value={i.id}>{i.name}</option>

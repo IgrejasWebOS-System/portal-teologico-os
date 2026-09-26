@@ -159,11 +159,16 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     // 22/09/2026, pedido do Joaquim: RG (número) não é mais obrigatório em
     // nenhum formulário — o novo documento de identidade unificado não tem
     // esse número. Órgão emissor/UF do RG continuam obrigatórios por ora.
+    // 26/09/2026, padronização (varredura geral): sector_id NÃO é mais
+    // obrigatório aqui — quando o aluno é da SEDE, não existe Setor (a
+    // Sede não pertence a nenhum Setor), então sector_id chega vazio de
+    // propósito; church_id continua obrigatório (é ele que garante que
+    // algum local — igreja ou Sede — foi escolhido).
     !nome_completo || !cpf || !email || !telefone || !course_edition_id ||
     !rg_orgao_emissor || !rg_uf || !data_nascimento || !genero || !estado_civil ||
     !escolaridade || !naturalidade_cidade || !naturalidade_estado || !nome_mae ||
     !cep || !endereco || !endereco_numero || !bairro || !cidade || !estado ||
-    !sector_id || !church_id
+    !church_id
   ) {
     erro("Preencha todos os campos obrigatórios da ficha.");
   }

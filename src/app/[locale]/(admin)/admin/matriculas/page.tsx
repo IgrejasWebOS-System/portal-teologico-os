@@ -89,15 +89,20 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
 
   // Listas do painel de filtro (Setor/Regional + Igreja núcleo -- churches
   // com is_nucleo_ensino=true, mais a SEDE, ver migration 110).
+  // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): agora
+  // busca também sector_id de cada igreja núcleo, pra poder filtrar a
+  // caixa "Igreja núcleo" pelo Setor escolhido (mesmo padrão de cascata
+  // usado nos outros formulários) em vez de mostrar sempre a lista
+  // inteira solta.
   const [{ data: setoresRaw }, { data: igrejasNucleoRaw }, { data: sedeUnit }] = await Promise.all([
     supabase.from("sectors").select("id, name").order("name"),
-    supabase.from("churches").select("id, name").eq("is_nucleo_ensino", true).order("name"),
+    supabase.from("churches").select("id, name, sector_id").eq("is_nucleo_ensino", true).order("name"),
     supabase.from("units").select("id").eq("type", "SEDE").maybeSingle(),
   ]);
 
-  let sedeChurch: { id: string; name: string } | null = null;
+  let sedeChurch: { id: string; name: string; sector_id: string | null } | null = null;
   if (sedeUnit?.id) {
-    const { data } = await supabase.from("churches").select("id, name").eq("unit_id", sedeUnit.id).maybeSingle();
+    const { data } = await supabase.from("churches").select("id, name, sector_id").eq("unit_id", sedeUnit.id).maybeSingle();
     sedeChurch = data ?? null;
   }
   const igrejasNucleo = [...(igrejasNucleoRaw ?? [])];
@@ -192,6 +197,7 @@ export default async function MatriculasPage({ searchParams }: PageProps) {
             <FiltroMatriculas
               setores={setoresRaw ?? []}
               igrejasNucleo={igrejasNucleo}
+              sedeChurchId={sedeChurch?.id ?? null}
               dataInicio={data_inicio ?? ""}
               dataFim={data_fim ?? ""}
               setorId={setorId}
