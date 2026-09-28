@@ -5,6 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import { professorAtualizarPerfilAction } from "../actions";
 import ConfiguracoesPainel from "./ConfiguracoesPainel";
+import TrocarSenhaCard from "./TrocarSenhaCard";
 
 export const metadata = { title: "Configurações — Área do Professor" };
 
@@ -69,6 +70,8 @@ export default async function ConfiguracoesDoProfessorPage({
         sedeUnitId={sede?.id ?? null}
         action={professorAtualizarPerfilAction}
       />
+
+      <TrocarSenhaCard />
     </div>
   );
 }
