@@ -154,13 +154,15 @@ const adminModules: SidebarModule[] = [
 // existe no schema).
 const professorModules: SidebarModule[] = [
   { label: "Dashboard", href: "/professor", icon: LayoutDashboard, description: "Visão geral do seu núcleo" },
-  // 27/09/2026, pedido do Joaquim: item novo, logo abaixo de Dashboard —
-  // leva pra ficha completa de Nova Matrícula (mesma da secretaria, ver
-  // professor/matricula/page.tsx). O botão "Nova Matrícula" que ficava
-  // dentro de Alunos saiu de lá.
+  // 28/09/2026, pedido do Joaquim: "Turmas" subiu pra logo abaixo de
+  // Dashboard (antes vinha depois de Matrícula/Alunos) — agora que o
+  // professor cria a própria turma por aqui, faz sentido vir primeiro.
+  { label: "Turmas", href: "/professor/turmas", icon: GraduationCap, description: "Suas turmas e links" },
+  // 27/09/2026, pedido do Joaquim: leva pra ficha completa de Nova
+  // Matrícula (mesma da secretaria, ver professor/matricula/page.tsx). O
+  // botão "Nova Matrícula" que ficava dentro de Alunos saiu de lá.
   { label: "Matrícula", href: "/professor/matricula", icon: UserPlus, description: "Nova matrícula completa" },
   { label: "Alunos", href: "/professor/alunos", icon: Users, description: "Seus alunos e matrículas" },
-  { label: "Turmas", href: "/professor/turmas", icon: GraduationCap, description: "Suas turmas e links" },
   { label: "Financeiro", href: "/professor/financeiro", icon: Wallet, description: "Parcelas do seu núcleo" },
   { label: "Caixa", href: "/professor/caixa", icon: Banknote, description: "Despesas do seu núcleo" },
   { label: "Configurações", href: "/professor/configuracoes", icon: Settings2, description: "Seus dados" },

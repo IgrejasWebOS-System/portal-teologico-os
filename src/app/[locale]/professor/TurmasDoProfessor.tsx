@@ -11,8 +11,9 @@ import {
   GraduationCap,
   Search,
   Loader2,
+  PlusCircle,
 } from "lucide-react";
-import { professorAlternarLinkTurmaAction } from "./actions";
+import { professorAlternarLinkTurmaAction, professorCriarTurmaAction } from "./actions";
 import { buscarTurmasPorUnidadeConfigAction } from "../(igreja)/dashboard/configuracoes/actions";
 import { vincularTurmaProfessorSelfAction } from "../completar-cadastro/actions";
 
@@ -46,6 +47,12 @@ interface Props {
 }
 
 const selectCls = "bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm cursor-pointer";
+
+// 28/09/2026, pedido do Joaquim: só o bloco "Criar turma nova" ganha texto
+// preto e borda preta 1,2px nas caixas (o resto da tela — "Vincular a
+// turma já existente" — continua com o estilo padrão de sempre).
+const criarSelectCls = "bg-white border-[1.2px] border-black rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer";
+const criarInputCls = "bg-white border-[1.2px] border-black rounded-xl px-3.5 py-2.5 text-sm text-black";
 
 const TURNOS = [
   { value: "MANHA", label: "Manhã" },
@@ -171,6 +178,27 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
     );
   }, [turmasEncontradas, buscaCourseId, buscaAno]);
 
+  // ── Criar turma nova (reaberto em 28/09/2026, pedido do Joaquim) ───
+  // Até 21/09/2026 esse bloco tinha sido removido de propósito ("professor
+  // NUNCA cria turma"). Decisão revertida: agora o professor pode criar a
+  // própria turma. A Server Action (`professorCriarTurmaAction`) já existia
+  // desde 18/09/2026 (usada no mutirão de primeiro login) e já faz tudo num
+  // passo só — cria `course_editions`, cria o vínculo `professor_turmas`
+  // (com `link_token` automático) e volta pra esta tela com o link pronto —
+  // por isso não precisa de um botão "vincular" separado depois de criar.
+  const [criarSetorId, setCriarSetorId] = useState("");
+  const [criarIgrejaId, setCriarIgrejaId] = useState("");
+
+  const sedeSelecionadaCriar = sedes.find((s) => s.id === criarSetorId);
+
+  const criarIgrejas = useMemo(
+    () =>
+      units
+        .filter((u) => u.type === "IGREJA" && u.parent_id === criarSetorId)
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    [units, criarSetorId]
+  );
+
   const handleVincularTurma = async () => {
     if (!buscaTurmaId || !buscaTurno || !buscaDiaSemana) {
       setVincularErro("Selecione a turma, o turno e o dia da semana.");
@@ -254,10 +282,101 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
         </div>
       )}
 
-      {/* 21/09/2026, pedido do Joaquim (imagem 14): "Criar Turma" foi
-          removido daqui de propósito -- professor NUNCA cria turma pelo
-          próprio painel, só vincula a uma turma que a secretaria já
-          cadastrou pela área de administração. */}
+      <details className="border-t border-iw-border pt-4" open>
+        <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-bold text-black">
+          <PlusCircle className="w-4 h-4 text-iw-gold" /> Criar turma nova
+        </summary>
+        <div className="mt-4 space-y-3">
+          <p className="text-xs text-black">
+            Cria a turma e já gera o link de matrícula pra você — sem precisar de um passo separado
+            depois.
+          </p>
+
+          <form action={professorCriarTurmaAction} className="space-y-3">
+            <input type="hidden" name="unit_id" value={criarIgrejaId} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <select
+                value={criarSetorId}
+                onChange={(e) => {
+                  const valor = e.target.value;
+                  setCriarSetorId(valor);
+                  const sedeEscolhida = sedes.find((s) => s.id === valor);
+                  setCriarIgrejaId(sedeEscolhida ? sedeEscolhida.id : "");
+                }}
+                className={criarSelectCls}
+              >
+                <option value="">Setor / Regional...</option>
+                {sedes.map((s) => (<option key={s.id} value={s.id}>SEDE — {s.name}</option>))}
+                <optgroup label="Setor">
+                  {setores.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                </optgroup>
+                <optgroup label="Regional">
+                  {regionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                </optgroup>
+              </select>
+
+              <select
+                value={criarIgrejaId}
+                onChange={(e) => setCriarIgrejaId(e.target.value)}
+                disabled={!!sedeSelecionadaCriar || criarIgrejas.length === 0}
+                className={criarSelectCls}
+              >
+                <option value="">
+                  {sedeSelecionadaCriar ? "Sede selecionada" : criarIgrejas.length > 0 ? "Igreja..." : "Escolha o setor primeiro"}
+                </option>
+                {criarIgrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
+              </select>
+
+              <select name="course_id" required defaultValue="" className={criarSelectCls}>
+                <option value="" disabled>Curso...</option>
+                {cursos.map((c) => (<option key={c.id} value={c.id}>{c.title}</option>))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <input
+                type="text"
+                name="nome"
+                required
+                placeholder="Nome da turma (ex.: 2026 Turma 1)"
+                className={`${criarInputCls} lg:col-span-2`}
+              />
+              <input
+                type="text"
+                name="classe"
+                placeholder="Classe (opcional)"
+                className={criarInputCls}
+              />
+              <select name="turno" required defaultValue="" className={criarSelectCls}>
+                <option value="" disabled>Turno...</option>
+                {TURNOS.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <select name="dia_semana" required defaultValue="" className={criarSelectCls}>
+                <option value="" disabled>Dia da semana...</option>
+                {DIAS.map((d) => (<option key={d.value} value={d.value}>{d.label}</option>))}
+              </select>
+              <input type="date" name="data_inicio" className={criarInputCls} />
+              <input type="date" name="data_fim" className={criarInputCls} />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!criarIgrejaId}
+              className="flex items-center justify-center gap-2 bg-[#000000] hover:opacity-90 disabled:opacity-50 text-[#FFFFFF] border-2 border-[#CF8403] px-5 py-2.5 rounded-xl text-sm font-bold uppercase transition-opacity"
+            >
+              Criar turma e gerar link
+            </button>
+            {!criarIgrejaId && (
+              <p className="text-[11px] text-black">Escolha o Setor/Regional e a Igreja pra liberar o botão.</p>
+            )}
+          </form>
+        </div>
+      </details>
+
       <details className="border-t border-iw-border pt-4">
         <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-bold text-iw-navy">
           <Search className="w-4 h-4 text-iw-gold" /> Vincular a turma já existente
