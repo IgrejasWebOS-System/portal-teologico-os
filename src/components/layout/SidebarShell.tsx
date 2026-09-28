@@ -23,6 +23,7 @@ import type {
 
 export default function SidebarShell({
   isStaff = false,
+  isAdminRestrito = false,
   isAlunoOficial = false,
   alunoPainel = null,
   isProfessor = false,
@@ -30,6 +31,7 @@ export default function SidebarShell({
   children,
 }: {
   isStaff?: boolean;
+  isAdminRestrito?: boolean;
   isAlunoOficial?: boolean;
   alunoPainel?: {
     aluno: AlunoResumo;
@@ -87,6 +89,7 @@ export default function SidebarShell({
 
       <Sidebar
         isStaff={isStaff}
+        isAdminRestrito={isAdminRestrito}
         isAlunoOficial={isAlunoOficial}
         alunoPainel={alunoPainel}
         isProfessor={isProfessor}

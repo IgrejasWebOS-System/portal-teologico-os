@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { checkIsStaff } from "@/utils/staff";
+import { checkIsStaff, checkMenuRestrito } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
@@ -27,6 +27,32 @@ const PUBLIC_PATHS = [
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
+
+// 28/09/2026, pedido do Joaquim: admin com `admin_roles.menu_restrito = true`
+// (ver migration 118) só pode acessar estas rotas — qualquer outra rota
+// administrativa (Conteúdo/EBD, Loja, Patrimônio, Inscrições, Certificados,
+// FAQ, etc.) é bloqueada de verdade aqui, mesmo digitando a URL direto, não
+// só escondida do menu. "/admin" por correspondência EXATA (não prefixo,
+// senão liberaria /admin/conteudo, /admin/loja... por engano).
+const ADMIN_RESTRITO_EXATO = ["/admin"];
+const ADMIN_RESTRITO_PREFIXOS = [
+  "/admin/matriculas",
+  "/admin/financeiro",
+  "/dashboard/configuracoes/persona/turmas",
+  "/dashboard/configuracoes/professores",
+  "/dashboard/configuracoes/persona/alunos",
+  // Só "Matriz de Usuários" — a raiz /acessos (com os cards de Sedes
+  // Regionais e Líderes de Setor) fica de fora de propósito, pedido do
+  // Joaquim (28/09/2026): não precisa dessas duas pro menu restrito.
+  "/dashboard/configuracoes/acessos/usuarios",
+];
+
+function pathPermitidoParaAdminRestrito(path: string): boolean {
+  return (
+    ADMIN_RESTRITO_EXATO.includes(path) ||
+    ADMIN_RESTRITO_PREFIXOS.some((p) => path === p || path.startsWith(p + "/"))
+  );
+}
 
 // pt-BR não tem prefixo na URL; en-US e es-419 têm (/en-US/login).
 // Todo o roteamento de auth abaixo trabalha com o caminho SEM prefixo
@@ -137,6 +163,21 @@ export async function updateSession(
       const url = request.nextUrl.clone();
       url.pathname = comPrefixoDeIdioma(locale, "/trocar-senha");
       return NextResponse.redirect(url);
+    }
+  }
+
+  // Admin com menu_restrito = true (28/09/2026) — bloqueio real de rota,
+  // não só de menu. Só roda pra quem já é staff, pra não gastar a consulta
+  // extra em toda requisição de aluno/professor/membro comum.
+  if (user && !isPublic && path !== "/trocar-senha") {
+    const isStaffUser = await checkIsStaff(supabase, user.id);
+    if (isStaffUser) {
+      const restrito = await checkMenuRestrito(supabase, user.id);
+      if (restrito && !pathPermitidoParaAdminRestrito(path)) {
+        const url = request.nextUrl.clone();
+        url.pathname = comPrefixoDeIdioma(locale, "/admin");
+        return NextResponse.redirect(url);
+      }
     }
   }
 
