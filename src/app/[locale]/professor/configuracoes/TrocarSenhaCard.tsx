@@ -11,7 +11,7 @@
 // ============================================================
 
 import { useState, useTransition } from "react";
-import { KeyRound, CheckCircle2 } from "lucide-react";
+import { KeyRound, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { validarSenha, REGRA_SENHA_TEXTO } from "@/utils/senha";
 
@@ -26,6 +26,10 @@ export default function TrocarSenhaCard() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
   const [isPending, startTransition] = useTransition();
+  // 28/09/2026, pedido do Joaquim: olhinho de mostrar/ocultar em cada
+  // campo, independente um do outro (a pessoa pode conferir só um por vez).
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,27 +70,47 @@ export default function TrocarSenhaCard() {
       </div>
 
       <div className="grid grid-cols-12 gap-3">
-        <div className={`${boxCls} col-span-12 md:col-span-6`}>
-          <label className={boxLabelCls}>Nova senha</label>
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            minLength={8}
-            className={bareCls}
-          />
+        <div className={`${boxCls} col-span-12 md:col-span-6 flex items-end gap-2`}>
+          <div className="flex-1 min-w-0">
+            <label className={boxLabelCls}>Nova senha</label>
+            <input
+              type={mostrarSenha ? "text" : "password"}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              minLength={8}
+              className={bareCls}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setMostrarSenha((v) => !v)}
+            className="shrink-0 text-black/50 hover:text-black transition-colors"
+            aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
-        <div className={`${boxCls} col-span-12 md:col-span-6`}>
-          <label className={boxLabelCls}>Confirmar nova senha</label>
-          <input
-            type="password"
-            value={confirmar}
-            onChange={(e) => setConfirmar(e.target.value)}
-            required
-            minLength={8}
-            className={bareCls}
-          />
+        <div className={`${boxCls} col-span-12 md:col-span-6 flex items-end gap-2`}>
+          <div className="flex-1 min-w-0">
+            <label className={boxLabelCls}>Confirmar nova senha</label>
+            <input
+              type={mostrarConfirmar ? "text" : "password"}
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+              required
+              minLength={8}
+              className={bareCls}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setMostrarConfirmar((v) => !v)}
+            className="shrink-0 text-black/50 hover:text-black transition-colors"
+            aria-label={mostrarConfirmar ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {mostrarConfirmar ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
