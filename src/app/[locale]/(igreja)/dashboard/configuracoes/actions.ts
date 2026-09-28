@@ -697,6 +697,9 @@ function extrairFicha(formData: FormData) {
     cidade: (formData.get("cidade") as string)?.trim() || null,
     estado: (formData.get("estado") as string) || null,
     foto_url: (formData.get("foto_url") as string)?.trim() || null,
+    // 27/09/2026, pedido do Joaquim: observação livre dentro da caixa
+    // "Acesso ao núcleo de ensino" (ProfessorForm.tsx).
+    observacoes: (formData.get("observacoes") as string)?.trim() || null,
   };
 }
 
@@ -730,6 +733,11 @@ export async function addProfessorAction(formData: FormData) {
 
   const memberId = (formData.get("member_id") as string) || null;
   const tipoProfessor = memberId ? "MEMBRO" : "EXTERNO";
+  // 28/09/2026, achado do Joaquim: badge "De fora" da lista não pode
+  // depender de member_id (só diz se a busca achou membro) — reflete a
+  // ROTA de cadastro (só true de verdade em /novo/externo). Setado só na
+  // criação; updateProfessorAction nunca grava este campo.
+  const veioDeFora = (formData.get("veio_de_fora") as string) === "true";
 
   // Professor de fora não tem matrícula de Membros pra copiar — ganha um
   // código próprio, gerado uma única vez aqui na criação (mesmo padrão de
@@ -751,6 +759,7 @@ export async function addProfessorAction(formData: FormData) {
     church_id,
     tipo_professor: tipoProfessor,
     member_id: memberId,
+    veio_de_fora: veioDeFora,
     matricula,
     nome_completo: nomeCompleto,
     cargo: (formData.get("cargo") as string) || null,

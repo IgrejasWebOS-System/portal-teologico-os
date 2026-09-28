@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { useCatalogoCidades } from "@/utils/useCatalogoCidades";
 import MatriculaLookup from "./MatriculaLookup";
 import type { MembroEncontrado } from "./actions";
 
@@ -76,6 +77,10 @@ export default function CongregacaoEditForm({
   const [isPending, startTransition] = useTransition();
   const [loadingCep, setLoadingCep] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade
+  // (mesmo catálogo IBGE + DF do ProfessorForm.tsx) -- este componente é
+  // compartilhado por Igreja/Sub-congregação/Ponto de Pregação/Célula.
+  const { catalogoCidades } = useCatalogoCidades();
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setPastorName(membro.full_name);
@@ -394,11 +399,17 @@ export default function CongregacaoEditForm({
             <input
               name="city"
               type="text"
+              list="lista-cidades-congregacao"
               defaultValue={existing.city ?? ""}
               placeholder="Ex: Brasília"
               onChange={aplicarMaiusculaNoEvento}
               className={`${inputCls} uppercase`}
             />
+            <datalist id="lista-cidades-congregacao">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </div>
 
           <div className="col-span-12 sm:col-span-2">

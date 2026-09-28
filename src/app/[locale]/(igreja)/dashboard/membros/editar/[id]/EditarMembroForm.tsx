@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { maskPhone } from "@/utils/maskPhone";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 import {
   updateMemberAction,
   getNextRegistrationNumberAction,
@@ -229,6 +230,10 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
     city:         member.city ?? "",
     state:        member.state ?? "",
   });
+
+  // 26/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const [loadingCep, setLoadingCep]                 = useState(false);
   const [uploading, setUploading]                   = useState(false);
@@ -793,8 +798,16 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             </div>
             <div>
               <label className={labelCls}>Cidade</label>
-              <input type="text" placeholder="Cidade" value={addressData.city}
-                onChange={e => setAddressData(p => ({ ...p, city: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
+              <input type="text" list="lista-cidades-endereco-membro" placeholder="Cidade" value={addressData.city}
+                onChange={e => {
+                  const { cidade, uf } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                  setAddressData(p => ({ ...p, city: cidade, state: uf ?? p.state }));
+                }} className={`${inputCls} uppercase`} />
+              <datalist id="lista-cidades-endereco-membro">
+                {catalogoCidades.map((c) => (
+                  <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className={labelCls}>UF</label>

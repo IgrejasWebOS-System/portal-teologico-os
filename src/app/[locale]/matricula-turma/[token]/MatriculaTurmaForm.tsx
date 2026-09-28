@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, Mail, Phone, User, Hash, CalendarDays } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Mail, Phone, User, CalendarDays } from "lucide-react";
 import { matricularPorLinkAction } from "./actions";
 import { validarCPF } from "@/utils/cpf";
 import { validarEmail } from "@/utils/email";
@@ -30,7 +30,6 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
-  const [matriculaMembro, setMatriculaMembro] = useState("");
   // 25/09/2026, pedido do Joaquim: perguntar aqui a data em que a pessoa já
   // começou a cursar (mutirão é pra quem já estuda desde janeiro/2026, não
   // só matrícula nova) — essa data vira ead_matriculas.data_matricula e é
@@ -56,7 +55,6 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
     fd.set("email", email.trim());
     fd.set("telefone", telefone);
     fd.set("cpf", cpf);
-    fd.set("matricula_membro_informada", matriculaMembro);
     fd.set("data_matricula_informada", dataMatricula);
 
     startTransition(async () => {
@@ -134,21 +132,11 @@ export default function MatriculaTurmaForm({ token, cursoTitulo }: Props) {
           max={new Date().toISOString().slice(0, 10)}
           className={inputCls}
         />
-        <p className="text-[11px] text-black mt-1">
+        <p className="text-[13px] font-bold uppercase text-black text-center mt-2">
           Se você já vem estudando desde antes (ex.: turma que começou em janeiro), informe a data —
           isso ajusta suas mensalidades pra começarem do mês certo, não de hoje. Se está começando
           agora, pode deixar em branco.
         </p>
-      </div>
-
-      <div>
-        <label className={labelCls}><span className="inline-flex items-center gap-1"><Hash className="w-3 h-3" /> Sua matrícula de membro, se lembrar (opcional)</span></label>
-        <input
-          value={matriculaMembro}
-          onChange={(e) => setMatriculaMembro(e.target.value)}
-          placeholder="Não lembra? Pode deixar em branco — seu cadastro continua normalmente"
-          className={inputCls}
-        />
       </div>
 
       <button

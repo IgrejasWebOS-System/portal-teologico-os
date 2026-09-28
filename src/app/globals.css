@@ -83,6 +83,17 @@ h1, h2, h3, h4, h5, h6 {
   color: #111111;
 }
 
+/* ===== ÍCONE DE ALERTA PISCANDO 2X (27/09/2026, pedido do Joaquim) =====
+   Usado no aviso da tela de Conferência de mensalidades — pisca só ao
+   abrir a tela (2 vezes) e depois fica parado, sem loop infinito. */
+@keyframes iw-alert-blink {
+  0%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.15; }
+}
+.animate-alert-blink-twice {
+  animation: iw-alert-blink 0.6s ease-in-out 2;
+}
+
 /* ===== BOTÕES COM bg-iw-blue (agora azul pastel #BCE5FF) =====
    Como o fundo ficou claro, forçamos texto escuro automaticamente.
    No hover (bg fica navy/#111111), restauramos texto branco.

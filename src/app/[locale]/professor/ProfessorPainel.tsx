@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Search,
   X,
@@ -14,10 +15,10 @@ import {
   QrCode,
   Copy,
   Check,
+  Pencil,
 } from "lucide-react";
 import QRCodeLib from "qrcode";
 import { montarPayloadPix, DADOS_PIX_CETADP } from "@/utils/financeiro/pix";
-import TurmasDoProfessor, { type TurmaVinculo } from "./TurmasDoProfessor";
 
 // ============================================================
 // 21/09/2026, pedido do Joaquim (imagens 4 a 12): a tela /professor
@@ -25,18 +26,15 @@ import TurmasDoProfessor, { type TurmaVinculo } from "./TurmasDoProfessor";
 // do padrão do projeto (ver ProfessorNovaMatriculaForm.tsx, resolvido à
 // parte) e (2) "Meus Alunos" em cards grandes ficava poluído com muita
 // gente vinculada. Este componente resolve o pedido de reorganização:
-// junta "Minhas Turmas" + busca + Nova Matrícula numa mesma barra (à
-// direita do título, como pedido na imagem 8), e troca os cards de
-// aluno por uma tabela compacta com linha expansível — mesmas
-// informações de antes, só escondidas até o professor pedir.
+// junta busca + Nova Matrícula no cabeçalho, e troca os cards de aluno
+// por uma tabela compacta com linha expansível — mesmas informações de
+// antes, só escondidas até o professor pedir.
 //
-// Por que um componente novo em vez de mexer em TurmasDoProfessor ou em
-// page.tsx: a busca/filtro (que fica visualmente na barra de "Minhas
-// Turmas") e a tabela de alunos (seção separada, mais abaixo) precisam
-// compartilhar o mesmo estado de filtro. TurmasDoProfessor é sobre
-// turmas, não sobre alunos — não faz sentido ele guardar esse estado.
-// page.tsx é Server Component — não pode guardar estado de UI. Este
-// componente ("use client") é o dono do estado dos dois pedaços.
+// 27/09/2026, Fase 1 do Painel do Professor (sidebar + rotas separadas):
+// este componente deixou de renderizar <TurmasDoProfessor> — "Minhas
+// Turmas" agora é uma tela própria (/professor/turmas). Este componente
+// (renomeado para refletir o escopo) é só a tela de Alunos, usada em
+// /professor/alunos.
 // ============================================================
 
 type Media = { media: number | null; aprovado: boolean | null; quantidade: number };
@@ -67,13 +65,8 @@ export type LinhaAluno = {
 };
 
 interface Props {
-  cursos: { id: string; title: string }[];
-  units: { id: string; type: string; name: string; parent_id: string | null }[];
-  turmas: TurmaVinculo[];
-  appUrl: string;
   turmasFiltroOptions: { id: string; label: string }[];
   linhas: LinhaAluno[];
-  novaMatriculaSlot: React.ReactNode;
   baixarParcelaAction: (formData: FormData) => Promise<void> | void;
 }
 
@@ -207,7 +200,7 @@ function BuscaEFiltro({
 }
 
 export default function ProfessorPainel({
-  cursos, units, turmas, appUrl, turmasFiltroOptions, linhas, novaMatriculaSlot, baixarParcelaAction,
+  turmasFiltroOptions, linhas, baixarParcelaAction,
 }: Props) {
   const [tipoBusca, setTipoBusca] = useState<TipoBusca>("nome");
   const [busca, setBusca] = useState("");
@@ -274,34 +267,6 @@ export default function ProfessorPainel({
 
   return (
     <>
-      <div className="mb-8">
-        <TurmasDoProfessor
-          cursos={cursos}
-          units={units}
-          turmas={turmas}
-          appUrl={appUrl}
-          headerRight={
-            <div className="flex items-center gap-4 flex-wrap">
-              <BuscaEFiltro
-                tipoBusca={tipoBusca}
-                setTipoBusca={setTipoBusca}
-                busca={busca}
-                setBusca={setBusca}
-                turmaFiltro={turmaFiltro}
-                setTurmaFiltro={setTurmaFiltro}
-                turmasFiltroOptions={turmasFiltroOptions}
-                temFiltroAtivo={temFiltroAtivo}
-                limpar={() => {
-                  setBusca("");
-                  setTurmaFiltro("");
-                }}
-              />
-              {novaMatriculaSlot}
-            </div>
-          }
-        />
-      </div>
-
       <div className="mb-4 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-iw-navy">Meus alunos</h1>
@@ -309,6 +274,22 @@ export default function ProfessorPainel({
             {linhasFiltradas.length} de {linhas.length} aluno{linhas.length === 1 ? "" : "s"}
             {temFiltroAtivo ? " (filtro aplicado)" : " vinculado" + (linhas.length === 1 ? "" : "s") + " a você"}.
           </p>
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <BuscaEFiltro
+            tipoBusca={tipoBusca}
+            setTipoBusca={setTipoBusca}
+            busca={busca}
+            setBusca={setBusca}
+            turmaFiltro={turmaFiltro}
+            setTurmaFiltro={setTurmaFiltro}
+            turmasFiltroOptions={turmasFiltroOptions}
+            temFiltroAtivo={temFiltroAtivo}
+            limpar={() => {
+              setBusca("");
+              setTurmaFiltro("");
+            }}
+          />
         </div>
       </div>
 
@@ -432,6 +413,7 @@ export default function ProfessorPainel({
                                           </button>
                                           <form action={baixarParcelaAction} className="flex items-center gap-1">
                                             <input type="hidden" name="id" value={p.id} />
+                                            <input type="hidden" name="redirect_to" value="/professor/alunos" />
                                             <select
                                               name="forma_pagamento"
                                               className="bg-white border border-iw-border rounded-md px-1.5 py-1 text-[11px]"
@@ -527,7 +509,23 @@ export default function ProfessorPainel({
                             )}
                           </div>
 
-                          <p className="text-[10px] text-iw-muted/60">Matriculado em {fmtData(l.dataMatricula)}</p>
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <p className="text-[10px] text-iw-muted/60">Matriculado em {fmtData(l.dataMatricula)}</p>
+                            {/* 28/09/2026, pedido do Joaquim: "preciso editar aluno, para
+                                corrigir dados caso cadastre informação errada pessoal, curso
+                                e financeiro, igreja setor, ou seja edição completa" — reaproveita
+                                a mesma ficha completa da secretaria (EditarMatriculaForm.tsx),
+                                escopada ao próprio professor (ver professor/actions.ts:
+                                professorAtualizarMatriculaAction e afins). */}
+                            <Link
+                              href={`/professor/alunos/editar/${l.matriculaId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 inline-flex items-center gap-1.5 bg-black hover:opacity-80 border border-black text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition-opacity"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Editar cadastro completo
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     )}

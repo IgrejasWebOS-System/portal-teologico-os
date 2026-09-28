@@ -18,11 +18,11 @@
 // tela usava um padrão de input/label diferente (fora do padrão).
 // ============================================================
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Save, Loader2, AlertTriangle, User, Building, Mail, ShieldCheck, FileText, MapPin, Check,
+  Plus, Save, Loader2, AlertTriangle, Building, ShieldCheck, FileText, MapPin, Check, Camera, Lock,
 } from "lucide-react";
 import BuscaProfessorCompleta from "./BuscaProfessorCompleta";
 import { addProfessorAction, updateProfessorAction, type MembroCompletoEncontrado } from "../actions";
@@ -30,13 +30,11 @@ import { ancestryChain, type UnitNode } from "../unitsChain";
 import { createClient } from "@/utils/supabase/client";
 import { validarCPF } from "@/utils/cpf";
 import { maskPhone } from "@/utils/maskPhone";
+import { ESTADOS_BR } from "@/utils/estadosBrasil";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 
 type ChurchLink = { id: string; unit_id: string | null };
 type SelectItem = { id: string; name: string };
-type EstadoIBGE = { id: number; sigla: string; nome: string };
-// Lista nacional de municípios (pra digitar/escolher a cidade e a UF sair
-// sozinha) — ver comentário na busca de naturalidade, mais abaixo.
-type CidadeComUf = { nome: string; uf: string };
 
 export type ExistingProfessor = {
   id: string;
@@ -74,6 +72,16 @@ export type ExistingProfessor = {
   bairro: string | null;
   cidade: string | null;
   estado: string | null;
+  // 27/09/2026, pedido do Joaquim: foto do professor (bucket "avatars",
+  // mesmo padrão de NovoMembroForm/EditarMembroForm/ProfessorNovaMatriculaForm)
+  // e observação livre — nenhum dos dois tinha campo na ficha até agora.
+  fotoUrl?: string | null;
+  observacoes?: string | null;
+  // E-mail de login REAL (de auth.users, via admin.auth.admin.getUserById),
+  // separado do `email` acima (que é o texto salvo em professores.email e
+  // pode estar desatualizado/vazio). Só pra exibição na caixa "Acesso ao
+  // núcleo de ensino" quando já existe professor — não é reenviado no save.
+  contaEmailAtual?: string | null;
 };
 
 interface Props {
@@ -106,22 +114,31 @@ const boxCls =
   "border border-iw-navy rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 const boxErrCls =
   "border border-iw-error rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-error focus-within:ring-2 focus-within:ring-iw-error/20 transition-colors";
-const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
-const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
+// 27/09/2026, pedido do Joaquim: todas as fontes deste formulário em
+// preto (antes usavam os tokens iw-navy/iw-muted do design system) — só
+// texto normal, cores de estado (erro/sucesso) continuam como estavam.
+const boxLabelCls = "block text-[10px] font-extrabold text-black uppercase tracking-wider mb-0.5";
+const bareCls = "w-full bg-transparent border-none p-0 text-sm text-black placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
 
 function Field({
-  label, required, span, error, children,
+  label, required, span, error, labelClassName, children,
 }: {
-  label: string; required?: boolean; span?: string; error?: boolean; children: React.ReactNode;
+  label: string; required?: boolean; span?: string; error?: boolean; labelClassName?: string; children: React.ReactNode;
 }) {
   return (
     <div className={`${error ? boxErrCls : boxCls} ${span ?? "col-span-12 md:col-span-3"}`}>
-      <label className={boxLabelCls}>{label}{required && " *"}</label>
+      <label className={labelClassName ?? boxLabelCls}>{label}{required && " *"}</label>
       {children}
     </div>
   );
 }
+
+// 27/09/2026, pedido do Joaquim: só o texto da caixa "Acesso ao núcleo de
+// ensino" fica 2pt maior — as outras caixas do formulário continuam com o
+// tamanho padrão (boxLabelCls), então isto é uma variante local, não uma
+// mudança no boxLabelCls compartilhado.
+const boxLabelClsMaior = "block text-xs font-extrabold text-black uppercase tracking-wider mb-0.5";
 
 function SectionHeader({ icon: Icon, label, extra }: { icon: React.ElementType; label: string; extra?: React.ReactNode }) {
   return (
@@ -130,7 +147,7 @@ function SectionHeader({ icon: Icon, label, extra }: { icon: React.ElementType; 
         <div className="w-6 h-6 rounded-lg bg-iw-gold/10 flex items-center justify-center shrink-0">
           <Icon className="w-3.5 h-3.5 text-iw-gold" />
         </div>
-        <h2 className="text-sm font-bold text-iw-navy uppercase tracking-wider">{label}</h2>
+        <h2 className="text-sm font-bold text-black uppercase tracking-wider">{label}</h2>
       </div>
       {extra}
     </div>
@@ -205,6 +222,9 @@ export default function ProfessorForm({
   const [cidade, setCidade] = useState(existing?.cidade ?? "");
   const [estado, setEstado] = useState(existing?.estado ?? "");
   const [email, setEmail] = useState(existing?.email ?? "");
+  const [fotoUrl, setFotoUrl] = useState(existing?.fotoUrl ?? "");
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [observacoes, setObservacoes] = useState(existing?.observacoes ?? "");
   const [error, setError] = useState("");
   const [avisoAcesso, setAvisoAcesso] = useState("");
   const [loadingCep, setLoadingCep] = useState(false);
@@ -213,62 +233,53 @@ export default function ProfessorForm({
   const [cpfError, setCpfError] = useState("");
 
   // UF ainda entra manualmente (DF, ou quando a cidade não bate no
-  // catálogo), mas Naturalidade agora busca por CIDADE primeiro (pedido do
-  // Joaquim, 18/09/2026): lista nacional de municípios (IBGE, endpoint
-  // plano — todas as ~5.570 cidades numa chamada só, cacheada em estado)
-  // + as regiões administrativas do DF (settings_custom_regions, mesmo
-  // motivo de sempre: o IBGE não separa Brasília em regiões). Ao digitar/
-  // escolher a cidade no datalist, a UF é preenchida sozinha.
-  const [states, setStates] = useState<EstadoIBGE[]>([]);
-  const [catalogoCidades, setCatalogoCidades] = useState<CidadeComUf[]>([]);
-
-  useEffect(() => {
-    async function fetchEstados() {
-      try {
-        const res = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome");
-        setStates(await res.json());
-      } catch {
-        // silencioso — UF continua editável, só sem a lista pronta
-      }
-    }
-    fetchEstados();
-
-    async function fetchCatalogoCidades() {
-      try {
-        const resMunicipios = await fetch(
-          "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome"
-        );
-        const municipios: { nome: string; microrregiao?: { mesorregiao?: { UF?: { sigla?: string } } } }[] =
-          await resMunicipios.json();
-        const doIbge: CidadeComUf[] = municipios
-          .filter((m) => m.microrregiao?.mesorregiao?.UF?.sigla)
-          .map((m) => ({ nome: m.nome, uf: m.microrregiao!.mesorregiao!.UF!.sigla! }));
-
-        const supabase = createClient();
-        const { data: regioesDf } = await supabase
-          .from("settings_custom_regions")
-          .select("name")
-          .eq("state_uf", "DF");
-        const doDf: CidadeComUf[] = (regioesDf ?? []).map((r) => ({ nome: r.name, uf: "DF" }));
-
-        setCatalogoCidades([...doIbge, ...doDf].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
-      } catch {
-        // silencioso — Cidade/UF continuam editáveis na mão
-      }
-    }
-    fetchCatalogoCidades();
-  }, []);
+  // catálogo), mas Naturalidade e Cidade (endereço) buscam por CIDADE
+  // primeiro (pedido do Joaquim, 18/09/2026 -- estendido pro endereço
+  // residencial em 26/09/2026, auditoria de padronização de fichas):
+  // catálogo compartilhado (`useCatalogoCidades`) com a lista nacional de
+  // municípios (IBGE) + regiões administrativas do DF
+  // (settings_custom_regions). Ao digitar/escolher a cidade no datalist,
+  // a UF é preenchida sozinha.
+  const { catalogoCidades } = useCatalogoCidades();
 
   // Ao digitar/escolher no datalist, se o texto bater "Nome (UF)" com uma
   // cidade do catálogo, preenche a UF sozinha; senão deixa como o usuário
   // digitou (nome livre) e a UF continua editável manualmente.
   const handleNaturalidadeCidadeChange = (valorDigitado: string) => {
-    const match = catalogoCidades.find((c) => `${c.nome} (${c.uf})` === valorDigitado || c.nome === valorDigitado);
-    if (match) {
-      setNaturalidadeCidade(match.nome.toUpperCase());
-      setNaturalidadeEstado(match.uf);
-    } else {
-      setNaturalidadeCidade(valorDigitado.toUpperCase());
+    const { cidade, uf } = resolverCidadeDigitada(valorDigitado, catalogoCidades);
+    setNaturalidadeCidade(cidade);
+    if (uf) setNaturalidadeEstado(uf);
+  };
+
+  // 26/09/2026, pedido do Joaquim (auditoria de padronização de fichas):
+  // mesmo tratamento pro campo "Cidade" do endereço residencial -- antes
+  // era input livre, sem catálogo, diferente do campo de Naturalidade.
+  const handleCidadeChange = (valorDigitado: string) => {
+    const { cidade, uf } = resolverCidadeDigitada(valorDigitado, catalogoCidades);
+    setCidade(cidade);
+    if (uf) setEstado(uf);
+  };
+
+  // 27/09/2026, pedido do Joaquim: mesmo padrão de upload já usado em
+  // NovoMembroForm/EditarMembroForm/ProfessorNovaMatriculaForm (bucket
+  // "avatars") — a ficha do professor nunca teve esse campo.
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const fileName = `professor-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      setFotoUrl(data.publicUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "erro desconhecido";
+      alert(`Erro no upload da foto: ${msg}`);
+    } finally {
+      setUploadingFoto(false);
     }
   };
 
@@ -286,11 +297,25 @@ export default function ProfessorForm({
 
   const campos = useMemo(() => units.filter((u) => u.type === "CAMPO"), [units]);
   const sedeDoCampo = useMemo(() => units.find((u) => u.type === "SEDE" && u.parent_id === campoId), [units, campoId]);
+  // 28/09/2026, achado do Joaquim: faltava ordenar esta lista — sem
+  // `.sort()`, os setores/regionais vinham na ordem crua da query (sem
+  // ORDER BY), então "REGIONAL 001" podia cair fora de sequência e parecer
+  // "sumido" ao rolar o dropdown numericamente. Mesmo padrão de
+  // localeCompare já usado em TurmasDoProfessor.tsx/SeletorHierarquico.
   const setores = useMemo(
-    () => (sedeDoCampo ? units.filter((u) => u.type === "SETOR" && u.parent_id === sedeDoCampo.id) : []),
+    () =>
+      (sedeDoCampo ? units.filter((u) => u.type === "SETOR" && u.parent_id === sedeDoCampo.id) : []).sort((a, b) =>
+        a.name.localeCompare(b.name, "pt-BR")
+      ),
     [units, sedeDoCampo]
   );
-  const igrejas = useMemo(() => (setorId ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorId) : []), [units, setorId]);
+  const igrejas = useMemo(
+    () =>
+      (setorId ? units.filter((u) => u.type === "IGREJA" && u.parent_id === setorId) : []).sort((a, b) =>
+        a.name.localeCompare(b.name, "pt-BR")
+      ),
+    [units, setorId]
+  );
 
   const finalUnitId = atuaNaSede ? (sedeDoCampo?.id ?? "") : igrejaId;
 
@@ -402,9 +427,23 @@ export default function ProfessorForm({
     fd.set("member_id", memberId);
     fd.set("matricula", matricula);
     fd.set("tipo_professor", memberId ? "MEMBRO" : "EXTERNO");
+    // 28/09/2026, achado do Joaquim: a badge "De fora" da lista não pode
+    // depender de member_id (isso só diz se a busca achou um match) — tem
+    // que refletir a ROTA de cadastro. `mostrarBusca=false` só acontece de
+    // verdade em /novo/externo (na edição também vem false, mas
+    // updateProfessorAction ignora este campo, então não tem risco de
+    // reclassificar um professor existente ao editar).
+    fd.set("veio_de_fora", !existing && !mostrarBusca ? "true" : "false");
     fd.set("unit_id", finalUnitId);
     fd.set("setor_unit_id", setorId);
-    fd.set("email", email.trim());
+    // 27/09/2026, pedido do Joaquim: "Acesso ao núcleo de ensino" virou
+    // bloqueado por enquanto pra professor já existente — o campo de
+    // e-mail não é mais editável ali, então não reenvia (evita disparar
+    // grantNucleoAccess de novo a cada "Salvar alterações"). Continua
+    // obrigatório e enviado normalmente só no cadastro de um professor novo.
+    if (!existing) fd.set("email", email.trim());
+    fd.set("foto_url", fotoUrl);
+    fd.set("observacoes", observacoes);
     fd.set("cpf", cpf);
     fd.set("rg", rg);
     fd.set("rg_orgao_emissor", rgOrgaoEmissor);
@@ -453,113 +492,154 @@ export default function ProfessorForm({
       )}
 
       <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
-        <SectionHeader icon={Building} label="Campo, Setor e Igreja" />
+        {/* 27/09/2026, pedido do Joaquim: "Campo, Setor e Igreja" e "Dados
+            do professor" viraram uma caixa só ("Dados gerais professor"),
+            com a busca por matrícula/CPF/nome na mesma linha do título, à
+            direita (antes ficava dentro do grid de Campo/Setor/Igreja). */}
+        <SectionHeader
+          icon={Building}
+          label="Dados gerais professor"
+          extra={mostrarBusca ? (
+            <BuscaProfessorCompleta onEncontrado={handleMembroEncontrado} onLimpar={handleLimparBusca} />
+          ) : undefined}
+        />
 
-        <div className="grid grid-cols-12 gap-3">
-          <Field label="Campo" span="col-span-12 md:col-span-3">
-            <select
-              value={campoId}
-              onChange={(e) => { setCampoId(e.target.value); setSetorId(""); setIgrejaId(""); setAtuaNaSede(false); }}
-              className={bareSelectCls}
-            >
-              <option value="">Selecione o campo...</option>
-              {campos.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-          </Field>
-
-          <Field label="Setor" span="col-span-12 md:col-span-3">
-            <select
-              value={atuaNaSede ? (sedeDoCampo?.id ?? "") : setorId}
-              onChange={(e) => handleSetorChange(e.target.value)}
-              disabled={!campoId}
-              className={bareSelectCls}
-            >
-              <option value="">{campoId ? "Selecione o setor..." : "Escolha o campo primeiro"}</option>
-              {sedeDoCampo && <option value={sedeDoCampo.id}>SEDE — {sedeDoCampo.name}</option>}
-              {/* Só "REGIONAL NNN"/"SETOR NNN" entram nos grupos -- linhas de
-                  unidade mal cadastradas (ex.: nome "001" sem o prefixo, sem
-                  nenhum vínculo hoje) ficam de fora em vez de aparecer soltas
-                  no fim da lista. */}
-              <optgroup label="Setor">
-                {setores
-                  .filter((s) => /^SETOR\s+\d+/i.test(s.name))
-                  .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-              </optgroup>
-              <optgroup label="Regional">
-                {setores
-                  .filter((s) => /^REGIONAL\s+\d+/i.test(s.name))
-                  .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-              </optgroup>
-            </select>
-          </Field>
-
-          <Field label="Igreja" span="col-span-12 md:col-span-3">
-            <select
-              value={igrejaId}
-              onChange={(e) => setIgrejaId(e.target.value)}
-              disabled={!setorId || atuaNaSede}
-              className={bareSelectCls}
-            >
-              <option value="">
-                {atuaNaSede ? "SEDE selecionada acima" : setorId ? "Selecione a igreja..." : "Escolha o setor primeiro"}
-              </option>
-              {igrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
-            </select>
-          </Field>
-
-          {mostrarBusca ? (
-            <div className="col-span-12 md:col-span-3">
-              <BuscaProfessorCompleta onEncontrado={handleMembroEncontrado} onLimpar={handleLimparBusca} />
+        <div className="grid grid-cols-12 gap-4 items-center">
+          {/* 27/09/2026, pedido do Joaquim: o texto "Vinculado ao cadastro
+              de membro" saiu daqui de baixo da foto — agora fica embaixo da
+              caixa "Nome completo", mas FORA da caixa (ver mais abaixo).
+              Coluna da foto ficou só com a foto mesmo, e as duas colunas
+              (foto e campos) ficam centralizadas uma com a outra. */}
+          <div className="col-span-12 md:col-span-2 flex flex-col items-start justify-start gap-2">
+            <div className="w-full aspect-square rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
+              {fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt="Foto do professor" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-black group-hover:text-iw-navy">
+                  {uploadingFoto ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
+                  <span className="text-[10px] font-semibold uppercase text-center px-2">Foto</span>
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
-          ) : (
-            <Field label="Código de cadastro" span="col-span-12 md:col-span-3">
-              <input
-                readOnly
-                value={matricula || (existing ? "" : "Gerado ao salvar")}
-                className={`${bareCls} text-iw-muted`}
-              />
-            </Field>
-          )}
-        </div>
-      </div>
+          </div>
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
-        <SectionHeader icon={User} label="Dados do professor" />
+          <div className="col-span-12 md:col-span-10 space-y-3">
+            {/* 27/09/2026, pedido do Joaquim: "Campo/Setor/Igreja" e "Código
+                de cadastro" (esse último só aparece quando mostrarBusca=false,
+                ex.: tela de editar) precisam caber todos na MESMA linha —
+                antes eram 4 caixas de col-span-4 (16/12, quebrava linha).
+                Com busca visível (3 caixas) mantém col-span-4; sem busca
+                (4 caixas) usa col-span-3 pra caber certinho em 12. */}
+            <div className="grid grid-cols-12 gap-3">
+              <Field label="Campo" span={mostrarBusca ? "col-span-12 md:col-span-4" : "col-span-12 md:col-span-3"}>
+                <select
+                  value={campoId}
+                  onChange={(e) => { setCampoId(e.target.value); setSetorId(""); setIgrejaId(""); setAtuaNaSede(false); }}
+                  className={bareSelectCls}
+                >
+                  <option value="">Selecione o campo...</option>
+                  {campos.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                </select>
+              </Field>
 
-        {mostrarBusca && (
-          <p className="text-xs text-iw-muted -mt-1">
-            {matricula
-              ? <>Vinculado ao cadastro de membro — código <strong className="text-iw-navy">{matricula}</strong>.</>
-              : "Não encontrou? Preencha a ficha abaixo manualmente — vira um Professor de fora."}
-          </p>
-        )}
+              <Field label="Setor" span={mostrarBusca ? "col-span-12 md:col-span-4" : "col-span-12 md:col-span-3"}>
+                <select
+                  value={atuaNaSede ? (sedeDoCampo?.id ?? "") : setorId}
+                  onChange={(e) => handleSetorChange(e.target.value)}
+                  disabled={!campoId}
+                  className={bareSelectCls}
+                >
+                  <option value="">{campoId ? "Selecione o setor..." : "Escolha o campo primeiro"}</option>
+                  {sedeDoCampo && <option value={sedeDoCampo.id}>SEDE — {sedeDoCampo.name}</option>}
+                  {/* Só "REGIONAL NNN"/"SETOR NNN" entram nos grupos -- linhas
+                      de unidade mal cadastradas (ex.: nome "001" sem o
+                      prefixo, sem nenhum vínculo hoje) ficam de fora em vez de
+                      aparecer soltas no fim da lista. */}
+                  <optgroup label="Setor">
+                    {setores
+                      .filter((s) => /^SETOR\s+\d+/i.test(s.name))
+                      .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                  </optgroup>
+                  <optgroup label="Regional">
+                    {setores
+                      .filter((s) => /^REGIONAL\s+\d+/i.test(s.name))
+                      .map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                  </optgroup>
+                </select>
+              </Field>
 
-        <div className="grid grid-cols-12 gap-3">
-          <Field label="Nome completo" required span="col-span-12 md:col-span-6">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value.toUpperCase())}
-              placeholder="Nome do professor"
-              className={`${bareCls} uppercase`}
-              required
-            />
-          </Field>
-          <Field label="Cargo" span="col-span-12 md:col-span-3">
-            <select value={cargo} onChange={(e) => setCargo(e.target.value)} className={bareSelectCls}>
-              <option value="">Sem cargo</option>
-              {cargos.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
-            </select>
-          </Field>
-          <Field label="Telefone" span="col-span-12 md:col-span-3">
-            <input
-              type="text"
-              value={telefone}
-              onChange={(e) => setTelefone(maskPhone(e.target.value))}
-              placeholder="(00) 00000-0000"
-              className={bareCls}
-            />
-          </Field>
+              <Field label="Igreja" span={mostrarBusca ? "col-span-12 md:col-span-4" : "col-span-12 md:col-span-3"}>
+                <select
+                  value={igrejaId}
+                  onChange={(e) => setIgrejaId(e.target.value)}
+                  disabled={!setorId || atuaNaSede}
+                  className={bareSelectCls}
+                >
+                  <option value="">
+                    {atuaNaSede ? "SEDE selecionada acima" : setorId ? "Selecione a igreja..." : "Escolha o setor primeiro"}
+                  </option>
+                  {igrejas.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
+                </select>
+              </Field>
+
+              {!mostrarBusca && (
+                <Field label="Código de cadastro" span="col-span-12 md:col-span-3">
+                  <input
+                    readOnly
+                    value={matricula || (existing ? "" : "Gerado ao salvar")}
+                    className={`${bareCls} text-black`}
+                  />
+                </Field>
+              )}
+            </div>
+
+            <div className="grid grid-cols-12 gap-3 items-start">
+              <div className="col-span-12 md:col-span-6">
+                <Field label="Nome completo" required span="w-full">
+                  <input
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value.toUpperCase())}
+                    placeholder="Nome do professor"
+                    className={`${bareCls} uppercase`}
+                    required
+                  />
+                </Field>
+                {/* 27/09/2026, pedido do Joaquim: este aviso saiu de dentro
+                    da caixa de Nome completo -- fica embaixo dela, fora da
+                    borda, não mais junto com o texto "matrícula/CPF ou
+                    nome". Aparece sempre que houver matrícula vinculada,
+                    independente da busca estar visível ou não (na tela de
+                    edição a busca some, mas este aviso continua). */}
+                {matricula ? (
+                  <p className="mt-1.5 text-xs text-black">
+                    Vinculado ao cadastro de membro — código <strong className="text-black">{matricula}</strong>.
+                  </p>
+                ) : mostrarBusca ? (
+                  <p className="mt-1.5 text-xs text-black">
+                    Não encontrou? Preencha a ficha abaixo manualmente — vira um Professor de fora.
+                  </p>
+                ) : null}
+              </div>
+              <Field label="Cargo" span="col-span-12 md:col-span-3">
+                <select value={cargo} onChange={(e) => setCargo(e.target.value)} className={bareSelectCls}>
+                  <option value="">Sem cargo</option>
+                  {cargos.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                </select>
+              </Field>
+              <Field label="Telefone" span="col-span-12 md:col-span-3">
+                <input
+                  type="text"
+                  value={telefone}
+                  onChange={(e) => setTelefone(maskPhone(e.target.value))}
+                  placeholder="(00) 00000-0000"
+                  className={bareCls}
+                />
+              </Field>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -639,7 +719,7 @@ export default function ProfessorForm({
                 className={`${bareSelectCls} !w-14 flex-none border-l border-iw-border pl-2`}
               >
                 <option value="">UF</option>
-                {states.map((s) => (<option key={s.id} value={s.sigla}>{s.sigla}</option>))}
+                {ESTADOS_BR.map((s) => (<option key={s.uf} value={s.uf}>{s.uf}</option>))}
               </select>
             </div>
           </Field>
@@ -692,7 +772,17 @@ export default function ProfessorForm({
             <input value={bairro} onChange={(e) => setBairro(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
           </Field>
           <Field label="Cidade" span="col-span-6 md:col-span-3">
-            <input value={cidade} onChange={(e) => setCidade(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
+            <input
+              list="lista-cidades-endereco-professor"
+              value={cidade}
+              onChange={(e) => handleCidadeChange(e.target.value)}
+              className={`${bareCls} uppercase`}
+            />
+            <datalist id="lista-cidades-endereco-professor">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </Field>
           <Field label="UF" span="col-span-6 md:col-span-1">
             <input value={estado} maxLength={2} onChange={(e) => setEstado(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
@@ -706,42 +796,76 @@ export default function ProfessorForm({
           icon={ShieldCheck}
           label="Acesso ao núcleo de ensino"
           extra={!existing ? (
-            <span className="text-[10px] font-black uppercase tracking-widest text-black bg-[#CF8403] px-2 py-0.5 rounded-md">
+            <span className="text-xs font-black uppercase tracking-widest text-black bg-[#CF8403] px-2 py-0.5 rounded-md">
               Obrigatório
             </span>
           ) : undefined}
         />
-        <p className="text-xs text-iw-muted -mt-1">
+        <p className="text-sm text-black -mt-1">
           {existing
-            ? "Se preencher o e-mail abaixo, essa pessoa recebe (ou já tem) acesso pra gerenciar sozinha este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a Campo/Setor/Igreja selecionados acima."
+            ? "Este professor já tem (ou não) acesso próprio pra gerenciar sozinho este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a Campo/Setor/Igreja selecionados acima. Concessão de acesso fica bloqueada por aqui por enquanto."
             : "Todo professor novo já sai com acesso próprio pra gerenciar sozinho este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a Campo/Setor/Igreja selecionados acima. O e-mail informado é o login dele."}
         </p>
+
+        {existing ? (
+          <>
+            {/* 27/09/2026, pedido do Joaquim: campo deixou de ser editável
+                aqui (evita reenviar/reconceder acesso sem querer a cada
+                "Salvar alterações") — agora só mostra o e-mail de login
+                real (auth.users), como aviso, com um cadeado. Caixa menor
+                que antes, de propósito. */}
+            <div className="grid grid-cols-12 gap-3">
+              <Field label="E-mail de acesso atual (bloqueado)" span="col-span-12 md:col-span-3" labelClassName={boxLabelClsMaior}>
+                <div className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-black/50 shrink-0" />
+                  <input
+                    type="email"
+                    value={existing.contaEmailAtual ?? email ?? ""}
+                    readOnly
+                    disabled
+                    placeholder="Sem acesso concedido ainda"
+                    className={`${bareCls} text-black/70 cursor-not-allowed`}
+                  />
+                </div>
+              </Field>
+            </div>
+            <p className="text-sm text-black bg-iw-bg border border-iw-border rounded-lg px-3 py-2">
+              <strong className="text-black">Esqueceu a senha ou perdeu o acesso?</strong> Não mexe
+              aqui — isso concedia/atualizava acesso de nível 4, não reenvia senha. Peça pra ele mesmo
+              usar &ldquo;Esqueci minha senha&rdquo; na tela de login com o e-mail acima.
+            </p>
+          </>
+        ) : (
+          <div className="grid grid-cols-12 gap-3">
+            <Field label="E-mail de acesso" required span="col-span-12 md:col-span-4" labelClassName={boxLabelClsMaior}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="professor@exemplo.com"
+                className={bareCls}
+                required
+              />
+            </Field>
+          </div>
+        )}
+
+        {/* 27/09/2026, pedido do Joaquim: local pra observação livre,
+            dentro desta mesma caixa. */}
         <div className="grid grid-cols-12 gap-3">
-          <Field label="E-mail de acesso" required={!existing} span="col-span-12 md:col-span-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="professor@exemplo.com"
-              className={bareCls}
-              required={!existing}
+          <Field label="Observação" span="col-span-12" labelClassName={boxLabelClsMaior}>
+            <textarea
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Anotações internas sobre este professor..."
+              rows={2}
+              className={`${bareCls} resize-y`}
             />
           </Field>
         </div>
-        {/* 21/09/2026, achado em teste (Joaquim colocou o próprio e-mail
-            aqui achando que isso reenviaria uma senha nova pra Lucia
-            Helena — na real isso concede/reconfirma acesso de nível 4).
-            Aviso explícito pra não repetir a confusão: esqueceu senha não
-            se resolve aqui. */}
-        {existing && (
-          <p className="text-[11px] text-iw-muted bg-iw-bg border border-iw-border rounded-lg px-3 py-2">
-            <strong className="text-iw-navy">Esqueceu a senha ou perdeu o acesso?</strong> Não mexa
-            aqui — isso concede/atualiza acesso de nível 4, não reenvia senha. Peça pra ele mesmo
-            usar &ldquo;Esqueci minha senha&rdquo; na tela de login com o e-mail acima.
-          </p>
-        )}
+
         {avisoAcesso && (
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-iw-success">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-iw-success">
             <Check className="w-3.5 h-3.5 shrink-0" /> {avisoAcesso}
           </p>
         )}

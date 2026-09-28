@@ -32,8 +32,11 @@ export const metadata = { title: "Complete seu cadastro — CETADP" };
 // cargos) + cursos (pro passo de vínculo de turma).
 // ============================================================
 
+// 28/09/2026, achado do Joaquim: faltavam foto_url/observacoes aqui, então
+// mesmo depois de corrigir o salvamento (salvarFichaProfessorAction), a
+// foto não voltava pré-preenchida numa nova visita a esta tela.
 const CAMPOS_PROFESSOR =
-  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado";
+  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, foto_url, observacoes";
 
 export default async function CompletarCadastroPage() {
   const supabase = await createClient();
@@ -137,6 +140,8 @@ export default async function CompletarCadastroPage() {
               bairro: professor.bairro,
               cidade: professor.cidade,
               estado: professor.estado,
+              fotoUrl: professor.foto_url,
+              observacoes: professor.observacoes,
             }}
           />
         </div>
@@ -171,7 +176,7 @@ export default async function CompletarCadastroPage() {
   // em EditarMatriculaForm.tsx sobre selfService): tudo já foi resolvido
   // no momento da matrícula pelo link público (matricular.ts), herdado
   // da turma/professor -- aqui só busca os nomes pra mostrar na ficha.
-  const [{ data: turmaRow }, { data: professorRow }, { data: churchRow }, { data: sectorRow }, { data: profissoes }, { data: escolaridades }] = await Promise.all([
+  const [{ data: turmaRow }, { data: professorRow }, { data: churchRow }, { data: sectorRow }, { data: profissoes }, { data: escolaridades }, { data: generos }, { data: estadosCivis }] = await Promise.all([
     matriculaMutirao.course_edition_id
       ? admin.from("course_editions").select("nome, classe").eq("id", matriculaMutirao.course_edition_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -188,6 +193,11 @@ export default async function CompletarCadastroPage() {
     // 21/09/2026, achado em teste (Teste 3, imagens 5/6): faltava aqui —
     // Escolaridade ficava sem nenhuma opção pra buscar.
     admin.from("settings_schooling").select("id, name").order("name"),
+    // 26/09/2026, auditoria de padronização de fichas: Sexo/Estado civil
+    // desta ficha (aluno self-service) eram <option> fixas no
+    // EditarMatriculaForm -- agora vêm do banco, igual ao resto do sistema.
+    admin.from("settings_gender").select("id, name").order("name"),
+    admin.from("settings_civil_status").select("id, name").order("name"),
   ]);
 
   return (
@@ -217,6 +227,8 @@ export default async function CompletarCadastroPage() {
           professores={[]}
           profissoes={profissoes ?? []}
           escolaridades={escolaridades ?? []}
+          generos={generos ?? []}
+          estadosCivis={estadosCivis ?? []}
           pagamentos={[]}
           caixaAbertoId=""
           selfService

@@ -87,6 +87,12 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
     avaliacao: encontrar("TESTE_LICAO", numero),
   }));
   const prova = encontrar("PROVA");
+  // 28/09/2026, achado do Joaquim: a Prova aparecia liberada mesmo com
+  // testes parciais pendentes — faltava esta checagem (o servidor
+  // também barra agora, ver iniciarTesteLicaoAction, mas a tela precisa
+  // refletir isso sem deixar clicar em algo que vai ser recusado).
+  const todosTestesConcluidos = testes.every((t) => t.avaliacao?.status === "FINALIZADA");
+  const testesConcluidosCount = testes.filter((t) => t.avaliacao?.status === "FINALIZADA").length;
 
   return (
     <div className="min-h-screen bg-iw-bg">
@@ -150,6 +156,12 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
                     <input type="hidden" name="lesson_id" value={lessonId} />
                     <input type="hidden" name="tipo" value="TESTE_LICAO" />
                     <input type="hidden" name="numero_teste" value={numero} />
+                    {/* 28/09/2026, achado do Joaquim: faltava propagar o
+                        "voltar" pra quem inicia um teste do zero (o link de
+                        "continuar" já mandava) — sem isso, depois de
+                        terminar o teste o "VOLTAR" caía no destino padrão
+                        em vez de retornar pra Simulados e Provas. */}
+                    <input type="hidden" name="voltar" value={voltarHref} />
                     <button
                       type="submit"
                       className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity"
@@ -178,10 +190,18 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
                       }`
                     : "Continuar prova em andamento"}
                 </Link>
-              ) : matriculaEmAndamento ? (
+              ) : !matriculaEmAndamento ? (
+                <p className="text-[11px] text-iw-muted italic">Matrícula não está em andamento.</p>
+              ) : !todosTestesConcluidos ? (
+                <p className="text-[11px] text-iw-muted italic">
+                  Disponível ao concluir os {TOTAL_TESTES_POR_MATERIA} testes desta matéria
+                  ({testesConcluidosCount}/{TOTAL_TESTES_POR_MATERIA} concluídos).
+                </p>
+              ) : (
                 <form action={iniciarTesteLicaoAction} className="space-y-2">
                   <input type="hidden" name="lesson_id" value={lessonId} />
                   <input type="hidden" name="tipo" value="PROVA" />
+                  <input type="hidden" name="voltar" value={voltarHref} />
                   <label className="flex items-start gap-2 text-[11px] text-iw-muted leading-snug">
                     <input type="checkbox" name="confirmo_prova" className="mt-0.5" required />
                     <span className="inline-flex items-start gap-1">
@@ -196,8 +216,6 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
                     Iniciar prova
                   </button>
                 </form>
-              ) : (
-                <p className="text-[11px] text-iw-muted italic">Matrícula não está em andamento.</p>
               )}
             </div>
           </div>

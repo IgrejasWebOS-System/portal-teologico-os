@@ -2,8 +2,23 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ClipboardList, GraduationCap, AlertTriangle, ListChecks } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { iniciarAvaliacaoAction, iniciarTesteLicaoAction } from "./actions";
+import { iniciarTesteLicaoAction as iniciarTesteLicaoMateriaAction } from "../testes/[lessonId]/actions";
 import { listarTestesLicaoDoCurso, type TesteLicaoDisponivel } from "@/utils/avaliacoes/gerador";
+import { TOTAL_TESTES_POR_MATERIA } from "@/utils/avaliacoes/geradorLicao";
+
+// ============================================================
+// 26/09/2026, pedido do Joaquim: os "Testes por lição" desta página
+// (bloco logo abaixo, "Testes por lição (Certo/Errado)") só leem o
+// banco ANTIGO (avaliacoes_teste_licao_banco, migration 097 -- hoje só
+// tem Pneumatologia/Curso Básico). Desde 11-12/09/2026 existe um banco
+// NOVO por matéria (avaliacoes_banco_questoes_licao, migrations
+// 099/100 -- Bibliologia e Homilética/Curso Médio), usado até agora só
+// dentro da tela da aula (/escola/[id]). Bloco novo abaixo
+// ("Testes e Prova por matéria") lê o banco novo e mostra aqui também,
+// pra não depender de o aluno estar na aula certa pra achar o teste.
+// ============================================================
 
 export const metadata = { title: "Simulados e Provas — Portal do Aluno" };
 
@@ -31,6 +46,14 @@ const STATUS_MATRICULA_LABEL: Record<string, string> = {
 export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const { msg, error, voltar } = await searchParams;
   const voltarHref = resolveVoltarHref(voltar);
+  // 28/09/2026, achado do Joaquim: os links pra dentro de um teste/prova
+  // (linhas abaixo) reusavam `voltarHref` — que é o destino de ONDE esta
+  // página veio (escola/cursos), não "volte pra cá". Resultado: ao
+  // terminar um teste e clicar Voltar, pulava direto pra tela de aula,
+  // sem passar por "Simulados e Provas". Os links filhos agora apontam de
+  // volta pra esta própria página (preservando o `voltar` que ela recebeu,
+  // pra continuar voltando em cadeia se o aluno clicar Voltar de novo lá).
+  const voltarParaAvaliacoes = `/portal/avaliacoes?voltar=${encodeURIComponent(voltarHref)}`;
 
   const supabase = await createClient();
   const {
@@ -84,6 +107,35 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const testesLicaoPorCurso = new Map<string, TesteLicaoDisponivel[]>();
   for (const courseId of courseIds) {
     testesLicaoPorCurso.set(courseId, await listarTestesLicaoDoCurso(courseId));
+  }
+
+  // Banco NOVO por matéria (avaliacoes_banco_questoes_licao) -- só staff
+  // consegue ler essa tabela via RLS, por isso admin client aqui.
+  const materiasComBancoPorCurso = new Map<string, { lessonId: string; lessonTitle: string }[]>();
+  if (courseIds.length) {
+    const admin = createAdminClient();
+    const { data: lessonsTodas } = await admin
+      .from("lessons")
+      .select("id, title, course_id")
+      .in("course_id", courseIds);
+
+    const lessonIds = (lessonsTodas ?? []).map((l) => l.id);
+    const { data: bancoRows } = lessonIds.length
+      ? await admin
+          .from("avaliacoes_banco_questoes_licao")
+          .select("lesson_id")
+          .in("lesson_id", lessonIds)
+          .eq("ativo", true)
+      : { data: [] };
+
+    const lessonIdsComBanco = new Set((bancoRows ?? []).map((b) => b.lesson_id));
+
+    for (const lesson of lessonsTodas ?? []) {
+      if (!lessonIdsComBanco.has(lesson.id)) continue;
+      const lista = materiasComBancoPorCurso.get(lesson.course_id) ?? [];
+      lista.push({ lessonId: lesson.id, lessonTitle: lesson.title });
+      materiasComBancoPorCurso.set(lesson.course_id, lista);
+    }
   }
 
   const { data: enrollments } = courseIds.length
@@ -155,6 +207,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
               !!m.course_id && (matriculaEmAndamento || !!provaExistente || simuladosFeitos > 0);
             const testesLicao = m.course_id ? testesLicaoPorCurso.get(m.course_id) ?? [] : [];
             const testesLicaoDaMatricula = avaliacoesDaMatricula.filter((a) => a.tipo === "TESTE_LICAO");
+            const materiasComBanco = m.course_id ? materiasComBancoPorCurso.get(m.course_id) ?? [] : [];
 
             return (
               <div key={m.id} className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
@@ -191,7 +244,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             .map((a) => (
                               <li key={a.id}>
                                 <Link
-                                  href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                                  href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
                                   className="block text-xs font-bold text-iw-navy hover:underline"
                                 >
                                   {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} — {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)}` : "em andamento"}
@@ -231,7 +284,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                       <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (única tentativa)</p>
                       {provaExistente ? (
                         <Link
-                          href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                          href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
                           className="block text-center text-xs font-bold text-iw-navy hover:underline"
                         >
                           Ver resultado da prova ({provaExistente.status === "FINALIZADA" ? `nota ${Number(provaExistente.nota).toFixed(1)}` : "em andamento"})
@@ -291,7 +344,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             </div>
                             {tentativa ? (
                               <Link
-                                href={`/portal/avaliacoes/${tentativa.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                                href={`/portal/avaliacoes/${tentativa.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
                                 className="shrink-0 text-[11px] font-bold text-iw-navy hover:underline"
                               >
                                 {tentativa.status === "FINALIZADA" ? `nota ${Number(tentativa.nota).toFixed(1)}` : "em andamento"}
@@ -313,6 +366,74 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                         );
                       })}
                     </ul>
+                  </div>
+                )}
+
+                {matriculaEmAndamento && materiasComBanco.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="w-3.5 h-3.5 text-iw-navy" />
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Testes e Prova por matéria</p>
+                    </div>
+                    {materiasComBanco.map((materia) => {
+                      const avaliacoesDaMateria = avaliacoesDaMatricula.filter((a) => a.lesson_id === materia.lessonId);
+                      const testesResumo = Array.from({ length: TOTAL_TESTES_POR_MATERIA }, (_, i) => i + 1).map((numero) => ({
+                        numero,
+                        avaliacao: avaliacoesDaMateria.find((a) => a.tipo === "TESTE_LICAO" && a.numero_teste === numero),
+                      }));
+                      const provaDaMateria = avaliacoesDaMateria.find((a) => a.tipo === "PROVA");
+                      return (
+                        <div key={materia.lessonId} className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
+                          <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">{materia.lessonTitle}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                            {testesResumo.map(({ numero, avaliacao }) => (
+                              <div key={numero} className="bg-white border border-iw-border rounded-lg p-3 space-y-2 text-center">
+                                <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Teste {numero}</p>
+                                {avaliacao ? (
+                                  <Link
+                                    href={`/portal/testes/${materia.lessonId}/${avaliacao.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                    className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                  >
+                                    {avaliacao.status === "FINALIZADA" ? `Nota ${Number(avaliacao.nota).toFixed(1)}` : "Continuar"}
+                                  </Link>
+                                ) : (
+                                  <form action={iniciarTesteLicaoMateriaAction}>
+                                    <input type="hidden" name="lesson_id" value={materia.lessonId} />
+                                    <input type="hidden" name="tipo" value="TESTE_LICAO" />
+                                    <input type="hidden" name="numero_teste" value={numero} />
+                                    <button
+                                      type="submit"
+                                      className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-[11px] px-2 py-1.5 rounded-lg transition-opacity"
+                                    >
+                                      Fazer
+                                    </button>
+                                  </form>
+                                )}
+                              </div>
+                            ))}
+
+                            <div className="bg-white border border-iw-border rounded-lg p-3 space-y-2 text-center">
+                              <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Prova</p>
+                              {provaDaMateria ? (
+                                <Link
+                                  href={`/portal/testes/${materia.lessonId}/${provaDaMateria.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                  className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                >
+                                  {provaDaMateria.status === "FINALIZADA" ? `Nota ${Number(provaDaMateria.nota).toFixed(1)}` : "Continuar"}
+                                </Link>
+                              ) : (
+                                <Link
+                                  href={`/portal/testes/${materia.lessonId}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                  className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                >
+                                  Iniciar
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

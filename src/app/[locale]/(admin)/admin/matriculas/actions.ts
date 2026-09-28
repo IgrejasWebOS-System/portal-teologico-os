@@ -615,19 +615,64 @@ export async function matricularDiretoAction(formData: FormData) {
     }
 
     if (valorParcelaCentavos > 0) {
-      await gerarParcelasContasReceber(admin, {
-        origemTipo: "MATRICULA_DIRETA",
-        origemId: matriculaCriada!.id,
-        alunoId: aluno.id,
-        alunoUserId: aluno.user_id,
-        responsavelPagamento: responsavel,
-        churchId,
-        descricaoBase: `Mensalidade — ${curso!.title}`,
-        valorTotalCentavos: valorParcelaCentavos * totalParcelas,
-        totalParcelas,
-        primeiroVencimento: dataVencimento,
-        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
-      });
+      // 27/09/2026, pedido do Joaquim: tela de confirmação de parcelas
+      // (ConfirmarParcelasModal, dentro de NovaMatriculaForm.tsx) calcula as
+      // datas de vencimento já com o ajuste de fim de semana e decide quais
+      // parcelas nascem PAGO (aluno que já estuda desde antes) — manda tudo
+      // pronto em "parcelas_mensalidade_json". Se não vier (formulários mais
+      // antigos ou outros chamadores), cai no cálculo automático de sempre.
+      const overridesRaw = (formData.get("parcelas_mensalidade_json") as string) || "";
+      let overrides: {
+        numero: number;
+        total: number;
+        data_vencimento: string;
+        valor_centavos: number;
+        paga: boolean;
+      }[] = [];
+      if (overridesRaw) {
+        try {
+          overrides = JSON.parse(overridesRaw);
+        } catch {
+          overrides = [];
+        }
+      }
+
+      if (overrides.length > 0) {
+        const linhas = overrides.map((o) => ({
+          origem_tipo: "MATRICULA_DIRETA" as const,
+          origem_id: matriculaCriada!.id,
+          aluno_id: aluno.id,
+          aluno_user_id: aluno.user_id,
+          responsavel_pagamento: responsavel,
+          church_id: responsavel === "IGREJA" ? churchId : null,
+          descricao:
+            o.total > 1
+              ? `Mensalidade — ${curso!.title} — parcela ${o.numero}/${o.total}`
+              : `Mensalidade — ${curso!.title}`,
+          numero_parcela: o.numero,
+          total_parcelas: o.total,
+          valor_bruto_centavos: o.valor_centavos,
+          forma_pagamento_prevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
+          data_vencimento: o.data_vencimento,
+          status: o.paga ? ("PAGO" as const) : ("PENDENTE" as const),
+          pago_em: o.paga ? new Date(`${o.data_vencimento}T12:00:00`).toISOString() : null,
+        }));
+        await admin.from("fin_contas_receber").insert(linhas);
+      } else {
+        await gerarParcelasContasReceber(admin, {
+          origemTipo: "MATRICULA_DIRETA",
+          origemId: matriculaCriada!.id,
+          alunoId: aluno.id,
+          alunoUserId: aluno.user_id,
+          responsavelPagamento: responsavel,
+          churchId,
+          descricaoBase: `Mensalidade — ${curso!.title}`,
+          valorTotalCentavos: valorParcelaCentavos * totalParcelas,
+          totalParcelas,
+          primeiroVencimento: dataVencimento,
+          formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
+        });
+      }
     }
   } else if (valorTotalCentavos > 0 && formaCobranca === "MERCADOPAGO") {
     const { data: contaReceber, error: erroContaReceber } = await admin

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, GraduationCap } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import ProfessorForm from "../../ProfessorForm";
 import ProfessorTurmasVinculos, { type VinculoExistente } from "../../ProfessorTurmasVinculos";
 
@@ -19,7 +20,7 @@ type VinculoRow = {
 };
 
 const CAMPOS_PROFESSOR =
-  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, email, tipo_professor, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado";
+  "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, email, tipo_professor, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, foto_url, observacoes, user_id";
 
 export default async function EditarProfessorPage({ params }: PageProps) {
   const { id } = await params;
@@ -43,6 +44,17 @@ export default async function EditarProfessorPage({ params }: PageProps) {
   ]);
 
   if (!professor) notFound();
+
+  // 27/09/2026, pedido do Joaquim: mostrar o e-mail de login REAL (auth.
+  // users), não o texto salvo em professores.email (que fica desatualizado
+  // ou vazio quando o acesso foi vinculado manualmente, fora do fluxo de
+  // convite normal).
+  let contaEmailAtual: string | null = null;
+  if (professor.user_id) {
+    const admin = createAdminClient();
+    const { data: contaData } = await admin.auth.admin.getUserById(professor.user_id);
+    contaEmailAtual = contaData?.user?.email ?? null;
+  }
 
   const vinculos: VinculoExistente[] = ((vinculosRaw ?? []) as unknown as VinculoRow[]).map((v) => ({
     id: v.id,
@@ -84,6 +96,11 @@ export default async function EditarProfessorPage({ params }: PageProps) {
         profissoes={profissoesOpts ?? []}
         cargos={cargosOpts ?? []}
         submitLabel="Salvar alterações"
+        // 27/09/2026, pedido do Joaquim: a busca por matrícula/CPF/nome não
+        // faz sentido aqui — já estamos dentro da ficha do professor
+        // existente. Ela só serve pra achar o cadastro na hora de CRIAR um
+        // professor novo (telas /novo/membro e /novo/externo).
+        mostrarBusca={false}
         existing={{
           id: professor.id,
           unitId: professor.unit_id,
@@ -115,6 +132,9 @@ export default async function EditarProfessorPage({ params }: PageProps) {
           bairro: professor.bairro,
           cidade: professor.cidade,
           estado: professor.estado,
+          fotoUrl: professor.foto_url,
+          observacoes: professor.observacoes,
+          contaEmailAtual,
         }}
       />
 

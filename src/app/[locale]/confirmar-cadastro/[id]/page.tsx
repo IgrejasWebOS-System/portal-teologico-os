@@ -52,9 +52,14 @@ export default async function ConfirmarCadastroPage({ params }: PageProps) {
   // só têm SELECT liberado pra `authenticated`, então busca aqui com o
   // client admin (bypassa RLS) e passa pronto pro form, em vez de deixar
   // o client tentar buscar direto (ficaria vazio pra usuário anônimo).
-  const [{ data: escolaridades }, { data: profissoes }] = await Promise.all([
+  const [{ data: escolaridades }, { data: profissoes }, { data: generos }, { data: estadosCivis }] = await Promise.all([
     admin.from("settings_schooling").select("id, name").order("name"),
     admin.from("settings_professions").select("id, name").order("name"),
+    // 26/09/2026, auditoria de padronização de fichas: Sexo/Estado civil
+    // eram <option> fixas dentro do ConfirmarCadastroForm -- agora vêm do
+    // banco, mesmo padrão de escolaridades/profissoes acima.
+    admin.from("settings_gender").select("id, name").order("name"),
+    admin.from("settings_civil_status").select("id, name").order("name"),
   ]);
 
   return (
@@ -62,6 +67,8 @@ export default async function ConfirmarCadastroPage({ params }: PageProps) {
       aluno={aluno}
       escolaridades={escolaridades ?? []}
       profissoes={profissoes ?? []}
+      generos={generos ?? []}
+      estadosCivis={estadosCivis ?? []}
     />
   );
 }
