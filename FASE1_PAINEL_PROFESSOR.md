@@ -608,3 +608,42 @@ do mesmo fluxo de matrícula/pagamento mexido nesta sessão.
 5. Conclua o cadastro e confira em Financeiro > Contas a Receber que as parcelas marcadas entraram
    como PAGO nas datas certas — igual comportamento de antes do redesenho.
 6. Rode de novo `npx tsc --noEmit` e `npm run lint`.
+
+---
+
+## Professor criar a própria turma (28/09/2026) — reversão da regra de 21/09/2026
+
+Até 21/09/2026, "Criar Turma" tinha sido removida de propósito de `/professor/turmas` — regra era
+"professor NUNCA cria turma pelo próprio painel, só vincula a uma que a secretaria já cadastrou".
+Pedido do Joaquim reverte essa decisão: o professor volta a poder criar a própria turma, na mesma
+tela onde já vincula turmas existentes.
+
+### O que mudou
+
+- **Nenhuma Server Action nova.** `professorCriarTurmaAction` (`professor/actions.ts`) já existia
+  desde 18/09/2026 — foi construída pro fluxo de mutirão (primeiro login em `/completar-cadastro`)
+  e já fazia tudo num passo só: cria `course_editions`, cria o vínculo `professor_turmas` (com
+  `link_token` automático) e redireciona de volta com o link pronto. Só não tinha mais nenhuma UI
+  ativa que a chamasse fora daquele fluxo de primeiro acesso.
+- **`TurmasDoProfessor.tsx`** ganhou um novo bloco "Criar turma nova" (aberto por padrão, acima de
+  "Vincular a turma já existente"): cascata Setor/Regional → Igreja (mesmo padrão já usado na busca
+  de turma existente), Curso, Nome da turma, Classe (opcional), Turno, Dia da semana, Data
+  início/fim (opcionais) — chama `professorCriarTurmaAction` direto via `<form action={...}>`
+  (Server Action com redirect, sem passo intermediário de "vincular" depois de criar).
+- Igual à busca de turma existente, o professor pode escolher **qualquer** Setor/Regional/Igreja
+  cadastrada no sistema, não só a própria — mesmo nível de acesso que já existia pra "vincular a
+  turma já existente" (que já permitia buscar turma em qualquer igreja). Não é uma trava nova nem
+  uma abertura nova de permissão.
+
+### Como testar
+
+1. Crie um professor de teste (`/cadastro-professor` ou pela secretaria) só pra esta validação.
+2. `/professor/turmas` — confirme que "Criar turma nova" aparece aberta por padrão, antes de
+   "Vincular a turma já existente".
+3. Escolha Setor/Regional, Igreja, Curso, preencha Nome/Turno/Dia da semana e clique "Criar turma e
+   gerar link" — confirme que volta pra esta mesma tela com a mensagem de sucesso e a turma nova já
+   aparece na lista "Minhas Turmas", com o link de matrícula pronto pra copiar.
+4. Abra o link gerado (`/matricula-turma/[token]`) numa aba anônima e confirme que a matrícula
+   pública funciona normalmente pra essa turma nova.
+5. Apague o professor de teste (e a turma/matrícula gerada) depois de validar.
+6. Rode de novo `npx tsc --noEmit` e `npm run lint`.
