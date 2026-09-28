@@ -3,7 +3,7 @@ import SidebarShell from "@/components/layout/SidebarShell";
 import AutoLogout from "@/components/security/AutoLogout";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import { createClient } from "@/utils/supabase/server";
-import { checkIsStaff } from "@/utils/staff";
+import { checkIsStaff, checkMenuRestrito } from "@/utils/staff";
 
 // ============================================================
 // Gate de acesso do módulo Igreja (/dashboard e todas as
@@ -42,10 +42,12 @@ export default async function IgrejaLayout({
     );
   }
 
+  const isAdminRestrito = await checkMenuRestrito(supabase, user.id);
+
   return (
     <>
       <AutoLogout />
-      <SidebarShell isStaff={isStaff}>{children}</SidebarShell>
+      <SidebarShell isStaff={isStaff} isAdminRestrito={isAdminRestrito}>{children}</SidebarShell>
     </>
   );
 }

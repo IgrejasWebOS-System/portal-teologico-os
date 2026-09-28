@@ -121,6 +121,22 @@ const CONFIGURACOES_MODULE: SidebarModule = {
   description: "Tabelas, igrejas e acessos",
 };
 
+// Menu curado (28/09/2026, pedido do Joaquim) — só pra admin com
+// `admin_roles.menu_restrito = true` (josias, marcelo, pandolfo). Bloqueio
+// de verdade acontece no middleware (src/utils/supabase/middleware.ts);
+// aqui é só a lista de itens visíveis, apontando direto pras telas já
+// existentes (nenhuma rota nova).
+const adminRestritoModules: SidebarModule[] = [
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, description: "Visão geral do CETADP" },
+  { label: "Turmas", href: "/dashboard/configuracoes/persona/turmas", icon: GraduationCap, description: "Turmas e edições" },
+  { label: "Matrículas", href: "/admin/matriculas", icon: UserCheck, description: "Matrícula direta e inscrições" },
+  { label: "Professores", href: "/dashboard/configuracoes/professores", icon: UserPlus, description: "Cadastro de professores" },
+  { label: "Alunos", href: "/dashboard/configuracoes/persona/alunos", icon: Users, description: "Cadastro de alunos" },
+  { label: "Financeiro", href: "/admin/financeiro", icon: Wallet, description: "Contas a receber e a pagar" },
+  { label: "Caixa", href: "/admin/financeiro/caixa", icon: Banknote, description: "Caixa diário da secretaria" },
+  { label: "Configurações", href: "/dashboard/configuracoes/acessos/usuarios", icon: Settings2, description: "Usuários e acessos" },
+];
+
 const adminModules: SidebarModule[] = [
   {
     label: "Dashboard",
@@ -170,6 +186,7 @@ const professorModules: SidebarModule[] = [
 
 export default function Sidebar({
   isStaff = false,
+  isAdminRestrito = false,
   isAlunoOficial = false,
   alunoPainel = null,
   isProfessor = false,
@@ -179,6 +196,9 @@ export default function Sidebar({
   onToggleColapso,
 }: {
   isStaff?: boolean;
+  // 28/09/2026: staff com menu curado (ver migration 118) — mesma
+  // permissão de sempre por baixo, só a barra lateral muda.
+  isAdminRestrito?: boolean;
   isAlunoOficial?: boolean;
   alunoPainel?: {
     aluno: AlunoResumo;
@@ -225,8 +245,45 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {/* Admin section - so para staff, sempre primeiro nesta lista */}
-        {isStaff && (
+        {/* Menu curado (28/09/2026) — admin com menu_restrito, no lugar do
+            bloco completo de Administração abaixo. */}
+        {isStaff && isAdminRestrito && (
+        <div className="pb-3 mb-3 border-b border-white/10">
+        <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
+          Administração
+        </p>
+        {adminRestritoModules.map((mod) => {
+          const Icon = mod.icon;
+          const isModuleActive =
+            mod.href === "/admin" ? pathname === "/admin" : pathname === mod.href || pathname.startsWith(mod.href + "/");
+          return (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                menuColapsado && "md:justify-center md:px-0",
+                isModuleActive ? "bg-iw-blue text-white shadow-md" : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+              )}
+            >
+              <div className="w-7 h-7 rounded-lg bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[#E88D0C]" />
+              </div>
+              <div className={cn("flex-1 min-w-0", menuColapsado && "md:hidden")}>
+                <p className="leading-tight truncate">{mod.label}</p>
+                {!isModuleActive && (
+                  <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60">{mod.description}</p>
+                )}
+              </div>
+              {isModuleActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-iw-gold shrink-0" />}
+            </Link>
+          );
+        })}
+        </div>
+        )}
+
+        {/* Admin section - so para staff SEM menu_restrito */}
+        {isStaff && !isAdminRestrito && (
         <div className="pb-3 mb-3 border-b border-white/10">
         <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
           Administração
@@ -356,7 +413,7 @@ export default function Sidebar({
         </>
         )}
 
-        {!isAlunoOficial && !isProfessor && (
+        {!isAlunoOficial && !isProfessor && !isAdminRestrito && (
         <>
         <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
           Módulos
@@ -437,8 +494,9 @@ export default function Sidebar({
         )}
 
         {/* Admin Loja — atalho fixo pro núcleo administrativo da Loja,
-            sempre visível pra staff no fim do menu, acima do rodapé. */}
-        {isStaff && (
+            sempre visível pra staff no fim do menu, acima do rodapé.
+            Fora do menu curado (28/09/2026) — bloqueado no middleware. */}
+        {isStaff && !isAdminRestrito && (
           <div className="pt-3 mt-3 border-t border-white/10">
             <Link
               href="/admin/loja"
@@ -465,8 +523,10 @@ export default function Sidebar({
 
         {/* Configurações — movido em 13/09/2026 (decisão do Joaquim) pra
             logo abaixo de "Admin Loja", saindo da lista principal de
-            Administração. Só reposicionamento, mesmo comportamento. */}
-        {isStaff && (
+            Administração. Só reposicionamento, mesmo comportamento.
+            Fora do menu curado (28/09/2026) — já tem o próprio item
+            "Configurações" (Usuários e acessos) na lista curada acima. */}
+        {isStaff && !isAdminRestrito && (
           <div className="pt-1">
             <Link
               href={CONFIGURACOES_MODULE.href}

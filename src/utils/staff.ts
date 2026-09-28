@@ -28,3 +28,24 @@ export async function checkIsStaff(
 
   return !!profile && STAFF_ROLES.includes(profile.system_role ?? "");
 }
+
+// 28/09/2026, pedido do Joaquim: alguns GLOBAL_ADMIN (josias, marcelo,
+// pandolfo) precisam ver só um menu curado e ficar de fato bloqueados de
+// qualquer outra área administrativa, mesmo digitando a URL direto — ver
+// migration 118_admin_roles_menu_restrito.sql e o gate em
+// src/utils/supabase/middleware.ts. `supabase` também tipado `any` de
+// propósito, mesmo motivo do comentário no topo deste arquivo.
+export async function checkMenuRestrito(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("admin_roles")
+    .select("menu_restrito")
+    .eq("user_id", userId)
+    .eq("level", 0)
+    .maybeSingle();
+
+  return !!data?.menu_restrito;
+}
