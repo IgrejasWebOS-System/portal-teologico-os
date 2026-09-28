@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { maskPhone } from "@/utils/maskPhone";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 import {
   createMemberAction,
   getNextRegistrationNumberAction,
@@ -155,6 +156,10 @@ export default function NovoMembroForm() {
   const [genders, setGenders] = useState<SelectItem[]>([]);
   const [states, setStates] = useState<{ id: number; sigla: string; nome: string }[]>([]);
   const [cities, setCities] = useState<{ id: string | number; nome: string }[]>([]);
+  // 26/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial (o campo abaixo, "Cidade", era texto livre sem
+  // catálogo) -- mesmo catálogo (IBGE + DF) já usado no ProfessorForm.tsx.
+  const { catalogoCidades } = useCatalogoCidades();
 
   // Core form values managed in state (controlled by masks)
   const [formData, setFormData] = useState({
@@ -1037,13 +1042,20 @@ export default function NovoMembroForm() {
               <label className={labelCls}>Cidade</label>
               <input
                 type="text"
+                list="lista-cidades-endereco-membro"
                 placeholder="Cidade"
                 value={addressData.city}
-                onChange={(e) =>
-                  setAddressData((p) => ({ ...p, city: e.target.value.toUpperCase() }))
-                }
+                onChange={(e) => {
+                  const { cidade, uf } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                  setAddressData((p) => ({ ...p, city: cidade, state: uf ?? p.state }));
+                }}
                 className={`${inputCls} uppercase`}
               />
+              <datalist id="lista-cidades-endereco-membro">
+                {catalogoCidades.map((c) => (
+                  <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className={labelCls}>UF</label>

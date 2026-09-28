@@ -154,6 +154,11 @@ export default async function TesteLicaoDetailPage({ params, searchParams }: Pag
             <form action={submeterTesteLicaoAction} className="space-y-4">
               <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
               <input type="hidden" name="lesson_id" value={lessonId} />
+              {/* 28/09/2026, achado do Joaquim: sem isto, ao finalizar o
+                  teste o redirect perdia o "voltar" e o botão VOLTAR do
+                  resultado caía no destino padrão em vez de retornar pra
+                  Simulados e Provas. */}
+              <input type="hidden" name="voltar" value={voltarHref} />
               {questoes.map((q) => (
                 <div key={q.id} className="bg-iw-surface border border-iw-border rounded-xl p-4">
                   <p className="text-sm font-semibold text-iw-navy mb-3">

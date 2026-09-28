@@ -21,6 +21,16 @@ export interface ProfessorLogado {
   cpf: string | null;
   cargo: string | null;
   unit_id: string | null;
+  // 27/09/2026, Fase 2 do Painel do Professor (Caixa do núcleo) — precisa
+  // saber a qual igreja a despesa lançada pertence, pra staff conseguir
+  // filtrar por unidade (ver nucleo_despesas_staff_select, migration 115).
+  church_id: string | null;
+  // 27/09/2026, achado em teste (Joaquim: "Configurações" não mostrava
+  // e-mail/igreja/setor) — campos adicionais só de leitura, pra completar
+  // a tela sem precisar de uma query extra em cada consumidor.
+  sector_id: string | null;
+  email: string | null;
+  foto_url: string | null;
 }
 
 export async function checkIsProfessor(
@@ -30,7 +40,7 @@ export async function checkIsProfessor(
 ): Promise<ProfessorLogado | null> {
   const { data } = await supabase
     .from("professores")
-    .select("id, nome_completo, cadastro_publico, telefone, cpf, cargo, unit_id")
+    .select("id, nome_completo, cadastro_publico, telefone, cpf, cargo, unit_id, church_id, sector_id, email, foto_url")
     .eq("user_id", userId)
     .maybeSingle();
 

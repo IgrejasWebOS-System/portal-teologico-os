@@ -24,6 +24,17 @@ import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { gerarPdfMatricula } from "@/utils/pdf/matricula";
 
+// 27/09/2026, pedido do Joaquim: Nova Matrícula do professor ganhou a
+// mesma caixa de Pagamento da Nova Matrícula Direta da secretaria (valor
+// de matrícula/parcela/nº de parcelas editáveis, pré-preenchidos pelo
+// course_pricing) — mesmo parser de "25,00"/"1.234,56" usado lá
+// (admin/matriculas/actions.ts: centavosMatricula).
+function centavosValor(valor: string): number {
+  const limpo = valor.replace(/\./g, "").replace(",", ".");
+  const num = Number(limpo);
+  return Math.round((isNaN(num) ? 0 : num) * 100);
+}
+
 async function requireProfessor() {
   const supabase = await createClient();
   const {
@@ -37,8 +48,15 @@ async function requireProfessor() {
   return { userId: user.id, professor, admin: createAdminClient() };
 }
 
-function erro(msg: string) {
-  redirect("/professor?error=" + encodeURIComponent(msg));
+// 27/09/2026, Fase 1 do Painel do Professor (sidebar + rotas separadas):
+// cada ação agora redireciona pra sub-rota onde o resultado é visível —
+// antes tudo apontava pra "/professor" (página única); "/professor" virou
+// só o Dashboard, então um erro/mensagem de "dar baixa" ou "nova matrícula"
+// que continuasse indo pra lá nunca apareceria pro professor. Path default
+// cobre a maioria dos chamadores (ações de aluno/matrícula); turma passa
+// o próprio path explicitamente.
+function erro(msg: string, path: string = "/professor/alunos"): never {
+  redirect(path + "?error=" + encodeURIComponent(msg));
 }
 
 // ── AÇÃO 1: DAR BAIXA EM PARCELA (só forma não-dinheiro) ────────
@@ -49,10 +67,15 @@ export async function professorBaixarParcelaAction(formData: FormData) {
 
   const id = formData.get("id") as string;
   const forma_pagamento = formData.get("forma_pagamento") as string;
+  // 27/09/2026, Fase 1 (rotas separadas): esta ação agora é chamada tanto
+  // de /professor/alunos quanto de /professor/financeiro — cada form
+  // manda de onde veio pra voltar pro mesmo lugar depois da baixa, em vez
+  // de sempre cair em /professor/alunos.
+  const redirectTo = (formData.get("redirect_to") as string) || "/professor/alunos";
 
-  if (!id || !forma_pagamento) erro("Dados incompletos.");
+  if (!id || !forma_pagamento) erro("Dados incompletos.", redirectTo);
   if (forma_pagamento === "DINHEIRO") {
-    erro("Pagamento em dinheiro só pode ser baixado pela secretaria (Caixa Diário).");
+    erro("Pagamento em dinheiro só pode ser baixado pela secretaria (Caixa Diário).", redirectTo);
   }
 
   const { data: conta } = await admin
@@ -61,9 +84,9 @@ export async function professorBaixarParcelaAction(formData: FormData) {
     .eq("id", id)
     .single();
 
-  if (!conta) erro("Parcela não encontrada.");
-  if (conta!.status === "PAGO") erro("Essa parcela já foi baixada.");
-  if (conta!.origem_tipo !== "MATRICULA_DIRETA") erro("Parcela fora do escopo do professor.");
+  if (!conta) erro("Parcela não encontrada.", redirectTo);
+  if (conta!.status === "PAGO") erro("Essa parcela já foi baixada.", redirectTo);
+  if (conta!.origem_tipo !== "MATRICULA_DIRETA") erro("Parcela fora do escopo do professor.", redirectTo);
 
   const { data: matricula } = await admin
     .from("ead_matriculas")
@@ -72,7 +95,7 @@ export async function professorBaixarParcelaAction(formData: FormData) {
     .single();
 
   if (!matricula || matricula.professor_id !== professor.id) {
-    erro("Essa parcela não pertence a um aluno seu.");
+    erro("Essa parcela não pertence a um aluno seu.", redirectTo);
   }
 
   const { error } = await admin
@@ -89,11 +112,13 @@ export async function professorBaixarParcelaAction(formData: FormData) {
 
   if (error) {
     console.error("[professor/actions] baixar parcela", error);
-    erro("Erro ao dar baixa. Tente novamente.");
+    erro("Erro ao dar baixa. Tente novamente.", redirectTo);
   }
 
   revalidatePath("/professor");
-  redirect("/professor?msg=" + encodeURIComponent("Parcela baixada com sucesso."));
+  revalidatePath("/professor/alunos");
+  revalidatePath("/professor/financeiro");
+  redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela baixada com sucesso."));
 }
 
 // ── AÇÃO 2: NOVA MATRÍCULA (aluno novo, já vinculado a este professor) ──
@@ -198,17 +223,23 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     ["UF", estado],
     ["Igreja", church_id],
   ];
+  // 27/09/2026, pedido do Joaquim: "Nova Matrícula" saiu da tela de Alunos
+  // (modal) e virou página própria (/professor/matricula) — os erros desta
+  // ação agora voltam pra lá, não mais pra /professor/alunos (senão o
+  // professor perderia a ficha que estava preenchendo).
+  const voltarEmErro = "/professor/matricula";
+
   const faltando = camposObrigatorios.filter(([, valor]) => !valor).map(([label]) => label);
   if (faltando.length > 0) {
-    erro(`Preencha os campos obrigatórios que faltam: ${faltando.join(", ")}.`);
+    erro(`Preencha os campos obrigatórios que faltam: ${faltando.join(", ")}.`, voltarEmErro);
   }
 
   if (!validarCPF(cpf)) {
-    erro("CPF inválido — confira os dígitos digitados.");
+    erro("CPF inválido — confira os dígitos digitados.", voltarEmErro);
   }
 
   if (dataMatriculaInformada && dataMatriculaInformada > new Date().toISOString().slice(0, 10)) {
-    erro("A data informada não pode ser no futuro.");
+    erro("A data informada não pode ser no futuro.", voltarEmErro);
   }
 
   // Professor só matricula em turma que ele já leciona de verdade (evita
@@ -222,7 +253,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     .maybeSingle();
 
   if (!vinculo) {
-    erro("Você só pode matricular alunos numa turma que já está vinculada a você.");
+    erro("Você só pode matricular alunos numa turma que já está vinculada a você.", voltarEmErro);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -230,7 +261,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   const cursoRaw = courseEdition?.courses;
   const curso = (Array.isArray(cursoRaw) ? cursoRaw[0] : cursoRaw) as { id: string; title: string } | null;
   const course_id = courseEdition?.course_id ?? "";
-  if (!curso || !course_id) erro("Curso não encontrado para esta turma.");
+  if (!curso || !course_id) erro("Curso não encontrado para esta turma.", voltarEmErro);
   const turmaNome = courseEdition?.nome
     ? `${courseEdition.nome}${courseEdition.classe ? ` - Classe ${courseEdition.classe}` : ""}`
     : null;
@@ -244,7 +275,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       .eq("course_id", course_id)
       .in("status", ["EM_ANDAMENTO", "APROVADO"])
       .maybeSingle();
-    if (conflito) erro("Já existe um aluno com esse CPF matriculado neste curso.");
+    if (conflito) erro("Já existe um aluno com esse CPF matriculado neste curso.", voltarEmErro);
   }
 
   await upsertProfissaoLivre(admin, profissao);
@@ -295,7 +326,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
 
     if (erroAluno || !novoAluno) {
       console.error("[professor/actions] criar aluno", erroAluno);
-      erro("Erro ao cadastrar aluno — verifique se o CPF já não está em uso.");
+      erro("Erro ao cadastrar aluno — verifique se o CPF já não está em uso.", voltarEmErro);
     }
     aluno = novoAluno;
   }
@@ -313,7 +344,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
 
     if (inviteError) {
       console.error("[professor/actions] convite aluno", inviteError);
-      erro("Aluno cadastrado, mas houve erro ao enviar o convite de acesso: " + inviteError.message);
+      erro("Aluno cadastrado, mas houve erro ao enviar o convite de acesso: " + inviteError.message, voltarEmErro);
     }
 
     if (invited?.user?.id) {
@@ -344,7 +375,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
 
   if (erroMatricula || !matricula) {
     console.error("[professor/actions] criar matrícula", erroMatricula);
-    erro("Erro ao criar matrícula.");
+    erro("Erro ao criar matrícula.", voltarEmErro);
   }
 
   // Também garante a matrícula em "enrollments" (sistema genérico de aulas,
@@ -362,16 +393,26 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       );
   }
 
-  // Plano de parcelas completo — mesma regra do course_pricing (básico
-  // sempre com valor de matrícula + 12x, médio só com as parcelas) usada
-  // em matricularDiretoAction e em salvarPagamentoInicialAlunoAction.
-  // Nasce tudo PENDENTE aqui -- é o aluno (primeiro acesso) ou a
-  // secretaria (Financeiro) quem confirma o que já foi pago depois.
+  // Plano de parcelas — 27/09/2026, pedido do Joaquim: a ficha do
+  // professor ganhou a mesma caixa de Pagamento da secretaria
+  // (valor_matricula/valor_parcela/total_parcelas/forma_pagamento_prevista
+  // editáveis, pré-preenchidos no client a partir do course_pricing — se o
+  // professor não mexer em nada, o valor final é o mesmo de antes). Nasce
+  // tudo PENDENTE (ou PAGO, se vier confirmado no modal de parcelas) --
+  // secretaria/Financeiro confirmam o resto depois.
   const { data: preco } = await admin
     .from("course_pricing")
     .select("valor_matricula_centavos, valor_parcela_centavos, numero_parcelas")
     .eq("course_id", course_id)
     .maybeSingle();
+
+  const valorMatriculaCentavos =
+    centavosValor((formData.get("valor_matricula") as string) || "") || preco?.valor_matricula_centavos || 0;
+  const valorParcelaCentavos =
+    centavosValor((formData.get("valor_parcela") as string) || "") || preco?.valor_parcela_centavos || 0;
+  const totalParcelas =
+    Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || preco?.numero_parcelas || 12));
+  const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "PIX";
 
   // 26/09/2026, pedido do Joaquim: "1º vencimento" (campo novo, explícito)
   // manda em quem manda a data — só cai pra "Data matrícula" ou pra hoje se
@@ -381,7 +422,7 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   const primeiroVencimento =
     dataVencimentoInformada ?? dataMatriculaInformada ?? new Date().toISOString().slice(0, 10);
 
-  if (preco?.valor_matricula_centavos) {
+  if (valorMatriculaCentavos > 0) {
     await gerarParcelasContasReceber(admin, {
       origemTipo: "MATRICULA_DIRETA",
       origemId: matricula!.id,
@@ -389,26 +430,69 @@ export async function professorCriarMatriculaAction(formData: FormData) {
       alunoUserId: aluno!.user_id,
       responsavelPagamento: "ALUNO",
       descricaoBase: `Matrícula — ${curso!.title}`,
-      valorTotalCentavos: preco.valor_matricula_centavos,
+      valorTotalCentavos: valorMatriculaCentavos,
       totalParcelas: 1,
       primeiroVencimento,
-      formaPagamentoPrevista: "PIX",
+      formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
     });
   }
 
-  if (preco?.valor_parcela_centavos) {
-    await gerarParcelasContasReceber(admin, {
-      origemTipo: "MATRICULA_DIRETA",
-      origemId: matricula!.id,
-      alunoId: aluno!.id,
-      alunoUserId: aluno!.user_id,
-      responsavelPagamento: "ALUNO",
-      descricaoBase: `Mensalidade — ${curso!.title}`,
-      valorTotalCentavos: preco.valor_parcela_centavos * preco.numero_parcelas,
-      totalParcelas: preco.numero_parcelas,
-      primeiroVencimento,
-      formaPagamentoPrevista: "PIX",
-    });
+  if (valorParcelaCentavos > 0) {
+    // Mesmo padrão de admin/matriculas/actions.ts (matricularDiretoAction):
+    // se a ficha passou pelo modal de confirmação de parcelas
+    // (ConfirmarParcelasModal), usa as datas/status já decididos ali —
+    // vencimento com o ajuste de fim de semana e "já paga" pra aluno que
+    // já estuda desde antes. Sem isso, cai no cálculo automático de sempre.
+    const overridesRaw = (formData.get("parcelas_mensalidade_json") as string) || "";
+    let overrides: {
+      numero: number;
+      total: number;
+      data_vencimento: string;
+      valor_centavos: number;
+      paga: boolean;
+    }[] = [];
+    if (overridesRaw) {
+      try {
+        overrides = JSON.parse(overridesRaw);
+      } catch {
+        overrides = [];
+      }
+    }
+
+    if (overrides.length > 0) {
+      const linhas = overrides.map((o) => ({
+        origem_tipo: "MATRICULA_DIRETA" as const,
+        origem_id: matricula!.id,
+        aluno_id: aluno!.id,
+        aluno_user_id: aluno!.user_id,
+        responsavel_pagamento: "ALUNO" as const,
+        descricao:
+          o.total > 1
+            ? `Mensalidade — ${curso!.title} — parcela ${o.numero}/${o.total}`
+            : `Mensalidade — ${curso!.title}`,
+        numero_parcela: o.numero,
+        total_parcelas: o.total,
+        valor_bruto_centavos: o.valor_centavos,
+        forma_pagamento_prevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
+        data_vencimento: o.data_vencimento,
+        status: o.paga ? ("PAGO" as const) : ("PENDENTE" as const),
+        pago_em: o.paga ? new Date(`${o.data_vencimento}T12:00:00`).toISOString() : null,
+      }));
+      await admin.from("fin_contas_receber").insert(linhas);
+    } else {
+      await gerarParcelasContasReceber(admin, {
+        origemTipo: "MATRICULA_DIRETA",
+        origemId: matricula!.id,
+        alunoId: aluno!.id,
+        alunoUserId: aluno!.user_id,
+        responsavelPagamento: "ALUNO",
+        descricaoBase: `Mensalidade — ${curso!.title}`,
+        valorTotalCentavos: valorParcelaCentavos * totalParcelas,
+        totalParcelas,
+        primeiroVencimento,
+        formaPagamentoPrevista: formaPagamento as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
+      });
+    }
   }
 
   // 25/09/2026, achado em teste (Joaquim): a matrícula feita pela Área do
@@ -477,16 +561,17 @@ export async function professorCriarMatriculaAction(formData: FormData) {
         professorNome: professor.nome_completo,
         setorNome,
         igrejaNome,
-        pagamento: preco
-          ? {
-              valorMatriculaCentavos: preco.valor_matricula_centavos ?? null,
-              valorParcelaCentavos: preco.valor_parcela_centavos ?? 0,
-              parcelas: preco.numero_parcelas ?? 1,
-              formaPagamento: "PIX",
-              responsavelPagamento: "ALUNO",
-              primeiroVencimento,
-            }
-          : null,
+        pagamento:
+          valorMatriculaCentavos > 0 || valorParcelaCentavos > 0
+            ? {
+                valorMatriculaCentavos: valorMatriculaCentavos || null,
+                valorParcelaCentavos,
+                parcelas: totalParcelas,
+                formaPagamento,
+                responsavelPagamento: "ALUNO",
+                primeiroVencimento,
+              }
+            : null,
       },
       null, // sem assinatura eletrônica — ficha preenchida pelo professor, não pelo aluno
       { ip, userAgent, assinadoEm: new Date() },
@@ -508,15 +593,19 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   }
 
   revalidatePath("/professor");
+  revalidatePath("/professor/alunos");
+  revalidatePath("/professor/financeiro");
   revalidatePath("/admin/matriculas");
   // 25/09/2026, pedido do Joaquim: alguns professores preferem cadastrar o
   // aluno direto pela Área do Professor em vez de mandar o link da turma —
   // nesse caso o único jeito de o aluno acessar era o e-mail de convite
   // (que às vezes cai no spam ou demora). Manda o id do aluno recém-criado
-  // na query pra /professor mostrar um cartão com botão de copiar o link
-  // de definir senha na hora (ver LinkSenhaAlunoCard.tsx + ação abaixo).
+  // na query pra /professor/alunos mostrar um cartão com botão de copiar o
+  // link de definir senha na hora (ver LinkSenhaAlunoCard.tsx + ação abaixo).
+  // 27/09/2026, Fase 1 (rotas separadas): "Nova Matrícula" mora na tela de
+  // Alunos agora, não mais no Dashboard — redirect ajustado junto.
   redirect(
-    "/professor?msg=" +
+    "/professor/alunos?msg=" +
       encodeURIComponent(`${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`) +
       "&novoAlunoId=" + encodeURIComponent(aluno!.id) +
       "&novoAlunoNome=" + encodeURIComponent(nome_completo)
@@ -583,7 +672,7 @@ export async function professorCriarTurmaAction(formData: FormData) {
   const data_fim = (formData.get("data_fim") as string) || null;
 
   if (!course_id || !nome || !unit_id || !turno || !dia_semana) {
-    erro("Preencha curso, igreja, nome da turma, turno e dia da semana.");
+    erro("Preencha curso, igreja, nome da turma, turno e dia da semana.", "/professor/turmas");
   }
 
   const ano = data_inicio ? Number(data_inicio.slice(0, 4)) : new Date().getFullYear();
@@ -605,7 +694,7 @@ export async function professorCriarTurmaAction(formData: FormData) {
 
   if (erroTurma || !turma) {
     console.error("[professor/actions] criar turma", erroTurma);
-    erro("Erro ao criar a turma. Tente novamente.");
+    erro("Erro ao criar a turma. Tente novamente.", "/professor/turmas");
   }
 
   const { error: erroVinculo } = await admin.from("professor_turmas").insert({
@@ -617,11 +706,12 @@ export async function professorCriarTurmaAction(formData: FormData) {
 
   if (erroVinculo) {
     console.error("[professor/actions] vincular professor_turmas", erroVinculo);
-    erro("Turma criada, mas houve erro ao gerar seu link de matrícula. Fale com a secretaria.");
+    erro("Turma criada, mas houve erro ao gerar seu link de matrícula. Fale com a secretaria.", "/professor/turmas");
   }
 
   revalidatePath("/professor");
-  redirect("/professor?msg=" + encodeURIComponent(`Turma "${nome}" criada. O link de matrícula já está na lista abaixo.`));
+  revalidatePath("/professor/turmas");
+  redirect("/professor/turmas?msg=" + encodeURIComponent(`Turma "${nome}" criada. O link de matrícula já está na lista abaixo.`));
 }
 
 // ── AÇÃO 4: DESATIVAR/REATIVAR LINK DE MATRÍCULA DE UMA TURMA ───
@@ -633,11 +723,463 @@ export async function professorAlternarLinkTurmaAction(formData: FormData) {
 
   const { data: vinculo } = await admin.from("professor_turmas").select("id, professor_id").eq("id", id).single();
   if (!vinculo || vinculo.professor_id !== professor.id) {
-    erro("Este link não pertence a você.");
+    erro("Este link não pertence a você.", "/professor/turmas");
   }
 
   await admin.from("professor_turmas").update({ link_ativo: ativar }).eq("id", id);
 
   revalidatePath("/professor");
-  redirect("/professor?msg=" + encodeURIComponent(ativar ? "Link reativado." : "Link desativado."));
+  revalidatePath("/professor/turmas");
+  redirect("/professor/turmas?msg=" + encodeURIComponent(ativar ? "Link reativado." : "Link desativado."));
+}
+
+// ── AÇÃO: ATUALIZAR PRÓPRIO PERFIL (telefone + foto) ────────────
+// 27/09/2026, pedido do Joaquim: Configurações deixou de ser só leitura —
+// mas escopo bem restrito de propósito: telefone e foto, o resto da ficha
+// (nome, CPF, cargo, igreja/setor) continua só a secretaria mexendo,
+// mesma régua de segurança que já vale pro resto do sistema.
+export async function professorAtualizarPerfilAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const telefone = (formData.get("telefone") as string)?.trim() || null;
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
+
+  // 27/09/2026, pedido do Joaquim: o professor deixou de ver Nome, CPF,
+  // Cargo, Igreja e Setor só como leitura — agora edita tudo direto por
+  // aqui (o aviso "só a secretaria altera" foi removido da tela). Continua
+  // sem poder mexer no e-mail de login (isso é conta, não ficha).
+  const nome_completo = (formData.get("nome_completo") as string)?.trim() || null;
+  const cpf = (formData.get("cpf") as string)?.trim() || null;
+  const cargo = (formData.get("cargo") as string)?.trim() || null;
+  const sector_id = (formData.get("sector_id") as string) || null;
+  const church_id = (formData.get("church_id") as string) || null;
+
+  if (cpf && !validarCPF(cpf)) {
+    erro("CPF inválido — confira os dígitos digitados.", "/professor/configuracoes");
+  }
+  if (!church_id) {
+    erro("Selecione a igreja (ou SEDE).", "/professor/configuracoes");
+  }
+
+  const { error } = await admin
+    .from("professores")
+    .update({ telefone, foto_url, nome_completo, cpf, cargo, sector_id, church_id })
+    .eq("id", professor.id);
+
+  if (error) {
+    console.error("[professor/actions] atualizar perfil", error);
+    erro("Erro ao salvar. Tente novamente.", "/professor/configuracoes");
+  }
+
+  revalidatePath("/professor/configuracoes");
+  revalidatePath("/professor");
+  redirect("/professor/configuracoes?msg=" + encodeURIComponent("Dados atualizados com sucesso."));
+}
+
+// ── AÇÃO 5: LANÇAR DESPESA DO NÚCLEO (Fase 2, 27/09/2026) ───────
+// Escopo fechado com o Joaquim: só despesa (a entrada de dinheiro já é
+// tratada em Financeiro/fin_contas_receber, não duplica aqui), sem abrir/
+// fechar caixa (lançamento solto) e sem aprovação da secretaria — o
+// professor lança direto. Mesmo padrão de posse das outras ações: confere
+// o professor autenticado com requireProfessor() e grava com o client
+// admin, sem depender só da RLS de nucleo_despesas (migration 115).
+export async function professorLancarDespesaAction(formData: FormData) {
+  const { professor, userId, admin } = await requireProfessor();
+
+  const descricao = (formData.get("descricao") as string)?.trim();
+  const valorStr = (formData.get("valor") as string)?.trim();
+  const data_despesa = (formData.get("data_despesa") as string) || new Date().toISOString().slice(0, 10);
+  const categoria_id = (formData.get("categoria_id") as string) || null;
+  const forma_pagamento = (formData.get("forma_pagamento") as string) || null;
+
+  if (!descricao || !valorStr) {
+    erro("Preencha a descrição e o valor da despesa.", "/professor/caixa");
+  }
+
+  const valorNumero = Number(valorStr.replace(",", "."));
+  if (!Number.isFinite(valorNumero) || valorNumero <= 0) {
+    erro("Valor inválido — digite um número maior que zero.", "/professor/caixa");
+  }
+  const valor_centavos = Math.round(valorNumero * 100);
+
+  // Professor pode não ter church_id preenchido (ficha antiga) — despesa
+  // ainda é salva, só sem o vínculo de igreja (staff não vê ela no filtro
+  // por unidade nesse caso, mas o professor continua vendo a própria).
+  const { error } = await admin.from("nucleo_despesas").insert({
+    professor_id: professor.id,
+    church_id: professor.church_id,
+    categoria_id,
+    descricao,
+    valor_centavos,
+    data_despesa,
+    forma_pagamento,
+    created_by: userId,
+  });
+
+  if (error) {
+    console.error("[professor/actions] lançar despesa do núcleo", error);
+    erro("Erro ao lançar a despesa. Tente novamente.", "/professor/caixa");
+  }
+
+  revalidatePath("/professor/caixa");
+  redirect("/professor/caixa?msg=" + encodeURIComponent("Despesa lançada com sucesso."));
+}
+
+// ── AÇÃO 6: EXCLUIR DESPESA DO NÚCLEO ───────────────────────────
+export async function professorExcluirDespesaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const id = formData.get("id") as string;
+  if (!id) erro("Despesa não informada.", "/professor/caixa");
+
+  const { data: despesa } = await admin.from("nucleo_despesas").select("id, professor_id").eq("id", id).maybeSingle();
+  if (!despesa || despesa.professor_id !== professor.id) {
+    erro("Essa despesa não pertence a você.", "/professor/caixa");
+  }
+
+  await admin.from("nucleo_despesas").delete().eq("id", id);
+
+  revalidatePath("/professor/caixa");
+  redirect("/professor/caixa?msg=" + encodeURIComponent("Despesa excluída."));
+}
+
+// ============================================================
+// AÇÕES 7-11: EDIÇÃO COMPLETA DO ALUNO — 28/09/2026, pedido do Joaquim
+// ("preciso editar aluno, para corrigir dados caso cadastre informação
+// errada pessoal, curso e financeiro, igreja setor, ou seja edição
+// completa"), a partir de /professor/alunos. Reaproveita a MESMA tela
+// que a secretaria usa (EditarMatriculaForm.tsx, ver
+// admin/matriculas/[id]/EditarMatriculaForm.tsx), agora parametrizada
+// pra aceitar estas 5 ações escopadas ao professor em vez das staff-only
+// (atualizarMatriculaAction, baixarParcelaAction, cancelarParcelaAction,
+// lancarPagamentoRetroativoAction, cancelarMatriculaAction). Toda ação
+// confere a posse (ead_matriculas.professor_id === professor.id) antes
+// de tocar em qualquer dado — mesmo padrão de requireProfessor()/
+// professorBaixarParcelaAction acima. Curso em si continua não-editável
+// aqui (mesma trava que já existe pro admin) — só Turma dentro do
+// mesmo curso; Professor(a) fica travado no próprio professor (ver
+// EditarMatriculaForm: travarProfessorId).
+// ============================================================
+
+function erroEdicaoAluno(matriculaId: string, msg: string): never {
+  redirect(`/professor/alunos/editar/${matriculaId}?error=` + encodeURIComponent(msg));
+}
+
+async function assertMatriculaDoProfessor(admin: ReturnType<typeof createAdminClient>, matriculaId: string, professorId: string) {
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("id, aluno_id, professor_id, course_id, curso_nome_snapshot")
+    .eq("id", matriculaId)
+    .maybeSingle();
+  if (!matricula || matricula.professor_id !== professorId) {
+    erro("Esse aluno não pertence a você.", "/professor/alunos");
+  }
+  return matricula!;
+}
+
+// ── AÇÃO 7: SALVAR FICHA (pessoal + curso/turma/campo/setor/igreja) ──
+export async function professorAtualizarMatriculaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) erro("Matrícula inválida.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+  if (matricula.aluno_id !== alunoId) erroEdicaoAluno(matriculaId, "Matrícula inválida.");
+
+  const nome_completo = (formData.get("nome_completo") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
+  const telefone = (formData.get("telefone") as string)?.trim() || null;
+  const cpf = (formData.get("cpf") as string)?.trim() || "";
+  if (cpf && !validarCPF(cpf)) {
+    erroEdicaoAluno(matriculaId, "CPF inválido — confira os dígitos digitados.");
+  }
+  const campo_ministerio_id = (formData.get("campo_ministerio_id") as string) || null;
+  const sector_id = (formData.get("sector_id") as string) || null;
+  const church_id_aluno = (formData.get("church_id_aluno") as string) || null;
+  const course_edition_id = (formData.get("course_edition_id") as string) || null;
+  // Professor(a) nunca vem de um <select> nesta tela (campo travado em si
+  // mesmo, ver EditarMatriculaForm: travarProfessorId) — ignora qualquer
+  // valor que chegue aqui e mantém sempre o próprio professor.
+  const professor_id = professor.id;
+
+  const rg = (formData.get("rg") as string)?.trim() || null;
+  const rg_orgao_emissor = (formData.get("rg_orgao_emissor") as string)?.trim() || null;
+  const rg_uf = (formData.get("rg_uf") as string)?.trim() || null;
+  const data_nascimento = (formData.get("data_nascimento") as string) || null;
+  const genero = (formData.get("genero") as string) || null;
+  const estado_civil = (formData.get("estado_civil") as string) || null;
+  const escolaridade = (formData.get("escolaridade") as string) || null;
+  const profissao = (formData.get("profissao") as string) || null;
+  const naturalidade_cidade = (formData.get("naturalidade_cidade") as string)?.trim() || null;
+  const naturalidade_estado = (formData.get("naturalidade_estado") as string) || null;
+  const nome_conjuge = (formData.get("nome_conjuge") as string)?.trim() || null;
+  const nome_mae = (formData.get("nome_mae") as string)?.trim() || null;
+  const nome_pai = (formData.get("nome_pai") as string)?.trim() || null;
+  const cep = (formData.get("cep") as string)?.trim() || null;
+  const endereco = (formData.get("endereco") as string)?.trim() || null;
+  const endereco_numero = (formData.get("endereco_numero") as string)?.trim() || null;
+  const endereco_complemento = (formData.get("endereco_complemento") as string)?.trim() || null;
+  const bairro = (formData.get("bairro") as string)?.trim() || null;
+  const cidade = (formData.get("cidade") as string)?.trim() || null;
+  const estado = (formData.get("estado") as string) || null;
+  const nacionalidade = (formData.get("nacionalidade") as string)?.trim() || "Brasileira";
+  const foto_url = (formData.get("foto_url") as string)?.trim() || null;
+
+  if (!nome_completo || !email || !cpf) {
+    erroEdicaoAluno(matriculaId, "Nome completo, CPF e e-mail são obrigatórios.");
+  }
+
+  // Turma só pode ser trocada por outra turma que este professor também
+  // leciona (mesma trava de professorCriarMatriculaAction acima) — evita
+  // um course_edition_id arbitrário vindo de um form manipulado no client.
+  if (course_edition_id) {
+    const { data: vinculo } = await admin
+      .from("professor_turmas")
+      .select("course_edition_id")
+      .eq("professor_id", professor.id)
+      .eq("course_edition_id", course_edition_id)
+      .maybeSingle();
+    if (!vinculo) erroEdicaoAluno(matriculaId, "Você só pode mover o aluno pra uma turma que já leciona.");
+  }
+
+  let campo_ministerio_nome: string | null = null;
+  if (campo_ministerio_id) {
+    const { data: campoRow } = await admin
+      .from("ead_campos_ministerios")
+      .select("nome")
+      .eq("id", campo_ministerio_id)
+      .maybeSingle();
+    campo_ministerio_nome = campoRow?.nome ?? null;
+  }
+
+  await upsertProfissaoLivre(admin, profissao);
+
+  const { error: alunoError } = await admin
+    .from("ead_alunos")
+    .update({
+      nome_completo, email, telefone, cpf,
+      campo_ministerio_id, campo_ministerio_nome,
+      sector_id, church_id: church_id_aluno,
+      rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao,
+      naturalidade_cidade, naturalidade_estado, nome_conjuge, nome_mae, nome_pai,
+      cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, nacionalidade,
+      foto_url,
+    })
+    .eq("id", alunoId);
+
+  if (alunoError) erroEdicaoAluno(matriculaId, "Erro ao salvar dados pessoais: " + alunoError.message);
+
+  const { error: matriculaError } = await admin
+    .from("ead_matriculas")
+    .update({ course_edition_id, professor_id })
+    .eq("id", matriculaId);
+
+  if (matriculaError) erroEdicaoAluno(matriculaId, "Erro ao salvar curso/vínculo: " + matriculaError.message);
+
+  revalidatePath(`/professor/alunos/editar/${matriculaId}`);
+  revalidatePath("/professor/alunos");
+  redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Dados atualizados."));
+}
+
+// ── AÇÃO 8: CANCELAR PARCELA (só o professor dono do aluno) ─────
+export async function professorCancelarParcelaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const id = (formData.get("id") as string) || "";
+  const redirectTo = (formData.get("redirect_to") as string) || "/professor/alunos";
+  if (!id) erro("Parcela inválida.", redirectTo);
+
+  const { data: conta } = await admin
+    .from("fin_contas_receber")
+    .select("id, origem_id, origem_tipo")
+    .eq("id", id)
+    .maybeSingle();
+  if (!conta || conta.origem_tipo !== "MATRICULA_DIRETA") erro("Parcela fora do escopo do professor.", redirectTo);
+
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("id, professor_id")
+    .eq("id", conta!.origem_id)
+    .maybeSingle();
+  if (!matricula || matricula.professor_id !== professor.id) {
+    erro("Essa parcela não pertence a um aluno seu.", redirectTo);
+  }
+
+  const { error } = await admin
+    .from("fin_contas_receber")
+    .update({ status: "CANCELADO", updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("[professor/actions] cancelar parcela", error);
+    erro("Erro ao cancelar. Tente novamente.", redirectTo);
+  }
+
+  revalidatePath("/professor/alunos");
+  revalidatePath("/professor/financeiro");
+  redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela cancelada."));
+}
+
+// ── AÇÃO 8b: REATIVAR PARCELA CANCELADA (desfazer cancelamento) ──
+// 28/09/2026, achado do Joaquim: cancelou uma parcela sem querer e não
+// tinha jeito de desfazer. Volta pra PENDENTE — nunca marca como paga
+// sozinha, mesma régua da versão admin (reativarParcelaAction,
+// admin/financeiro/actions.ts).
+export async function professorReativarParcelaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const id = (formData.get("id") as string) || "";
+  const redirectTo = (formData.get("redirect_to") as string) || "/professor/alunos";
+  if (!id) erro("Parcela inválida.", redirectTo);
+
+  const { data: conta } = await admin
+    .from("fin_contas_receber")
+    .select("id, origem_id, origem_tipo, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!conta || conta.origem_tipo !== "MATRICULA_DIRETA") erro("Parcela fora do escopo do professor.", redirectTo);
+  if (conta!.status !== "CANCELADO") erro("Essa parcela não está cancelada.", redirectTo);
+
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("id, professor_id")
+    .eq("id", conta!.origem_id)
+    .maybeSingle();
+  if (!matricula || matricula.professor_id !== professor.id) {
+    erro("Essa parcela não pertence a um aluno seu.", redirectTo);
+  }
+
+  const { error } = await admin
+    .from("fin_contas_receber")
+    .update({ status: "PENDENTE", updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("[professor/actions] reativar parcela", error);
+    erro("Erro ao reativar. Tente novamente.", redirectTo);
+  }
+
+  revalidatePath("/professor/alunos");
+  revalidatePath("/professor/financeiro");
+  redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela reativada — voltou para pendente."));
+}
+
+// ── AÇÃO 9: LANÇAR PAGAMENTO RETROATIVO (regularização) ──────────
+export async function professorLancarPagamentoRetroativoAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) erro("Matrícula inválida.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+  if (matricula.aluno_id !== alunoId) erroEdicaoAluno(matriculaId, "Matrícula inválida.");
+
+  const valorTotalCentavos = centavosValor((formData.get("valor_total") as string) || "");
+  const totalParcelas = Math.min(12, Math.max(1, Number(formData.get("total_parcelas")) || 1));
+  const dataPagamento = (formData.get("data_pagamento") as string) || "";
+  const formaPagamento = (formData.get("forma_pagamento_prevista") as string) || "PIX";
+  const responsavel = (formData.get("responsavel_pagamento") as string) === "IGREJA" ? "IGREJA" : "ALUNO";
+  const churchId = (formData.get("church_id") as string) || null;
+  const observacoes = (formData.get("observacoes") as string)?.trim() || null;
+
+  // Dinheiro fica de fora aqui também (mesma régua de professorBaixarParcelaAction
+  // — exige Caixa Diário, controle de secretaria).
+  if (formaPagamento === "DINHEIRO") {
+    erroEdicaoAluno(matriculaId, "Pagamento em dinheiro só pode ser lançado pela secretaria (Caixa Diário).");
+  }
+  if (valorTotalCentavos <= 0) erroEdicaoAluno(matriculaId, "Informe o valor pago.");
+  if (!dataPagamento) erroEdicaoAluno(matriculaId, "Informe a data original do pagamento.");
+
+  const { error } = await admin.from("fin_contas_receber").insert({
+    origem_tipo: "MATRICULA_DIRETA",
+    origem_id: matriculaId,
+    aluno_id: alunoId,
+    responsavel_pagamento: responsavel,
+    church_id: responsavel === "IGREJA" ? churchId : null,
+    descricao: `Regularização — lançamento retroativo${totalParcelas > 1 ? ` (${totalParcelas} parcelas)` : ""}`,
+    numero_parcela: 1,
+    total_parcelas: totalParcelas,
+    valor_bruto_centavos: valorTotalCentavos,
+    forma_pagamento_prevista: formaPagamento,
+    data_vencimento: dataPagamento,
+    status: "PAGO",
+    pago_em: new Date(`${dataPagamento}T12:00:00`).toISOString(),
+    observacoes,
+  });
+
+  if (error) erroEdicaoAluno(matriculaId, "Erro ao lançar pagamento: " + error.message);
+
+  revalidatePath(`/professor/alunos/editar/${matriculaId}`);
+  revalidatePath("/professor/financeiro");
+  redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Pagamento retroativo lançado."));
+}
+
+// ── AÇÃO 10: GERAR PARCELAS DE MENSALIDADE FALTANTES ─────────────
+export async function professorGerarParcelasMensalidadeAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  if (!matriculaId || !alunoId) erro("Matrícula inválida.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+  if (matricula.aluno_id !== alunoId) erroEdicaoAluno(matriculaId, "Matrícula inválida.");
+
+  const { count: jaTemMensalidade } = await admin
+    .from("fin_contas_receber")
+    .select("id", { count: "exact", head: true })
+    .eq("origem_id", matriculaId)
+    .ilike("descricao", "Mensalidade —%");
+  if (jaTemMensalidade && jaTemMensalidade > 0) {
+    erroEdicaoAluno(matriculaId, "Esta matrícula já tem mensalidade lançada.");
+  }
+
+  const { data: preco } = await admin
+    .from("course_pricing")
+    .select("valor_parcela_centavos, numero_parcelas")
+    .eq("course_id", matricula.course_id)
+    .maybeSingle();
+
+  if (!preco || preco.valor_parcela_centavos <= 0) {
+    erroEdicaoAluno(matriculaId, "Este curso não tem valor de mensalidade cadastrado. Fale com a secretaria.");
+  }
+
+  const primeiroVencimento = (formData.get("data_vencimento") as string) || new Date().toISOString().slice(0, 10);
+
+  const { error } = await gerarParcelasContasReceber(admin, {
+    origemTipo: "MATRICULA_DIRETA",
+    origemId: matriculaId,
+    alunoId,
+    responsavelPagamento: "ALUNO",
+    descricaoBase: `Mensalidade — ${matricula.curso_nome_snapshot}`,
+    valorTotalCentavos: preco!.valor_parcela_centavos * preco!.numero_parcelas,
+    totalParcelas: preco!.numero_parcelas,
+    primeiroVencimento,
+    formaPagamentoPrevista: "PIX",
+  });
+
+  if (error) erroEdicaoAluno(matriculaId, "Erro ao gerar as parcelas: " + error.message);
+
+  revalidatePath(`/professor/alunos/editar/${matriculaId}`);
+  revalidatePath("/professor/financeiro");
+  redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Parcelas de mensalidade geradas."));
+}
+
+// ── AÇÃO 11: CANCELAR MATRÍCULA (nunca apaga, só muda status) ────
+export async function professorCancelarMatriculaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  if (!matriculaId) erro("Matrícula inválida.", "/professor/alunos");
+  await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+
+  const { error } = await admin
+    .from("ead_matriculas")
+    .update({ status: "CANCELADO" })
+    .eq("id", matriculaId);
+
+  if (error) erroEdicaoAluno(matriculaId, "Erro ao cancelar: " + error.message);
+
+  revalidatePath("/professor/alunos");
+  redirect("/professor/alunos?msg=" + encodeURIComponent("Matrícula cancelada."));
 }

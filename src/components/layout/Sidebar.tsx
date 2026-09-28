@@ -23,6 +23,8 @@ import {
   LayoutDashboard,
   Store,
   HelpCircle,
+  Users,
+  Banknote,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -144,10 +146,32 @@ const adminModules: SidebarModule[] = [
   },
 ];
 
+// Menu da Área do Professor (27/09/2026, Fase 1 do Painel do Professor) —
+// terceiro "modo" da sidebar, mesmo padrão de isStaff/isAlunoOficial:
+// itens fixos, sem sub-rotas por enquanto. "Caixa do núcleo" e "Despesas
+// do núcleo" ficam de fora de propósito (Fase 2 — dependem de unit_id/
+// church_id novo em fin_contas_pagar/fin_caixa_diario, que ainda não
+// existe no schema).
+const professorModules: SidebarModule[] = [
+  { label: "Dashboard", href: "/professor", icon: LayoutDashboard, description: "Visão geral do seu núcleo" },
+  // 27/09/2026, pedido do Joaquim: item novo, logo abaixo de Dashboard —
+  // leva pra ficha completa de Nova Matrícula (mesma da secretaria, ver
+  // professor/matricula/page.tsx). O botão "Nova Matrícula" que ficava
+  // dentro de Alunos saiu de lá.
+  { label: "Matrícula", href: "/professor/matricula", icon: UserPlus, description: "Nova matrícula completa" },
+  { label: "Alunos", href: "/professor/alunos", icon: Users, description: "Seus alunos e matrículas" },
+  { label: "Turmas", href: "/professor/turmas", icon: GraduationCap, description: "Suas turmas e links" },
+  { label: "Financeiro", href: "/professor/financeiro", icon: Wallet, description: "Parcelas do seu núcleo" },
+  { label: "Caixa", href: "/professor/caixa", icon: Banknote, description: "Despesas do seu núcleo" },
+  { label: "Configurações", href: "/professor/configuracoes", icon: Settings2, description: "Seus dados" },
+];
+
 export default function Sidebar({
   isStaff = false,
   isAlunoOficial = false,
   alunoPainel = null,
+  isProfessor = false,
+  professorResumo = null,
   isOpen = true,
   menuColapsado = false,
   onToggleColapso,
@@ -160,6 +184,8 @@ export default function Sidebar({
     parcelas: ParcelaResumo[];
     avaliacoes: AvaliacaoResumo[];
   } | null;
+  isProfessor?: boolean;
+  professorResumo?: { nome: string; fotoUrl?: string | null } | null;
   // Controla o efeito "off-canvas" só no mobile: recolhido pra fora da
   // borda esquerda por padrão, só aparece quando acionado (SidebarShell).
   // No desktop (md+) o menu fica sempre fixo e visível — "md:translate-x-0"
@@ -285,7 +311,50 @@ export default function Sidebar({
           />
         )}
 
-        {!isAlunoOficial && (
+        {isProfessor && (
+        <>
+        <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
+          {professorResumo?.nome ?? "Área do Professor"}
+        </p>
+
+        {professorModules.map((mod) => {
+          const Icon = mod.icon;
+          const isModuleActive =
+            mod.href === "/professor"
+              ? pathname === "/professor"
+              : pathname === mod.href || pathname.startsWith(mod.href + "/");
+
+          return (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                menuColapsado && "md:justify-center md:px-0",
+                isModuleActive
+                  ? "bg-iw-blue text-white shadow-md"
+                  : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+              )}
+            >
+              <div className="w-7 h-7 rounded-lg bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[#E88D0C]" />
+              </div>
+              <div className={cn("flex-1 min-w-0", menuColapsado && "md:hidden")}>
+                <p className="leading-tight truncate">{mod.label}</p>
+                {!isModuleActive && (
+                  <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60 transition-colors">
+                    {mod.description}
+                  </p>
+                )}
+              </div>
+              {isModuleActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-iw-gold shrink-0" />}
+            </Link>
+          );
+        })}
+        </>
+        )}
+
+        {!isAlunoOficial && !isProfessor && (
         <>
         <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
           Módulos

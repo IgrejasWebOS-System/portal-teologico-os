@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { normalizarBusca } from "@/utils/normalizarBusca";
 
 export interface ItemBusca {
   id: string;
@@ -39,9 +40,12 @@ function SeletorBuscaDropdown({
   }, []);
 
   const resultados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
+    // 27/09/2026, achado em teste (Joaquim): "TEC" precisa achar "TÉCNICO"
+    // -- normaliza acento dos dois lados antes de comparar (ver
+    // src/utils/normalizarBusca.ts).
+    const q = normalizarBusca(busca);
     if (!q) return itens.slice(0, 50);
-    return itens.filter((i) => i.label.toLowerCase().startsWith(q)).slice(0, 50);
+    return itens.filter((i) => normalizarBusca(i.label).startsWith(q)).slice(0, 50);
   }, [busca, itens]);
 
   return (

@@ -58,6 +58,12 @@ function extrairFichaProfessor(formData: FormData) {
     bairro: (formData.get("bairro") as string)?.trim() || null,
     cidade: (formData.get("cidade") as string)?.trim() || null,
     estado: (formData.get("estado") as string) || null,
+    // 28/09/2026, achado do Joaquim: faltavam aqui — ProfessorForm.tsx
+    // sempre manda foto_url/observacoes no FormData (fd.set), mas esta
+    // função (usada só no self-service) nunca lia, então a foto anexada
+    // ou pré-preenchida na ficha nunca era salva em `professores`.
+    foto_url: (formData.get("foto_url") as string)?.trim() || null,
+    observacoes: (formData.get("observacoes") as string)?.trim() || null,
   };
 }
 

@@ -13,6 +13,29 @@ import PageHeader from "@/components/layout/PageHeader";
 import { matricularDiretoAction, buscarTurmasPorUnidadeAction } from "../actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 import { BuscaOuCriarInput, SeletorBuscaDropdown, type ItemBusca } from "@/components/forms/BuscaOuCriarInput";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
+import ConfirmarParcelasModal, { type ParcelaPreview } from "./ConfirmarParcelasModal";
+
+// 27/09/2026, pedido do Joaquim: datas de vencimento das parcelas
+// calculadas 1 por mês a partir do 1º vencimento informado; se cair em
+// sábado/domingo, empurra pro próximo dia útil (segunda) — só essa
+// parcela, as demais continuam calculadas a partir da data ORIGINAL do
+// 1º vencimento (não em cadeia a partir da data já ajustada de outra).
+// Feriados nacionais ficam de fora por enquanto (decisão do Joaquim).
+function somarMesesIso(dataIso: string, meses: number): string {
+  const [ano, mes, dia] = dataIso.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1 + meses, dia));
+  return d.toISOString().slice(0, 10);
+}
+
+function proximoDiaUtil(dataIso: string): string {
+  const [ano, mes, dia] = dataIso.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  const diaDaSemana = d.getUTCDay(); // 0 = domingo, 6 = sábado
+  if (diaDaSemana === 6) d.setUTCDate(d.getUTCDate() + 2);
+  else if (diaDaSemana === 0) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 // Turma e Professor(a) não são mais cadastrados por aqui (14/09/2026) —
 // isso passou a acontecer só em Configurações > Turmas e no cadastro de
@@ -258,11 +281,16 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: 
   );
 }
 
-function SubmitButton() {
+// 27/09/2026, pedido do Joaquim: virou type="button" — não submete mais
+// direto. O clique passa por handleClickGerar (valida + calcula as
+// parcelas); se tiver mensalidade, abre o modal de confirmação antes de
+// submeter de verdade (ver ConfirmarParcelasModal.tsx).
+function SubmitButton({ onClick }: { onClick: () => void }) {
   const { pending } = useFormStatus();
   return (
     <button
-      type="submit"
+      type="button"
+      onClick={onClick}
       disabled={pending}
       className="inline-flex items-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-sm transition-opacity border border-black"
     >
@@ -324,6 +352,9 @@ export default function NovaMatriculaForm({
   const [naturalidadeCidade, setNaturalidadeCidade] = useState("");
   const [naturalidadeEstado, setNaturalidadeEstado] = useState("");
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
   const [genero, setGenero] = useState("");
   const [estadoCivil, setEstadoCivil] = useState("");
   const [escolaridadeSel, setEscolaridadeSel] = useState("");
@@ -358,6 +389,16 @@ export default function NovaMatriculaForm({
   const [origemSectorId, setOrigemSectorId] = useState("");
   const [origemChurchId, setOrigemChurchId] = useState("");
   const [origemNaSede, setOrigemNaSede] = useState(false);
+
+  // 27/09/2026, pedido do Joaquim: confirmação de parcelas antes de gerar a
+  // matrícula, com data de vencimento já calculada (1/mês, empurrando fim
+  // de semana pro próximo dia útil) e marcação de "já paga" sozinha pra
+  // vencimento no passado/hoje (sem toggle manual — tirado depois, ver
+  // comentário em ConfirmarParcelasModal.tsx).
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
+  const [parcelasPreview, setParcelasPreview] = useState<ParcelaPreview[]>([]);
+  const [parcelasPagas, setParcelasPagas] = useState<boolean[]>([]);
+  const [enviandoConfirmacao, setEnviandoConfirmacao] = useState(false);
 
   const formRef = useRef<HTMLFormElement | null>(null);
 
@@ -570,6 +611,61 @@ export default function NovaMatriculaForm({
     }
   };
 
+  // 27/09/2026, pedido do Joaquim: calcula a prévia das parcelas (1 por mês
+  // a partir do 1º vencimento, empurrando fim de semana pro próximo dia
+  // útil) na hora de abrir o modal de confirmação — sem mensalidade
+  // (curso gratuito ou "deixar em branco"), não há nada a confirmar.
+  const computeParcelasPreview = (): ParcelaPreview[] => {
+    const total = Math.max(1, Number(numeroParcelasPagto) || 1);
+    const valorParcelaCent = textoParaCentavos(valorParcela);
+    if (valorParcelaCent <= 0) return [];
+    const inputVencimento = formRef.current?.querySelector<HTMLInputElement>('input[name="data_vencimento"]');
+    const primeiroVencimento = inputVencimento?.value || hoje;
+    return Array.from({ length: total }, (_, i) => {
+      const original = somarMesesIso(primeiroVencimento, i);
+      return {
+        numero: i + 1,
+        vencimentoOriginal: original,
+        vencimentoFinal: proximoDiaUtil(original),
+        valorCentavos: valorParcelaCent,
+      };
+    });
+  };
+
+  const handleClickGerar = () => {
+    if (!formRef.current?.reportValidity()) return;
+    if (!validarCPF(cpf)) {
+      setExtraError("CPF inválido — confira os dígitos digitados.");
+      return;
+    }
+    if (membroDestaIgreja === "NAO" && !origemChurchId) {
+      setExtraError("Selecione o Setor e a Igreja de onde o aluno realmente vem.");
+      return;
+    }
+    setExtraError("");
+    const preview = computeParcelasPreview();
+    if (preview.length === 0) {
+      setParcelasPreview([]);
+      setParcelasPagas([]);
+      formRef.current?.requestSubmit();
+      return;
+    }
+    setParcelasPreview(preview);
+    // 27/09/2026, pedido do Joaquim: sem toggle manual — "já paga" vem
+    // marcada sozinha quando o vencimento (antes do ajuste de fim de
+    // semana) já passou ou é hoje; vencimento futuro vem desmarcado. A
+    // própria data do 1º vencimento já diz se é matrícula nova ou aluno
+    // antigo sendo lançado agora.
+    setParcelasPagas(preview.map((p) => p.vencimentoOriginal <= hoje));
+    setMostrarConfirmacao(true);
+  };
+
+  const handleConfirmarParcelas = () => {
+    setEnviandoConfirmacao(true);
+    setMostrarConfirmacao(false);
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <div className="max-w-[1400px] mx-auto space-y-6 pb-16 px-2">
       <PageHeader
@@ -639,6 +735,20 @@ export default function NovaMatriculaForm({
           fd.set("naturalidade_cidade", naturalidadeCidade);
           fd.set("naturalidade_estado", naturalidadeEstado);
           fd.set("foto_url", fotoUrl);
+          // 27/09/2026, pedido do Joaquim: se a secretaria passou pela tela
+          // de confirmação de parcelas, manda as datas/status já decididos
+          // ali (empurro de fim de semana + "já paga"); sem isso, a action
+          // cai no cálculo automático de sempre (ver actions.ts).
+          if (parcelasPreview.length > 0) {
+            const overrides = parcelasPreview.map((p, i) => ({
+              numero: p.numero,
+              total: parcelasPreview.length,
+              data_vencimento: p.vencimentoFinal,
+              valor_centavos: p.valorCentavos,
+              paga: parcelasPagas[i] ?? false,
+            }));
+            fd.set("parcelas_mensalidade_json", JSON.stringify(overrides));
+          }
           return matricularDiretoAction(fd);
         }}
         className="space-y-6"
@@ -1083,7 +1193,21 @@ export default function NovaMatriculaForm({
               <input value={bairro} onChange={(e) => setBairro(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Cidade" span="col-span-6 md:col-span-3">
-              <input value={cidade} onChange={(e) => setCidade(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
+              <input
+                list="lista-cidades-endereco-nova-matricula"
+                value={cidade}
+                onChange={(e) => {
+                  const { cidade: nome, uf } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                  setCidade(nome);
+                  if (uf) setEstado(uf);
+                }}
+                className={`${bareCls} uppercase`}
+              />
+              <datalist id="lista-cidades-endereco-nova-matricula">
+                {catalogoCidades.map((c) => (
+                  <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                ))}
+              </datalist>
             </Field>
             <Field label="UF" span="col-span-6 md:col-span-1">
               <input
@@ -1185,9 +1309,27 @@ export default function NovaMatriculaForm({
         </div>
 
         <div className="flex justify-end">
-          <SubmitButton />
+          <SubmitButton onClick={handleClickGerar} />
         </div>
       </form>
+
+      {mostrarConfirmacao && (
+        <ConfirmarParcelasModal
+          parcelas={parcelasPreview}
+          pagas={parcelasPagas}
+          onTogglePaga={(index) => {
+            setParcelasPagas((prev) => {
+              const copia = [...prev];
+              copia[index] = !copia[index];
+              return copia;
+            });
+          }}
+          dataMatriculaIso={hoje}
+          enviando={enviandoConfirmacao}
+          onCancelar={() => setMostrarConfirmacao(false)}
+          onConfirmar={handleConfirmarParcelas}
+        />
+      )}
     </div>
   );
 }

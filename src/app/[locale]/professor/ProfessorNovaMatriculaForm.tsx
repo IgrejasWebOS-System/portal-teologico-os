@@ -1,12 +1,51 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { UserPlus, User, MapPin, GraduationCap, Loader2, Send, X, Camera, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { UserPlus, User, MapPin, GraduationCap, Loader2, Send, X, Camera, AlertTriangle, Wallet } from "lucide-react";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import { BuscaOuCriarInput, SeletorBuscaDropdown } from "@/components/forms/BuscaOuCriarInput";
 import { validarCPF } from "@/utils/cpf";
 import { maskPhone } from "@/utils/maskPhone";
+import { maskRG } from "@/utils/maskRG";
 import { createClient } from "@/utils/supabase/client";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
+// Reaproveita o mesmo modal de confirmação de parcelas da Nova Matrícula
+// Direta da secretaria (27/09/2026, pedido do Joaquim: trazer "todas as
+// regras de inserção e preenchimento, principalmente a questão de
+// pagamento" pra ficha do professor).
+import ConfirmarParcelasModal, {
+  type ParcelaPreview,
+} from "../(admin)/admin/matriculas/nova/ConfirmarParcelasModal";
+
+// Mesma lógica de datas de NovaMatriculaForm.tsx (admin): 1 vencimento por
+// mês a partir do 1º informado, empurrando sábado/domingo pro próximo dia
+// útil (só aquela parcela — as demais continuam calculadas a partir da
+// data ORIGINAL do 1º vencimento). Feriados de fora por enquanto.
+function somarMesesIso(dataIso: string, meses: number): string {
+  const [ano, mes, dia] = dataIso.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1 + meses, dia));
+  return d.toISOString().slice(0, 10);
+}
+
+function proximoDiaUtil(dataIso: string): string {
+  const [ano, mes, dia] = dataIso.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  const diaDaSemana = d.getUTCDay();
+  if (diaDaSemana === 6) d.setUTCDate(d.getUTCDate() + 2);
+  else if (diaDaSemana === 0) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function centavosParaTexto(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace(".", ",");
+}
+
+function textoParaCentavos(valor: string): number {
+  const limpo = valor.replace(/\./g, "").replace(",", ".");
+  const num = Number(limpo);
+  return isNaN(num) ? 0 : Math.round(num * 100);
+}
 
 // ============================================================
 // Nova Matrícula do professor (20/09/2026, corrigindo lacuna real: a
@@ -155,14 +194,19 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: 
 }
 
 interface ProfissaoItem { id: string; name: string }
-interface TurmaOpcao { id: string; label: string }
+// 27/09/2026, pedido do Joaquim: courseId adicionado — precisa saber o
+// curso por trás da turma escolhida pra pré-preencher a caixa de
+// Pagamento com o preço fixo (course_pricing), igual à ficha da secretaria.
+interface TurmaOpcao { id: string; label: string; courseId: string }
 interface SelectItem { id: string; name: string }
 interface ChurchItem { id: string; name: string; sector_id: string | null; unit_id: string | null }
+interface PrecoItem { course_id: string; valor_matricula_centavos: number; valor_parcela_centavos: number; numero_parcelas: number }
 
 interface Props {
   action: (formData: FormData) => Promise<void> | void;
   turmasDoProfessor: TurmaOpcao[];
   profissoes: ProfissaoItem[];
+  precos: PrecoItem[];
   // 25/09/2026, achado em teste (Joaquim): a página só re-renderiza com um
   // `novoAlunoId` novo na URL logo depois de um matricularCriarAction bem
   // sucedido (ver professor/page.tsx) — usado só pra saber quando fechar e
@@ -176,9 +220,19 @@ interface Props {
   // page.tsx mostra via `?error=` fica atrás do fundo escuro do modal,
   // invisível. Passa o erro pra dentro do modal e mostra ele aqui.
   errorMsg?: string;
+  // 27/09/2026, pedido do Joaquim: "Nova Matrícula" virou item próprio da
+  // sidebar (/professor/matricula), não mais um botão dentro de Alunos.
+  // Com autoAbrir, o componente já nasce aberto e sem o botão de gatilho;
+  // fechar (X/Cancelar/backdrop/Esc) navega pra voltarHref em vez de só
+  // esconder o modal (senão o professor ficaria numa tela em branco).
+  autoAbrir?: boolean;
+  voltarHref?: string;
 }
 
-export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, profissoes, justMatriculadoId, errorMsg }: Props) {
+export default function ProfessorNovaMatriculaForm({
+  action, turmasDoProfessor, profissoes, precos, justMatriculadoId, errorMsg, autoAbrir = false, voltarHref = "/professor/alunos",
+}: Props) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   // 26/09/2026, achado em teste (Joaquim: depois do erro a página tinha
   // sido recarregada de verdade -- ex.: F5 -- e o modal nascia fechado de
@@ -187,7 +241,18 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   // inicial), o modal já nasce aberto -- o ajuste "reabre sozinho" mais
   // abaixo só cobre a troca de erro numa navegação client-side já em
   // andamento, não o carregamento inicial.
-  const [aberto, setAberto] = useState(!!errorMsg);
+  const [aberto, setAberto] = useState(autoAbrir || !!errorMsg);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  // 27/09/2026, pedido do Joaquim: caixa de Pagamento igual à Nova
+  // Matrícula Direta da secretaria — valor/parcelas pré-preenchidos pelo
+  // course_pricing do curso da turma escolhida, editáveis pontualmente.
+  const [valorMatricula, setValorMatricula] = useState("");
+  const [valorParcela, setValorParcela] = useState("");
+  const [numeroParcelasPagto, setNumeroParcelasPagto] = useState("12");
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
+  const [parcelasPreview, setParcelasPreview] = useState<ParcelaPreview[]>([]);
+  const [parcelasPagas, setParcelasPagas] = useState<boolean[]>([]);
+  const [enviandoConfirmacao, setEnviandoConfirmacao] = useState(false);
   // 25/09/2026, achado em teste (Joaquim, "ainda não fechou o formulário,
   // voltou com sujeira de informações"): o Next.js App Router só troca os
   // searchParams ao redirecionar pro sucesso — como a rota continua sendo
@@ -208,6 +273,9 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   const [estado, setEstado] = useState("");
   const [loadingCep, setLoadingCep] = useState(false);
   const [cepError, setCepError] = useState("");
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
   const [fotoUrl, setFotoUrl] = useState("");
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [naturalidadeEstado, setNaturalidadeEstado] = useState("");
@@ -225,7 +293,12 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
   // vencimento" é editado manualmente (pra digitar uma data diferente,
   // se for o caso).
   const hojeIso = new Date().toISOString().slice(0, 10);
-  const [dataMatricula, setDataMatricula] = useState("");
+  // 27/09/2026, pedido do Joaquim: "Data matrícula" vem preenchida com a
+  // data atual do sistema por padrão (igual "1º vencimento") — o professor
+  // edita pra uma data passada quando for lançar aluno que já estuda desde
+  // antes (as parcelas calculadas a partir daí que decidem sozinhas quais
+  // já vêm marcadas como pagas no modal de confirmação).
+  const [dataMatricula, setDataMatricula] = useState(hojeIso);
   const [dataVencimento, setDataVencimento] = useState(hojeIso);
   const [vencimentoTocado, setVencimentoTocado] = useState(false);
   // 26/09/2026, padronização pedida pelo Joaquim (varredura geral): SEDE
@@ -277,8 +350,21 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
     setFotoUrl("");
     setNaturalidadeEstado("");
     setSectorId(""); setChurchId("");
-    setDataMatricula(""); setDataVencimento(hojeIso); setVencimentoTocado(false);
+    setDataMatricula(hojeIso); setDataVencimento(hojeIso); setVencimentoTocado(false);
+    setValorMatricula(""); setValorParcela(""); setNumeroParcelasPagto("12");
+    setParcelasPreview([]); setParcelasPagas([]);
     setFormKey((k) => k + 1);
+  }
+
+  // 27/09/2026: fechar (X, backdrop, Esc, Cancelar) — em modo autoAbrir
+  // (rota própria /professor/matricula) não existe pra onde "voltar" senão
+  // navegando embora; no modo antigo (botão dentro de Alunos) só esconde.
+  function fecharModal() {
+    if (autoAbrir) {
+      router.push(voltarHref);
+      return;
+    }
+    setAberto(false);
   }
 
   // Abrir o modal (de novo ou pela 1ª vez) sempre começa com ficha zerada —
@@ -381,9 +467,9 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
 
   // Fecha com a tecla Esc, e trava o scroll da página atrás do modal.
   useEffect(() => {
-    if (!aberto) return;
+    if (!aberto || autoAbrir) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAberto(false);
+      if (e.key === "Escape") fecharModal();
     };
     document.addEventListener("keydown", onKeyDown);
     const overflowOriginal = document.body.style.overflow;
@@ -392,7 +478,8 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflowOriginal;
     };
-  }, [aberto]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, autoAbrir]);
 
   const checkCpf = (valor: string) => {
     const digitos = valor.replace(/\D/g, "");
@@ -433,28 +520,90 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
     // nenhum Setor) — corrige aqui antes de enviar, senão o servidor
     // salvaria um sector_id inválido (id de igreja, não de setor).
     formData.set("sector_id", naSede ? "" : sectorId);
+    // 27/09/2026, pedido do Joaquim: se passou pelo modal de confirmação de
+    // parcelas, manda as datas/status já decididos ali.
+    if (parcelasPreview.length > 0) {
+      const overrides = parcelasPreview.map((p, i) => ({
+        numero: p.numero,
+        total: parcelasPreview.length,
+        data_vencimento: p.vencimentoFinal,
+        valor_centavos: p.valorCentavos,
+        paga: parcelasPagas[i] ?? false,
+      }));
+      formData.set("parcelas_mensalidade_json", JSON.stringify(overrides));
+    }
     startTransition(() => {
       action(formData);
     });
   }
 
+  // 27/09/2026, pedido do Joaquim: mesma prévia de parcelas da Nova
+  // Matrícula Direta admin — calcula 1 vencimento por mês a partir do "1º
+  // vencimento" já preenchido no form (estado dataVencimento), empurra fim
+  // de semana pro próximo dia útil, e decide o estado inicial de "já paga"
+  // conforme "Aluno já estuda desde antes?".
+  function computeParcelasPreview(): ParcelaPreview[] {
+    const total = Math.max(1, Number(numeroParcelasPagto) || 1);
+    const valorParcelaCent = textoParaCentavos(valorParcela);
+    if (valorParcelaCent <= 0) return [];
+    return Array.from({ length: total }, (_, i) => {
+      const original = somarMesesIso(dataVencimento, i);
+      return {
+        numero: i + 1,
+        vencimentoOriginal: original,
+        vencimentoFinal: proximoDiaUtil(original),
+        valorCentavos: valorParcelaCent,
+      };
+    });
+  }
+
+  function handleClickGerar() {
+    if (cpfError) return;
+    if (!formRef.current?.reportValidity()) return;
+    const preview = computeParcelasPreview();
+    if (preview.length === 0) {
+      setParcelasPreview([]);
+      setParcelasPagas([]);
+      formRef.current?.requestSubmit();
+      return;
+    }
+    setParcelasPreview(preview);
+    // 27/09/2026, pedido do Joaquim: sem toggle manual — "já paga" vem
+    // marcada sozinha quando o vencimento já passou ou é hoje.
+    setParcelasPagas(preview.map((p) => p.vencimentoOriginal <= hojeIso));
+    setMostrarConfirmacao(true);
+  }
+
+  function handleConfirmarParcelas() {
+    setEnviandoConfirmacao(true);
+    setMostrarConfirmacao(false);
+    formRef.current?.requestSubmit();
+  }
+
   return (
     <>
-      <button
-        type="button"
-        onClick={abrirModal}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
-      >
-        <UserPlus className="w-3.5 h-3.5" />
-        Nova Matrícula
-      </button>
+      {!autoAbrir && (
+        <button
+          type="button"
+          onClick={abrirModal}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Nova Matrícula
+        </button>
+      )}
 
       {aberto && (
-        <div className="fixed inset-0 z-[60] flex items-start md:items-center justify-center p-3 md:p-6 overflow-y-auto">
-          {/* Fundo escuro — clicar fora fecha sem enviar nada. */}
-          <div className="fixed inset-0 bg-black/50" onClick={() => setAberto(false)} />
+        // 27/09/2026, pedido do Joaquim: em /professor/matricula (autoAbrir)
+        // a ficha aparece NA página, igual a admin/matriculas/nova — sem
+        // fundo escuro nem painel flutuante por cima do conteúdo. No modo
+        // antigo (botão dentro de Alunos), continua sendo um modal de
+        // verdade por cima da tela.
+        <div className={autoAbrir ? "max-w-[1400px] mx-auto pb-16 px-2" : "fixed inset-0 z-[60] flex items-start md:items-center justify-center p-3 md:p-6 overflow-y-auto"}>
+          {/* Fundo escuro — só no modo modal; clicar fora fecha sem enviar nada. */}
+          {!autoAbrir && <div className="fixed inset-0 bg-black/50" onClick={fecharModal} />}
 
-          <div className="relative w-full max-w-6xl bg-iw-bg border border-iw-gold rounded-2xl shadow-xl my-auto">
+          <div className={autoAbrir ? "bg-iw-bg border border-iw-gold rounded-2xl shadow-sm" : "relative w-full max-w-6xl bg-iw-bg border border-iw-gold rounded-2xl shadow-xl my-auto"}>
             <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-b border-iw-border bg-iw-surface rounded-t-2xl">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-iw-gold/10 flex items-center justify-center shrink-0">
@@ -464,15 +613,20 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
               </div>
               <button
                 type="button"
-                onClick={() => setAberto(false)}
-                title="Fechar sem matricular"
+                onClick={fecharModal}
+                title={autoAbrir ? "Voltar para Meus Alunos" : "Fechar sem matricular"}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-iw-muted hover:text-iw-navy hover:bg-iw-bg transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form key={formKey} action={handleSubmit} className="p-5 pt-4 space-y-5 max-h-[80vh] overflow-y-auto">
+            <form
+              key={formKey}
+              ref={formRef}
+              action={handleSubmit}
+              className={autoAbrir ? "p-5 pt-4 space-y-5" : "p-5 pt-4 space-y-5 max-h-[80vh] overflow-y-auto"}
+            >
               {errorMsg && (
                 <div className="flex items-center gap-2 text-iw-error text-sm bg-iw-error-bg border border-iw-error/20 px-4 py-3 rounded-xl">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -507,7 +661,23 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                   <SectionHeader icon={GraduationCap} label="Turma" />
                   <div className="grid grid-cols-12 gap-3">
                     <Field label="Curso e turma" required span="col-span-12">
-                      <select name="course_edition_id" required defaultValue="" className={bareSelectCls}>
+                      <select
+                        name="course_edition_id"
+                        required
+                        defaultValue=""
+                        onChange={(e) => {
+                          // 27/09/2026, pedido do Joaquim: pré-preenche a
+                          // caixa de Pagamento com o preço fixo do curso
+                          // (course_pricing) assim que a turma é escolhida —
+                          // mesma regra da Nova Matrícula Direta admin.
+                          const turma = turmasDoProfessor.find((t) => t.id === e.target.value);
+                          const preco = turma ? precos.find((p) => p.course_id === turma.courseId) : undefined;
+                          setValorMatricula(preco ? centavosParaTexto(preco.valor_matricula_centavos) : "");
+                          setValorParcela(preco ? centavosParaTexto(preco.valor_parcela_centavos) : "");
+                          setNumeroParcelasPagto(preco ? String(preco.numero_parcelas) : "12");
+                        }}
+                        className={bareSelectCls}
+                      >
                         <option value="" disabled>
                           Selecione a turma...
                         </option>
@@ -648,7 +818,16 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                     />
                   </Field>
                   <Field label="RG" span="col-span-6 md:col-span-2">
-                    <input name="rg" className={bareCls} />
+                    {/* 28/09/2026, achado do Joaquim: única ficha que ainda
+                        faltava a máscara de RG (as outras já tinham, ver
+                        maskRG.ts) — campo não controlado, só reformata a
+                        cada tecla. */}
+                    <input
+                      name="rg"
+                      placeholder="00.000.000-0"
+                      onChange={(e) => { e.target.value = maskRG(e.target.value); }}
+                      className={bareCls}
+                    />
                   </Field>
                   <Field label="Órgão" required span="col-span-6 md:col-span-1">
                     <input name="rg_orgao_emissor" required defaultValue="SSP" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
@@ -660,14 +839,19 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
 
                 <div className="grid grid-cols-12 gap-3">
                   <Field label="Sexo" required span="col-span-6 md:col-span-3">
-                    <select name="genero" required defaultValue="" className={bareSelectCls}>
+                    {/* 28/09/2026, pedido do Joaquim: o valor exibido nas
+                        selects desta ficha aparecia em caixa baixa/mista
+                        ("Masculino", "Solteiro(a)"), diferente do resto da
+                        ficha (tudo em maiúsculo) — `uppercase` transforma só
+                        a exibição, sem mudar o valor gravado. */}
+                    <select name="genero" required defaultValue="" className={`${bareSelectCls} uppercase`}>
                       <option value="">Selecione...</option>
                       <option value="M">Masculino</option>
                       <option value="F">Feminino</option>
                     </select>
                   </Field>
                   <Field label="Estado civil" required span="col-span-6 md:col-span-3">
-                    <select name="estado_civil" required defaultValue="" className={bareSelectCls}>
+                    <select name="estado_civil" required defaultValue="" className={`${bareSelectCls} uppercase`}>
                       <option value="">Selecione...</option>
                       <option value="Solteiro(a)">Solteiro(a)</option>
                       <option value="Casado(a)">Casado(a)</option>
@@ -785,10 +969,20 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                     <input
                       name="cidade"
                       required
+                      list="lista-cidades-endereco-professor-matricula"
                       value={cidade}
-                      onChange={(e) => setCidade(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        const { cidade: nome, uf } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                        setCidade(nome);
+                        if (uf) setEstado(uf);
+                      }}
                       className={`${bareCls} uppercase`}
                     />
+                    <datalist id="lista-cidades-endereco-professor-matricula">
+                      {catalogoCidades.map((c) => (
+                        <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                      ))}
+                    </datalist>
                   </Field>
                   <Field label="UF" required span="col-span-6 md:col-span-1">
                     <input
@@ -803,6 +997,61 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
                 </div>
               </div>
 
+              {/* 27/09/2026, pedido do Joaquim: caixa de Pagamento igual à
+                  Nova Matrícula Direta da secretaria — pré-preenchida pelo
+                  course_pricing ao escolher a turma, editável pontualmente.
+                  "Aluno já estuda desde antes?" decide o estado inicial das
+                  parcelas no modal de confirmação (abaixo). */}
+              <div className={cardCls}>
+                <SectionHeader icon={Wallet} label="Pagamento" />
+                <p className="text-xs text-iw-muted -mt-1">
+                  Preenchido automaticamente ao escolher a turma (valor fixo em Financeiro &gt; Preços dos
+                  Cursos) — pode sobrescrever pontualmente aqui, sem alterar o preço padrão. Deixe tudo em
+                  branco se essa matrícula não tiver cobrança.
+                </p>
+                <div className="grid grid-cols-12 gap-3">
+                  <Field label="Valor da matrícula (opcional)" span="col-span-6 md:col-span-3">
+                    <input
+                      name="valor_matricula"
+                      value={valorMatricula}
+                      onChange={(e) => setValorMatricula(e.target.value)}
+                      placeholder="Ex: 25,00"
+                      className={bareCls}
+                    />
+                  </Field>
+                  <Field label="Valor da parcela" span="col-span-6 md:col-span-3">
+                    <input
+                      name="valor_parcela"
+                      value={valorParcela}
+                      onChange={(e) => setValorParcela(e.target.value)}
+                      placeholder="Ex: 65,00"
+                      className={bareCls}
+                    />
+                  </Field>
+                  <Field label="Nº de parcelas" span="col-span-6 md:col-span-2">
+                    <input
+                      name="total_parcelas"
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={numeroParcelasPagto}
+                      onChange={(e) => setNumeroParcelasPagto(e.target.value)}
+                      className={bareCls}
+                    />
+                  </Field>
+                  <Field label="Forma de pagamento prevista" span="col-span-12 md:col-span-4">
+                    <select name="forma_pagamento_prevista" defaultValue="PIX" className={bareSelectCls}>
+                      <option value="DINHEIRO">Dinheiro</option>
+                      <option value="PIX">Pix</option>
+                      <option value="DEBITO">Débito</option>
+                      <option value="CREDITO">Crédito</option>
+                      <option value="BOLETO">Boleto</option>
+                      <option value="TRANSFERENCIA">Transferência</option>
+                    </select>
+                  </Field>
+                </div>
+              </div>
+
               {/* 26/09/2026, achado em teste (Joaquim): botão "Matricular"
                   esticando com flex-1 fugia do padrão estético das outras
                   fichas (ex.: ProfessorForm.tsx) -- botões de largura fixa,
@@ -810,13 +1059,14 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setAberto(false)}
+                  onClick={fecharModal}
                   className="px-5 py-3 rounded-xl text-sm font-bold text-iw-navy border border-black hover:bg-iw-bg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleClickGerar}
                   disabled={pending || !!cpfError}
                   className="inline-flex items-center justify-center gap-2 bg-[#E88D0C] hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity border border-black"
                 >
@@ -834,6 +1084,24 @@ export default function ProfessorNovaMatriculaForm({ action, turmasDoProfessor, 
             </form>
           </div>
         </div>
+      )}
+
+      {mostrarConfirmacao && (
+        <ConfirmarParcelasModal
+          parcelas={parcelasPreview}
+          pagas={parcelasPagas}
+          onTogglePaga={(index) => {
+            setParcelasPagas((prev) => {
+              const copia = [...prev];
+              copia[index] = !copia[index];
+              return copia;
+            });
+          }}
+          dataMatriculaIso={dataMatricula || hojeIso}
+          enviando={enviandoConfirmacao}
+          onCancelar={() => setMostrarConfirmacao(false)}
+          onConfirmar={handleConfirmarParcelas}
+        />
       )}
     </>
   );

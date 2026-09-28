@@ -1,56 +1,67 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, LogOut, AlertTriangle } from "lucide-react";
+import { GraduationCap, Users, Wallet, Clock, ArrowRight, BarChart3, PiggyBank } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
-import { signOutAction } from "@/app/actions";
-import { calcularMediaCertificado } from "@/utils/avaliacoes/mediaCertificado";
-import Logo from "@/components/Logo";
-import { professorBaixarParcelaAction, professorCriarMatriculaAction } from "./actions";
-import { type TurmaVinculo } from "./TurmasDoProfessor";
-import ProfessorNovaMatriculaForm from "./ProfessorNovaMatriculaForm";
-import ProfessorPainel from "./ProfessorPainel";
-import LinkSenhaAlunoCard from "./LinkSenhaAlunoCard";
 
-export const metadata = { title: "Área do Professor — CETADP" };
+export const metadata = { title: "Dashboard — Área do Professor" };
 
 // ============================================================
-// /professor — Módulo 1 (RBAC "Professor de turma"), 13/09/2026,
-// expandido em 14/09/2026: professor "gerencia sua turma" — não só vê,
-// também dá baixa em parcela do próprio aluno e matricula aluno novo já
-// vinculado a ele (ver actions.ts). Imprimir documento "em nome do
-// aluno" fica para depois de padronizar o cabeçalho/rodapé de Impressão
-// (pedido do Joaquim em 14/09/2026, ainda aguardando o PDF de
-// referência) — mexer nisso agora arriscaria retrabalho.
+// /professor — Dashboard (27/09/2026, Fase 1 do Painel do Professor).
+// Antes desta Fase, esta rota era a página única inteira (turmas + busca
+// + tabela de alunos + parcelas, tudo junto, sem menu lateral) — ver
+// histórico em ProfessorPainel.tsx/TurmasDoProfessor.tsx. Virou só um
+// resumo com cards, apontando pras telas novas (Alunos, Turmas,
+// Financeiro). Cálculo de cada card é enxuto de propósito — cada tela
+// de destino já recalcula os dados completos que ela precisa.
 //
-// Escopo decidido pelo schema já existente: ead_matriculas.professor_id
-// (migration 044) — o professor vê exatamente os alunos vinculados a
-// ele nas matrículas, não "todo mundo do curso".
-//
-// Decisão de acesso a dado (consistente com as páginas de Impressão do
-// aluno): autentica e resolve identidade com o client normal, depois
-// lê os dados com o client admin (service_role) já filtrado pelo
-// professor_id verificado — mesmo padrão de utils/aluno/matriculaAtiva.ts,
-// em vez de escrever policy de RLS nova pra cada tabela envolvida.
+// 27/09/2026, pedido do Joaquim (mesmo dia): acrescentado um gráfico de
+// barras "Alunos por curso" (trocado de "por turma" no mesmo dia, ver
+// comentário mais abaixo) e um resumo "Financeiro do mês" (Caixa:
+// entradas x saídas; Financeiro: a receber x recebido), escolhido via
+// AskUserQuestion entre as opções de expansão do Dashboard. Gráfico é
+// CSS puro (sem lib nova) — barras horizontais com largura proporcional
+// ao maior valor.
 // ============================================================
 
-type Parcela = {
-  id: string;
-  origem_id: string;
-  numero_parcela: number;
-  total_parcelas: number;
-  descricao: string;
-  valor_bruto_centavos: number;
-  data_vencimento: string;
-  status: string;
-};
+function BarraHorizontal({ label, valor, max, corBarra }: { label: string; valor: number; max: number; corBarra: string }) {
+  const pct = max > 0 ? Math.max((valor / max) * 100, valor > 0 ? 4 : 0) : 0;
+  return (
+    <div className="flex items-center gap-3">
+      <p className="w-32 shrink-0 text-xs text-black truncate" title={label}>{label}</p>
+      <div className="flex-1 h-5 rounded-md bg-iw-bg overflow-hidden">
+        <div className={`h-full rounded-md ${corBarra}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="w-8 shrink-0 text-xs font-bold text-black text-right">{valor}</p>
+    </div>
+  );
+}
 
-export default async function AreaDoProfessorPage({
-  searchParams,
+function Card({
+  icon: Icon, label, valor, sublinha, href,
 }: {
-  searchParams: Promise<{ msg?: string; error?: string; novoAlunoId?: string; novoAlunoNome?: string }>;
+  icon: React.ElementType; label: string; valor: string; sublinha: string; href: string;
 }) {
-  const { msg, error, novoAlunoId, novoAlunoNome } = await searchParams;
+  return (
+    <Link
+      href={href}
+      className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5 flex items-center gap-4 hover:border-iw-gold transition-colors group"
+    >
+      <div className="w-11 h-11 rounded-xl bg-iw-gold/10 flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5 text-iw-gold" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-extrabold text-black uppercase tracking-wider">{label}</p>
+        <p className="text-2xl font-black text-black leading-tight">{valor}</p>
+        <p className="text-xs text-black truncate">{sublinha}</p>
+      </div>
+      <ArrowRight className="w-4 h-4 text-iw-muted/40 group-hover:text-iw-gold shrink-0 transition-colors" />
+    </Link>
+  );
+}
+
+export default async function DashboardDoProfessorPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,221 +73,204 @@ export default async function AreaDoProfessorPage({
 
   const admin = createAdminClient();
 
-  // Mutirão de cadastro (18/09/2026): cursos + unidades pro professor
-  // criar as próprias turmas, e as turmas que ele já criou (com o link
-  // público de cada uma) pra listar/copiar.
-  const [{ data: cursosRaw }, { data: unitsRaw }, { data: turmasRaw }, { data: profissoesRaw }] = await Promise.all([
-    admin.from("courses").select("id, title").eq("visivel_busca", true).order("title"),
-    admin.from("units").select("id, type, name, parent_id").in("type", ["SETOR", "IGREJA", "SEDE"]),
-    admin
-      .from("professor_turmas")
-      .select("id, turno, dia_semana, link_token, link_ativo, course_edition_id, course_editions(nome, classe, courses(title), units(name))")
-      .eq("professor_id", professor.id)
-      .order("created_at", { ascending: false }),
-    admin.from("settings_professions").select("id, name").order("name"),
+  const [{ count: turmasCount }, { data: matriculas }] = await Promise.all([
+    admin.from("professor_turmas").select("id", { count: "exact", head: true }).eq("professor_id", professor.id),
+    admin.from("ead_matriculas").select("id, course_id, curso_nome_snapshot").eq("professor_id", professor.id),
   ]);
 
-  const turmasDoProfessor: TurmaVinculo[] = (turmasRaw ?? []).map((t) => ({
-    id: t.id,
-    turno: t.turno,
-    dia_semana: t.dia_semana,
-    link_token: t.link_token,
-    link_ativo: t.link_ativo,
-    course_edition_id: t.course_edition_id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    course_edition: (Array.isArray(t.course_editions) ? t.course_editions[0] : t.course_editions) as any,
-  }));
+  const matriculaIds = (matriculas ?? []).map((m) => m.id);
 
-  const { data: matriculas } = await admin
-    .from("ead_matriculas")
-    .select("id, aluno_id, course_id, course_edition_id, curso_nome_snapshot, matricula, status, data_matricula")
-    .eq("professor_id", professor.id)
-    .order("curso_nome_snapshot");
-
-  const listaMatriculas = matriculas ?? [];
-  const alunoIds = Array.from(new Set(listaMatriculas.map((m) => m.aluno_id)));
-  const matriculaIds = listaMatriculas.map((m) => m.id);
-
-  const [alunosRes, avaliacoesRes, contasRes] = await Promise.all([
-    alunoIds.length
-      ? admin.from("ead_alunos").select("id, user_id, nome_completo, cpf, status, convite_status").in("id", alunoIds)
-      : Promise.resolve({ data: [] }),
-    matriculaIds.length
-      ? admin
-          .from("avaliacoes")
-          .select("matricula_id, tipo, status, nota, lesson_id")
-          .in("matricula_id", matriculaIds)
-      : Promise.resolve({ data: [] }),
-    matriculaIds.length
-      ? admin
-          .from("fin_contas_receber")
-          .select("id, origem_id, numero_parcela, total_parcelas, descricao, valor_bruto_centavos, data_vencimento, status")
-          .eq("origem_tipo", "MATRICULA_DIRETA")
-          .in("origem_id", matriculaIds)
-          .order("numero_parcela")
-      : Promise.resolve({ data: [] as Parcela[] }),
-  ]);
-
-  const alunoPorId = new Map((alunosRes.data ?? []).map((a) => [a.id, a]));
-  const userIds = Array.from(new Set((alunosRes.data ?? []).map((a) => a.user_id).filter(Boolean)));
-
-  const { data: enrollmentsData } = userIds.length
-    ? await admin.from("enrollments").select("user_id, course_id, progress_percent").in("user_id", userIds)
+  const { data: contas } = matriculaIds.length
+    ? await admin
+        .from("fin_contas_receber")
+        .select("status, valor_bruto_centavos")
+        .eq("origem_tipo", "MATRICULA_DIRETA")
+        .in("origem_id", matriculaIds)
     : { data: [] };
 
-  const progressoMap = new Map(
-    (enrollmentsData ?? []).map((e) => [`${e.user_id}:${e.course_id}`, e.progress_percent])
-  );
+  const pendentes = (contas ?? []).filter((c) => c.status !== "PAGO");
+  const totalPendenteCentavos = pendentes.reduce((acc, c) => acc + c.valor_bruto_centavos, 0);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const avaliacoesPorMatricula = new Map<string, any[]>();
-  for (const a of avaliacoesRes.data ?? []) {
-    const lista = avaliacoesPorMatricula.get(a.matricula_id) ?? [];
-    lista.push(a);
-    avaliacoesPorMatricula.set(a.matricula_id, lista);
+  const fmtMoeda = (centavos: number) =>
+    (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  // --- Alunos por curso (27/09/2026, pedido do Joaquim: antes agrupava por
+  // turma/course_edition_id, e duas turmas homônimas ("2026 Turma 1") de
+  // cursos diferentes apareciam como barras iguais, sem distinção — agrupar
+  // pelo curso em si resolve isso). Usa curso_nome_snapshot (já gravado em
+  // cada matrícula) como rótulo, sem precisar de outra tabela.
+  const contagemPorCurso = new Map<string, number>();
+  for (const m of matriculas ?? []) {
+    const chave = m.course_id ?? m.curso_nome_snapshot ?? "Curso sem nome";
+    contagemPorCurso.set(chave, (contagemPorCurso.get(chave) ?? 0) + 1);
   }
-
-  const parcelasPorMatricula = new Map<string, Parcela[]>();
-  for (const c of (contasRes.data ?? []) as Parcela[]) {
-    const lista = parcelasPorMatricula.get(c.origem_id) ?? [];
-    lista.push(c);
-    parcelasPorMatricula.set(c.origem_id, lista);
+  const nomePorChaveCurso = new Map<string, string>();
+  for (const m of matriculas ?? []) {
+    const chave = m.course_id ?? m.curso_nome_snapshot ?? "Curso sem nome";
+    if (!nomePorChaveCurso.has(chave)) nomePorChaveCurso.set(chave, m.curso_nome_snapshot ?? "Curso sem nome");
   }
+  const alunosPorCurso = Array.from(contagemPorCurso.entries())
+    .map(([chave, valor]) => ({ label: nomePorChaveCurso.get(chave) ?? "Curso sem nome", valor }))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 6);
+  const maxAlunosPorCurso = Math.max(...alunosPorCurso.map((t) => t.valor), 1);
 
-  // 22/09/2026, achado em teste (Joaquim): a Nova Matrícula usava esta lista
-  // (derivada de ead_matriculas já existentes) pra restringir o <select> de
-  // curso — só que isso deixa o professor sem NENHUMA opção quando ele acaba
-  // de se vincular a uma turma nova (ex.: 2027) e ainda não tem nenhum aluno
-  // nela. Removida em favor de turmasFiltroOptions (abaixo), que vem de
-  // professor_turmas — a turma vinculada existe assim que o professor se
-  // vincula a ela (Módulo 3), independente de já ter aluno ou não.
+  // --- Financeiro do mês (Caixa: entradas x saídas; Financeiro: a receber x recebido) ---
+  const hoje = new Date();
+  const anoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+  const primeiroDiaMes = `${anoMes}-01`;
+  const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  // 21/09/2026, pedido do Joaquim (imagem 8): filtro "por turmas ou
-  // todas" em Meus Alunos. A turma de cada matrícula é o
-  // course_edition_id (migration 044) — mesma chave que já identifica
-  // cada linha de "Minhas Turmas" acima, então dá pra filtrar os alunos
-  // por qual turma-vínculo eles pertencem sem tabela nova.
-  const turmasFiltroOptions = turmasDoProfessor
-    .filter((t) => t.course_edition_id)
-    .map((t) => ({
-      id: t.course_edition_id,
-      label: `${t.course_edition?.courses?.title ?? "Curso"} — ${t.course_edition?.nome ?? ""}${
-        t.course_edition?.classe ? ` (Classe ${t.course_edition.classe})` : ""
-      }`,
-    }))
-    .filter((t, i, arr) => arr.findIndex((x) => x.id === t.id) === i)
-    .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  const { data: parcelasPagasMes } = matriculaIds.length
+    ? await admin
+        .from("fin_contas_receber")
+        .select("valor_bruto_centavos, pago_em")
+        .eq("origem_tipo", "MATRICULA_DIRETA")
+        .eq("status", "PAGO")
+        .in("origem_id", matriculaIds)
+        .gte("pago_em", primeiroDiaMes)
+        .lte("pago_em", `${ultimoDiaMes}T23:59:59`)
+    : { data: [] };
+  const { data: parcelasPendentesMes } = matriculaIds.length
+    ? await admin
+        .from("fin_contas_receber")
+        .select("valor_bruto_centavos")
+        .eq("origem_tipo", "MATRICULA_DIRETA")
+        .neq("status", "PAGO")
+        .in("origem_id", matriculaIds)
+        .gte("data_vencimento", primeiroDiaMes)
+        .lte("data_vencimento", ultimoDiaMes)
+    : { data: [] };
+  const { data: despesasMes } = await admin
+    .from("nucleo_despesas")
+    .select("valor_centavos")
+    .eq("professor_id", professor.id)
+    .gte("data_despesa", primeiroDiaMes)
+    .lte("data_despesa", ultimoDiaMes);
 
-  const linhas = listaMatriculas.map((m) => {
-    const aluno = alunoPorId.get(m.aluno_id);
-    const avaliacoesDaMatricula = avaliacoesPorMatricula.get(m.id) ?? [];
-    const testesFinalizados = avaliacoesDaMatricula.filter(
-      (a) => a.tipo === "TESTE_LICAO" && a.status === "FINALIZADA"
-    ).length;
-    const media = calcularMediaCertificado(avaliacoesDaMatricula);
-    const progresso = aluno?.user_id ? progressoMap.get(`${aluno.user_id}:${m.course_id}`) ?? 0 : 0;
-    const parcelasDaMatricula = parcelasPorMatricula.get(m.id) ?? [];
-    const parcelas = {
-      pagas: parcelasDaMatricula.filter((p) => p.status === "PAGO").length,
-      total: parcelasDaMatricula.length,
-      lista: parcelasDaMatricula,
-    };
+  const entradasMesCentavos = (parcelasPagasMes ?? []).reduce((acc, p) => acc + p.valor_bruto_centavos, 0);
+  const saidasMesCentavos = (despesasMes ?? []).reduce((acc, d) => acc + d.valor_centavos, 0);
+  const aReceberMesCentavos = (parcelasPendentesMes ?? []).reduce((acc, p) => acc + p.valor_bruto_centavos, 0);
+  const recebidoMesCentavos = entradasMesCentavos;
+  const maxCaixaMes = Math.max(entradasMesCentavos, saidasMesCentavos, 1);
+  const maxFinMes = Math.max(aReceberMesCentavos, recebidoMesCentavos, 1);
 
-    return {
-      matriculaId: m.id,
-      courseEditionId: m.course_edition_id,
-      nome: aluno?.nome_completo ?? "—",
-      cpf: aluno?.cpf ?? null,
-      curso: m.curso_nome_snapshot,
-      numeroMatricula: m.matricula,
-      status: m.status,
-      dataMatricula: m.data_matricula,
-      progresso,
-      testesFinalizados,
-      media,
-      parcelas,
-      // Mutirão de cadastro (18/09/2026): quando o convite de acesso do
-      // aluno falhou, avisa o professor aqui -- o jeito de reenviar é o
-      // próprio aluno reabrir o link da turma e preencher de novo com o
-      // mesmo CPF (matricularAlunoEmCurso detecta e só reenvia o convite,
-      // sem duplicar a matrícula).
-      convitePendente: aluno?.convite_status === "FALHOU",
-    };
-  });
+  // 27/09/2026, pedido do Joaquim: a saudação mostra sempre o primeiro e o
+  // último nome (ex.: "Joaquim Mario Soares Coelho" -> "Joaquim Coelho"),
+  // não só o primeiro nome como era antes.
+  const partesNome = professor.nome_completo.trim().split(/\s+/);
+  const nomeSaudacao = partesNome.length > 1 ? `${partesNome[0]} ${partesNome[partesNome.length - 1]}` : partesNome[0];
 
   return (
-    <div className="min-h-screen bg-iw-bg">
-      <header className="bg-iw-navy shadow-lg">
-        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Logo size="sm" variant="light" />
-            <div className="min-w-0">
-              <p className="text-white font-bold text-sm leading-none truncate">CETADP</p>
-              <p className="text-iw-sky/60 text-xs truncate">Área do Professor</p>
+    <div>
+      {/* 27/09/2026, pedido do Joaquim: a foto saiu da sidebar (não ficou
+          boa ali) e veio pra cá, do lado esquerdo da saudação. */}
+      <div className="flex items-center gap-3 mb-1">
+        {professor.foto_url && (
+          <div className="w-11 h-11 rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={professor.foto_url} alt="Sua foto" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <h1 className="text-2xl font-black text-black">Olá, {nomeSaudacao}</h1>
+      </div>
+      <p className="text-black text-sm mb-6">Resumo do seu núcleo de ensino.</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card
+          icon={GraduationCap}
+          label="Turmas"
+          valor={String(turmasCount ?? 0)}
+          sublinha="Turmas vinculadas a você"
+          href="/professor/turmas"
+        />
+        <Card
+          icon={Users}
+          label="Alunos"
+          valor={String(matriculaIds.length)}
+          sublinha="Alunos matriculados por você"
+          href="/professor/alunos"
+        />
+        <Card
+          icon={Clock}
+          label="A receber"
+          valor={fmtMoeda(totalPendenteCentavos)}
+          sublinha={`${pendentes.length} parcela(s) pendente(s)`}
+          href="/professor/financeiro"
+        />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="w-4 h-4 text-iw-gold" />
+            <h2 className="text-sm font-bold text-black">Alunos por curso</h2>
+          </div>
+          {alunosPorCurso.length === 0 ? (
+            <p className="text-xs text-black">Nenhum aluno matriculado nas suas turmas ainda.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {alunosPorCurso.map((c, i) => (
+                <BarraHorizontal key={`${c.label}-${i}`} label={c.label} valor={c.valor} max={maxAlunosPorCurso} corBarra="bg-iw-gold" />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <PiggyBank className="w-4 h-4 text-iw-gold" />
+            <h2 className="text-sm font-bold text-black">Financeiro do mês</h2>
+          </div>
+
+          <p className="text-[10px] font-extrabold text-black uppercase tracking-wider mb-1.5">Caixa</p>
+          <div className="space-y-1.5 mb-4">
+            <div className="flex items-center gap-3">
+              <p className="w-20 shrink-0 text-xs text-black">Entradas</p>
+              <div className="flex-1 h-5 rounded-md bg-iw-bg overflow-hidden">
+                <div className="h-full rounded-md bg-iw-success" style={{ width: `${Math.max((entradasMesCentavos / maxCaixaMes) * 100, entradasMesCentavos > 0 ? 4 : 0)}%` }} />
+              </div>
+              <p className="w-24 shrink-0 text-xs font-bold text-black text-right">{fmtMoeda(entradasMesCentavos)}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="w-20 shrink-0 text-xs text-black">Saídas</p>
+              <div className="flex-1 h-5 rounded-md bg-iw-bg overflow-hidden">
+                <div className="h-full rounded-md bg-iw-error" style={{ width: `${Math.max((saidasMesCentavos / maxCaixaMes) * 100, saidasMesCentavos > 0 ? 4 : 0)}%` }} />
+              </div>
+              <p className="w-24 shrink-0 text-xs font-bold text-black text-right">{fmtMoeda(saidasMesCentavos)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <p className="text-white text-sm font-medium hidden sm:block">{professor.nome_completo}</p>
-            <form action={signOutAction}>
-              <input type="hidden" name="locale" value="pt-BR" />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-sky/80 hover:text-white transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Sair
-              </button>
-            </form>
+
+          <p className="text-[10px] font-extrabold text-black uppercase tracking-wider mb-1.5">Financeiro (parcelas do mês)</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <p className="w-20 shrink-0 text-xs text-black">A receber</p>
+              <div className="flex-1 h-5 rounded-md bg-iw-bg overflow-hidden">
+                <div className="h-full rounded-md bg-amber-500" style={{ width: `${Math.max((aReceberMesCentavos / maxFinMes) * 100, aReceberMesCentavos > 0 ? 4 : 0)}%` }} />
+              </div>
+              <p className="w-24 shrink-0 text-xs font-bold text-black text-right">{fmtMoeda(aReceberMesCentavos)}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="w-20 shrink-0 text-xs text-black">Recebido</p>
+              <div className="flex-1 h-5 rounded-md bg-iw-bg overflow-hidden">
+                <div className="h-full rounded-md bg-iw-success" style={{ width: `${Math.max((recebidoMesCentavos / maxFinMes) * 100, recebidoMesCentavos > 0 ? 4 : 0)}%` }} />
+              </div>
+              <p className="w-24 shrink-0 text-xs font-bold text-black text-right">{fmtMoeda(recebidoMesCentavos)}</p>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        {msg && (
-          <div className="mb-6 flex items-center gap-2 bg-iw-success/8 border border-iw-success/30 text-iw-success px-4 py-3 rounded-xl text-sm font-medium">
-            <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
-          </div>
-        )}
-        {error && (
-          <div className="mb-6 flex items-center gap-2 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm font-medium">
-            <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
-          </div>
-        )}
-
-        {novoAlunoId && novoAlunoNome && (
-          <LinkSenhaAlunoCard alunoId={novoAlunoId} nome={novoAlunoNome} />
-        )}
-
-        {professor.cadastro_publico && turmasDoProfessor.length === 0 && (
-          <div className="mb-6 flex flex-col items-center gap-2 bg-amber-50 border border-amber-200 text-black px-4 py-3.5 rounded-xl text-sm text-center">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span className="uppercase font-bold">
-              Você ainda não cadastrou nenhuma turma. Sem ao menos uma turma, o sistema não tem como
-              gerar o link de matrícula para seus alunos — cadastre a primeira abaixo.
-            </span>
-          </div>
-        )}
-
-        <ProfessorPainel
-          cursos={cursosRaw ?? []}
-          units={(unitsRaw ?? []) as { id: string; type: string; name: string; parent_id: string | null }[]}
-          turmas={turmasDoProfessor}
-          appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
-          turmasFiltroOptions={turmasFiltroOptions}
-          linhas={linhas}
-          novaMatriculaSlot={
-            turmasFiltroOptions.length > 0 ? (
-              <ProfessorNovaMatriculaForm
-                action={professorCriarMatriculaAction}
-                turmasDoProfessor={turmasFiltroOptions}
-                profissoes={profissoesRaw ?? []}
-                justMatriculadoId={novoAlunoId}
-                errorMsg={error}
-              />
-            ) : null
-          }
-          baixarParcelaAction={professorBaixarParcelaAction}
-        />
-      </main>
+      <div className="mt-6 bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Wallet className="w-4 h-4 text-iw-gold" />
+          <h2 className="text-sm font-bold text-black">Próximos passos</h2>
+        </div>
+        <p className="text-xs text-black">
+          Use o menu ao lado para gerenciar suas turmas, matricular ou consultar alunos, e acompanhar as
+          parcelas do seu núcleo.
+        </p>
+      </div>
     </div>
   );
 }

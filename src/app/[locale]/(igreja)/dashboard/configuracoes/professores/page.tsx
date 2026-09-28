@@ -9,8 +9,7 @@ type Row = {
   nome_completo: string;
   cargo: string | null;
   telefone: string | null;
-  tipo_professor: string | null;
-  member_id: string | null;
+  veio_de_fora: boolean;
   matricula: string | null;
   sectors: { name: string } | null;
   churches: { name: string } | null;
@@ -21,7 +20,7 @@ export default async function ProfessoresPage() {
 
   const { data } = await supabase
     .from("professores")
-    .select("id, nome_completo, cargo, telefone, tipo_professor, member_id, matricula, sectors(name), churches(name)")
+    .select("id, nome_completo, cargo, telefone, veio_de_fora, matricula, sectors(name), churches(name)")
     .order("nome_completo");
 
   const rows = (data ?? []) as unknown as Row[];
@@ -72,12 +71,10 @@ export default async function ProfessoresPage() {
                   {r.nome_completo}
                   <span
                     className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
-                      r.tipo_professor === "MEMBRO" && r.member_id
-                        ? "bg-iw-blue/10 text-iw-navy"
-                        : "bg-iw-gold/10 text-iw-gold"
+                      r.veio_de_fora ? "bg-iw-gold/10 text-iw-gold" : "bg-iw-blue/10 text-iw-navy"
                     }`}
                   >
-                    {r.tipo_professor === "MEMBRO" && r.member_id ? "Membro" : "De fora"}
+                    {r.veio_de_fora ? "De fora" : "Membro"}
                   </span>
                 </span>
                 <span className="text-xs text-iw-muted truncate">

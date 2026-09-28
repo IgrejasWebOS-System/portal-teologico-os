@@ -7,6 +7,7 @@ import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 import { regiaoPorUf } from "@/utils/estadosBrasil";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 
 function formatarTelefone(valor: string): string {
   const digits = valor.replace(/\D/g, "").slice(0, 11);
@@ -75,6 +76,9 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
   const [contato, setContato] = useState(existing?.contato ?? "");
   const [telefone, setTelefone] = useState(formatarTelefone(existing?.telefone ?? ""));
   const [email, setEmail] = useState(existing?.email ?? "");
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade
+  // (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const regiaoIbge = useMemo(() => regiaoPorUf(uf), [uf]);
 
@@ -264,10 +268,20 @@ export default function CampoForm({ existing, ministerios = [], igrejasDisponive
             <input
               name="cidade"
               type="text"
+              list="lista-cidades-campo"
               value={cidade}
-              onChange={(e) => setCidade(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const { cidade: nome, uf: ufEncontrada } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                setCidade(nome);
+                if (ufEncontrada) setUf(ufEncontrada);
+              }}
               className={`${inputCls} uppercase`}
             />
+            <datalist id="lista-cidades-campo">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>UF</label>

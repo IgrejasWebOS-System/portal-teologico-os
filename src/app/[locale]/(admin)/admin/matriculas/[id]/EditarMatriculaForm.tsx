@@ -7,13 +7,15 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { maskRG } from "@/utils/maskRG";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   atualizarMatriculaAction, lancarPagamentoRetroativoAction, cancelarMatriculaAction, gerarParcelasMensalidadeAction,
 } from "../actions";
-import { baixarParcelaAction, cancelarParcelaAction } from "../../financeiro/actions";
+import { baixarParcelaAction, cancelarParcelaAction, reativarParcelaAction } from "../../financeiro/actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 import { BuscaOuCriarInput, SeletorBuscaDropdown } from "@/components/forms/BuscaOuCriarInput";
+import { useCatalogoCidades } from "@/utils/useCatalogoCidades";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type SelectItem = { id: string; name: string };
@@ -211,6 +213,30 @@ const PAGAMENTO_STATUS_STYLE: Record<string, string> = {
   CANCELADO: "bg-iw-bg text-iw-muted border-iw-border",
 };
 
+// 26/09/2026, achado na auditoria de padronização de fichas: Sexo e Estado
+// civil aqui eram <option> fixas no JSX (M/F; Solteiro(a)/Casado(a)/
+// Divorciado(a)/Viúvo(a)) -- nunca consultavam settings_gender/
+// settings_civil_status, diferente de todo o resto do sistema (Membro,
+// Professor, Nova Matrícula). Corrigido pra usar as tabelas reais (com
+// .order("name"), mesmo padrão das outras fichas). Registros antigos têm
+// o valor gravado no formato curto ("M"/"F") ou com case diferente
+// ("Solteiro(a)") -- este mapa só resolve qual <option> already-carregada
+// bate com o valor salvo, pra não aparecer em branco; o valor gravado só
+// muda pro formato novo quando a ficha for salva de novo.
+const MAPA_GENERO_LEGADO: Record<string, string> = { M: "MASCULINO", F: "FEMININO" };
+const MAPA_ESTADO_CIVIL_LEGADO: Record<string, string> = {
+  "Solteiro(a)": "SOLTEIRO(A)",
+  "Casado(a)": "CASADO(A)",
+  "Divorciado(a)": "DIVORCIADO(A)",
+  "Viúvo(a)": "VIÚVO(A)",
+};
+
+function valorAtualDaFicha(valorSalvo: string | null | undefined, opcoes: { id: string; name: string }[], mapaLegado: Record<string, string>): string {
+  if (!valorSalvo) return "";
+  if (opcoes.some((o) => o.name === valorSalvo)) return valorSalvo;
+  return mapaLegado[valorSalvo] ?? valorSalvo;
+}
+
 function formatarCentavos(centavos: number): string {
   return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -222,9 +248,17 @@ function formatarDataBr(iso: string | null): string {
 }
 
 export default function EditarMatriculaForm({
-  matricula, aluno, campos, churches, setores, turmas, professores, profissoes = [], escolaridades = [], pagamentos, caixaAbertoId, errorMsg, successMsg,
+  matricula, aluno, campos, churches, setores, turmas, professores, profissoes = [], escolaridades = [], generos = [], estadosCivis = [], pagamentos, caixaAbertoId, errorMsg, successMsg,
   voltarPara = "/admin/matriculas", voltarLabel = "Voltar para Matrículas",
   selfService = false, action, turmaNomeExibicao, professorNomeExibicao, campoNomeExibicao, setorNomeExibicao, igrejaNomeExibicao,
+  baixarParcelaAction: baixarParcelaActionProp,
+  cancelarParcelaAction: cancelarParcelaActionProp,
+  reativarParcelaAction: reativarParcelaActionProp,
+  lancarPagamentoRetroativoAction: lancarPagamentoRetroativoActionProp,
+  cancelarMatriculaAction: cancelarMatriculaActionProp,
+  gerarParcelasMensalidadeAction: gerarParcelasMensalidadeActionProp,
+  travarProfessorId,
+  redirectToBaixa,
 }: {
   matricula: Matricula;
   aluno: Aluno;
@@ -241,6 +275,11 @@ export default function EditarMatriculaForm({
   // "Escolaridade" — mesmo padrão de profissoes acima. Opcional/[] por
   // padrão pra não quebrar nenhum outro ponto que ainda não passa essa prop.
   escolaridades?: SelectItem[];
+  // 26/09/2026, auditoria de padronização de fichas: Sexo/Estado civil
+  // deixaram de ser <option> fixas -- agora vêm de settings_gender/
+  // settings_civil_status, mesmo padrão de profissoes/escolaridades acima.
+  generos?: SelectItem[];
+  estadosCivis?: SelectItem[];
   pagamentos: Pagamento[];
   caixaAbertoId: string;
   errorMsg?: string;
@@ -267,9 +306,35 @@ export default function EditarMatriculaForm({
   campoNomeExibicao?: string;
   setorNomeExibicao?: string;
   igrejaNomeExibicao?: string;
+  // 28/09/2026, Fase 1 (edição completa pelo Professor): esta tela era só
+  // reaproveitável pela secretaria — os outros 4 formulários embutidos
+  // (baixar/cancelar parcela, pagamento retroativo, cancelar matrícula)
+  // chamavam direto as Server Actions staff-only, sem jeito de trocar por
+  // uma versão escopada ao professor dono do aluno. Agora cada um é
+  // sobrescrevível; sem prop, cai nas actions de sempre (staff), então a
+  // tela do admin continua idêntica.
+  baixarParcelaAction?: (formData: FormData) => Promise<void> | void;
+  cancelarParcelaAction?: (formData: FormData) => Promise<void> | void;
+  reativarParcelaAction?: (formData: FormData) => Promise<void> | void;
+  lancarPagamentoRetroativoAction?: (formData: FormData) => Promise<void> | void;
+  cancelarMatriculaAction?: (formData: FormData) => Promise<void> | void;
+  gerarParcelasMensalidadeAction?: (formData: FormData) => Promise<void> | void;
+  // Quando a tela é aberta pelo Professor: trava o campo Professor(a) no
+  // próprio professor (não deixa reatribuir o aluno pra outro professor
+  // por aqui — isso continua decisão da secretaria) e manda o "voltar"
+  // certo pras ações de baixa de parcela (professorBaixarParcelaAction
+  // aceita redirect_to).
+  travarProfessorId?: string;
+  redirectToBaixa?: string;
 }) {
   const [sectorId, setSectorId] = useState(aluno.sector_id ?? "");
   const [churchId, setChurchId] = useState(aluno.church_id ?? "");
+  // 28/09/2026, achado do Joaquim: abriu "Dar baixa/cancelar" pra ver a
+  // parcela e clicou em "Cancelar parcela" sem querer — o botão submetia
+  // direto, sem nenhuma confirmação (diferente de "Cancelar matrícula",
+  // que já tinha um passo de confirmar). Agora pede confirmação também,
+  // uma parcela por vez (guarda só o id da que está confirmando).
+  const [confirmarCancelarParcelaId, setConfirmarCancelarParcelaId] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [mostrarPagamento, setMostrarPagamento] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
@@ -279,6 +344,10 @@ export default function EditarMatriculaForm({
   const [naturalidadeEstado, setNaturalidadeEstado] = useState(aluno.naturalidade_estado ?? "");
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
+  // 26/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial, mesmo catálogo (IBGE + DF) já usado no
+  // ProfessorForm.tsx -- ver src/utils/useCatalogoCidades.ts.
+  const { catalogoCidades } = useCatalogoCidades();
   const enderecoRef = useRef<HTMLInputElement | null>(null);
   const bairroRef = useRef<HTMLInputElement | null>(null);
   const cidadeRef = useRef<HTMLInputElement | null>(null);
@@ -528,11 +597,18 @@ export default function EditarMatriculaForm({
                       {turmasDoCurso.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
                     </select>
                   </Field>
-                  <Field compact label="Professor(a)" span="col-span-12 md:col-span-4">
-                    <select name="professor_id" defaultValue={matricula.professor_id ?? ""} className={bareSelectCls}>
-                      <option value="">Selecione...</option>
-                      {professores.map((p) => <option key={p.id} value={p.id}>{p.nome_completo}</option>)}
-                    </select>
+                  <Field compact label={travarProfessorId ? "Professor(a) (você)" : "Professor(a)"} span="col-span-12 md:col-span-4">
+                    {travarProfessorId ? (
+                      <>
+                        <input value={professorNomeExibicao ?? "—"} readOnly disabled className={`${bareCls} text-iw-muted`} />
+                        <input type="hidden" name="professor_id" value={travarProfessorId} />
+                      </>
+                    ) : (
+                      <select name="professor_id" defaultValue={matricula.professor_id ?? ""} className={bareSelectCls}>
+                        <option value="">Selecione...</option>
+                        {professores.map((p) => <option key={p.id} value={p.id}>{p.nome_completo}</option>)}
+                      </select>
+                    )}
                   </Field>
                 </div>
                 <div className="grid grid-cols-12 gap-2.5">
@@ -603,7 +679,18 @@ export default function EditarMatriculaForm({
                 não traz mais esse número. Órgão emissor/UF do RG abaixo continuam
                 como estavam (só fazem sentido se a pessoa tiver um RG antigo). */}
             <Field label="RG" span="col-span-6 md:col-span-2">
-              <input name="rg" defaultValue={aluno.rg ?? ""} className={bareCls} />
+              {/* 28/09/2026, achado do Joaquim: aqui era o único cadastro do
+                  sistema sem máscara no RG (professor e membro já tinham) —
+                  campo continua não controlado (defaultValue), só reformata
+                  o valor a cada tecla, igual ao padrão de aplicarMaiusculaNoEvento
+                  usado nos outros campos desta mesma tela. */}
+              <input
+                name="rg"
+                defaultValue={aluno.rg ?? ""}
+                placeholder="00.000.000-0"
+                onChange={(e) => { e.target.value = maskRG(e.target.value); }}
+                className={bareCls}
+              />
             </Field>
             <Field label="Órgão" required={selfService} span="col-span-6 md:col-span-1">
               <input name="rg_orgao_emissor" required={selfService} defaultValue={aluno.rg_orgao_emissor ?? "SSP"} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
@@ -614,19 +701,25 @@ export default function EditarMatriculaForm({
           </div>
           <div className="grid grid-cols-12 gap-3">
             <Field label="Sexo" required={selfService} span="col-span-6 md:col-span-3">
-              <select name="genero" required={selfService} defaultValue={aluno.genero ?? ""} className={bareSelectCls}>
+              <select
+                name="genero"
+                required={selfService}
+                defaultValue={valorAtualDaFicha(aluno.genero, generos, MAPA_GENERO_LEGADO)}
+                className={bareSelectCls}
+              >
                 <option value="">Selecione...</option>
-                <option value="M">Masculino</option>
-                <option value="F">Feminino</option>
+                {generos.map((g) => (<option key={g.id} value={g.name}>{g.name}</option>))}
               </select>
             </Field>
             <Field label="Estado civil" required={selfService} span="col-span-6 md:col-span-3">
-              <select name="estado_civil" required={selfService} defaultValue={aluno.estado_civil ?? ""} className={bareSelectCls}>
+              <select
+                name="estado_civil"
+                required={selfService}
+                defaultValue={valorAtualDaFicha(aluno.estado_civil, estadosCivis, MAPA_ESTADO_CIVIL_LEGADO)}
+                className={bareSelectCls}
+              >
                 <option value="">Selecione...</option>
-                <option value="Solteiro(a)">Solteiro(a)</option>
-                <option value="Casado(a)">Casado(a)</option>
-                <option value="Divorciado(a)">Divorciado(a)</option>
-                <option value="Viúvo(a)">Viúvo(a)</option>
+                {estadosCivis.map((e) => (<option key={e.id} value={e.name}>{e.name}</option>))}
               </select>
             </Field>
             <Field label="Escolaridade" required={selfService} span="col-span-6 md:col-span-3">
@@ -716,7 +809,20 @@ export default function EditarMatriculaForm({
               <input ref={bairroRef} name="bairro" required={selfService} defaultValue={aluno.bairro ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
             </Field>
             <Field label="Cidade" required={selfService} span="col-span-6 md:col-span-3">
-              <input ref={cidadeRef} name="cidade" required={selfService} defaultValue={aluno.cidade ?? ""} onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
+              <input
+                ref={cidadeRef}
+                list="lista-cidades-endereco-matricula"
+                name="cidade"
+                required={selfService}
+                defaultValue={aluno.cidade ?? ""}
+                onChange={aplicarMaiusculaNoEvento}
+                className={`${bareCls} uppercase`}
+              />
+              <datalist id="lista-cidades-endereco-matricula">
+                {catalogoCidades.map((c) => (
+                  <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                ))}
+              </datalist>
             </Field>
             <Field label="UF" required={selfService} span="col-span-6 md:col-span-1">
               <input ref={estadoRef} name="estado" required={selfService} maxLength={2} defaultValue={aluno.estado ?? ""} className={`${bareCls} uppercase`} />
@@ -739,7 +845,7 @@ export default function EditarMatriculaForm({
 
         {!temMensalidadeLancada && (
           <form
-            action={gerarParcelasMensalidadeAction}
+            action={gerarParcelasMensalidadeActionProp ?? gerarParcelasMensalidadeAction}
             className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3"
           >
             <input type="hidden" name="matricula_id" value={matricula.id} />
@@ -791,9 +897,10 @@ export default function EditarMatriculaForm({
                         Dar baixa / cancelar
                       </summary>
                       <div className="mt-3 space-y-3 bg-white rounded-xl p-4 border border-iw-gold">
-                        <form action={baixarParcelaAction} className="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                        <form action={baixarParcelaActionProp ?? baixarParcelaAction} className="grid grid-cols-1 sm:grid-cols-6 gap-3">
                           <input type="hidden" name="id" value={p.id} />
                           <input type="hidden" name="caixa_diario_id" value={caixaAbertoId} />
+                          {redirectToBaixa && <input type="hidden" name="redirect_to" value={redirectToBaixa} />}
                           <select
                             name="forma_pagamento"
                             defaultValue={p.forma_pagamento_prevista}
@@ -830,18 +937,58 @@ export default function EditarMatriculaForm({
                           (se houver) — isso lança o recebimento como movimento financeiro em Financeiro, sem alterar
                           o Caixa Diário além do previsto.
                         </p>
-                        <form action={cancelarParcelaAction}>
-                          <input type="hidden" name="id" value={p.id} />
+                        {confirmarCancelarParcelaId === p.id ? (
+                          <form
+                            action={cancelarParcelaActionProp ?? cancelarParcelaAction}
+                            className="flex flex-wrap items-center gap-2 bg-iw-error/5 border border-iw-error/30 rounded-xl px-3 py-2"
+                          >
+                            <input type="hidden" name="id" value={p.id} />
+                            <span className="text-xs text-iw-navy font-medium">Confirma o cancelamento desta parcela?</span>
+                            <button
+                              type="submit"
+                              className="bg-iw-error hover:opacity-90 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-opacity"
+                            >
+                              Sim, cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmarCancelarParcelaId(null)}
+                              className="text-xs font-bold text-iw-muted hover:text-iw-navy px-2 py-1.5"
+                            >
+                              Voltar
+                            </button>
+                          </form>
+                        ) : (
                           <button
-                            type="submit"
+                            type="button"
+                            onClick={() => setConfirmarCancelarParcelaId(p.id)}
                             className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-error hover:opacity-80"
                           >
                             <Ban className="w-3.5 h-3.5" />
                             Cancelar parcela
                           </button>
-                        </form>
+                        )}
                       </div>
                     </details>
+                  )}
+
+                  {/* 28/09/2026, achado do Joaquim (cancelou uma parcela sem
+                      querer): antes não existia nenhum jeito de desfazer um
+                      cancelamento pela tela — só editando o banco na mão.
+                      Volta a parcela pra PENDENTE (nunca marca como paga
+                      sozinha — se já tinha sido paga antes de cancelar, a
+                      secretaria/professor dá baixa de novo manualmente). */}
+                  {statusEfetivo === "CANCELADO" && (
+                    <form action={reativarParcelaActionProp ?? reativarParcelaAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy hover:opacity-80"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        Reativar parcela (voltar para pendente)
+                      </button>
+                    </form>
                   )}
                 </div>
               );
@@ -861,7 +1008,7 @@ export default function EditarMatriculaForm({
             Lançar pagamento retroativo
           </button>
         ) : (
-          <form action={lancarPagamentoRetroativoAction} className="bg-iw-bg rounded-xl p-4 space-y-3">
+          <form action={lancarPagamentoRetroativoActionProp ?? lancarPagamentoRetroativoAction} className="bg-iw-bg rounded-xl p-4 space-y-3">
             <input type="hidden" name="matricula_id" value={matricula.id} />
             <input type="hidden" name="aluno_id" value={aluno.id} />
             <p className="text-xs text-iw-muted">
@@ -932,7 +1079,7 @@ export default function EditarMatriculaForm({
             {matricula.status === "CANCELADO" ? "Já cancelada" : "Cancelar esta matrícula"}
           </button>
         ) : (
-          <form action={cancelarMatriculaAction} className="flex items-center gap-3">
+          <form action={cancelarMatriculaActionProp ?? cancelarMatriculaAction} className="flex items-center gap-3">
             <input type="hidden" name="matricula_id" value={matricula.id} />
             <span className="text-sm text-iw-navy font-medium">Confirma o cancelamento?</span>
             <button

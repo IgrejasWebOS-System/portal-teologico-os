@@ -76,6 +76,14 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
   const numeroTesteRaw = formData.get("numero_teste") as string | null;
   const numeroTeste = numeroTesteRaw ? Number(numeroTesteRaw) : undefined;
   const confirmou = formData.get("confirmo_prova") === "on";
+  // 28/09/2026, achado do Joaquim: o redirect pro teste recém-criado não
+  // levava o "voltar" adiante -- sem isso, ao terminar o teste o botão
+  // VOLTAR caía no destino padrão da página de teste em vez de retornar
+  // pra Simulados e Provas.
+  const voltarRaw = (formData.get("voltar") as string) || "";
+  const voltarQuery = voltarRaw && voltarRaw.startsWith("/") && !voltarRaw.startsWith("//")
+    ? `?voltar=${encodeURIComponent(voltarRaw)}`
+    : "";
 
   if (!lessonId || !["TESTE_LICAO", "PROVA"].includes(tipo)) {
     fail(lessonId, "Dados inválidos.");
@@ -94,6 +102,25 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
   }
 
   const admin = createAdminClient();
+
+  // 28/09/2026, achado do Joaquim: a prova cumulativa estava liberada mesmo
+  // com testes parciais pendentes — a checagem existia só na UI (que tinha
+  // um bug e nem filtrava certo) e nunca no servidor. Aqui é a barreira de
+  // verdade: conta quantos dos TOTAL_TESTES_POR_MATERIA testes desta
+  // matéria já foram FINALIZADA; se faltar algum, barra antes de gerar a
+  // prova.
+  if (tipo === "PROVA") {
+    const { data: testesFeitos } = await admin
+      .from("avaliacoes")
+      .select("numero_teste, status")
+      .eq("matricula_id", matricula.id)
+      .eq("lesson_id", lessonId)
+      .eq("tipo", "TESTE_LICAO");
+    const concluidos = (testesFeitos ?? []).filter((t) => t.status === "FINALIZADA").length;
+    if (concluidos < TOTAL_TESTES_POR_MATERIA) {
+      fail(lessonId, `Conclua os ${TOTAL_TESTES_POR_MATERIA} testes desta matéria antes de iniciar a prova (${concluidos}/${TOTAL_TESTES_POR_MATERIA} concluídos).`);
+    }
+  }
 
   // Regra de 1 tentativa por Teste/Prova desta matéria — também
   // garantida por índice único no banco (migration 099), esta checagem
@@ -151,13 +178,21 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
     fail(lessonId, "Erro ao gerar questões: " + questoesError.message);
   }
 
-  redirect(`/portal/testes/${lessonId}/${avaliacao!.id}`);
+  redirect(`/portal/testes/${lessonId}/${avaliacao!.id}${voltarQuery}`);
 }
 
 export async function submeterTesteLicaoAction(formData: FormData) {
   const lessonId = (formData.get("lesson_id") as string) || "";
   const avaliacaoId = formData.get("avaliacao_id") as string;
   if (!avaliacaoId) fail(lessonId, "Avaliação inválida.");
+
+  // 28/09/2026, achado do Joaquim: o mesmo "voltar" precisa sobreviver ao
+  // finalizar o teste — sem isso, o resultado voltava pro destino padrão
+  // em vez de Simulados e Provas.
+  const voltarRaw = (formData.get("voltar") as string) || "";
+  const voltarParam = voltarRaw && voltarRaw.startsWith("/") && !voltarRaw.startsWith("//")
+    ? `&voltar=${encodeURIComponent(voltarRaw)}`
+    : "";
 
   const supabase = await createClient();
   const {
@@ -231,5 +266,5 @@ export async function submeterTesteLicaoAction(formData: FormData) {
     .eq("id", avaliacaoId);
 
   revalidatePath(`/portal/testes/${lessonId}`);
-  redirect(`/portal/testes/${lessonId}/${avaliacaoId}?msg=` + encodeURIComponent("Avaliação finalizada."));
+  redirect(`/portal/testes/${lessonId}/${avaliacaoId}?msg=` + encodeURIComponent("Avaliação finalizada.") + voltarParam);
 }

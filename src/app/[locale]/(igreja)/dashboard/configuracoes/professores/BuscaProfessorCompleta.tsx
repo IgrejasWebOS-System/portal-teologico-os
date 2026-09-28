@@ -23,7 +23,11 @@ import {
 
 const inputCls =
   "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
-const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
+// 27/09/2026, pedido do Joaquim: o texto "Buscar (matrícula, CPF ou
+// nome)" ficava empilhado acima da caixa de busca — agora fica na MESMA
+// linha (junto com o título "Dados gerais professor" no cabeçalho da
+// caixa, ver ProfessorForm.tsx), com a fonte 1pt maior (11px -> 12px).
+const labelCls = "shrink-0 whitespace-nowrap text-xs font-bold text-iw-muted uppercase tracking-wider";
 
 interface Props {
   onEncontrado: (membro: MembroCompletoEncontrado) => void;
@@ -103,12 +107,13 @@ export default function BuscaProfessorCompleta({ onEncontrado, onLimpar }: Props
 
   return (
     <div>
-      <label className={labelCls}>
-        <span className="inline-flex items-center gap-1">
-          <Search className="w-3 h-3" /> Buscar (matrícula, CPF ou nome)
-        </span>
-      </label>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className={labelCls}>
+          <span className="inline-flex items-center gap-1">
+            <Search className="w-3 h-3" /> Buscar (matrícula, CPF ou nome)
+          </span>
+        </label>
+        <div className="flex gap-2 flex-1 min-w-[220px]">
         <input
           type="text"
           value={valor}
@@ -137,6 +142,7 @@ export default function BuscaProfessorCompleta({ onEncontrado, onLimpar }: Props
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
         </button>
+        </div>
       </div>
 
       {status === "found" && (

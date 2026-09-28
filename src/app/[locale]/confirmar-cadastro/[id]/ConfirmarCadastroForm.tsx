@@ -5,6 +5,7 @@ import { Camera, Loader2, AlertTriangle, CheckCircle2, Send, User, MapPin, Image
 import { confirmarCadastroAction } from "./actions";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
 import { maskPhone } from "@/utils/maskPhone";
+import { normalizarBusca } from "@/utils/normalizarBusca";
 
 interface Aluno {
   id: string;
@@ -188,9 +189,12 @@ function SeletorBuscaTelaCheia({
   }, []);
 
   const resultados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
+    // 27/09/2026, achado em teste (Joaquim, mesmo padrão de
+    // BuscaOuCriarInput.tsx): "TEC" precisa achar "TÉCNICO" -- normaliza
+    // acento dos dois lados antes de comparar.
+    const q = normalizarBusca(busca);
     if (!q) return itens.slice(0, 50);
-    return itens.filter((i) => i.label.toLowerCase().startsWith(q)).slice(0, 50);
+    return itens.filter((i) => normalizarBusca(i.label).startsWith(q)).slice(0, 50);
   }, [busca, itens]);
 
   return (
@@ -299,9 +303,17 @@ function CampoDeEscolha({
 // Naturalidade — igual ao CampoDeEscolha, mas ao escolher uma cidade
 // também define a UF correspondente (o UF de nascimento vira preenchido
 // sozinho, sem a pessoa precisar digitar de novo).
-function CampoNaturalidade({
-  municipios, onSelecionarCidade,
+//
+// 26/09/2026, auditoria de padronização de fichas: o mesmo tratamento
+// (busca de cidade que já preenche a UF) passou a valer também pro campo
+// "Cidade" do endereço (ver <CampoCidade label="Cidade" .../> mais
+// abaixo) -- por isso este componente virou genérico (label configurável)
+// em vez de fixo em "Naturalidade — cidade".
+function CampoCidade({
+  label, placeholder, municipios, onSelecionarCidade,
 }: {
+  label: string;
+  placeholder: string;
   municipios: Municipio[];
   onSelecionarCidade: (nome: string, uf: string) => void;
 }) {
@@ -315,22 +327,22 @@ function CampoNaturalidade({
   );
 
   return (
-    <Field label="Naturalidade — cidade" filled={valor.length > 0}>
+    <Field label={label} filled={valor.length > 0}>
       <input
         ref={inputRef}
         value={valor}
         readOnly
         onClick={() => setAberto(true)}
-        placeholder="Cidade onde nasceu"
+        placeholder={placeholder}
         className={`${bareCls} cursor-pointer uppercase`}
       />
       {aberto && (
         <SeletorBuscaTelaCheia
-          titulo="Naturalidade"
+          titulo={label}
           valorInicial={valor}
           itens={itens}
           permitirLivre
-          placeholder="Cidade onde nasceu"
+          placeholder={placeholder}
           onFechar={() => setAberto(false)}
           onSelecionar={(item) => {
             const [nomeBruto, uf] = item.id.includes("|") ? item.id.split("|") : [item.label, ""];
@@ -571,11 +583,18 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
 
 
 export default function ConfirmarCadastroForm({
-  aluno, escolaridades, profissoes,
+  aluno, escolaridades, profissoes, generos = [], estadosCivis = [],
 }: {
   aluno: Aluno;
   escolaridades: SelectItem[];
   profissoes: SelectItem[];
+  // 26/09/2026, auditoria de padronização de fichas: Sexo/Estado civil
+  // eram <option> fixas no JSX -- agora vêm de settings_gender/
+  // settings_civil_status (.order("name")), mesmo padrão do resto do
+  // sistema. Opcionais/[] por padrão pra não quebrar nenhum outro ponto
+  // que ainda não passa essas props.
+  generos?: SelectItem[];
+  estadosCivis?: SelectItem[];
 }) {
   const emailJaConhecido = !isEmailPlaceholder(aluno.email);
   const [telefone, setTelefone] = useState(aluno.telefone ?? "");
@@ -809,15 +828,14 @@ export default function ConfirmarCadastroForm({
                 className={bareSelectCls}
               >
                 <option value="">Selecione...</option>
-                <option value="M">Masculino</option>
-                <option value="F">Feminino</option>
+                {generos.map((g) => (<option key={g.id} value={g.name}>{g.name}</option>))}
               </select>
             </Field>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <Field label="RG">
-              <input name="rg" className={bareCls} />
+              <input name="rg" placeholder="00.000.000-0" className={bareCls} />
             </Field>
             <Field label="Órgão">
               <input name="rg_orgao_emissor" defaultValue="SSP" onChange={aplicarMaiusculaNoEvento} className={`${bareCls} uppercase`} />
@@ -835,10 +853,7 @@ export default function ConfirmarCadastroForm({
               className={bareSelectCls}
             >
               <option value="">Selecione...</option>
-              <option value="Solteiro(a)">Solteiro(a)</option>
-              <option value="Casado(a)">Casado(a)</option>
-              <option value="Divorciado(a)">Divorciado(a)</option>
-              <option value="Viúvo(a)">Viúvo(a)</option>
+              {estadosCivis.map((e) => (<option key={e.id} value={e.name}>{e.name}</option>))}
             </select>
           </Field>
 
@@ -863,7 +878,9 @@ export default function ConfirmarCadastroForm({
             />
           </div>
 
-          <CampoNaturalidade
+          <CampoCidade
+            label="Naturalidade — cidade"
+            placeholder="Cidade onde nasceu"
             municipios={municipios}
             onSelecionarCidade={(nome, uf) => { setNaturalidadeCidade(nome); setNaturalidadeEstado(uf); }}
           />
@@ -947,9 +964,18 @@ export default function ConfirmarCadastroForm({
             <Field label="Bairro">
               <input value={bairro} onChange={(e) => setBairro(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
             </Field>
-            <Field label="Cidade">
-              <input value={cidade} onChange={(e) => setCidade(e.target.value.toUpperCase())} className={`${bareCls} uppercase`} />
-            </Field>
+            {/* 26/09/2026, auditoria de padronização de fichas: Cidade do
+                endereço passou a usar o mesmo buscador em tela cheia já
+                usado em Naturalidade/Profissão nesta ficha (em vez de texto
+                livre) — mais consistente que introduzir um <datalist> HTML
+                nativo, que se comporta mal em navegador mobile (esta tela é
+                acessada quase sempre pelo celular, via QR/link). */}
+            <CampoCidade
+              label="Cidade"
+              placeholder="Cidade"
+              municipios={municipios}
+              onSelecionarCidade={(nome, uf) => { setCidade(nome); setEstado(uf); }}
+            />
             <Field label="UF">
               <input value={estado} maxLength={2} onChange={(e) => setEstado(e.target.value.toUpperCase())} className={`${bareCls} uppercase text-center`} />
             </Field>

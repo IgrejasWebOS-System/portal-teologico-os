@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { useCatalogoCidades } from "@/utils/useCatalogoCidades";
 import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 
@@ -54,6 +55,9 @@ export default function NovaIgrejaForm({
   const [pastorRole, setPastorRole] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade
+  // (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setPastorName(membro.full_name);
@@ -380,10 +384,16 @@ export default function NovaIgrejaForm({
             <input
               name="city"
               type="text"
+              list="lista-cidades-nova-igreja"
               placeholder="Ex: Brasília"
               onChange={aplicarMaiusculaNoEvento}
               className={`${inputCls} uppercase`}
             />
+            <datalist id="lista-cidades-nova-igreja">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </div>
 
           <div className="col-span-12 sm:col-span-2">

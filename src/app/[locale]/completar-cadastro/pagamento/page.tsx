@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, AlertTriangle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
@@ -72,11 +72,13 @@ export default async function PagamentoInicialPage() {
     ? await admin.from("course_editions").select("data_inicio").eq("id", matricula.course_edition_id).maybeSingle()
     : { data: null };
 
-  // Data-âncora pro cálculo de meses decorridos: início da turma > data da
-  // matrícula > hoje (ver decisão do Joaquim — "Quantos meses já decorridos
-  // ele já pagou").
+  // Data-âncora pro cálculo de meses decorridos: data da matrícula > início
+  // da turma > hoje (27/09/2026, pedido do Joaquim: a data que o aluno
+  // informou no formulário de matrícula — "desde quando você já cursa" —
+  // tem prioridade; antes o início da turma sempre vencia, ignorando o que
+  // o aluno tinha acabado de digitar ali).
   const hoje = new Date();
-  const anchorIso = turma?.data_inicio || matricula.data_matricula || hoje.toISOString().slice(0, 10);
+  const anchorIso = matricula.data_matricula || turma?.data_inicio || hoje.toISOString().slice(0, 10);
   const [anoIni, mesIni] = anchorIso.slice(0, 10).split("-").map(Number);
   const mesesDecorridos = (hoje.getFullYear() - anoIni) * 12 + (hoje.getMonth() - (mesIni - 1)) + 1;
   const totalParcelasSugerido = Math.min(Math.max(mesesDecorridos, 1), preco!.numero_parcelas);
@@ -99,9 +101,12 @@ export default async function PagamentoInicialPage() {
         </div>
 
         {/* 25/09/2026, pedido do Joaquim: texto em caixa alta e cor preta
-            (antes vinha em itálico/âmbar, de leitura mais difícil). */}
-        <div className="mb-6 bg-amber-50 border border-amber-200 text-black px-4 py-3.5 rounded-xl text-sm">
-          <p className="uppercase font-semibold">
+            (antes vinha em itálico/âmbar, de leitura mais difícil).
+            27/09/2026: ícone de alerta vermelho à esquerda, piscando 2x ao
+            abrir a tela, texto alinhado à direita do ícone. */}
+        <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-black px-4 py-3.5 rounded-xl text-sm">
+          <AlertTriangle className="w-6 h-6 text-red-600 shrink-0 animate-alert-blink-twice" />
+          <p className="uppercase font-semibold text-left">
             Antes de entrar no curso, confirme quais mensalidades você já pagou (se alguma) e a forma
             de pagamento de cada uma. As mensalidades futuras ficam pendentes normalmente — a
             secretaria vai acompanhar isso com você ao longo do curso.
