@@ -882,6 +882,78 @@ export async function professorCriarPedidoMaterialAction(formData: FormData) {
   redirect("/professor/turmas?msg=" + encodeURIComponent("Pedido de material registrado."));
 }
 
+// ── AÇÃO: CALENDÁRIO DE AULAS DA PRÓPRIA TURMA ──────────────────
+// 30/09/2026, pedido do Joaquim: ele foi procurar "onde fica o
+// gerenciamento das datas de aulas pra pedido de livros" em /professor e
+// não achou — só existia a edição pelo lado da secretaria
+// (dashboard/configuracoes/persona/turmas). O professor sempre pôde editar
+// essas linhas via RLS (cels_professor_all, migration 122), só faltava a
+// tela. Mesmo par de ações do admin (atualizarCalendarioAulaAction /
+// recalcularCalendarioTurmaAction), só que verificando posse da turma e
+// redirecionando pra /professor/turmas.
+export async function professorAtualizarCalendarioAulaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const courseEditionId = formData.get("course_edition_id") as string;
+  const lessonId = formData.get("lesson_id") as string;
+  const dataInicio = (formData.get("data_inicio") as string) || null;
+  const dataFim = (formData.get("data_fim") as string) || null;
+
+  const { data: vinculo } = await admin
+    .from("professor_turmas")
+    .select("professor_id")
+    .eq("course_edition_id", courseEditionId)
+    .eq("professor_id", professor.id)
+    .maybeSingle();
+
+  if (!vinculo) erro("Esta turma não pertence a você.", "/professor/turmas");
+
+  const { error: erroCalendario } = await admin
+    .from("course_edition_lesson_schedule")
+    .update({ data_inicio: dataInicio, data_fim: dataFim, gerado_automaticamente: false })
+    .eq("course_edition_id", courseEditionId)
+    .eq("lesson_id", lessonId);
+
+  if (erroCalendario) {
+    console.error("[professor/actions] professorAtualizarCalendarioAulaAction", erroCalendario);
+    erro("Erro ao salvar a data da aula.", "/professor/turmas");
+  }
+
+  revalidatePath("/professor/turmas");
+  redirect("/professor/turmas?msg=" + encodeURIComponent("Calendário da aula atualizado."));
+}
+
+export async function professorRecalcularCalendarioTurmaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const courseEditionId = formData.get("course_edition_id") as string;
+
+  const { data: vinculo } = await admin
+    .from("professor_turmas")
+    .select("professor_id")
+    .eq("course_edition_id", courseEditionId)
+    .eq("professor_id", professor.id)
+    .maybeSingle();
+
+  if (!vinculo) erro("Esta turma não pertence a você.", "/professor/turmas");
+
+  const { error: erroRecalcular } = await admin.rpc("gerar_calendario_aulas_turma", {
+    p_course_edition_id: courseEditionId,
+    p_forcar: true,
+  });
+
+  if (erroRecalcular) {
+    console.error("[professor/actions] professorRecalcularCalendarioTurmaAction", erroRecalcular);
+    erro("Erro ao recalcular o calendário.", "/professor/turmas");
+  }
+
+  revalidatePath("/professor/turmas");
+  redirect(
+    "/professor/turmas?msg=" +
+      encodeURIComponent("Calendário recalculado automaticamente (sobrescreveu seus ajustes manuais nesta turma).")
+  );
+}
+
 // ── AÇÃO: ATUALIZAR PRÓPRIO PERFIL (telefone + foto) ────────────
 // 27/09/2026, pedido do Joaquim: Configurações deixou de ser só leitura —
 // mas escopo bem restrito de propósito: telefone e foto, o resto da ficha

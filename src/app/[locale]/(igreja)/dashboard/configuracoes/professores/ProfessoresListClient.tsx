@@ -12,8 +12,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Pencil, Trash2, Search } from "lucide-react";
-import { deleteProfessorFormAction } from "../actions";
+import { Pencil, Trash2, Search, LogIn, Loader2 } from "lucide-react";
+import { deleteProfessorFormAction, acessarPortalProfessorAction } from "../actions";
 
 type Row = {
   id: string;
@@ -41,6 +41,28 @@ export default function ProfessoresListClient({
 }) {
   const [busca, setBusca] = useState("");
   const [setorFiltro, setSetorFiltro] = useState("");
+  const [acessandoId, setAcessandoId] = useState<string | null>(null);
+  const [erroAcesso, setErroAcesso] = useState<string | null>(null);
+
+  // 30/09/2026, pedido do Joaquim: "entrar como o professor de verdade" —
+  // gera um link de login real (mesmo mecanismo do convite) e abre numa
+  // aba nova. Troca a sessão do navegador pra a do professor (é login de
+  // verdade, não um modo "visualização"), por isso abre em aba separada —
+  // decisão confirmada com o Joaquim (ver actions.ts).
+  async function handleAcessarPortal(id: string) {
+    setAcessandoId(id);
+    setErroAcesso(null);
+    try {
+      const res = await acessarPortalProfessorAction(id);
+      if (!res.success || !res.url) {
+        setErroAcesso(res.message ?? "Erro ao gerar o link de acesso.");
+        return;
+      }
+      window.open(res.url, "_blank", "noopener,noreferrer");
+    } finally {
+      setAcessandoId(null);
+    }
+  }
 
   const rowsFiltradas = useMemo(() => {
     const buscaLower = busca.trim().toLowerCase();
@@ -76,6 +98,12 @@ export default function ProfessoresListClient({
           ))}
         </select>
       </div>
+
+      {erroAcesso && (
+        <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
+          {erroAcesso}
+        </div>
+      )}
 
       <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
@@ -113,6 +141,19 @@ export default function ProfessoresListClient({
                 </span>
                 <span className="text-xs text-iw-muted truncate">{r.telefone ?? "—"}</span>
                 <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={acessandoId === r.id}
+                    onClick={() => handleAcessarPortal(r.id)}
+                    title="Acessar o portal deste professor (abre numa aba nova)"
+                    className="text-iw-muted hover:text-iw-blue transition-colors disabled:opacity-50"
+                  >
+                    {acessandoId === r.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <LogIn className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                   <Link
                     href={`/dashboard/configuracoes/professores/editar/${r.id}`}
                     className="text-iw-muted hover:text-iw-navy transition-colors"

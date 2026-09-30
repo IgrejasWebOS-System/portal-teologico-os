@@ -343,8 +343,8 @@ export default function ProfessorPainel({
                       <td className="px-2 py-2.5 text-iw-navy">{l.numeroMatricula}</td>
                       <td className="px-2 py-2.5 text-iw-navy truncate max-w-[240px] hidden md:table-cell">{l.curso}</td>
                       <td className="px-2 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403]">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] shrink-0">
                             {l.status}
                           </span>
                           <form
@@ -355,9 +355,9 @@ export default function ProfessorPainel({
                             <button
                               type="submit"
                               title="Reenviar link de matrícula/acesso pro aluno"
-                              className="text-iw-muted hover:text-iw-blue transition-colors"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
                             >
-                              <Send className="w-3.5 h-3.5" />
+                              <Send className="w-3.5 h-3.5" /> Reenviar link
                             </button>
                           </form>
                         </div>
