@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import { calcularMediaCertificado } from "@/utils/avaliacoes/mediaCertificado";
-import { professorBaixarParcelaAction } from "../actions";
+import { professorBaixarParcelaAction, professorReenviarLinkAlunoAction } from "../actions";
 import { type TurmaVinculo } from "../TurmasDoProfessor";
 import ProfessorPainel from "../ProfessorPainel";
 import LinkSenhaAlunoCard from "../LinkSenhaAlunoCard";
@@ -75,7 +75,7 @@ export default async function AlunosDoProfessorPage({
 
   const [alunosRes, avaliacoesRes, contasRes] = await Promise.all([
     alunoIds.length
-      ? admin.from("ead_alunos").select("id, user_id, nome_completo, cpf, status, convite_status").in("id", alunoIds)
+      ? admin.from("ead_alunos").select("id, user_id, nome_completo, cpf, email, status, convite_status").in("id", alunoIds)
       : Promise.resolve({ data: [] }),
     matriculaIds.length
       ? admin
@@ -148,6 +148,7 @@ export default async function AlunosDoProfessorPage({
     return {
       matriculaId: m.id,
       courseEditionId: m.course_edition_id,
+      alunoId: m.aluno_id,
       nome: aluno?.nome_completo ?? "—",
       cpf: aluno?.cpf ?? null,
       curso: m.curso_nome_snapshot,
@@ -193,6 +194,7 @@ export default async function AlunosDoProfessorPage({
         turmasFiltroOptions={turmasFiltroOptions}
         linhas={linhas}
         baixarParcelaAction={professorBaixarParcelaAction}
+        reenviarLinkAction={professorReenviarLinkAlunoAction}
       />
     </div>
   );

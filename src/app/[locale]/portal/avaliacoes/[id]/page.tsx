@@ -2,7 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { submeterAvaliacaoAction } from "../actions";
+import { submeterAvaliacaoAction, refazerAvaliacaoAction } from "../actions";
+
+// 29/09/2026, pedido do Joaquim: nota mínima de aprovação passou a valer
+// pra teste, simulado e prova (antes só prova tinha essa checagem, com
+// 6,0). Duplicado aqui (não importado de actions.ts porque aquele arquivo
+// é "use server" e não pode exportar uma constante simples pra um
+// Server Component) — mesmo valor de NOTA_MINIMA em avaliacoes/actions.ts.
+const NOTA_MINIMA = 6.1;
 
 const TITULO_TIPO: Record<string, string> = {
   PROVA: "Prova",
@@ -116,10 +123,29 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
               <p className="text-iw-muted text-sm">
                 {avaliacao.acertos} de {avaliacao.num_questoes} corretas
               </p>
-              {avaliacao.tipo === "PROVA" && (
-                <p className={`text-sm font-bold ${avaliacao.aprovado ? "text-iw-success" : "text-iw-error"}`}>
-                  {avaliacao.aprovado ? "Aprovado" : "Reprovado"} (nota mínima 6,0)
-                </p>
+
+              {/* 29/09/2026, pedido do Joaquim: média mínima (6,1) e botão
+                  de refazer valem pra TODOS os tipos agora, não só prova —
+                  "botão suspenso" vermelho enquanto reprovado, vira verde
+                  ao atingir a média. Sem limite de tentativas. */}
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${
+                  avaliacao.aprovado ? "bg-iw-success-bg text-iw-success" : "bg-iw-error-bg text-iw-error"
+                }`}
+              >
+                {avaliacao.aprovado ? "Aprovado" : "Abaixo da média"} (mínimo {NOTA_MINIMA.toFixed(1).replace(".", ",")})
+              </div>
+
+              {!avaliacao.aprovado && (
+                <form action={refazerAvaliacaoAction} className="pt-2">
+                  <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
+                  <button
+                    type="submit"
+                    className="w-full bg-iw-error hover:opacity-90 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity"
+                  >
+                    Refazer {avaliacao.tipo === "PROVA" ? "prova" : avaliacao.tipo === "TESTE_LICAO" ? "teste" : "simulado"}
+                  </button>
+                </form>
               )}
             </div>
 
@@ -187,7 +213,7 @@ export default async function AvaliacaoPage({ params, searchParams }: PageProps)
             {avaliacao.tipo === "PROVA" && (
               <div className="flex items-start gap-2 bg-iw-warning-bg border border-iw-warning/30 text-iw-warning px-4 py-3 rounded-xl text-xs">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Esta é a sua única tentativa desta prova. Responda com atenção antes de finalizar.</span>
+                <span>Nota mínima de aprovação: 6,1. Se não atingir, você pode refazer.</span>
               </div>
             )}
 

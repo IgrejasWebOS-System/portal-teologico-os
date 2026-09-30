@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Link2,
@@ -12,8 +13,9 @@ import {
   Search,
   Loader2,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
-import { professorAlternarLinkTurmaAction, professorCriarTurmaAction } from "./actions";
+import { professorAlternarLinkTurmaAction, professorApagarTurmaAction, professorCriarTurmaAction } from "./actions";
 import { buscarTurmasPorUnidadeConfigAction } from "../(igreja)/dashboard/configuracoes/actions";
 import { vincularTurmaProfessorSelfAction } from "../completar-cadastro/actions";
 
@@ -70,6 +72,27 @@ const DIAS = [
 ];
 
 const ANOS_TURMA = [2027, 2026];
+
+// 29/09/2026, pedido do Joaquim: no celular, uma conexão lenta fazia
+// parecer que o clique não tinha funcionado — a pessoa clicava de novo e
+// duplicava a turma. useFormStatus() dá o estado "pending" do <form
+// action={...}> mais próximo (Server Action do React 19), então o botão
+// já nasce desabilitado assim que o primeiro clique dispara o submit, até
+// a Server Action terminar (redirect incluso) — sem precisar de estado
+// manual nem debounce.
+function BotaoCriarTurma({ podeEnviar }: { podeEnviar: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={!podeEnviar || pending}
+      className="flex items-center justify-center gap-2 bg-[#000000] hover:opacity-90 disabled:opacity-50 text-[#FFFFFF] border-2 border-[#CF8403] px-5 py-2.5 rounded-xl text-sm font-bold uppercase transition-opacity"
+    >
+      {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+      {pending ? "Criando turma..." : "Criar turma e gerar link"}
+    </button>
+  );
+}
 
 function CopiarLinkButton({ url }: { url: string }) {
   const [copiado, setCopiado] = useState(false);
@@ -253,20 +276,39 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
                       {DIAS.find((x) => x.value === t.dia_semana)?.label ?? t.dia_semana}
                     </p>
                   </div>
-                  <form action={professorAlternarLinkTurmaAction}>
-                    <input type="hidden" name="id" value={t.id} />
-                    <input type="hidden" name="ativar" value={(!t.link_ativo).toString()} />
-                    <button
-                      type="submit"
-                      title={t.link_ativo ? "Desativar link" : "Reativar link"}
-                      className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${
-                        t.link_ativo ? "bg-iw-success/10 text-iw-success" : "bg-iw-muted/10 text-iw-muted"
-                      }`}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <form action={professorAlternarLinkTurmaAction}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <input type="hidden" name="ativar" value={(!t.link_ativo).toString()} />
+                      <button
+                        type="submit"
+                        title={t.link_ativo ? "Desativar link" : "Reativar link"}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${
+                          t.link_ativo ? "bg-iw-success/10 text-iw-success" : "bg-iw-muted/10 text-iw-muted"
+                        }`}
+                      >
+                        {t.link_ativo ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                        {t.link_ativo ? "Ativo" : "Desativado"}
+                      </button>
+                    </form>
+                    <form
+                      action={professorApagarTurmaAction}
+                      onSubmit={(e) => {
+                        if (!confirm("Apagar esta turma? Só funciona se ainda não tiver aluno matriculado.")) {
+                          e.preventDefault();
+                        }
+                      }}
                     >
-                      {t.link_ativo ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
-                      {t.link_ativo ? "Ativo" : "Desativado"}
-                    </button>
-                  </form>
+                      <input type="hidden" name="id" value={t.id} />
+                      <button
+                        type="submit"
+                        title="Apagar turma"
+                        className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-iw-error/10 text-iw-error"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </form>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -363,13 +405,7 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
               <input type="date" name="data_fim" className={criarInputCls} />
             </div>
 
-            <button
-              type="submit"
-              disabled={!criarIgrejaId}
-              className="flex items-center justify-center gap-2 bg-[#000000] hover:opacity-90 disabled:opacity-50 text-[#FFFFFF] border-2 border-[#CF8403] px-5 py-2.5 rounded-xl text-sm font-bold uppercase transition-opacity"
-            >
-              Criar turma e gerar link
-            </button>
+            <BotaoCriarTurma podeEnviar={!!criarIgrejaId} />
             {!criarIgrejaId && (
               <p className="text-[11px] text-black">Escolha o Setor/Regional e a Igreja pra liberar o botão.</p>
             )}

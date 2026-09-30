@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Camera, Loader2, Save, Mail } from "lucide-react";
+import { Camera, Loader2, Save, Mail, FileText } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { maskPhone } from "@/utils/maskPhone";
 import { validarCPF } from "@/utils/cpf";
+import { ESTADOS_BR } from "@/utils/estadosBrasil";
 
 // ============================================================
 // /professor/configuracoes (27/09/2026, ajustado no mesmo dia a pedido do
@@ -31,6 +32,29 @@ function maskCPF(raw: string): string {
 interface SelectItem { id: string; name: string }
 interface ChurchItem { id: string; name: string; sector_id: string | null; unit_id: string | null }
 
+interface FichaCompleta {
+  rg: string | null;
+  rg_orgao_emissor: string | null;
+  rg_uf: string | null;
+  data_nascimento: string | null;
+  genero: string | null;
+  estado_civil: string | null;
+  escolaridade: string | null;
+  profissao: string | null;
+  naturalidade_cidade: string | null;
+  naturalidade_estado: string | null;
+  nome_conjuge: string | null;
+  nome_mae: string | null;
+  nome_pai: string | null;
+  cep: string | null;
+  endereco: string | null;
+  endereco_numero: string | null;
+  endereco_complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+}
+
 interface Props {
   nomeInicial: string;
   email: string | null;
@@ -45,11 +69,19 @@ interface Props {
   cargos: SelectItem[];
   sedeUnitId: string | null;
   action: (formData: FormData) => Promise<void> | void;
+  // 29/09/2026, pedido do Joaquim: professor edita a ficha completa
+  // (mesmos campos da secretaria), não só nome/CPF/cargo/setor/igreja.
+  fichaInicial: FichaCompleta;
+  generos: SelectItem[];
+  estadosCivis: SelectItem[];
+  escolaridades: SelectItem[];
+  profissoes: SelectItem[];
 }
 
 export default function ConfiguracoesPainel({
   nomeInicial, email, cpfInicial, cargoInicial, sectorIdInicial, churchIdInicial,
   telefoneInicial, fotoUrlInicial, setores, churches, cargos, sedeUnitId, action,
+  fichaInicial, generos, estadosCivis, escolaridades, profissoes,
 }: Props) {
   const [nome, setNome] = useState(nomeInicial);
   const [cpf, setCpf] = useState(cpfInicial ?? "");
@@ -58,6 +90,27 @@ export default function ConfiguracoesPainel({
   const [telefone, setTelefone] = useState(telefoneInicial ?? "");
   const [fotoUrl, setFotoUrl] = useState(fotoUrlInicial ?? "");
   const [uploadingFoto, setUploadingFoto] = useState(false);
+
+  const [rg, setRg] = useState(fichaInicial.rg ?? "");
+  const [rgOrgaoEmissor, setRgOrgaoEmissor] = useState(fichaInicial.rg_orgao_emissor ?? "");
+  const [rgUf, setRgUf] = useState(fichaInicial.rg_uf ?? "");
+  const [dataNascimento, setDataNascimento] = useState(fichaInicial.data_nascimento ?? "");
+  const [genero, setGenero] = useState(fichaInicial.genero ?? "");
+  const [estadoCivil, setEstadoCivil] = useState(fichaInicial.estado_civil ?? "");
+  const [escolaridade, setEscolaridade] = useState(fichaInicial.escolaridade ?? "");
+  const [profissao, setProfissao] = useState(fichaInicial.profissao ?? "");
+  const [naturalidadeCidade, setNaturalidadeCidade] = useState(fichaInicial.naturalidade_cidade ?? "");
+  const [naturalidadeEstado, setNaturalidadeEstado] = useState(fichaInicial.naturalidade_estado ?? "");
+  const [nomeConjuge, setNomeConjuge] = useState(fichaInicial.nome_conjuge ?? "");
+  const [nomeMae, setNomeMae] = useState(fichaInicial.nome_mae ?? "");
+  const [nomePai, setNomePai] = useState(fichaInicial.nome_pai ?? "");
+  const [cep, setCep] = useState(fichaInicial.cep ?? "");
+  const [endereco, setEndereco] = useState(fichaInicial.endereco ?? "");
+  const [enderecoNumero, setEnderecoNumero] = useState(fichaInicial.endereco_numero ?? "");
+  const [enderecoComplemento, setEnderecoComplemento] = useState(fichaInicial.endereco_complemento ?? "");
+  const [bairro, setBairro] = useState(fichaInicial.bairro ?? "");
+  const [cidade, setCidade] = useState(fichaInicial.cidade ?? "");
+  const [estado, setEstado] = useState(fichaInicial.estado ?? "");
 
   const sedeChurch = useMemo(
     () => (sedeUnitId ? churches.find((c) => c.unit_id === sedeUnitId) ?? null : null),
@@ -227,6 +280,161 @@ export default function ConfiguracoesPainel({
           placeholder="(00) 00000-0000"
           className={bareCls}
         />
+      </div>
+
+      <div className="pt-2 border-t border-iw-border space-y-4">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-iw-gold" />
+          <h2 className="text-sm font-black text-black">Ficha completa</h2>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-6 md:col-span-3`}>
+            <label className={boxLabelCls}>RG</label>
+            <input name="rg" value={rg} onChange={(e) => setRg(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-3`}>
+            <label className={boxLabelCls}>Órgão emissor</label>
+            <input
+              name="rg_orgao_emissor"
+              value={rgOrgaoEmissor}
+              onChange={(e) => setRgOrgaoEmissor(e.target.value.toUpperCase())}
+              className={`${bareCls} uppercase`}
+            />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-3`}>
+            <label className={boxLabelCls}>UF do RG</label>
+            <input
+              name="rg_uf"
+              value={rgUf}
+              maxLength={2}
+              onChange={(e) => setRgUf(e.target.value.toUpperCase())}
+              className={`${bareCls} uppercase`}
+            />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-3`}>
+            <label className={boxLabelCls}>Nascimento</label>
+            <input
+              type="date"
+              name="data_nascimento"
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
+              className={bareCls}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-6 md:col-span-4`}>
+            <label className={boxLabelCls}>Gênero</label>
+            <select name="genero" value={genero} onChange={(e) => setGenero(e.target.value)} className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {generos.map((g) => (<option key={g.id} value={g.name}>{g.name}</option>))}
+            </select>
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-4`}>
+            <label className={boxLabelCls}>Estado civil</label>
+            <select name="estado_civil" value={estadoCivil} onChange={(e) => setEstadoCivil(e.target.value)} className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {estadosCivis.map((e) => (<option key={e.id} value={e.name}>{e.name}</option>))}
+            </select>
+          </div>
+          <div className={`${boxCls} col-span-12 md:col-span-4`}>
+            <label className={boxLabelCls}>Escolaridade</label>
+            <select name="escolaridade" value={escolaridade} onChange={(e) => setEscolaridade(e.target.value)} className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {escolaridades.map((e) => (<option key={e.id} value={e.name}>{e.name}</option>))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-12 md:col-span-4`}>
+            <label className={boxLabelCls}>Profissão</label>
+            <select name="profissao" value={profissao} onChange={(e) => setProfissao(e.target.value)} className={bareSelectCls}>
+              <option value="">Selecione...</option>
+              {profissoes.map((p) => (<option key={p.id} value={p.name}>{p.name}</option>))}
+            </select>
+          </div>
+          <div className={`${boxCls} col-span-8 md:col-span-6`}>
+            <label className={boxLabelCls}>Naturalidade — cidade</label>
+            <input
+              name="naturalidade_cidade"
+              value={naturalidadeCidade}
+              onChange={(e) => setNaturalidadeCidade(e.target.value.toUpperCase())}
+              className={`${bareCls} uppercase`}
+            />
+          </div>
+          <div className={`${boxCls} col-span-4 md:col-span-2`}>
+            <label className={boxLabelCls}>UF</label>
+            <select
+              name="naturalidade_estado"
+              value={naturalidadeEstado}
+              onChange={(e) => setNaturalidadeEstado(e.target.value)}
+              className={bareSelectCls}
+            >
+              <option value="">UF</option>
+              {ESTADOS_BR.map((s) => (<option key={s.uf} value={s.uf}>{s.uf}</option>))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-12 md:col-span-4`}>
+            <label className={boxLabelCls}>Cônjuge (se houver)</label>
+            <input name="nome_conjuge" value={nomeConjuge} onChange={(e) => setNomeConjuge(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-12 md:col-span-4`}>
+            <label className={boxLabelCls}>Nome da mãe</label>
+            <input name="nome_mae" value={nomeMae} onChange={(e) => setNomeMae(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-12 md:col-span-4`}>
+            <label className={boxLabelCls}>Nome do pai</label>
+            <input name="nome_pai" value={nomePai} onChange={(e) => setNomePai(e.target.value)} className={bareCls} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-6 md:col-span-3`}>
+            <label className={boxLabelCls}>CEP</label>
+            <input name="cep" value={cep} onChange={(e) => setCep(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-5`}>
+            <label className={boxLabelCls}>Endereço</label>
+            <input name="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-2`}>
+            <label className={boxLabelCls}>Número</label>
+            <input name="endereco_numero" value={enderecoNumero} onChange={(e) => setEnderecoNumero(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-2`}>
+            <label className={boxLabelCls}>Complemento</label>
+            <input
+              name="endereco_complemento"
+              value={enderecoComplemento}
+              onChange={(e) => setEnderecoComplemento(e.target.value)}
+              className={bareCls}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className={`${boxCls} col-span-6 md:col-span-4`}>
+            <label className={boxLabelCls}>Bairro</label>
+            <input name="bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-6 md:col-span-6`}>
+            <label className={boxLabelCls}>Cidade</label>
+            <input name="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} className={bareCls} />
+          </div>
+          <div className={`${boxCls} col-span-12 md:col-span-2`}>
+            <label className={boxLabelCls}>UF</label>
+            <select name="estado" value={estado} onChange={(e) => setEstado(e.target.value)} className={bareSelectCls}>
+              <option value="">UF</option>
+              {ESTADOS_BR.map((s) => (<option key={s.uf} value={s.uf}>{s.uf}</option>))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <button

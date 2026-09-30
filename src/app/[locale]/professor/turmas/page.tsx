@@ -4,6 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import TurmasDoProfessor, { type TurmaVinculo } from "../TurmasDoProfessor";
+import PedidosMaterialProfessor, { type TurmaPedidoMaterial } from "./PedidosMaterialProfessor";
+import { professorCriarPedidoMaterialAction } from "../actions";
 
 export const metadata = { title: "Minhas Turmas — Área do Professor" };
 
@@ -53,6 +55,72 @@ export default async function TurmasDoProfessorPage({
     course_edition: (Array.isArray(t.course_editions) ? t.course_editions[0] : t.course_editions) as any,
   }));
 
+  // 29/09/2026, pedido do Joaquim (redesenho do material didático — migration
+  // 122): material é por AULA e o pedido pra gráfica é feito perto do fim da
+  // aula atual (10 dias corridos antes). Monta, por turma, o calendário de
+  // aulas + contagem de alunos em andamento + pedidos já feitos, pra
+  // PedidosMaterialProfessor decidir sozinho quais turmas precisam de alerta.
+  const courseEditionIds = turmasDoProfessor.map((t) => t.course_edition_id);
+  let turmasPedidoMaterial: TurmaPedidoMaterial[] = [];
+
+  if (courseEditionIds.length > 0) {
+    const [{ data: scheduleRaw }, { data: matriculasRaw }, { data: pedidosRaw }] = await Promise.all([
+      admin
+        .from("course_edition_lesson_schedule")
+        .select("course_edition_id, lesson_id, ordem, data_inicio, data_fim, lessons(title)")
+        .in("course_edition_id", courseEditionIds)
+        .order("ordem"),
+      admin
+        .from("ead_matriculas")
+        .select("course_edition_id")
+        .in("course_edition_id", courseEditionIds)
+        .eq("status", "EM_ANDAMENTO"),
+      admin
+        .from("pedidos_material")
+        .select("course_edition_id, lesson_id, status, quantidade_solicitada, created_at")
+        .in("course_edition_id", courseEditionIds)
+        .neq("status", "CANCELADO"),
+    ]);
+
+    const alunosPorTurma = new Map<string, number>();
+    for (const m of matriculasRaw ?? []) {
+      alunosPorTurma.set(m.course_edition_id, (alunosPorTurma.get(m.course_edition_id) ?? 0) + 1);
+    }
+
+    const pedidosPorTurmaAula = new Map<string, { status: string; quantidade_solicitada: number; created_at: string }>();
+    for (const p of pedidosRaw ?? []) {
+      pedidosPorTurmaAula.set(`${p.course_edition_id}:${p.lesson_id}`, {
+        status: p.status,
+        quantidade_solicitada: p.quantidade_solicitada,
+        created_at: p.created_at,
+      });
+    }
+
+    turmasPedidoMaterial = turmasDoProfessor.map((t) => {
+      const aulas = (scheduleRaw ?? [])
+        .filter((s) => s.course_edition_id === t.course_edition_id)
+        .map((s) => ({
+          lesson_id: s.lesson_id,
+          ordem: s.ordem,
+          data_inicio: s.data_inicio,
+          data_fim: s.data_fim,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          titulo: ((Array.isArray(s.lessons) ? s.lessons[0] : s.lessons) as any)?.title ?? `Aula ${s.ordem}`,
+          pedido: pedidosPorTurmaAula.get(`${t.course_edition_id}:${s.lesson_id}`) ?? null,
+        }))
+        .sort((a, b) => a.ordem - b.ordem);
+
+      return {
+        course_edition_id: t.course_edition_id,
+        label:
+          `${t.course_edition?.courses?.title ?? "Curso"} — ${t.course_edition?.nome ?? ""}` +
+          (t.course_edition?.classe ? ` (Classe ${t.course_edition.classe})` : ""),
+        aulas,
+        alunosEmAndamento: alunosPorTurma.get(t.course_edition_id) ?? 0,
+      };
+    });
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-black text-iw-navy mb-6">Minhas turmas</h1>
@@ -84,6 +152,13 @@ export default async function TurmasDoProfessorPage({
         turmas={turmasDoProfessor}
         appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
       />
+
+      {turmasPedidoMaterial.length > 0 && (
+        <PedidosMaterialProfessor
+          turmas={turmasPedidoMaterial}
+          criarPedidoAction={professorCriarPedidoMaterialAction}
+        />
+      )}
     </div>
   );
 }

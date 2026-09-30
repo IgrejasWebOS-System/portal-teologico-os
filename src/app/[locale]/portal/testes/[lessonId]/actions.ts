@@ -30,7 +30,13 @@ import {
 // e, na Prova, a confirmação de tentativa única.
 // ============================================================
 
-const NOTA_MINIMA = 6.0;
+// 29/09/2026, pedido do Joaquim: nota mínima subiu de 6,0 pra 6,1 e passou
+// a valer pra TESTE_LICAO também (antes só PROVA tinha "aprovado"). A
+// regra de "1 tentativa" (testes/prova cumulativa desta matéria) caiu —
+// índices avaliacoes_prova_unica_por_materia/avaliacoes_teste_licao_unica
+// removidos na migration 121 — agora é sem limite, igual ao sistema por
+// curso inteiro (portal/avaliacoes/actions.ts).
+const NOTA_MINIMA = 6.1;
 
 function fail(lessonId: string, message: string): never {
   redirect(`/portal/testes/${lessonId}?error=` + encodeURIComponent(message));
@@ -98,7 +104,7 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
     fail(lessonId, "Esta matrícula não está em andamento — não é possível fazer teste/prova.");
   }
   if (tipo === "PROVA" && !confirmou) {
-    fail(lessonId, "Confirme que está ciente de que a prova só pode ser feita uma vez, sem possibilidade de refazer.");
+    fail(lessonId, "Confirme que está ciente da nota mínima de aprovação (6,1) antes de começar.");
   }
 
   const admin = createAdminClient();
@@ -116,30 +122,15 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
       .eq("matricula_id", matricula.id)
       .eq("lesson_id", lessonId)
       .eq("tipo", "TESTE_LICAO");
-    const concluidos = (testesFeitos ?? []).filter((t) => t.status === "FINALIZADA").length;
+    // 29/09/2026: com refazer sem limite, o mesmo numero_teste pode
+    // aparecer mais de uma vez (tentativas antigas) — conta por número de
+    // teste DISTINTO já finalizado ao menos uma vez, não por linha.
+    const concluidos = new Set(
+      (testesFeitos ?? []).filter((t) => t.status === "FINALIZADA").map((t) => t.numero_teste)
+    ).size;
     if (concluidos < TOTAL_TESTES_POR_MATERIA) {
       fail(lessonId, `Conclua os ${TOTAL_TESTES_POR_MATERIA} testes desta matéria antes de iniciar a prova (${concluidos}/${TOTAL_TESTES_POR_MATERIA} concluídos).`);
     }
-  }
-
-  // Regra de 1 tentativa por Teste/Prova desta matéria — também
-  // garantida por índice único no banco (migration 099), esta checagem
-  // aqui é só pra dar uma mensagem amigável em vez de erro de SQL.
-  let existenteQuery = admin
-    .from("avaliacoes")
-    .select("id")
-    .eq("matricula_id", matricula.id)
-    .eq("lesson_id", lessonId)
-    .eq("tipo", tipo);
-  if (tipo === "TESTE_LICAO") {
-    existenteQuery = existenteQuery.eq("numero_teste", numeroTeste!);
-  }
-  const { data: jaExistente } = await existenteQuery.maybeSingle();
-  if (jaExistente) {
-    fail(
-      lessonId,
-      tipo === "PROVA" ? "Você já fez a prova desta matéria." : `Você já fez o Teste ${numeroTeste} desta matéria.`
-    );
   }
 
   const questoes = await gerarQuestoesLicao({ lessonId, tipo, numeroTeste });
@@ -252,7 +243,8 @@ export async function submeterTesteLicaoAction(formData: FormData) {
   }
 
   const nota = Number(((acertos / questoes!.length) * 10).toFixed(2));
-  const aprovado = avaliacao!.tipo === "PROVA" ? nota >= NOTA_MINIMA : null;
+  // 29/09/2026: média mínima vale pra TESTE_LICAO e PROVA aqui também.
+  const aprovado = nota >= NOTA_MINIMA;
 
   await admin
     .from("avaliacoes")
@@ -267,4 +259,69 @@ export async function submeterTesteLicaoAction(formData: FormData) {
 
   revalidatePath(`/portal/testes/${lessonId}`);
   redirect(`/portal/testes/${lessonId}/${avaliacaoId}?msg=` + encodeURIComponent("Avaliação finalizada.") + voltarParam);
+}
+
+// ── REFAZER (29/09/2026, pedido do Joaquim) ─────────────────────
+// Mesmo espírito de portal/avaliacoes/actions.ts::refazerAvaliacaoAction —
+// gera uma tentativa nova do mesmo Teste/Prova desta matéria, sem limite.
+export async function refazerTesteLicaoAction(formData: FormData) {
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const avaliacaoAnteriorId = formData.get("avaliacao_id") as string;
+  if (!avaliacaoAnteriorId) fail(lessonId, "Avaliação inválida.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+
+  const { data: anterior } = await admin
+    .from("avaliacoes")
+    .select("id, tipo, numero_teste, matricula_id, lesson_id, ead_matriculas(ead_alunos(user_id))")
+    .eq("id", avaliacaoAnteriorId)
+    .single();
+
+  const matriculaInfo = anterior?.ead_matriculas as unknown as
+    | { ead_alunos: { user_id: string | null } | null }
+    | null;
+  if (!anterior || matriculaInfo?.ead_alunos?.user_id !== user.id) {
+    fail(lessonId, "Avaliação não encontrada ou não pertence a você.");
+  }
+
+  const questoes = await gerarQuestoesLicao({
+    lessonId: anterior!.lesson_id!,
+    tipo: anterior!.tipo as TipoAvaliacaoLicao,
+    numeroTeste: anterior!.numero_teste ?? undefined,
+  });
+  if (questoes.length === 0) {
+    fail(lessonId, "Ainda não há questões suficientes cadastradas para esta matéria.");
+  }
+
+  const { data: nova, error } = await admin
+    .from("avaliacoes")
+    .insert({
+      matricula_id: anterior!.matricula_id,
+      lesson_id: anterior!.lesson_id,
+      tipo: anterior!.tipo,
+      numero_teste: anterior!.numero_teste,
+      num_questoes: questoes.length,
+    })
+    .select("id")
+    .single();
+  if (error || !nova) fail(lessonId, "Erro ao recomeçar: " + (error?.message ?? "desconhecido"));
+
+  await admin.from("avaliacao_questoes").insert(
+    questoes.map((q, i) => ({
+      avaliacao_id: nova!.id,
+      ordem: i + 1,
+      enunciado: q.enunciado,
+      opcoes: q.opcoes,
+      formato: q.formato,
+      resposta_correta: q.resposta_correta,
+    }))
+  );
+
+  redirect(`/portal/testes/${lessonId}/${nova!.id}`);
 }
