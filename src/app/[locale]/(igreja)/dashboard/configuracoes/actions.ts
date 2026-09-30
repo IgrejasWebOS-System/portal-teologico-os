@@ -1569,3 +1569,54 @@ export async function inviteStaffAction(formData: FormData) {
 export async function inviteStaffFormAction(formData: FormData): Promise<void> {
   await inviteStaffAction(formData);
 }
+
+// ── AÇÃO: ACESSAR O PORTAL DO PROFESSOR (30/09/2026, pedido do Joaquim)
+// ────────────────────────────────────────────────────────────────────
+// Da lista de Professores, a secretaria/admin global pode entrar na área
+// de trabalho de um professor específico pra ver o que ele vê (suporte,
+// conferência). Escolha travada com o Joaquim: entra com a sessão REAL do
+// professor (não um modo "visualização" só de leitura) — mesmo mecanismo
+// do convite por e-mail (auth.admin.generateLink), só que o link é aberto
+// direto pelo admin em vez de mandado por e-mail. Isso troca a sessão do
+// navegador pra a do professor (é um login de verdade) — por isso o botão
+// abre numa aba nova, e fica a cargo do admin logar de novo (ou usar uma
+// aba anônima em paralelo) pra continuar como admin global.
+export async function acessarPortalProfessorAction(
+  professorId: string
+): Promise<{ success: boolean; url?: string; message?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
+  const admin = createAdminClient();
+  const { data: professor } = await admin
+    .from("professores")
+    .select("email, user_id")
+    .eq("id", professorId)
+    .maybeSingle();
+
+  if (!professor?.user_id) {
+    return { success: false, message: "Este professor ainda não tem acesso criado (convite pendente)." };
+  }
+  if (!professor.email) {
+    return { success: false, message: "Este professor não tem e-mail de login cadastrado." };
+  }
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: professor.email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/professor` },
+  });
+
+  if (error || !data?.properties?.action_link) {
+    console.error("[configuracoes/actions] acessarPortalProfessorAction", error);
+    return { success: false, message: "Erro ao gerar o link de acesso." };
+  }
+
+  return { success: true, url: data.properties.action_link };
+}

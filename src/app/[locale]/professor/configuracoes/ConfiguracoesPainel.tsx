@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Camera, Loader2, Save, Mail, FileText } from "lucide-react";
+import { Camera, Loader2, Save, Mail, FileText, Building } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { maskPhone } from "@/utils/maskPhone";
 import { validarCPF } from "@/utils/cpf";
@@ -20,6 +20,17 @@ const boxCls =
 const boxLabelCls = "block text-[10px] font-extrabold text-black uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-black placeholder-black/50 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
+
+function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 pb-3 border-b border-iw-border">
+      <div className="w-6 h-6 rounded-lg bg-iw-gold/10 flex items-center justify-center shrink-0">
+        <Icon className="w-3.5 h-3.5 text-iw-gold" />
+      </div>
+      <h2 className="text-sm font-bold text-black uppercase tracking-wider">{label}</h2>
+    </div>
+  );
+}
 
 function maskCPF(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 11);
@@ -180,113 +191,118 @@ export default function ConfiguracoesPainel({
   }
 
   return (
-    <form action={handleSubmit} className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5 max-w-2xl space-y-4">
+    <form action={handleSubmit} className="space-y-6">
       <input type="hidden" name="foto_url" value={fotoUrl} />
       <input type="hidden" name="church_id" value={churchId} />
 
-      <div className="flex items-center gap-4 pb-1">
-        <div className="w-20 h-20 shrink-0 rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
-          {fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={fotoUrl} alt="Sua foto" className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center gap-0.5 text-black group-hover:text-black">
-              {uploadingFoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
+        <SectionHeader icon={Building} label="Dados gerais" />
+
+        <div className="grid grid-cols-12 gap-4 items-start">
+          <div className="col-span-12 md:col-span-2 flex flex-col items-start gap-2">
+            <div className="w-20 h-20 shrink-0 rounded-full bg-transparent border-[1.5px] border-[#E88D0C]/40 flex items-center justify-center relative overflow-hidden group hover:border-iw-blue transition-colors">
+              {fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt="Sua foto" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-0.5 text-black group-hover:text-black">
+                  {uploadingFoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
-          )}
-          <input type="file" accept="image/*" onChange={handleFotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+            <p className="text-[11px] text-black">Clique na foto pra trocar.</p>
+          </div>
+
+          <div className="col-span-12 md:col-span-10 space-y-3">
+            <div className={boxCls}>
+              <label className={boxLabelCls}>Nome completo</label>
+              <input
+                name="nome_completo"
+                value={nome}
+                onChange={(e) => setNome(e.target.value.toUpperCase())}
+                className={`${bareCls} uppercase font-semibold`}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-12 gap-3">
+              <div className={`${boxCls} col-span-12 md:col-span-6`}>
+                <label className={boxLabelCls}>
+                  <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail de login</span>
+                </label>
+                <p className={`${bareCls} truncate`}>{email || "—"}</p>
+              </div>
+              <div className={`${boxCls} col-span-12 md:col-span-6`}>
+                <label className={boxLabelCls}>CPF</label>
+                <input
+                  name="cpf"
+                  value={cpf}
+                  onChange={(e) => setCpf(maskCPF(e.target.value))}
+                  onBlur={(e) => checkCpf(e.target.value)}
+                  className={bareCls}
+                />
+                {cpfError && <p className="text-[11px] text-iw-error mt-0.5">{cpfError}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-3">
+              <div className={`${boxCls} col-span-12 md:col-span-4`}>
+                <label className={boxLabelCls}>Cargo</label>
+                <select name="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} className={bareSelectCls}>
+                  <option value="">Sem cargo</option>
+                  {cargos.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                </select>
+              </div>
+              <div className={`${boxCls} col-span-12 md:col-span-4`}>
+                <label className={boxLabelCls}>Setor</label>
+                <select
+                  value={naSede ? (sedeChurch?.id ?? "") : sectorId}
+                  onChange={(e) => handleSectorChange(e.target.value)}
+                  className={bareSelectCls}
+                >
+                  <option value="">Selecione...</option>
+                  {sedeChurch && <option value={sedeChurch.id}>SEDE — {sedeChurch.name}</option>}
+                  <optgroup label="Setor">
+                    {setoresComuns.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                  </optgroup>
+                  <optgroup label="Regional">
+                    {setoresRegionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                  </optgroup>
+                </select>
+              </div>
+              <div className={`${boxCls} col-span-12 md:col-span-4`}>
+                <label className={boxLabelCls}>Igreja</label>
+                <select
+                  value={churchId}
+                  onChange={(e) => setChurchId(e.target.value)}
+                  disabled={!sectorId && !naSede}
+                  className={bareSelectCls}
+                >
+                  <option value="">
+                    {naSede ? "SEDE selecionada acima" : sectorId ? "Selecione..." : "Escolha o setor primeiro"}
+                  </option>
+                  {igrejasDoSetor.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                </select>
+              </div>
+            </div>
+
+            <div className={boxCls}>
+              <label className={boxLabelCls}>Telefone</label>
+              <input
+                name="telefone"
+                value={telefone}
+                onChange={(e) => setTelefone(maskPhone(e.target.value))}
+                placeholder="(00) 00000-0000"
+                className={bareCls}
+              />
+            </div>
+          </div>
         </div>
-        <p className="text-[11px] text-black">Clique na foto pra trocar.</p>
       </div>
 
-      <div className={boxCls}>
-        <label className={boxLabelCls}>Nome completo</label>
-        <input
-          name="nome_completo"
-          value={nome}
-          onChange={(e) => setNome(e.target.value.toUpperCase())}
-          className={`${bareCls} uppercase font-semibold`}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-12 gap-3">
-        <div className={`${boxCls} col-span-12 md:col-span-6`}>
-          <label className={boxLabelCls}>
-            <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" /> E-mail de login</span>
-          </label>
-          <p className={`${bareCls} truncate`}>{email || "—"}</p>
-        </div>
-        <div className={`${boxCls} col-span-12 md:col-span-6`}>
-          <label className={boxLabelCls}>CPF</label>
-          <input
-            name="cpf"
-            value={cpf}
-            onChange={(e) => setCpf(maskCPF(e.target.value))}
-            onBlur={(e) => checkCpf(e.target.value)}
-            className={bareCls}
-          />
-          {cpfError && <p className="text-[11px] text-iw-error mt-0.5">{cpfError}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-3">
-        <div className={`${boxCls} col-span-12 md:col-span-4`}>
-          <label className={boxLabelCls}>Cargo</label>
-          <select name="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} className={bareSelectCls}>
-            <option value="">Sem cargo</option>
-            {cargos.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
-          </select>
-        </div>
-        <div className={`${boxCls} col-span-12 md:col-span-4`}>
-          <label className={boxLabelCls}>Setor</label>
-          <select
-            value={naSede ? (sedeChurch?.id ?? "") : sectorId}
-            onChange={(e) => handleSectorChange(e.target.value)}
-            className={bareSelectCls}
-          >
-            <option value="">Selecione...</option>
-            {sedeChurch && <option value={sedeChurch.id}>SEDE — {sedeChurch.name}</option>}
-            <optgroup label="Setor">
-              {setoresComuns.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-            </optgroup>
-            <optgroup label="Regional">
-              {setoresRegionais.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-            </optgroup>
-          </select>
-        </div>
-        <div className={`${boxCls} col-span-12 md:col-span-4`}>
-          <label className={boxLabelCls}>Igreja</label>
-          <select
-            value={churchId}
-            onChange={(e) => setChurchId(e.target.value)}
-            disabled={!sectorId && !naSede}
-            className={bareSelectCls}
-          >
-            <option value="">
-              {naSede ? "SEDE selecionada acima" : sectorId ? "Selecione..." : "Escolha o setor primeiro"}
-            </option>
-            {igrejasDoSetor.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-        </div>
-      </div>
-
-      <div className={boxCls}>
-        <label className={boxLabelCls}>Telefone</label>
-        <input
-          name="telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(maskPhone(e.target.value))}
-          placeholder="(00) 00000-0000"
-          className={bareCls}
-        />
-      </div>
-
-      <div className="pt-2 border-t border-iw-border space-y-4">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-iw-gold" />
-          <h2 className="text-sm font-black text-black">Ficha completa</h2>
-        </div>
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
+        <SectionHeader icon={FileText} label="Ficha completa" />
 
         <div className="grid grid-cols-12 gap-3">
           <div className={`${boxCls} col-span-6 md:col-span-3`}>
