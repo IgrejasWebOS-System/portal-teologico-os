@@ -150,8 +150,6 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
     (enrollments ?? []).map((e) => [e.course_id, e.progress_percent])
   );
 
-  const LIMITE_SIMULADOS = 2;
-
   return (
     <div className="min-h-screen bg-iw-bg">
       <header className="bg-iw-navy shadow-lg">
@@ -197,14 +195,24 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
         ) : (
           matriculas.map((m) => {
             const avaliacoesDaMatricula = (avaliacoes ?? []).filter((a) => a.matricula_id === m.id);
-            const provaExistente = avaliacoesDaMatricula.find((a) => a.tipo === "PROVA");
+            // 29/09/2026, pedido do Joaquim: prova deixou de ser "1 vez só" —
+            // agora pode refazer sem limite até bater 6,1 (mesma regra de
+            // teste/simulado). Pega a tentativa mais recente: se ainda está
+            // em andamento, continua ela; se já passou, mostra o resultado;
+            // se reprovou, libera "Iniciar prova" de novo (repete o mesmo
+            // curso, não precisa de matrícula nova).
+            const provasDaMatricula = avaliacoesDaMatricula
+              .filter((a) => a.tipo === "PROVA")
+              .sort((a, b) => new Date(b.iniciada_em).getTime() - new Date(a.iniciada_em).getTime());
+            const provaMaisRecente = provasDaMatricula[0];
+            const provaEmAndamento = provaMaisRecente?.status === "EM_ANDAMENTO" ? provaMaisRecente : null;
+            const provaAprovada = provasDaMatricula.find((a) => a.status === "FINALIZADA" && a.aprovado);
             const simuladosFeitos = avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length;
-            const simuladosEsgotados = simuladosFeitos >= LIMITE_SIMULADOS;
             const progresso = m.course_id ? progressoPorCurso.get(m.course_id) ?? 0 : 0;
             const provaLiberada = progresso === 100;
             const matriculaEmAndamento = m.status === "EM_ANDAMENTO";
             const podeAvaliar =
-              !!m.course_id && (matriculaEmAndamento || !!provaExistente || simuladosFeitos > 0);
+              !!m.course_id && (matriculaEmAndamento || provasDaMatricula.length > 0 || simuladosFeitos > 0);
             const testesLicao = m.course_id ? testesLicaoPorCurso.get(m.course_id) ?? [] : [];
             const testesLicaoDaMatricula = avaliacoesDaMatricula.filter((a) => a.tipo === "TESTE_LICAO");
             const materiasComBanco = m.course_id ? materiasComBancoPorCurso.get(m.course_id) ?? [] : [];
@@ -234,7 +242,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                     <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Simulado</p>
-                        <span className="text-[10px] font-bold text-iw-muted">{simuladosFeitos}/{LIMITE_SIMULADOS} usados</span>
+                        <span className="text-[10px] font-bold text-iw-muted">{simuladosFeitos} feito{simuladosFeitos === 1 ? "" : "s"}</span>
                       </div>
 
                       {avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length > 0 && (
@@ -254,11 +262,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                         </ul>
                       )}
 
-                      {simuladosEsgotados ? (
-                        <p className="text-[11px] text-iw-muted italic">
-                          Você já utilizou os {LIMITE_SIMULADOS} simulados disponíveis para este curso.
-                        </p>
-                      ) : matriculaEmAndamento ? (
+                      {matriculaEmAndamento ? (
                         <form action={iniciarAvaliacaoAction} className="space-y-3">
                           <input type="hidden" name="matricula_id" value={m.id} />
                           <input type="hidden" name="tipo" value="SIMULADO" />
@@ -279,16 +283,30 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                       )}
                     </div>
 
-                    {/* Prova */}
+                    {/* Prova — 29/09/2026: nota mínima 6,1, refazer sem limite */}
                     <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
-                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (única tentativa)</p>
-                      {provaExistente ? (
-                        <Link
-                          href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
-                          className="block text-center text-xs font-bold text-iw-navy hover:underline"
-                        >
-                          Ver resultado da prova ({provaExistente.status === "FINALIZADA" ? `nota ${Number(provaExistente.nota).toFixed(1)}` : "em andamento"})
-                        </Link>
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (nota mínima 6,1)</p>
+
+                      {provasDaMatricula.length > 0 && (
+                        <ul className="space-y-1">
+                          {provasDaMatricula.map((a) => (
+                            <li key={a.id}>
+                              <Link
+                                href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                className="block text-xs font-bold text-iw-navy hover:underline"
+                              >
+                                {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} —{" "}
+                                {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)} (${a.aprovado ? "aprovado" : "abaixo da média"})` : "em andamento"}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {provaEmAndamento ? (
+                        <p className="text-[11px] text-iw-muted italic">Continue a prova em andamento acima.</p>
+                      ) : provaAprovada ? (
+                        <p className="text-[11px] text-iw-success font-semibold">Prova aprovada — não precisa refazer.</p>
                       ) : !matriculaEmAndamento ? (
                         <p className="text-[11px] text-iw-muted italic">Matrícula não está mais em andamento.</p>
                       ) : !provaLiberada ? (
@@ -303,11 +321,11 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             <input type="checkbox" name="confirmo_prova" className="mt-0.5" required />
                             <span className="inline-flex items-start gap-1">
                               <AlertTriangle className="w-3 h-3 text-iw-warning shrink-0 mt-0.5" />
-                              Estou ciente de que, a partir do início, não poderei desistir e só terei esta tentativa.
+                              Estou ciente de que a nota mínima de aprovação é 6,1 (posso refazer se não atingir).
                             </span>
                           </label>
                           <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity border border-black">
-                            Iniciar prova
+                            {provasDaMatricula.length > 0 ? "Refazer prova" : "Iniciar prova"}
                           </button>
                         </form>
                       )}

@@ -31,7 +31,36 @@ export interface ProfessorLogado {
   sector_id: string | null;
   email: string | null;
   foto_url: string | null;
+  // 29/09/2026, pedido do Joaquim: professor passou a editar a ficha
+  // completa em /professor/configuracoes (mesmos campos que a secretaria
+  // já editava) — precisam vir aqui pra pré-preencher o formulário.
+  rg: string | null;
+  rg_orgao_emissor: string | null;
+  rg_uf: string | null;
+  data_nascimento: string | null;
+  genero: string | null;
+  estado_civil: string | null;
+  escolaridade: string | null;
+  profissao: string | null;
+  naturalidade_cidade: string | null;
+  naturalidade_estado: string | null;
+  nome_conjuge: string | null;
+  nome_mae: string | null;
+  nome_pai: string | null;
+  cep: string | null;
+  endereco: string | null;
+  endereco_numero: string | null;
+  endereco_complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
 }
+
+const FICHA_COMPLETA_SELECT =
+  "id, nome_completo, cadastro_publico, telefone, cpf, cargo, unit_id, church_id, sector_id, email, foto_url, " +
+  "rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, " +
+  "naturalidade_cidade, naturalidade_estado, nome_conjuge, nome_mae, nome_pai, cep, endereco, " +
+  "endereco_numero, endereco_complemento, bairro, cidade, estado";
 
 export async function checkIsProfessor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +69,7 @@ export async function checkIsProfessor(
 ): Promise<ProfessorLogado | null> {
   const { data } = await supabase
     .from("professores")
-    .select("id, nome_completo, cadastro_publico, telefone, cpf, cargo, unit_id, church_id, sector_id, email, foto_url")
+    .select(FICHA_COMPLETA_SELECT)
     .eq("user_id", userId)
     .maybeSingle();
 

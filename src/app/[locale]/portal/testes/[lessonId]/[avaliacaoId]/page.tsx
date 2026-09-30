@@ -3,7 +3,12 @@ import { redirect, notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { submeterTesteLicaoAction } from "../actions";
+import { submeterTesteLicaoAction, refazerTesteLicaoAction } from "../actions";
+
+// 29/09/2026, pedido do Joaquim: mesma média mínima aplicada em todos os
+// tipos (ver actions.ts NOTA_MINIMA — duplicado aqui por ser arquivo
+// "use server" separado de um Server Component).
+const NOTA_MINIMA = 6.1;
 import {
   extrairValorOpcao,
   LABEL_CERTO_ERRADO,
@@ -124,10 +129,26 @@ export default async function TesteLicaoDetailPage({ params, searchParams }: Pag
               <p className="text-iw-muted text-sm">
                 {avaliacao.acertos} de {avaliacao.num_questoes} corretas
               </p>
-              {avaliacao.tipo === "PROVA" && (
-                <p className={`text-sm font-bold ${avaliacao.aprovado ? "text-iw-success" : "text-iw-error"}`}>
-                  {avaliacao.aprovado ? "Aprovado" : "Reprovado"} (nota mínima 6,0)
-                </p>
+
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${
+                  avaliacao.aprovado ? "bg-iw-success-bg text-iw-success" : "bg-iw-error-bg text-iw-error"
+                }`}
+              >
+                {avaliacao.aprovado ? "Aprovado" : "Abaixo da média"} (mínimo {NOTA_MINIMA.toFixed(1).replace(".", ",")})
+              </div>
+
+              {!avaliacao.aprovado && (
+                <form action={refazerTesteLicaoAction} className="pt-2">
+                  <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
+                  <input type="hidden" name="lesson_id" value={lessonId} />
+                  <button
+                    type="submit"
+                    className="w-full bg-iw-error hover:opacity-90 text-white font-bold text-sm px-6 py-3 rounded-xl transition-opacity"
+                  >
+                    Refazer {avaliacao.tipo === "PROVA" ? "prova" : "teste"}
+                  </button>
+                </form>
               )}
             </div>
 
@@ -147,7 +168,7 @@ export default async function TesteLicaoDetailPage({ params, searchParams }: Pag
             {avaliacao.tipo === "PROVA" && (
               <div className="flex items-start gap-2 bg-iw-warning-bg border border-iw-warning/30 text-iw-warning px-4 py-3 rounded-xl text-xs">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Esta é a sua única tentativa desta prova. Responda com atenção antes de finalizar.</span>
+                <span>Nota mínima de aprovação: 6,1. Se não atingir, você pode refazer.</span>
               </div>
             )}
 

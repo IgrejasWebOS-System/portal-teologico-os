@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { GraduationCap, Plus, Pencil, Trash2 } from "lucide-react";
+import { GraduationCap, Plus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
-import { deleteProfessorFormAction } from "../actions";
+import ProfessoresListClient from "./ProfessoresListClient";
 
 type Row = {
   id: string;
@@ -11,17 +11,23 @@ type Row = {
   telefone: string | null;
   veio_de_fora: boolean;
   matricula: string | null;
+  sector_id: string | null;
   sectors: { name: string } | null;
-  churches: { name: string } | null;
+  churches: { name: string; is_sede: boolean | null } | null;
 };
 
 export default async function ProfessoresPage() {
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("professores")
-    .select("id, nome_completo, cargo, telefone, veio_de_fora, matricula, sectors(name), churches(name)")
-    .order("nome_completo");
+  const [{ data }, { data: setores }] = await Promise.all([
+    supabase
+      .from("professores")
+      .select(
+        "id, nome_completo, cargo, telefone, veio_de_fora, matricula, sector_id, sectors(name), churches(name, is_sede)"
+      )
+      .order("nome_completo"),
+    supabase.from("sectors").select("id, name").order("name"),
+  ]);
 
   const rows = (data ?? []) as unknown as Row[];
 
@@ -46,64 +52,17 @@ export default async function ProfessoresPage() {
         }
       />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
-        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Cargo</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Igreja / Setor</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Telefone</span>
-          <span></span>
+      {rows.length === 0 ? (
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm px-5 py-12 text-center">
+          <GraduationCap className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
+          <p className="text-iw-muted text-sm font-medium">Nenhum professor cadastrado.</p>
+          <p className="text-iw-muted/60 text-xs mt-1">
+            Clique em &ldquo;Novo Professor&rdquo; para começar.
+          </p>
         </div>
-
-        {rows.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <GraduationCap className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
-            <p className="text-iw-muted text-sm font-medium">Nenhum professor cadastrado.</p>
-            <p className="text-iw-muted/60 text-xs mt-1">
-              Clique em &ldquo;Novo Professor&rdquo; para começar.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-iw-border">
-            {rows.map((r) => (
-              <li key={r.id} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
-                <span className="text-sm font-semibold text-iw-navy truncate inline-flex items-center gap-1.5">
-                  {r.nome_completo}
-                  <span
-                    className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 ${
-                      r.veio_de_fora ? "bg-iw-gold/10 text-iw-gold" : "bg-iw-blue/10 text-iw-navy"
-                    }`}
-                  >
-                    {r.veio_de_fora ? "De fora" : "Membro"}
-                  </span>
-                </span>
-                <span className="text-xs text-iw-muted truncate">
-                  {r.cargo ?? "—"}
-                  {r.matricula && <span className="text-iw-muted/60"> · {r.matricula}</span>}
-                </span>
-                <span className="text-xs text-iw-muted truncate">
-                  {r.churches?.name ?? "—"} {r.sectors?.name ? `· ${r.sectors.name}` : ""}
-                </span>
-                <span className="text-xs text-iw-muted truncate">{r.telefone ?? "—"}</span>
-                <div className="flex items-center gap-3">
-                  <Link
-                    href={`/dashboard/configuracoes/professores/editar/${r.id}`}
-                    className="text-iw-muted hover:text-iw-navy transition-colors"
-                    title="Editar"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Link>
-                  <form action={deleteProfessorFormAction.bind(null, r.id)}>
-                    <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      ) : (
+        <ProfessoresListClient rows={rows} setores={setores ?? []} />
+      )}
     </div>
   );
 }

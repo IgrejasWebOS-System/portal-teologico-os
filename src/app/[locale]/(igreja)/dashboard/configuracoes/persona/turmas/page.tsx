@@ -5,6 +5,8 @@ import {
   addTurmaConfigAction,
   updateTurmaConfigAction,
   deleteTurmaFormAction,
+  atualizarCalendarioAulaAction,
+  recalcularCalendarioTurmaAction,
 } from "../../actions";
 import TurmasFiltros, { type UnitLite } from "./TurmasFiltros";
 import NovaTurmaForm from "./NovaTurmaForm";
@@ -81,6 +83,37 @@ export default async function TurmasPage({ searchParams }: PageProps) {
   }
 
   const precisaRefinar = ano && !setorId && totalSemFiltroDeIgreja > 200;
+
+  // Calendário de aulas por turma (migration 122) — só busca pras turmas
+  // já filtradas na tela (nunca as 6.800+ de uma vez).
+  type AulaCalendario = {
+    lesson_id: string;
+    ordem: number;
+    data_inicio: string | null;
+    data_fim: string | null;
+    titulo: string;
+  };
+  const calendarioPorTurma = new Map<string, AulaCalendario[]>();
+  if (!precisaRefinar && rows.length > 0) {
+    const { data: scheduleRaw } = await supabase
+      .from("course_edition_lesson_schedule")
+      .select("course_edition_id, lesson_id, ordem, data_inicio, data_fim, lessons(title)")
+      .in("course_edition_id", rows.map((r) => r.id))
+      .order("ordem");
+
+    for (const s of scheduleRaw ?? []) {
+      const lista = calendarioPorTurma.get(s.course_edition_id) ?? [];
+      lista.push({
+        lesson_id: s.lesson_id,
+        ordem: s.ordem,
+        data_inicio: s.data_inicio,
+        data_fim: s.data_fim,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        titulo: ((Array.isArray(s.lessons) ? s.lessons[0] : s.lessons) as any)?.title ?? `Aula ${s.ordem}`,
+      });
+      calendarioPorTurma.set(s.course_edition_id, lista);
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -237,7 +270,70 @@ export default async function TurmasPage({ searchParams }: PageProps) {
                         </button>
                       </div>
                     </form>
-                    <form action={deleteTurmaFormAction.bind(null, r.id)} className="pt-1">
+
+                    <div className="mt-4 pt-4 border-t border-iw-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-bold text-iw-muted uppercase tracking-wider">
+                          Calendário de aulas (pra pedido de material — migration 122)
+                        </p>
+                        <form action={recalcularCalendarioTurmaAction}>
+                          <input type="hidden" name="course_edition_id" value={r.id} />
+                          <input type="hidden" name="ano" value={ano} />
+                          <input type="hidden" name="setor_id" value={setorId} />
+                          <input type="hidden" name="igreja_id" value={igrejaId} />
+                          <button
+                            type="submit"
+                            className="text-[11px] font-bold text-iw-navy underline hover:text-iw-gold transition-colors"
+                          >
+                            Recalcular automaticamente
+                          </button>
+                        </form>
+                      </div>
+
+                      {(calendarioPorTurma.get(r.id) ?? []).length === 0 ? (
+                        <p className="text-xs text-iw-muted/70">
+                          Sem calendário ainda (a turma precisa ter data de início e fim preenchidas acima).
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {(calendarioPorTurma.get(r.id) ?? []).map((a) => (
+                            <form
+                              key={a.lesson_id}
+                              action={atualizarCalendarioAulaAction}
+                              className="grid grid-cols-[2rem_1fr_auto_auto_auto] items-center gap-2"
+                            >
+                              <input type="hidden" name="course_edition_id" value={r.id} />
+                              <input type="hidden" name="lesson_id" value={a.lesson_id} />
+                              <input type="hidden" name="ano" value={ano} />
+                              <input type="hidden" name="setor_id" value={setorId} />
+                              <input type="hidden" name="igreja_id" value={igrejaId} />
+                              <span className="text-[11px] font-bold text-iw-muted text-center">{a.ordem}</span>
+                              <span className="text-xs text-iw-navy truncate">{a.titulo}</span>
+                              <input
+                                name="data_inicio"
+                                type="date"
+                                defaultValue={a.data_inicio ?? ""}
+                                className="bg-white border border-iw-border rounded-lg px-2 py-1 text-xs focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/40"
+                              />
+                              <input
+                                name="data_fim"
+                                type="date"
+                                defaultValue={a.data_fim ?? ""}
+                                className="bg-white border border-iw-border rounded-lg px-2 py-1 text-xs focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/40"
+                              />
+                              <button
+                                type="submit"
+                                className="text-[11px] font-bold text-iw-blue hover:text-iw-navy transition-colors"
+                              >
+                                Salvar
+                              </button>
+                            </form>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <form action={deleteTurmaFormAction.bind(null, r.id)} className="pt-3">
                       <button
                         type="submit"
                         className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-muted hover:text-iw-error transition-colors"

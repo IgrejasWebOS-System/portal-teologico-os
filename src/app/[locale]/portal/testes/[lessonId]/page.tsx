@@ -20,6 +20,7 @@ interface AvaliacaoLinha {
   status: string;
   nota: number | null;
   aprovado: boolean | null;
+  iniciada_em: string;
 }
 
 function resolveVoltarHref(voltar: string | undefined, courseId: string): string {
@@ -69,9 +70,10 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
     if (matricula) {
       const { data: avRows } = await admin
         .from("avaliacoes")
-        .select("id, tipo, numero_teste, status, nota, aprovado")
+        .select("id, tipo, numero_teste, status, nota, aprovado, iniciada_em")
         .eq("matricula_id", matricula.id)
-        .eq("lesson_id", lessonId);
+        .eq("lesson_id", lessonId)
+        .order("iniciada_em", { ascending: false });
       avaliacoes = avRows ?? [];
     }
   }
@@ -117,7 +119,7 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
             <h1 className="text-xl font-black text-iw-navy tracking-tight">Testes e Prova — {lesson.title}</h1>
             <p className="text-iw-muted text-xs mt-0.5">
               4 testes parciais (2 lições cada) e uma prova final cumulativa. Cada um tem 20 questões
-              sorteadas e só pode ser feito uma vez.
+              sorteadas. Nota mínima de aprovação: 6,1 — abaixo disso, pode refazer sem limite.
             </p>
           </div>
         </div>
@@ -177,7 +179,7 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
 
             <div className="bg-iw-surface border border-iw-border rounded-2xl p-5 space-y-3 sm:col-span-2">
               <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">
-                Prova (cumulativa, única tentativa)
+                Prova (cumulativa, nota mínima 6,1)
               </p>
               {prova ? (
                 <Link
@@ -206,7 +208,7 @@ export default async function TestesLicaoPage({ params, searchParams }: PageProp
                     <input type="checkbox" name="confirmo_prova" className="mt-0.5" required />
                     <span className="inline-flex items-start gap-1">
                       <AlertTriangle className="w-3 h-3 text-iw-warning shrink-0 mt-0.5" />
-                      Estou ciente de que, a partir do início, não poderei desistir e só terei esta tentativa.
+                      Estou ciente de que a nota mínima de aprovação é 6,1 (posso refazer se não atingir).
                     </span>
                   </label>
                   <button

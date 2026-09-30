@@ -733,6 +733,155 @@ export async function professorAlternarLinkTurmaAction(formData: FormData) {
   redirect("/professor/turmas?msg=" + encodeURIComponent(ativar ? "Link reativado." : "Link desativado."));
 }
 
+// ── AÇÃO: APAGAR TURMA (29/09/2026, pedido do Joaquim) ──────────
+// Corrige o efeito colateral do bug de duplo clique em "Criar turma e
+// gerar link" (turma duplicada) — apaga a `course_editions` que o próprio
+// professor criou. `professor_turmas` cai junto por ON DELETE CASCADE
+// (migration 103), não precisa apagar os dois separado. Bloqueia se já
+// tiver aluno matriculado nessa turma -- nesse caso não é mais "lixo do
+// duplo clique", é uma turma de verdade em uso, e apagar perderia
+// matrícula de aluno de verdade.
+export async function professorApagarTurmaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const id = formData.get("id") as string;
+
+  const { data: vinculo } = await admin
+    .from("professor_turmas")
+    .select("id, professor_id, course_edition_id")
+    .eq("id", id)
+    .single();
+
+  if (!vinculo || vinculo.professor_id !== professor.id) {
+    erro("Esta turma não pertence a você.", "/professor/turmas");
+  }
+
+  const { count } = await admin
+    .from("ead_matriculas")
+    .select("id", { count: "exact", head: true })
+    .eq("course_edition_id", vinculo!.course_edition_id);
+
+  if (count && count > 0) {
+    erro("Essa turma já tem aluno matriculado — não dá pra apagar por aqui. Fale com a secretaria.", "/professor/turmas");
+  }
+
+  const { error: erroApagar } = await admin
+    .from("course_editions")
+    .delete()
+    .eq("id", vinculo!.course_edition_id);
+
+  if (erroApagar) {
+    console.error("[professor/actions] professorApagarTurmaAction", erroApagar);
+    erro("Erro ao apagar a turma. Tente novamente.", "/professor/turmas");
+  }
+
+  revalidatePath("/professor");
+  revalidatePath("/professor/turmas");
+  redirect("/professor/turmas?msg=" + encodeURIComponent("Turma apagada."));
+}
+
+// ── AÇÃO: REENVIAR LINK DE MATRÍCULA/ACESSO DO ALUNO ────────────
+// 29/09/2026, pedido do Joaquim: até agora só existia a instrução
+// ("peça pra ele reabrir o link da turma") -- mas com o problema de
+// entregabilidade do e-mail de convite (ver ERROS-COMUNS-IA.md,
+// 28/09/2026), o professor precisa poder disparar de novo sem depender do
+// aluno reabrir nada. Reaproveita inviteUserByEmail — reenviar um convite
+// pra um usuário que já existe simplesmente gera e manda um novo link,
+// não quebra o cadastro.
+export async function professorReenviarLinkAlunoAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const alunoId = formData.get("aluno_id") as string;
+
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("id")
+    .eq("aluno_id", alunoId)
+    .eq("professor_id", professor.id)
+    .maybeSingle();
+
+  if (!matricula) erro("Este aluno não pertence a você.", "/professor/alunos");
+
+  const { data: aluno } = await admin
+    .from("ead_alunos")
+    .select("id, email, nome_completo")
+    .eq("id", alunoId)
+    .single();
+
+  if (!aluno?.email) erro("Este aluno não tem e-mail cadastrado.", "/professor/alunos");
+
+  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(aluno!.email, {
+    data: { full_name: aluno!.nome_completo },
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
+  });
+
+  if (inviteError) {
+    console.error("[professor/actions] professorReenviarLinkAlunoAction", inviteError);
+    erro("Erro ao reenviar o link: " + inviteError.message, "/professor/alunos");
+  }
+
+  await admin
+    .from("ead_alunos")
+    .update({ convite_status: "ENVIADO", convite_enviado_em: new Date().toISOString(), convite_erro: null })
+    .eq("id", alunoId);
+
+  revalidatePath("/professor/alunos");
+  redirect("/professor/alunos?msg=" + encodeURIComponent(`Link de acesso reenviado pra ${aluno!.nome_completo}.`));
+}
+
+// ── AÇÃO: PEDIDO DE MATERIAL (remessa da próxima aula) ──────────
+// 29/09/2026, redesenho do fluxo de material didático (migration 122):
+// material é por AULA (não por curso), e o pedido pra gráfica é feito
+// perto do fim da aula atual, com a quantidade digitada manualmente (sem
+// regra fixa de margem — quem pede sempre acrescenta uma sobra por
+// conta própria). O professor só pede pra turma dele; a contagem de
+// "alunos em andamento" é só referência, guardada como snapshot.
+export async function professorCriarPedidoMaterialAction(formData: FormData) {
+  const { userId, professor, admin } = await requireProfessor();
+
+  const courseEditionId = formData.get("course_edition_id") as string;
+  const lessonId = formData.get("lesson_id") as string;
+  const quantidade = Number(formData.get("quantidade_solicitada"));
+  const observacao = (formData.get("observacao") as string)?.trim() || null;
+
+  if (!quantidade || quantidade <= 0) {
+    erro("Informe uma quantidade válida.", "/professor/turmas");
+  }
+
+  const { data: vinculo } = await admin
+    .from("professor_turmas")
+    .select("professor_id")
+    .eq("course_edition_id", courseEditionId)
+    .eq("professor_id", professor.id)
+    .maybeSingle();
+
+  if (!vinculo) erro("Esta turma não pertence a você.", "/professor/turmas");
+
+  const { count: alunosEmAndamento } = await admin
+    .from("ead_matriculas")
+    .select("id", { count: "exact", head: true })
+    .eq("course_edition_id", courseEditionId)
+    .eq("status", "EM_ANDAMENTO");
+
+  const { error: erroPedido } = await admin.from("pedidos_material").insert({
+    course_edition_id: courseEditionId,
+    lesson_id: lessonId,
+    alunos_em_andamento_snapshot: alunosEmAndamento ?? 0,
+    quantidade_solicitada: quantidade,
+    observacao,
+    solicitado_por_professor_id: professor.id,
+    solicitado_por_user_id: userId,
+  });
+
+  if (erroPedido) {
+    console.error("[professor/actions] professorCriarPedidoMaterialAction", erroPedido);
+    erro("Erro ao registrar o pedido. Tente novamente.", "/professor/turmas");
+  }
+
+  revalidatePath("/professor/turmas");
+  redirect("/professor/turmas?msg=" + encodeURIComponent("Pedido de material registrado."));
+}
+
 // ── AÇÃO: ATUALIZAR PRÓPRIO PERFIL (telefone + foto) ────────────
 // 27/09/2026, pedido do Joaquim: Configurações deixou de ser só leitura —
 // mas escopo bem restrito de propósito: telefone e foto, o resto da ficha
@@ -754,6 +903,35 @@ export async function professorAtualizarPerfilAction(formData: FormData) {
   const sector_id = (formData.get("sector_id") as string) || null;
   const church_id = (formData.get("church_id") as string) || null;
 
+  // 29/09/2026, pedido do Joaquim: "habilitar edição completa" — o
+  // professor passa a editar a mesma ficha completa que a secretaria edita
+  // em /dashboard/configuracoes/professores/editar/[id] (RG, nascimento,
+  // endereço etc.), não só nome/cargo/setor/igreja/telefone. Mesmos nomes
+  // de campo de extrairFicha() (configuracoes/actions.ts) — mantidos
+  // duplicados aqui de propósito (escopos de permissão diferentes: aquele
+  // é da secretaria sobre qualquer professor, este é do professor sobre
+  // si mesmo) em vez de compartilhar a função entre route groups.
+  const rg = (formData.get("rg") as string)?.trim() || null;
+  const rg_orgao_emissor = (formData.get("rg_orgao_emissor") as string)?.trim() || null;
+  const rg_uf = (formData.get("rg_uf") as string)?.trim() || null;
+  const data_nascimento = (formData.get("data_nascimento") as string) || null;
+  const genero = (formData.get("genero") as string) || null;
+  const estado_civil = (formData.get("estado_civil") as string) || null;
+  const escolaridade = (formData.get("escolaridade") as string) || null;
+  const profissao = (formData.get("profissao") as string)?.trim() || null;
+  const naturalidade_cidade = (formData.get("naturalidade_cidade") as string)?.trim() || null;
+  const naturalidade_estado = (formData.get("naturalidade_estado") as string) || null;
+  const nome_conjuge = (formData.get("nome_conjuge") as string)?.trim() || null;
+  const nome_mae = (formData.get("nome_mae") as string)?.trim() || null;
+  const nome_pai = (formData.get("nome_pai") as string)?.trim() || null;
+  const cep = (formData.get("cep") as string)?.trim() || null;
+  const endereco = (formData.get("endereco") as string)?.trim() || null;
+  const endereco_numero = (formData.get("endereco_numero") as string)?.trim() || null;
+  const endereco_complemento = (formData.get("endereco_complemento") as string)?.trim() || null;
+  const bairro = (formData.get("bairro") as string)?.trim() || null;
+  const cidade = (formData.get("cidade") as string)?.trim() || null;
+  const estado = (formData.get("estado") as string) || null;
+
   if (cpf && !validarCPF(cpf)) {
     erro("CPF inválido — confira os dígitos digitados.", "/professor/configuracoes");
   }
@@ -763,7 +941,13 @@ export async function professorAtualizarPerfilAction(formData: FormData) {
 
   const { error } = await admin
     .from("professores")
-    .update({ telefone, foto_url, nome_completo, cpf, cargo, sector_id, church_id })
+    .update({
+      telefone, foto_url, nome_completo, cpf, cargo, sector_id, church_id,
+      rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil,
+      escolaridade, profissao, naturalidade_cidade, naturalidade_estado,
+      nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero,
+      endereco_complemento, bairro, cidade, estado,
+    })
     .eq("id", professor.id);
 
   if (error) {

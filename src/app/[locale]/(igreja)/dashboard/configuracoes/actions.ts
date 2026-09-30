@@ -1330,6 +1330,71 @@ export async function updateTurmaConfigAction(formData: FormData) {
   );
 }
 
+// ── Calendário de aulas por turma (migration 122, 29/09/2026) ───
+// Redesenho do fluxo de material didático: material é por AULA, e pra
+// saber quando "faltam 10 dias pro fim da aula" o sistema precisa de uma
+// data de início/fim por aula dentro de cada turma. Isso não existia —
+// foi gerado automaticamente (dividir o período da turma em partes iguais
+// pelo nº de aulas) pras 6.800+ turmas já criadas, mas o Joaquim pediu pra
+// poder editar/recalcular depois — daí as duas ações abaixo.
+export async function atualizarCalendarioAulaAction(formData: FormData) {
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const dataInicio = (formData.get("data_inicio") as string) || null;
+  const dataFim = (formData.get("data_fim") as string) || null;
+  const filtros = querystringFiltros(formData);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("course_edition_lesson_schedule")
+    .update({ data_inicio: dataInicio, data_fim: dataFim, gerado_automaticamente: false })
+    .eq("course_edition_id", courseEditionId)
+    .eq("lesson_id", lessonId);
+
+  if (error) {
+    console.error("[configuracoes/actions] atualizarCalendarioAulaAction", error);
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar a data da aula.") + filtros
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" + encodeURIComponent("Calendário da aula atualizado.") + filtros
+  );
+}
+
+export async function recalcularCalendarioTurmaAction(formData: FormData) {
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const filtros = querystringFiltros(formData);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("gerar_calendario_aulas_turma", {
+    p_course_edition_id: courseEditionId,
+    p_forcar: true,
+  });
+
+  if (error) {
+    console.error("[configuracoes/actions] recalcularCalendarioTurmaAction", error);
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao recalcular o calendário.") + filtros
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" +
+      encodeURIComponent("Calendário recalculado automaticamente (sobrescreveu ajustes manuais desta turma).") +
+      filtros
+  );
+}
+
 // Turmas de uma igreja/núcleo específico, buscadas sob demanda — usada
 // no cascata "Vínculos de Turma" do cadastro de Professor. Mesmo motivo
 // de buscarTurmasPorUnidadeAction (admin/matriculas/actions.ts): com

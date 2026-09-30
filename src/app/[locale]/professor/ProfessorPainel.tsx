@@ -16,6 +16,7 @@ import {
   Copy,
   Check,
   Pencil,
+  Send,
 } from "lucide-react";
 import QRCodeLib from "qrcode";
 import { montarPayloadPix, DADOS_PIX_CETADP } from "@/utils/financeiro/pix";
@@ -51,6 +52,7 @@ type Parcela = {
 export type LinhaAluno = {
   matriculaId: string;
   courseEditionId: string | null;
+  alunoId: string;
   nome: string;
   cpf: string | null;
   curso: string;
@@ -68,6 +70,7 @@ interface Props {
   turmasFiltroOptions: { id: string; label: string }[];
   linhas: LinhaAluno[];
   baixarParcelaAction: (formData: FormData) => Promise<void> | void;
+  reenviarLinkAction: (formData: FormData) => Promise<void> | void;
 }
 
 function fmtMoeda(centavos: number) {
@@ -200,7 +203,7 @@ function BuscaEFiltro({
 }
 
 export default function ProfessorPainel({
-  turmasFiltroOptions, linhas, baixarParcelaAction,
+  turmasFiltroOptions, linhas, baixarParcelaAction, reenviarLinkAction,
 }: Props) {
   const [tipoBusca, setTipoBusca] = useState<TipoBusca>("nome");
   const [busca, setBusca] = useState("");
@@ -340,9 +343,24 @@ export default function ProfessorPainel({
                       <td className="px-2 py-2.5 text-iw-navy">{l.numeroMatricula}</td>
                       <td className="px-2 py-2.5 text-iw-navy truncate max-w-[240px] hidden md:table-cell">{l.curso}</td>
                       <td className="px-2 py-2.5">
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403]">
-                          {l.status}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403]">
+                            {l.status}
+                          </span>
+                          <form
+                            action={reenviarLinkAction}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input type="hidden" name="aluno_id" value={l.alunoId} />
+                            <button
+                              type="submit"
+                              title="Reenviar link de matrícula/acesso pro aluno"
+                              className="text-iw-muted hover:text-iw-blue transition-colors"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
 
