@@ -1,8 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ClipboardList, GraduationCap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ClipboardList, GraduationCap, AlertTriangle, ListChecks } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
-import { iniciarAvaliacaoAction } from "./actions";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { iniciarAvaliacaoAction, iniciarTesteLicaoAction } from "./actions";
+import { iniciarTesteLicaoAction as iniciarTesteLicaoMateriaAction } from "../testes/[lessonId]/actions";
+import { listarTestesLicaoDoCurso, type TesteLicaoDisponivel } from "@/utils/avaliacoes/gerador";
+import { TOTAL_TESTES_POR_MATERIA } from "@/utils/avaliacoes/geradorLicao";
+
+// ============================================================
+// 26/09/2026, pedido do Joaquim: os "Testes por lição" desta página
+// (bloco logo abaixo, "Testes por lição (Certo/Errado)") só leem o
+// banco ANTIGO (avaliacoes_teste_licao_banco, migration 097 -- hoje só
+// tem Pneumatologia/Curso Básico). Desde 11-12/09/2026 existe um banco
+// NOVO por matéria (avaliacoes_banco_questoes_licao, migrations
+// 099/100 -- Bibliologia e Homilética/Curso Médio), usado até agora só
+// dentro da tela da aula (/escola/[id]). Bloco novo abaixo
+// ("Testes e Prova por matéria") lê o banco novo e mostra aqui também,
+// pra não depender de o aluno estar na aula certa pra achar o teste.
+// ============================================================
 
 export const metadata = { title: "Simulados e Provas — Portal do Aluno" };
 
@@ -10,16 +26,14 @@ interface PageProps {
   searchParams: Promise<{ msg?: string; error?: string; voltar?: string }>;
 }
 
-function resolveVoltarHref(voltar: string | undefined): { href: string; label: string } {
+function resolveVoltarHref(voltar: string | undefined): string {
   const isPathInterno =
     !!voltar &&
     voltar.startsWith("/") &&
     !voltar.startsWith("//") &&
     (voltar.startsWith("/escola/") || voltar.startsWith("/cursos/"));
 
-  return isPathInterno
-    ? { href: voltar as string, label: "Voltar à sala de aula" }
-    : { href: "/portal", label: "Voltar ao Portal" };
+  return isPathInterno ? (voltar as string) : "/portal";
 }
 
 const STATUS_MATRICULA_LABEL: Record<string, string> = {
@@ -31,7 +45,15 @@ const STATUS_MATRICULA_LABEL: Record<string, string> = {
 
 export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const { msg, error, voltar } = await searchParams;
-  const { href: voltarHref, label: voltarLabel } = resolveVoltarHref(voltar);
+  const voltarHref = resolveVoltarHref(voltar);
+  // 28/09/2026, achado do Joaquim: os links pra dentro de um teste/prova
+  // (linhas abaixo) reusavam `voltarHref` — que é o destino de ONDE esta
+  // página veio (escola/cursos), não "volte pra cá". Resultado: ao
+  // terminar um teste e clicar Voltar, pulava direto pra tela de aula,
+  // sem passar por "Simulados e Provas". Os links filhos agora apontam de
+  // volta pra esta própria página (preservando o `voltar` que ela recebeu,
+  // pra continuar voltando em cadeia se o aluno clicar Voltar de novo lá).
+  const voltarParaAvaliacoes = `/portal/avaliacoes?voltar=${encodeURIComponent(voltarHref)}`;
 
   const supabase = await createClient();
   const {
@@ -55,10 +77,10 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
           </p>
           <Link
             href={voltarHref}
-            className="inline-flex items-center gap-1.5 text-iw-gold font-semibold text-sm hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
-            <ArrowLeft className="w-4 h-4" />
-            {voltarLabel}
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
           </Link>
         </div>
       </div>
@@ -77,10 +99,44 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
   const { data: avaliacoes } = matriculaIds.length
     ? await supabase
         .from("avaliacoes")
-        .select("id, matricula_id, tipo, status, nota, aprovado, iniciada_em, finalizada_em")
+        .select("id, matricula_id, tipo, status, nota, aprovado, lesson_id, numero_teste, iniciada_em, finalizada_em")
         .in("matricula_id", matriculaIds)
         .order("iniciada_em", { ascending: false })
     : { data: [] };
+
+  const testesLicaoPorCurso = new Map<string, TesteLicaoDisponivel[]>();
+  for (const courseId of courseIds) {
+    testesLicaoPorCurso.set(courseId, await listarTestesLicaoDoCurso(courseId));
+  }
+
+  // Banco NOVO por matéria (avaliacoes_banco_questoes_licao) -- só staff
+  // consegue ler essa tabela via RLS, por isso admin client aqui.
+  const materiasComBancoPorCurso = new Map<string, { lessonId: string; lessonTitle: string }[]>();
+  if (courseIds.length) {
+    const admin = createAdminClient();
+    const { data: lessonsTodas } = await admin
+      .from("lessons")
+      .select("id, title, course_id")
+      .in("course_id", courseIds);
+
+    const lessonIds = (lessonsTodas ?? []).map((l) => l.id);
+    const { data: bancoRows } = lessonIds.length
+      ? await admin
+          .from("avaliacoes_banco_questoes_licao")
+          .select("lesson_id")
+          .in("lesson_id", lessonIds)
+          .eq("ativo", true)
+      : { data: [] };
+
+    const lessonIdsComBanco = new Set((bancoRows ?? []).map((b) => b.lesson_id));
+
+    for (const lesson of lessonsTodas ?? []) {
+      if (!lessonIdsComBanco.has(lesson.id)) continue;
+      const lista = materiasComBancoPorCurso.get(lesson.course_id) ?? [];
+      lista.push({ lessonId: lesson.id, lessonTitle: lesson.title });
+      materiasComBancoPorCurso.set(lesson.course_id, lista);
+    }
+  }
 
   const { data: enrollments } = courseIds.length
     ? await supabase
@@ -94,18 +150,16 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
     (enrollments ?? []).map((e) => [e.course_id, e.progress_percent])
   );
 
-  const LIMITE_SIMULADOS = 2;
-
   return (
     <div className="min-h-screen bg-iw-bg">
       <header className="bg-iw-navy shadow-lg">
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
             href={voltarHref}
-            className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {voltarLabel}
+            VOLTAR
           </Link>
         </div>
       </header>
@@ -141,20 +195,33 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
         ) : (
           matriculas.map((m) => {
             const avaliacoesDaMatricula = (avaliacoes ?? []).filter((a) => a.matricula_id === m.id);
-            const provaExistente = avaliacoesDaMatricula.find((a) => a.tipo === "PROVA");
+            // 29/09/2026, pedido do Joaquim: prova deixou de ser "1 vez só" —
+            // agora pode refazer sem limite até bater 6,1 (mesma regra de
+            // teste/simulado). Pega a tentativa mais recente: se ainda está
+            // em andamento, continua ela; se já passou, mostra o resultado;
+            // se reprovou, libera "Iniciar prova" de novo (repete o mesmo
+            // curso, não precisa de matrícula nova).
+            const provasDaMatricula = avaliacoesDaMatricula
+              .filter((a) => a.tipo === "PROVA")
+              .sort((a, b) => new Date(b.iniciada_em).getTime() - new Date(a.iniciada_em).getTime());
+            const provaMaisRecente = provasDaMatricula[0];
+            const provaEmAndamento = provaMaisRecente?.status === "EM_ANDAMENTO" ? provaMaisRecente : null;
+            const provaAprovada = provasDaMatricula.find((a) => a.status === "FINALIZADA" && a.aprovado);
             const simuladosFeitos = avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length;
-            const simuladosEsgotados = simuladosFeitos >= LIMITE_SIMULADOS;
             const progresso = m.course_id ? progressoPorCurso.get(m.course_id) ?? 0 : 0;
             const provaLiberada = progresso === 100;
             const matriculaEmAndamento = m.status === "EM_ANDAMENTO";
             const podeAvaliar =
-              !!m.course_id && (matriculaEmAndamento || !!provaExistente || simuladosFeitos > 0);
+              !!m.course_id && (matriculaEmAndamento || provasDaMatricula.length > 0 || simuladosFeitos > 0);
+            const testesLicao = m.course_id ? testesLicaoPorCurso.get(m.course_id) ?? [] : [];
+            const testesLicaoDaMatricula = avaliacoesDaMatricula.filter((a) => a.tipo === "TESTE_LICAO");
+            const materiasComBanco = m.course_id ? materiasComBancoPorCurso.get(m.course_id) ?? [] : [];
 
             return (
               <div key={m.id} className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-iw-blue" />
+                    <GraduationCap className="w-4 h-4 text-iw-navy" />
                     <p className="font-bold text-iw-navy">{m.curso_nome_snapshot}</p>
                   </div>
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-iw-bg border border-iw-border text-iw-muted">
@@ -175,7 +242,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                     <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Simulado</p>
-                        <span className="text-[10px] font-bold text-iw-muted">{simuladosFeitos}/{LIMITE_SIMULADOS} usados</span>
+                        <span className="text-[10px] font-bold text-iw-muted">{simuladosFeitos} feito{simuladosFeitos === 1 ? "" : "s"}</span>
                       </div>
 
                       {avaliacoesDaMatricula.filter((a) => a.tipo === "SIMULADO").length > 0 && (
@@ -185,7 +252,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             .map((a) => (
                               <li key={a.id}>
                                 <Link
-                                  href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarHref)}`}
+                                  href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
                                   className="block text-xs font-bold text-iw-navy hover:underline"
                                 >
                                   {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} — {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)}` : "em andamento"}
@@ -195,11 +262,7 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                         </ul>
                       )}
 
-                      {simuladosEsgotados ? (
-                        <p className="text-[11px] text-iw-muted italic">
-                          Você já utilizou os {LIMITE_SIMULADOS} simulados disponíveis para este curso.
-                        </p>
-                      ) : matriculaEmAndamento ? (
+                      {matriculaEmAndamento ? (
                         <form action={iniciarAvaliacaoAction} className="space-y-3">
                           <input type="hidden" name="matricula_id" value={m.id} />
                           <input type="hidden" name="tipo" value="SIMULADO" />
@@ -220,16 +283,30 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                       )}
                     </div>
 
-                    {/* Prova */}
+                    {/* Prova — 29/09/2026: nota mínima 6,1, refazer sem limite */}
                     <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
-                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (única tentativa)</p>
-                      {provaExistente ? (
-                        <Link
-                          href={`/portal/avaliacoes/${provaExistente.id}?voltar=${encodeURIComponent(voltarHref)}`}
-                          className="block text-center text-xs font-bold text-iw-navy hover:underline"
-                        >
-                          Ver resultado da prova ({provaExistente.status === "FINALIZADA" ? `nota ${Number(provaExistente.nota).toFixed(1)}` : "em andamento"})
-                        </Link>
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Prova (nota mínima 6,1)</p>
+
+                      {provasDaMatricula.length > 0 && (
+                        <ul className="space-y-1">
+                          {provasDaMatricula.map((a) => (
+                            <li key={a.id}>
+                              <Link
+                                href={`/portal/avaliacoes/${a.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                className="block text-xs font-bold text-iw-navy hover:underline"
+                              >
+                                {new Date(a.iniciada_em).toLocaleDateString("pt-BR")} —{" "}
+                                {a.status === "FINALIZADA" ? `nota ${Number(a.nota).toFixed(1)} (${a.aprovado ? "aprovado" : "abaixo da média"})` : "em andamento"}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {provaEmAndamento ? (
+                        <p className="text-[11px] text-iw-muted italic">Continue a prova em andamento acima.</p>
+                      ) : provaAprovada ? (
+                        <p className="text-[11px] text-iw-success font-semibold">Prova aprovada — não precisa refazer.</p>
                       ) : !matriculaEmAndamento ? (
                         <p className="text-[11px] text-iw-muted italic">Matrícula não está mais em andamento.</p>
                       ) : !provaLiberada ? (
@@ -244,15 +321,137 @@ export default async function AvaliacoesPage({ searchParams }: PageProps) {
                             <input type="checkbox" name="confirmo_prova" className="mt-0.5" required />
                             <span className="inline-flex items-start gap-1">
                               <AlertTriangle className="w-3 h-3 text-iw-warning shrink-0 mt-0.5" />
-                              Estou ciente de que, a partir do início, não poderei desistir e só terei esta tentativa.
+                              Estou ciente de que a nota mínima de aprovação é 6,1 (posso refazer se não atingir).
                             </span>
                           </label>
                           <button type="submit" className="w-full bg-[#E88D0C] hover:opacity-90 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-opacity border border-black">
-                            Iniciar prova
+                            {provasDaMatricula.length > 0 ? "Refazer prova" : "Iniciar prova"}
                           </button>
                         </form>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {matriculaEmAndamento && testesLicao.length > 0 && (
+                  <div className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="w-3.5 h-3.5 text-iw-navy" />
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Testes por lição (Certo/Errado)</p>
+                    </div>
+                    <ul className="space-y-2">
+                      {testesLicao.map((t) => {
+                        const tentativa = testesLicaoDaMatricula.find(
+                          (a) => a.lesson_id === t.lessonId && a.numero_teste === t.numeroTeste
+                        );
+                        return (
+                          <li
+                            key={`${t.lessonId}-${t.numeroTeste}`}
+                            className="flex items-center justify-between gap-3 bg-white border border-iw-border rounded-lg px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-iw-navy truncate">
+                                {t.lessonTitle} — Teste {t.numeroTeste}
+                              </p>
+                              <p className="text-[11px] text-iw-muted">
+                                {t.licoesLabel} · {t.totalQuestoes} questões
+                                {t.gabaritoProvisorio && (
+                                  <span className="text-iw-warning font-semibold"> · gabarito provisório</span>
+                                )}
+                              </p>
+                            </div>
+                            {tentativa ? (
+                              <Link
+                                href={`/portal/avaliacoes/${tentativa.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                className="shrink-0 text-[11px] font-bold text-iw-navy hover:underline"
+                              >
+                                {tentativa.status === "FINALIZADA" ? `nota ${Number(tentativa.nota).toFixed(1)}` : "em andamento"}
+                              </Link>
+                            ) : (
+                              <form action={iniciarTesteLicaoAction}>
+                                <input type="hidden" name="matricula_id" value={m.id} />
+                                <input type="hidden" name="lesson_id" value={t.lessonId} />
+                                <input type="hidden" name="numero_teste" value={t.numeroTeste} />
+                                <button
+                                  type="submit"
+                                  className="shrink-0 bg-iw-blue hover:opacity-90 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition-opacity"
+                                >
+                                  Fazer teste
+                                </button>
+                              </form>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {matriculaEmAndamento && materiasComBanco.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="w-3.5 h-3.5 text-iw-navy" />
+                      <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">Testes e Prova por matéria</p>
+                    </div>
+                    {materiasComBanco.map((materia) => {
+                      const avaliacoesDaMateria = avaliacoesDaMatricula.filter((a) => a.lesson_id === materia.lessonId);
+                      const testesResumo = Array.from({ length: TOTAL_TESTES_POR_MATERIA }, (_, i) => i + 1).map((numero) => ({
+                        numero,
+                        avaliacao: avaliacoesDaMateria.find((a) => a.tipo === "TESTE_LICAO" && a.numero_teste === numero),
+                      }));
+                      const provaDaMateria = avaliacoesDaMateria.find((a) => a.tipo === "PROVA");
+                      return (
+                        <div key={materia.lessonId} className="bg-iw-bg border border-iw-border rounded-xl p-4 space-y-3">
+                          <p className="text-xs font-bold text-iw-navy uppercase tracking-wider">{materia.lessonTitle}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                            {testesResumo.map(({ numero, avaliacao }) => (
+                              <div key={numero} className="bg-white border border-iw-border rounded-lg p-3 space-y-2 text-center">
+                                <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Teste {numero}</p>
+                                {avaliacao ? (
+                                  <Link
+                                    href={`/portal/testes/${materia.lessonId}/${avaliacao.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                    className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                  >
+                                    {avaliacao.status === "FINALIZADA" ? `Nota ${Number(avaliacao.nota).toFixed(1)}` : "Continuar"}
+                                  </Link>
+                                ) : (
+                                  <form action={iniciarTesteLicaoMateriaAction}>
+                                    <input type="hidden" name="lesson_id" value={materia.lessonId} />
+                                    <input type="hidden" name="tipo" value="TESTE_LICAO" />
+                                    <input type="hidden" name="numero_teste" value={numero} />
+                                    <button
+                                      type="submit"
+                                      className="w-full bg-iw-blue hover:opacity-90 text-white font-bold text-[11px] px-2 py-1.5 rounded-lg transition-opacity"
+                                    >
+                                      Fazer
+                                    </button>
+                                  </form>
+                                )}
+                              </div>
+                            ))}
+
+                            <div className="bg-white border border-iw-border rounded-lg p-3 space-y-2 text-center">
+                              <p className="text-[10.5px] font-bold text-iw-navy uppercase tracking-wider">Prova</p>
+                              {provaDaMateria ? (
+                                <Link
+                                  href={`/portal/testes/${materia.lessonId}/${provaDaMateria.id}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                  className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                >
+                                  {provaDaMateria.status === "FINALIZADA" ? `Nota ${Number(provaDaMateria.nota).toFixed(1)}` : "Continuar"}
+                                </Link>
+                              ) : (
+                                <Link
+                                  href={`/portal/testes/${materia.lessonId}?voltar=${encodeURIComponent(voltarParaAvaliacoes)}`}
+                                  className="block text-[11px] font-bold text-iw-navy hover:underline"
+                                >
+                                  Iniciar
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

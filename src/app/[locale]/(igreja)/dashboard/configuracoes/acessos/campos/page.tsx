@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { deleteCampoFormAction } from "./actions";
 import PageHeader from "@/components/layout/PageHeader";
 
-type Unit = { id: string; name: string; parent_id: string | null; legacy_church_id: string | null };
+type Unit = { id: string; name: string; parent_id: string | null; legacy_church_id: string | null; ministerio_id?: string | null };
 type ChurchInfo = {
   id: string;
   church_phone: string | null;
@@ -17,11 +17,14 @@ type ChurchInfo = {
 export default async function CamposPage() {
   const supabase = await createClient();
 
-  const [{ data: { user: currentUser } }, campoRes, sedeRes] = await Promise.all([
+  const [{ data: { user: currentUser } }, campoRes, sedeRes, ministeriosRes] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("units").select("id, name, parent_id, legacy_church_id").eq("type", "CAMPO").order("name"),
+    supabase.from("units").select("id, name, parent_id, legacy_church_id, ministerio_id").eq("type", "CAMPO").order("name"),
     supabase.from("units").select("id, name, parent_id, legacy_church_id").eq("type", "SEDE"),
+    supabase.from("ministerios").select("id, name"),
   ]);
+
+  const ministerioNome = new Map((ministeriosRes.data ?? []).map((m) => [m.id as string, m.name as string]));
 
   let souGlobalAdmin = false;
   if (currentUser) {
@@ -58,10 +61,11 @@ export default async function CamposPage() {
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
         icon={Building}
-        title="Campos / Ministérios"
+        title="Campos"
         description="Campo → Sede → Setor → Igreja, isolados entre si"
-        backHref="/dashboard/configuracoes/acessos"
-        backLabel="Voltar para Administração de Acessos"
+        backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
+        backLabel="Voltar para Ministério · Setores · Igrejas"
+        backNovoPadrao
         actions={
           souGlobalAdmin ? (
             <Link
@@ -75,7 +79,7 @@ export default async function CamposPage() {
         }
       />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
         {linhas.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <Building className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
@@ -87,7 +91,14 @@ export default async function CamposPage() {
               <li key={campo.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-iw-navy">{campo.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-iw-navy">{campo.name}</p>
+                      {campo.ministerio_id && (
+                        <span className="text-[10px] font-bold text-iw-gold bg-iw-gold/10 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          {ministerioNome.get(campo.ministerio_id) ?? "Ministério"}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-iw-muted mt-0.5">
                       Sede: {sede ? sede.name : <span className="text-iw-warning">não cadastrada</span>}
                     </p>
@@ -123,7 +134,7 @@ export default async function CamposPage() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Link
                         href={`/dashboard/configuracoes/acessos/campos/${campo.id}/editar`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-iw-gold hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-gold/8"
                       >
                         <Pencil className="w-3 h-3" />
                         Editar

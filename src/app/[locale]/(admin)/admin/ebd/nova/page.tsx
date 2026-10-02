@@ -39,6 +39,7 @@ export default async function NovoTrimestrePage({ searchParams }: PageProps) {
         description="Cadastre o trimestre antes de inserir as lições."
         backHref="/admin/ebd"
         backLabel="Voltar para EBD"
+        backNovoPadrao
       />
 
       {error && (

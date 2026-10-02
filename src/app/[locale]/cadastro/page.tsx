@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import Logo from "@/components/Logo";
 import { Label, TextInput, PasswordInput } from "@/components/ui";
@@ -33,8 +34,9 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
         <div className="text-center mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-iw-muted hover:text-iw-navy text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
+            <ArrowLeft className="w-3.5 h-3.5" />
             {t("cadastro.voltarInicio")}
           </Link>
         </div>
@@ -93,10 +95,11 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
                 id="senha"
                 name="senha"
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 placeholder={t("cadastro.placeholderSenhaMin")}
               />
+              <p className="text-[11px] text-iw-muted mt-1">{t("cadastro.regraSenha")}</p>
             </div>
 
             <div>
@@ -105,7 +108,7 @@ export default async function CadastroPage({ params, searchParams }: CadastroPag
                 id="confirmar"
                 name="confirmar"
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 placeholder={t("cadastro.placeholderRepitaSenha")}
               />

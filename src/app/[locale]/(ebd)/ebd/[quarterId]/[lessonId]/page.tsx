@@ -69,7 +69,7 @@ export default async function EbdLessonPage({ params }: Props) {
 
   const isRead = !!progress;
   const isAdultos = quarter.audience === "ADULTOS";
-  const accentColor = isAdultos ? "text-iw-blue" : "text-iw-gold";
+  const accentColor = isAdultos ? "text-iw-navy" : "text-iw-gold";
   const accentBg    = isAdultos ? "bg-iw-blue/10" : "bg-iw-gold/10";
   const accentBorder = isAdultos ? "border-iw-blue/20" : "border-iw-gold/20";
   const progressBar  = isAdultos ? "bg-iw-blue" : "bg-iw-gold";

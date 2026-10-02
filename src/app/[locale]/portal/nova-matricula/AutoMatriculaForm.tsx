@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { Send, Loader2 } from "lucide-react";
 import { autoMatricularAction } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
+import { maskPhone } from "@/utils/maskPhone";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -16,14 +18,6 @@ function maskCPF(raw: string): string {
   return v;
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 const inputCls =
   "w-full bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/30 transition-colors";
@@ -111,7 +105,7 @@ export default function AutoMatriculaForm({ campos }: { campos: CampoMinisterio[
 
       <div>
         <label className={labelCls} htmlFor="campo_ministerio_id">Campo / Ministério</label>
-        <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue="">
+        <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue={resolverCampoPadraoId(campos)}>
           <option value="">Selecione (opcional)</option>
           {campos.map((c) => (
             <option key={c.id} value={c.id}>{c.nome}</option>

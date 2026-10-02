@@ -19,7 +19,7 @@ export default function EscolherModoPage() {
             value="provas"
             className="w-full flex flex-col items-center gap-1.5 rounded-2xl border-2 border-iw-blue bg-iw-blue/10 px-4 py-5 hover:bg-iw-blue/20 transition-colors"
           >
-            <ScanLine className="w-6 h-6 text-iw-blue" />
+            <ScanLine className="w-6 h-6 text-iw-navy" />
             <span className="text-sm font-bold text-iw-navy">Provas</span>
             <span className="text-xs text-iw-muted">Escanear e corrigir</span>
           </button>

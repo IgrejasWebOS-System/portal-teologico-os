@@ -19,6 +19,7 @@ export default async function NovoPontoPregacaoPage() {
         description="Vinculado a uma igreja-mãe e a um setor."
         backHref="/dashboard/configuracoes/pontos-pregacao"
         backLabel="Voltar para Pontos de Pregação"
+        backNovoPadrao
       />
 
       <NovaIgrejaForm

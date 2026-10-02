@@ -1,0 +1,260 @@
+<svg viewBox="0 0 1700 2740" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0D0D0D"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1700" height="2740" fill="#F5F5F0"/>
+
+  <!-- Title -->
+  <text x="850" y="42" text-anchor="middle" font-size="30" font-weight="900" fill="#0D0D0D">CETADP — Fluxo de ponta a ponta: Professor e Aluno</text>
+  <text x="850" y="70" text-anchor="middle" font-size="15" fill="#6B7280">portal-teologico-os-staging — gerado em 20/09/2026, pra validar caso a caso e ir corrigindo</text>
+
+  <!-- Legend -->
+  <rect x="330" y="92" width="20" height="20" rx="4" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="358" y="107" font-size="13" fill="#0D0D0D">Passo normal do sistema</text>
+  <polygon points="620,92 640,102 620,112 600,102" fill="#FFF3D6" stroke="#CF8403" stroke-width="1.5"/>
+  <text x="648" y="107" font-size="13" fill="#0D0D0D">Decisão / ramificação</text>
+  <rect x="900" y="92" width="20" height="20" rx="4" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="928" y="107" font-size="13" fill="#0D0D0D">⚠ Ponto de atenção conhecido hoje</text>
+
+  <!-- Step 1a -->
+  <rect x="570" y="150" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="180" r="16" fill="#0D0D0D"/><text x="600" y="185" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">1a</text>
+  <text x="850" y="188" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">SECRETARIA cadastra o professor em "Novo Professor"</tspan>
+    <tspan x="850" dy="20">(por membro já cadastrado, ou "de fora")</tspan>
+  </text>
+
+  <text x="850" y="262" text-anchor="middle" font-size="14" font-weight="700" fill="#6B7280">OU</text>
+
+  <!-- Step 1b -->
+  <rect x="570" y="278" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="308" r="16" fill="#0D0D0D"/><text x="600" y="313" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">1b</text>
+  <text x="850" y="316" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">O próprio PROFESSOR se cadastra sozinho pelo</tspan>
+    <tspan x="850" dy="20">link público /cadastro-professor</tspan>
+  </text>
+
+  <line x1="850" y1="368" x2="850" y2="416" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2 -->
+  <rect x="570" y="418" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="448" r="16" fill="#0D0D0D"/><text x="600" y="453" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">2</text>
+  <text x="850" y="456" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">SISTEMA cria o registro em "professores" e</tspan>
+    <tspan x="850" dy="20">manda o convite por e-mail (link de definir senha)</tspan>
+  </text>
+
+  <line x1="850" y1="508" x2="850" y2="556" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3 -->
+  <rect x="570" y="558" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="588" r="16" fill="#0D0D0D"/><text x="600" y="593" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">3</text>
+  <text x="850" y="596" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">PROFESSOR recebe o e-mail, clica no link, define</tspan>
+    <tspan x="850" dy="20">a senha e entra pela primeira vez</tspan>
+  </text>
+
+  <line x1="850" y1="648" x2="850" y2="690" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Decision 4 -->
+  <polygon points="850,690 1050,745 850,800 650,745" fill="#FFF3D6" stroke="#CF8403" stroke-width="1.5"/>
+  <text x="850" y="740" text-anchor="middle" font-size="13.5" fill="#0D0D0D" font-weight="700">
+    <tspan x="850" dy="0">4. Cadastro já está completo?</tspan>
+    <tspan x="850" dy="18">(telefone + CPF + cargo + igreja)</tspan>
+  </text>
+
+  <!-- Não branch -->
+  <line x1="700" y1="775" x2="410" y2="860" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="560" y="810" font-size="13" fill="#0D0D0D" font-weight="700">Não</text>
+  <rect x="150" y="862" width="520" height="130" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="180" cy="892" r="16" fill="#0D0D0D"/><text x="180" y="897" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">5</text>
+  <text x="410" y="900" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="410" dy="0">Cai em /completar-cadastro: preenche telefone,</tspan>
+    <tspan x="410" dy="20">CPF, cargo e igreja, e pode já vincular uma turma</tspan>
+    <tspan x="410" dy="20">existente (Setor/Regional → Igreja/SEDE →</tspan>
+    <tspan x="410" dy="20">Curso → Turma → Turno/Dia)</tspan>
+  </text>
+
+  <!-- warning A -->
+  <line x1="670" y1="927" x2="1090" y2="927" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <rect x="1090" y="862" width="480" height="130" rx="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="1330" y="895" text-anchor="middle" font-size="13.5" fill="#92400E" font-weight="700">
+    <tspan x="1330" dy="0">⚠ Vincular turma aqui é opcional</tspan>
+    <tspan x="1330" dy="19" font-weight="400">(best-effort) — se a gravação falhar,</tspan>
+    <tspan x="1330" dy="19" font-weight="400">o professor entra normal e faz o</tspan>
+    <tspan x="1330" dy="19" font-weight="400">vínculo depois em /professor</tspan>
+  </text>
+
+  <!-- Sim branch (skip) -->
+  <line x1="1000" y1="775" x2="1150" y2="860" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1150" y1="860" x2="1150" y2="1030" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="1030" y="810" font-size="13" fill="#0D0D0D" font-weight="700">Sim</text>
+
+  <!-- merge into step 6 -->
+  <line x1="410" y1="992" x2="410" y2="1030" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="410" y1="1030" x2="820" y2="1030" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1150" y1="1030" x2="880" y2="1030" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="850" y1="1030" x2="850" y2="1058" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 6 -->
+  <rect x="570" y="1060" width="560" height="80" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="1085" r="16" fill="#0D0D0D"/><text x="600" y="1090" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">6</text>
+  <text x="850" y="1095" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">PROFESSOR entra na Área do Professor (/professor)</tspan>
+  </text>
+
+  <line x1="850" y1="1140" x2="850" y2="1182" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 7 -->
+  <rect x="570" y="1184" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="1214" r="16" fill="#0D0D0D"/><text x="600" y="1219" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">7</text>
+  <text x="850" y="1222" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">PROFESSOR cria uma turma nova (curso + ano) —</tspan>
+    <tspan x="850" dy="20">o sistema gera um link único de matrícula pra ela</tspan>
+  </text>
+
+  <line x1="850" y1="1274" x2="850" y2="1316" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 8 -->
+  <rect x="570" y="1318" width="560" height="80" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="1343" r="16" fill="#0D0D0D"/><text x="600" y="1348" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">8</text>
+  <text x="850" y="1353" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">PROFESSOR compartilha esse link só com os</tspan>
+    <tspan x="850" dy="20">alunos daquela turma específica</tspan>
+  </text>
+
+  <!-- divider ALUNO -->
+  <rect x="570" y="1428" width="560" height="34" rx="8" fill="#0D0D0D"/>
+  <text x="850" y="1450" text-anchor="middle" font-size="14" font-weight="800" fill="#CF8403" letter-spacing="2">— A PARTIR DAQUI: O ALUNO —</text>
+  <line x1="850" y1="1398" x2="850" y2="1428" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="850" y1="1462" x2="850" y2="1494" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 9 -->
+  <rect x="570" y="1496" width="560" height="100" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="1526" r="16" fill="#0D0D0D"/><text x="600" y="1531" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">9</text>
+  <text x="850" y="1534" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">ALUNO abre o link (sem precisar de login),</tspan>
+    <tspan x="850" dy="20">preenche nome, CPF, telefone, e-mail e a</tspan>
+    <tspan x="850" dy="20">matrícula de membro, se lembrar</tspan>
+  </text>
+
+  <line x1="850" y1="1596" x2="850" y2="1638" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Decision 10 -->
+  <polygon points="850,1638 1050,1693 850,1748 650,1693" fill="#FFF3D6" stroke="#CF8403" stroke-width="1.5"/>
+  <text x="850" y="1697" text-anchor="middle" font-size="13.5" fill="#0D0D0D" font-weight="700">
+    <tspan x="850" dy="0">10. Já existe cadastro de</tspan>
+    <tspan x="850" dy="18">aluno com esse CPF?</tspan>
+  </text>
+
+  <!-- Sim branch -->
+  <line x1="700" y1="1723" x2="410" y2="1808" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="555" y="1758" font-size="13" fill="#0D0D0D" font-weight="700">Sim</text>
+  <rect x="150" y="1810" width="520" height="100" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="410" y="1848" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="410" dy="0">Reaproveita o cadastro existente</tspan>
+    <tspan x="410" dy="20">(mesmo CPF) em vez de criar um novo</tspan>
+  </text>
+
+  <!-- warning B -->
+  <line x1="670" y1="1860" x2="1090" y2="1860" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <rect x="1090" y="1793" width="480" height="140" rx="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="1330" y="1823" text-anchor="middle" font-size="13.5" fill="#92400E" font-weight="700">
+    <tspan x="1330" dy="0">⚠ Isso reaproveita só pelo CPF</tspan>
+    <tspan x="1330" dy="19" font-weight="400">— se o mesmo CPF de teste já foi</tspan>
+    <tspan x="1330" dy="19" font-weight="400">usado com outro e-mail antes, o</tspan>
+    <tspan x="1330" dy="19" font-weight="400">sistema trata como a mesma pessoa</tspan>
+    <tspan x="1330" dy="19" font-weight="400">e pode avisar "mesmo e-mail" errado</tspan>
+  </text>
+
+  <!-- Não branch (skip) -->
+  <line x1="1000" y1="1723" x2="1150" y2="1808" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1150" y1="1808" x2="1150" y2="1990" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="1025" y="1758" font-size="13" fill="#0D0D0D" font-weight="700">Não</text>
+
+  <!-- merge into step 11 -->
+  <line x1="410" y1="1910" x2="410" y2="1962" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="410" y1="1962" x2="820" y2="1962" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1150" y1="1990" x2="1150" y2="1962" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1150" y1="1962" x2="880" y2="1962" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="850" y1="1962" x2="850" y2="1990" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 11 -->
+  <rect x="570" y="1992" width="560" height="100" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="2022" r="16" fill="#0D0D0D"/><text x="600" y="2027" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">11</text>
+  <text x="850" y="2030" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">SISTEMA decide se manda convite por e-mail —</tspan>
+    <tspan x="850" dy="20">só manda se essa pessoa ainda não tem</tspan>
+    <tspan x="850" dy="20">nenhum login (user_id vazio)</tspan>
+  </text>
+
+  <line x1="850" y1="2092" x2="850" y2="2134" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Decision 12 -->
+  <polygon points="850,2134 1060,2189 850,2244 640,2189" fill="#FFF3D6" stroke="#CF8403" stroke-width="1.5"/>
+  <text x="850" y="2193" text-anchor="middle" font-size="13.5" fill="#0D0D0D" font-weight="700">
+    <tspan x="850" dy="0">12. Resultado do</tspan>
+    <tspan x="850" dy="18">envio do convite</tspan>
+  </text>
+
+  <line x1="700" y1="2210" x2="290" y2="2270" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="850" y1="2244" x2="850" y2="2270" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1000" y1="2210" x2="1410" y2="2270" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Outcome A -->
+  <rect x="40" y="2272" width="500" height="130" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="290" y="2306" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0D0D0D">Enviado</text>
+  <text x="290" y="2330" text-anchor="middle" font-size="13.5" fill="#0D0D0D">
+    <tspan x="290" dy="0">Aluno recebe o e-mail com o</tspan>
+    <tspan x="290" dy="19">link de definir a senha</tspan>
+  </text>
+
+  <!-- Outcome B (amber, é o caso arriscado) -->
+  <rect x="600" y="2272" width="500" height="130" rx="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="850" y="2306" text-anchor="middle" font-size="13.5" font-weight="700" fill="#92400E">E-mail já usado em outro login</text>
+  <text x="850" y="2330" text-anchor="middle" font-size="13" fill="#92400E">
+    <tspan x="850" dy="0">Reaproveita esse login sem mandar e-mail</tspan>
+    <tspan x="850" dy="18">novo — tela mostra "você já tinha conta,</tspan>
+    <tspan x="850" dy="18">use sua senha atual" (ver ⚠ acima)</tspan>
+  </text>
+
+  <!-- Outcome C -->
+  <rect x="1160" y="2272" width="500" height="130" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <text x="1410" y="2306" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0D0D0D">Falhou o envio</text>
+  <text x="1410" y="2330" text-anchor="middle" font-size="13" fill="#0D0D0D">
+    <tspan x="1410" dy="0">(rede, limite, etc.) — fica marcado</tspan>
+    <tspan x="1410" dy="18">pra reenviar depois</tspan>
+  </text>
+  <text x="1410" y="2382" text-anchor="middle" font-size="12.5" font-weight="700" fill="#92400E">⚠ hoje não existe botão de</text>
+  <text x="1410" y="2397" text-anchor="middle" font-size="12.5" font-weight="700" fill="#92400E">reenviar convite (professor ou aluno)</text>
+
+  <!-- merge to step 13 -->
+  <line x1="290" y1="2402" x2="290" y2="2450" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="290" y1="2450" x2="820" y2="2450" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="850" y1="2402" x2="850" y2="2450" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1410" y1="2410" x2="1410" y2="2450" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="1410" y1="2450" x2="880" y2="2450" stroke="#0D0D0D" stroke-width="1.5"/>
+  <line x1="850" y1="2450" x2="850" y2="2478" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 13 -->
+  <rect x="570" y="2480" width="560" height="90" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="2510" r="16" fill="#0D0D0D"/><text x="600" y="2515" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">13</text>
+  <text x="850" y="2518" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">SISTEMA gera o número de matrícula, grava</tspan>
+    <tspan x="850" dy="20">em ead_matriculas e libera o curso pro aluno</tspan>
+  </text>
+
+  <line x1="850" y1="2570" x2="850" y2="2612" stroke="#0D0D0D" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 14 -->
+  <rect x="570" y="2614" width="560" height="110" rx="12" fill="#FFFFFF" stroke="#0D0D0D" stroke-width="1.5"/>
+  <circle cx="600" cy="2644" r="16" fill="#0D0D0D"/><text x="600" y="2649" text-anchor="middle" font-size="13" fill="#CF8403" font-weight="700">14</text>
+  <text x="850" y="2652" text-anchor="middle" font-size="14" fill="#0D0D0D">
+    <tspan x="850" dy="0">Quem recebeu e-mail: clica no link, define a</tspan>
+    <tspan x="850" dy="20">senha e entra no Portal do Aluno.</tspan>
+    <tspan x="850" dy="20">Quem já tinha conta: usa a senha que já tinha.</tspan>
+  </text>
+</svg>

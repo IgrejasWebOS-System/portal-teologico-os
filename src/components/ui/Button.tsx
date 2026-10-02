@@ -31,10 +31,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // ── Estilos mapeados aos tokens iw-* + DS shadows ─────────────
 
 const VARIANT: Record<ButtonVariant, string> = {
+  // Cor fixada em #CF8403 (pedido do Joaquim, 18/09/2026: todo botão
+  // primário do sistema usa esse mesmo laranja/dourado — antes estava em
+  // #E88D0C, tom próximo mas não idêntico ao já usado em Novo Membro/
+  // Histórico/Importar). Ver DESIGN_SYSTEM.md.
   primary:
-    "bg-[#E88D0C] text-white border-black " +
+    "bg-[#CF8403] text-white border-black " +
     "hover:opacity-90 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] " +
-    "focus-visible:ring-2 focus-visible:ring-[#E88D0C]/50 focus-visible:ring-offset-1",
+    "focus-visible:ring-2 focus-visible:ring-[#CF8403]/50 focus-visible:ring-offset-1",
 
   secondary:
     "bg-iw-gold/15 text-iw-navy border border-iw-gold/35 " +
@@ -42,7 +46,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     "focus-visible:ring-2 focus-visible:ring-iw-gold/40 focus-visible:ring-offset-1",
 
   outline:
-    "bg-transparent text-iw-blue border border-iw-blue " +
+    "bg-transparent text-iw-navy border border-iw-blue " +
     "hover:bg-iw-blue/8 " +
     "focus-visible:ring-2 focus-visible:ring-iw-blue/40 focus-visible:ring-offset-1",
 

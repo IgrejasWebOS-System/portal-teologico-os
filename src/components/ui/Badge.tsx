@@ -23,7 +23,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const VARIANT: Record<BadgeVariant, string> = {
   default : "bg-iw-bg text-iw-muted border-iw-border",
-  primary : "bg-iw-blue/10 text-iw-blue border-iw-blue/20",
+  primary : "bg-iw-blue/10 text-iw-navy border-iw-blue/20",
   success : "bg-iw-success/10 text-iw-success border-iw-success/20",
   warning : "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
   danger  : "bg-iw-error-bg text-iw-error border-iw-error/30",

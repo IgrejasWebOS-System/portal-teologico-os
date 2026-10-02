@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookUser, UserPlus } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "@/components/layout/PageHeader";
+import AlunosListClient from "./AlunosListClient";
 
 type Row = {
   id: string;
@@ -11,21 +12,24 @@ type Row = {
   curso_pretendido: string | null;
   telefone: string | null;
   campo_ministerio_nome: string | null;
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  ATIVO: "bg-iw-success-bg text-iw-success",
-  INATIVO: "bg-iw-bg text-iw-muted",
-  TRANCADO: "bg-iw-warning-bg text-iw-warning",
+  sector_id: string | null;
+  church_id: string | null;
+  sectors: { name: string } | null;
+  churches: { name: string; is_sede: boolean | null } | null;
 };
 
 export default async function AlunosPage() {
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("ead_alunos")
-    .select("id, nome_completo, matricula, status, curso_pretendido, telefone, campo_ministerio_nome")
-    .order("nome_completo");
+  const [{ data }, { data: setores }] = await Promise.all([
+    supabase
+      .from("ead_alunos")
+      .select(
+        "id, nome_completo, matricula, status, curso_pretendido, telefone, campo_ministerio_nome, sector_id, church_id, sectors(name), churches(name, is_sede)"
+      )
+      .order("nome_completo"),
+    supabase.from("sectors").select("id, name").order("name"),
+  ]);
 
   const rows = (data ?? []) as unknown as Row[];
 
@@ -37,6 +41,7 @@ export default async function AlunosPage() {
         description={`${rows.length} aluno${rows.length === 1 ? "" : "s"} matriculado${rows.length === 1 ? "" : "s"} na Escola de Teologia.`}
         backHref="/dashboard/configuracoes/persona"
         backLabel="Voltar para Persona"
+        backNovoPadrao
         actions={
           <Link
             href="/admin/matriculas/nova"
@@ -48,43 +53,17 @@ export default async function AlunosPage() {
         }
       />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
-        <div className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Matrícula</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Curso pretendido</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Campo / Ministério</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Status</span>
+      {rows.length === 0 ? (
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm px-5 py-12 text-center">
+          <BookUser className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
+          <p className="text-iw-muted text-sm font-medium">Nenhum aluno cadastrado.</p>
+          <p className="text-iw-muted/60 text-xs mt-1">
+            Alunos são criados via matrícula (pública, direta ou auto-matrícula).
+          </p>
         </div>
-
-        {rows.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <BookUser className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
-            <p className="text-iw-muted text-sm font-medium">Nenhum aluno cadastrado.</p>
-            <p className="text-iw-muted/60 text-xs mt-1">
-              Alunos são criados via matrícula (pública, direta ou auto-matrícula).
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-iw-border">
-            {rows.map((r) => (
-              <li key={r.id} className="grid grid-cols-[1.2fr_0.8fr_1fr_1fr_0.8fr] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4">
-                <span className="text-sm font-semibold text-iw-navy truncate">{r.nome_completo}</span>
-                <span className="text-xs text-iw-muted truncate">{r.matricula}</span>
-                <span className="text-xs text-iw-muted truncate">{r.curso_pretendido ?? "—"}</span>
-                <span className="text-xs text-iw-muted truncate">{r.campo_ministerio_nome ?? "—"}</span>
-                <span
-                  className={`text-[11px] font-bold uppercase px-2 py-1 rounded-full text-center ${
-                    STATUS_STYLE[r.status] ?? "bg-iw-bg text-iw-muted"
-                  }`}
-                >
-                  {r.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      ) : (
+        <AlunosListClient rows={rows} setores={setores ?? []} />
+      )}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default async function FichaRapidaPage() {
     { data: precos },
   ] = await Promise.all([
     supabase.from("ead_campos_ministerios").select("id, nome, tipo").eq("ativo", true).order("nome"),
-    supabase.from("courses").select("id, title, module").order("title"),
+    supabase.from("courses").select("id, title, module").eq("visivel_busca", true).order("title"),
     supabase.from("churches").select("id, name, sector_id").order("name"),
     supabase.from("sectors").select("id, name").order("name"),
     supabase.from("course_editions").select("id, nome, course_id").order("nome"),

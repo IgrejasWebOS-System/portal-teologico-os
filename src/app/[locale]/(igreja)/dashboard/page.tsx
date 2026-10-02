@@ -165,12 +165,12 @@ export default async function DashboardPage() {
           className="group bg-iw-surface rounded-[var(--radius-xl)] border border-iw-blue/20 shadow-[var(--shadow-sm)] p-6 flex items-start gap-4 hover:border-iw-blue/50 hover:shadow-[var(--shadow-md)] transition-all duration-150"
         >
           <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-iw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
-            <UserPlus className="w-6 h-6 text-iw-blue" />
+            <UserPlus className="w-6 h-6 text-iw-navy" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Novo Membro</p>
             <p className="text-sm font-bold text-iw-navy mt-1">Cadastrar ficha completa</p>
-            <p className="text-xs text-iw-blue mt-2 flex items-center gap-1 font-medium">
+            <p className="text-xs text-iw-navy mt-2 flex items-center gap-1 font-medium">
               Acessar <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </p>
           </div>
@@ -247,7 +247,7 @@ export default async function DashboardPage() {
                       className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
                         isToday
                           ? "bg-iw-gold text-white"
-                          : "bg-iw-sky/15 text-iw-blue"
+                          : "bg-iw-sky/15 text-iw-navy"
                       }`}
                     >
                       {member.full_name.charAt(0).toUpperCase()}
@@ -292,7 +292,7 @@ export default async function DashboardPage() {
             <h2 className="font-bold text-iw-navy">Últimos Cadastrados</h2>
             <Link
               href="/dashboard/membros"
-              className="text-xs font-semibold text-iw-blue hover:text-iw-navy flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-iw-navy hover:text-iw-navy flex items-center gap-1 transition-colors"
             >
               Ver todos
               <ArrowRight className="w-3 h-3" />
@@ -314,7 +314,7 @@ export default async function DashboardPage() {
                   >
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-iw-blue/15 border border-iw-sky/30 flex items-center justify-center shrink-0">
-                      <span className="text-iw-blue font-bold text-xs">
+                      <span className="text-iw-navy font-bold text-xs">
                         {member.full_name.charAt(0).toUpperCase()}
                       </span>
                     </div>

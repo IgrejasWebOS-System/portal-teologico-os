@@ -30,10 +30,10 @@ export default async function MeusCertificadosPage() {
         <div className="max-w-3xl mx-auto px-6 py-5">
           <Link
             href="/portal"
-            className="inline-flex items-center gap-1.5 text-iw-sky/70 hover:text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Voltar ao Portal
+            VOLTAR
           </Link>
         </div>
       </header>
@@ -78,7 +78,7 @@ export default async function MeusCertificadosPage() {
                     <span className="text-xs font-mono font-bold text-iw-gold bg-iw-gold/10 px-3 py-1.5 rounded-lg">
                       {c.numero_certificado}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-iw-blue">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-iw-navy">
                       <Eye className="w-3.5 h-3.5" /> Ver certificado
                     </span>
                   </div>

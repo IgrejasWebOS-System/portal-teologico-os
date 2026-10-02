@@ -49,6 +49,7 @@ export default async function PlanoDeContasPage({ searchParams }: PageProps) {
         description="Categorias de receita e despesa usadas no caixa diário."
         backHref="/admin/financeiro"
         backLabel="Voltar para Financeiro"
+        backNovoPadrao
       />
 
       {msg && (

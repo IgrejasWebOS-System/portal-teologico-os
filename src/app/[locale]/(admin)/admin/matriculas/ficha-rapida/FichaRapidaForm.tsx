@@ -3,8 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import { Send, Loader2, AlertTriangle, QrCode, Copy, Check, UserPlus, Mail, CheckCircle2, Wallet, ExternalLink } from "lucide-react";
 import { validarCPF } from "@/utils/cpf";
+import { maskPhone } from "@/utils/maskPhone";
 import PageHeader from "@/components/layout/PageHeader";
 import { criarFichaPendenteAction, enviarLinkFichaEmailAction } from "./actions";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type Curso = { id: string; title: string; module: string };
@@ -30,15 +32,6 @@ function maskCPF(raw: string): string {
   v = v.replace(/(\d{3})(\d)/, "$1.$2");
   v = v.replace(/(\d{3})(\d)/, "$1.$2");
   v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  return v;
-}
-
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
   return v;
 }
 
@@ -120,7 +113,7 @@ export default function FichaRapidaForm({
   const [telefone, setTelefone] = useState("");
   const [emailAluno, setEmailAluno] = useState("");
   const [courseId, setCourseId] = useState("");
-  const [campoMinisterioId, setCampoMinisterioId] = useState("");
+  const [campoMinisterioId, setCampoMinisterioId] = useState(() => resolverCampoPadraoId(campos));
   const [sectorId, setSectorId] = useState("");
   const [churchId, setChurchId] = useState("");
   const [turmaId, setTurmaId] = useState("");
@@ -130,7 +123,12 @@ export default function FichaRapidaForm({
   const [valorMatricula, setValorMatricula] = useState("");
   const [valorParcela, setValorParcela] = useState("");
   const [numeroParcelasPagto, setNumeroParcelasPagto] = useState("12");
-  const [formaCobranca, setFormaCobranca] = useState("MERCADOPAGO");
+  // Decisão do Joaquim em 13/09/2026: removida a opção de link
+  // automático Pix/Mercado Pago na matrícula direta — só trabalhamos com
+  // as formas tradicionais (dinheiro, pix, cartão, boleto), lançadas
+  // manualmente em Financeiro > Contas a Receber quando o pagamento
+  // acontecer de verdade (ver forma_pagamento em contas-a-receber/page.tsx).
+  const formaCobranca = "MANUAL";
   const [responsavelPagamento, setResponsavelPagamento] = useState("ALUNO");
   const [churchIdPagamento, setChurchIdPagamento] = useState("");
   const [erro, setErro] = useState("");
@@ -150,6 +148,15 @@ export default function FichaRapidaForm({
     () => (sectorId ? churches.filter((c) => c.sector_id === sectorId) : churches),
     [sectorId, churches]
   );
+  // 25/09/2026, achado em teste (Joaquim): mesma correção aplicada em
+  // NovaMatriculaForm.tsx/EditarMatriculaForm.tsx — `sectors` vem ordenado
+  // alfabeticamente do banco, o que põe "REGIONAL 0xx" antes de "SETOR
+  // 0xx" (R < S).
+  const setoresOrdenados = useMemo(() => {
+    const naoRegional = setores.filter((s) => !s.name.toUpperCase().startsWith("REGIONAL"));
+    const regional = setores.filter((s) => s.name.toUpperCase().startsWith("REGIONAL"));
+    return [...naoRegional, ...regional];
+  }, [setores]);
   const turmasDoCurso = useMemo(
     () => (courseId ? turmas.filter((t) => t.course_id === courseId) : []),
     [courseId, turmas]
@@ -229,6 +236,7 @@ export default function FichaRapidaForm({
           description={`Matrícula ${resultado.matricula} — ${resultado.nomeCompleto}`}
           backHref="/admin/matriculas"
           backLabel="Voltar para Matrículas"
+          backNovoPadrao
         />
         <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4 text-center">
           {resultado.linkPagamento && (
@@ -242,7 +250,7 @@ export default function FichaRapidaForm({
                   href={resultado.linkPagamento}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center gap-1 font-bold text-iw-blue hover:text-iw-navy"
+                  className="shrink-0 inline-flex items-center gap-1 font-bold text-iw-navy hover:text-iw-navy"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> Abrir
                 </a>
@@ -275,7 +283,7 @@ export default function FichaRapidaForm({
             <button
               type="button"
               onClick={handleCopiar}
-              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-blue hover:text-iw-navy"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-iw-navy hover:text-iw-navy"
             >
               {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copiado ? "Copiado" : "Copiar link"}
@@ -337,6 +345,7 @@ export default function FichaRapidaForm({
         description="Cadastro mínimo a partir da ficha de papel — o resto (endereço, foto, dados pessoais) o aluno completa sozinho pelo celular."
         backHref="/admin/matriculas"
         backLabel="Voltar para Matrículas"
+        backNovoPadrao
       />
 
       {/* Wrapper sempre montado — evita remontar o <form> (e perder os
@@ -439,7 +448,7 @@ export default function FichaRapidaForm({
               className={bareSelectCls}
             >
               <option value="">Selecione...</option>
-              {setores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {setoresOrdenados.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
           <Field label="Igreja" span="col-span-6 md:col-span-2" filled={churchId.length > 0}>
@@ -512,16 +521,6 @@ export default function FichaRapidaForm({
                 className={bareCls}
               />
             </Field>
-            <Field label="Forma de cobrança" span="col-span-6 md:col-span-4">
-              <select
-                value={formaCobranca}
-                onChange={(e) => setFormaCobranca(e.target.value)}
-                className={bareSelectCls}
-              >
-                <option value="MERCADOPAGO">Link Pix / Mercado Pago</option>
-                <option value="MANUAL">Parcelamento manual (Contas a Receber)</option>
-              </select>
-            </Field>
           </div>
           <div className="grid grid-cols-12 gap-3">
             <Field label="Quem paga" span="col-span-6 md:col-span-4">
@@ -547,12 +546,6 @@ export default function FichaRapidaForm({
               </Field>
             )}
           </div>
-          {formaCobranca === "MERCADOPAGO" && (
-            <p className="text-xs text-iw-muted">
-              Um link de pagamento único Pix/Mercado Pago será gerado no valor total (matrícula + parcelas) e
-              mostrado na próxima tela, pronto pra copiar ou enviar pro aluno.
-            </p>
-          )}
         </div>
 
         <div className="flex justify-end pt-2">

@@ -19,6 +19,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import MonthlyBarChart from "@/components/admin/dashboard/MonthlyBarChart";
 import BreakdownBars from "@/components/admin/dashboard/BreakdownBars";
 import { contarPorMes, somarPorMes } from "@/utils/dashboard/agrupar-por-mes";
+import EstoqueMateriaisPainel from "./EstoqueMateriaisPainel";
+import PedidosMaterialAdminPainel from "./PedidosMaterialAdminPainel";
 
 export const metadata = { title: "Dashboard — CETADP" };
 
@@ -156,6 +158,121 @@ export default async function AdminDashboardPage() {
   const matriculasPorCurso = Array.from(cursoContagem, ([label, value]) => ({ label, value })).slice(0, 8);
   const origemMatriculas = Array.from(origemContagem, ([label, value]) => ({ label, value }));
 
+  // ---------- Relatório por Setor/Regional (29/09/2026, pedido do Joaquim,
+  // igual à planilha "POSIÇÃO FINANCEIRA E GERENCIAMENTO DE ESTOQUE") ----------
+  const [
+    { data: alunosSetor },
+    { data: matriculasSetor },
+    { data: contasReceberTodas },
+  ] = await Promise.all([
+    supabase.from("ead_alunos").select("id, sector_id, sectors(name), churches(is_sede)"),
+    supabase.from("ead_matriculas").select("id, aluno_id, curso_nome_snapshot"),
+    supabase.from("fin_contas_receber").select("origem_id, valor_bruto_centavos, status"),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const alunoInfo = new Map((alunosSetor ?? []).map((a: any) => [a.id, a]));
+  const financeiroPorMatricula = new Map<string, { aPagar: number; pago: number }>();
+  for (const c of contasReceberTodas ?? []) {
+    const atual = financeiroPorMatricula.get(c.origem_id) ?? { aPagar: 0, pago: 0 };
+    atual.aPagar += c.valor_bruto_centavos;
+    if (c.status === "PAGO") atual.pago += c.valor_bruto_centavos;
+    financeiroPorMatricula.set(c.origem_id, atual);
+  }
+
+  type LinhaSetor = { nome: string; basico: number; medio: number; aPagar: number; pago: number };
+  const porSetor = new Map<string, LinhaSetor>();
+  for (const m of matriculasSetor ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const aluno = alunoInfo.get(m.aluno_id) as any;
+    const isSede = aluno?.churches?.is_sede;
+    const key = isSede ? "SEDE" : aluno?.sector_id ?? "SEM_SETOR";
+    const nome = isSede ? "SEDE" : aluno?.sectors?.name ?? "Sem setor definido";
+    if (!porSetor.has(key)) porSetor.set(key, { nome, basico: 0, medio: 0, aPagar: 0, pago: 0 });
+    const linha = porSetor.get(key)!;
+    const curso = (m.curso_nome_snapshot || "").toLowerCase();
+    if (curso.includes("básico") || curso.includes("basico")) linha.basico += 1;
+    else if (curso.includes("médio") || curso.includes("medio")) linha.medio += 1;
+    const fin = financeiroPorMatricula.get(m.id);
+    if (fin) {
+      linha.aPagar += fin.aPagar;
+      linha.pago += fin.pago;
+    }
+  }
+  const relatorioSetores = Array.from(porSetor.values()).sort((a, b) =>
+    a.nome === "SEDE" ? -1 : b.nome === "SEDE" ? 1 : a.nome.localeCompare(b.nome, "pt-BR")
+  );
+
+  // ---------- Estoque de material didático (por AULA — migration 122) ----------
+  const [
+    { data: materiaisRaw },
+    { data: cursosParaMaterial },
+    { data: licoesRaw },
+    { data: matriculasPorCursoRaw },
+    { data: pedidosMaterialRaw },
+  ] = await Promise.all([
+    supabase
+      .from("materiais_didaticos")
+      .select("id, nome, tipo, curso_id, lesson_id, estoque_atual, courses(title), lessons(title)")
+      .order("nome"),
+    supabase.from("courses").select("id, title").order("title"),
+    supabase.from("lessons").select("id, title, course_id").order("order_index"),
+    supabase.from("ead_matriculas").select("course_id").eq("status", "EM_ANDAMENTO"),
+    supabase
+      .from("pedidos_material")
+      .select(
+        "id, status, quantidade_solicitada, alunos_em_andamento_snapshot, observacao, created_at, material_id, course_edition_id, lesson_id, course_editions(nome, classe, courses(title)), lessons(title), materiais_didaticos(nome)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(300),
+  ]);
+
+  const alunosPorCurso = new Map<string, number>();
+  for (const m of matriculasPorCursoRaw ?? []) {
+    if (!m.course_id) continue;
+    alunosPorCurso.set(m.course_id, (alunosPorCurso.get(m.course_id) ?? 0) + 1);
+  }
+
+  const materiais = (materiaisRaw ?? []).map((m) => {
+    const alunos = m.curso_id ? alunosPorCurso.get(m.curso_id) ?? 0 : 0;
+    return {
+      id: m.id,
+      nome: m.nome,
+      tipo: m.tipo as "LIVRO" | "PROVA",
+      curso_id: m.curso_id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      curso_titulo: (m.courses as any)?.title ?? null,
+      lesson_id: m.lesson_id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      licao_titulo: (m.lessons as any)?.title ?? null,
+      estoque_atual: m.estoque_atual,
+      alunos,
+      imprimir: Math.max(0, alunos - m.estoque_atual),
+    };
+  });
+
+  const licoesParaMaterial = (licoesRaw ?? []).map((l) => ({ id: l.id, title: l.title, course_id: l.course_id }));
+
+  const pedidosMaterial = (pedidosMaterialRaw ?? []).map((p) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const edition = (Array.isArray(p.course_editions) ? p.course_editions[0] : p.course_editions) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const licao = (Array.isArray(p.lessons) ? p.lessons[0] : p.lessons) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const material = (Array.isArray(p.materiais_didaticos) ? p.materiais_didaticos[0] : p.materiais_didaticos) as any;
+    return {
+      id: p.id,
+      turma_label: `${edition?.courses?.title ?? "Curso"} — ${edition?.nome ?? ""}${edition?.classe ? ` (Classe ${edition.classe})` : ""}`,
+      aula_titulo: licao?.title ?? "—",
+      material_nome: material?.nome ?? null,
+      alunos_em_andamento_snapshot: p.alunos_em_andamento_snapshot,
+      quantidade_solicitada: p.quantidade_solicitada,
+      status: p.status as "SOLICITADO" | "ENVIADO_GRAFICA" | "RECEBIDO" | "CANCELADO",
+      observacao: p.observacao,
+      created_at: p.created_at,
+    };
+  });
+
   const { data: contasReceberStatus } = await supabase.from("fin_contas_receber").select("status, valor_bruto_centavos");
   const statusContagem = new Map<string, number>();
   for (const c of contasReceberStatus ?? []) {
@@ -188,7 +305,7 @@ export default async function AdminDashboardPage() {
           icon={UserCheck}
           label="Matrículas em andamento"
           value={String(matriculasEmAndamento ?? 0)}
-          color="text-iw-blue"
+          color="text-iw-navy"
           bg="bg-iw-blue/10"
         />
         <KpiCard
@@ -241,7 +358,7 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-iw-blue" />
+            <BarChart3 className="w-4 h-4 text-iw-navy" />
             <h2 className="font-bold text-iw-navy text-sm">Matrículas por mês (últimos 6 meses)</h2>
           </div>
           <MonthlyBarChart data={matriculasPorMes} color="bg-iw-blue" />
@@ -282,6 +399,51 @@ export default async function AdminDashboardPage() {
           <BreakdownBars data={statusContasReceber} formatValue={fmt} />
         </div>
       </div>
+
+      {/* Relatório por Setor/Regional (29/09/2026) */}
+      <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-4 h-4 text-iw-navy" />
+          <h2 className="font-bold text-iw-navy text-sm">Relatório por Setor/Regional</h2>
+        </div>
+        {relatorioSetores.length === 0 ? (
+          <p className="text-xs text-iw-muted">Nenhuma matrícula encontrada.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left border-b border-iw-border">
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase">Setor/Regional</th>
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase text-right">Básico</th>
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase text-right">Médio</th>
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase text-right">Total</th>
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase text-right">A Pagar</th>
+                  <th className="py-2 pr-2 font-extrabold text-iw-muted uppercase text-right">Pago</th>
+                  <th className="py-2 font-extrabold text-iw-muted uppercase text-right">Saldo Devedor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {relatorioSetores.map((s) => (
+                  <tr key={s.nome} className="border-b border-iw-border/60 last:border-b-0">
+                    <td className="py-2 pr-2 font-semibold text-iw-navy">{s.nome}</td>
+                    <td className="py-2 pr-2 text-right text-iw-muted">{s.basico}</td>
+                    <td className="py-2 pr-2 text-right text-iw-muted">{s.medio}</td>
+                    <td className="py-2 pr-2 text-right font-bold text-iw-navy">{s.basico + s.medio}</td>
+                    <td className="py-2 pr-2 text-right text-iw-muted">{fmt(s.aPagar)}</td>
+                    <td className="py-2 pr-2 text-right text-iw-success">{fmt(s.pago)}</td>
+                    <td className="py-2 text-right font-bold text-iw-error">{fmt(s.aPagar - s.pago)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Estoque de material didático (29/09/2026) */}
+      <EstoqueMateriaisPainel materiais={materiais} cursos={cursosParaMaterial ?? []} licoes={licoesParaMaterial} />
+
+      <PedidosMaterialAdminPainel pedidos={pedidosMaterial} />
     </div>
   );
 }

@@ -13,7 +13,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  AGUARDANDO_PAGAMENTO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  AGUARDANDO_PAGAMENTO: "bg-iw-blue/10 text-iw-navy border-iw-blue/30",
   PAGAMENTO_RECUSADO: "bg-iw-error-bg text-iw-error border-iw-error/30",
   PENDENTE: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
   APROVADA: "bg-iw-success-bg text-iw-success border-iw-success/30",

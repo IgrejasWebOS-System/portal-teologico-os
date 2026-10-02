@@ -11,7 +11,7 @@ interface PageProps {
 
 const STATUS_STYLE: Record<string, string> = {
   AGUARDANDO_ENVIO: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
-  ENVIADO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  ENVIADO: "bg-iw-blue/10 text-iw-navy border-iw-blue/30",
   ENTREGUE: "bg-iw-success-bg text-iw-success border-iw-success/30",
 };
 
@@ -97,7 +97,7 @@ export default async function PedidosAdminPage({ searchParams }: PageProps) {
         </div>
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
           <p className="text-[11px] font-bold text-iw-muted uppercase">Enviados</p>
-          <p className="text-lg font-black text-iw-blue">{enviados}</p>
+          <p className="text-lg font-black text-iw-navy">{enviados}</p>
         </div>
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
           <p className="text-[11px] font-bold text-iw-muted uppercase">Entregues</p>

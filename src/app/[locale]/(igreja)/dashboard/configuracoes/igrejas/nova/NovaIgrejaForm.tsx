@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { useCatalogoCidades } from "@/utils/useCatalogoCidades";
 import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 
@@ -25,9 +26,9 @@ interface Props {
 }
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const selectCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 cursor-pointer transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer transition-colors";
 const labelCls =
   "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 const sectionTitleCls =
@@ -54,6 +55,9 @@ export default function NovaIgrejaForm({
   const [pastorRole, setPastorRole] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade
+  // (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const handleMembroEncontrado = (membro: MembroEncontrado) => {
     setPastorName(membro.full_name);
@@ -156,9 +160,9 @@ export default function NovaIgrejaForm({
       )}
 
       {/* ── IDENTIFICAÇÃO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Building2 className="w-4 h-4 text-iw-blue" />
+          <Building2 className="w-4 h-4 text-iw-navy" />
           Identificação
         </h3>
 
@@ -225,7 +229,7 @@ export default function NovaIgrejaForm({
       </div>
 
       {/* ── LIDERANÇA E CONTATO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <User className="w-4 h-4 text-iw-gold" />
           Liderança e Contato
@@ -301,7 +305,7 @@ export default function NovaIgrejaForm({
       </div>
 
       {/* ── LOCALIZAÇÃO ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <MapPin className="w-4 h-4 text-iw-success" />
           Localização
@@ -380,10 +384,16 @@ export default function NovaIgrejaForm({
             <input
               name="city"
               type="text"
+              list="lista-cidades-nova-igreja"
               placeholder="Ex: Brasília"
               onChange={aplicarMaiusculaNoEvento}
               className={`${inputCls} uppercase`}
             />
+            <datalist id="lista-cidades-nova-igreja">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </div>
 
           <div className="col-span-12 sm:col-span-2">

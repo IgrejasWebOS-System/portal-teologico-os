@@ -55,6 +55,7 @@ export default async function PrecosCursosPage({ searchParams }: PageProps) {
         description="Valor de matrícula e parcelas, por curso — único lugar onde isso é definido. Nova Matrícula e Ficha Rápida usam esses valores automaticamente ao selecionar o curso."
         backHref="/admin/financeiro"
         backLabel="Voltar para Financeiro"
+        backNovoPadrao
       />
 
       {msg && (

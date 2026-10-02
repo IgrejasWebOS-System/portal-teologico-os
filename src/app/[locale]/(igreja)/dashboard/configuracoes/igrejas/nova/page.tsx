@@ -19,6 +19,7 @@ export default async function NovaIgrejaPage() {
         description="Cadastre uma congregação, sub-congregação ou célula."
         backHref="/dashboard/configuracoes/igrejas"
         backLabel="Voltar para Igrejas"
+        backNovoPadrao
       />
 
       <NovaIgrejaForm

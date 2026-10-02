@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<string, string> = {
   ATIVO: "bg-iw-success-bg text-iw-success border-iw-success/30",
   BAIXADO: "bg-iw-bg text-iw-muted border-iw-border",
   EM_MANUTENCAO: "bg-iw-warning-bg text-iw-warning border-iw-warning/30",
-  TRANSFERIDO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  TRANSFERIDO: "bg-iw-blue/10 text-iw-navy border-iw-blue/30",
 };
 
 function fmt(centavos: number) {
@@ -186,7 +186,7 @@ export default async function PatrimonioPage({ searchParams }: PageProps) {
               </div>
 
               <details className="pt-2 border-t border-iw-border">
-                <summary className="cursor-pointer text-xs font-semibold text-iw-blue hover:text-iw-navy transition-colors list-none">
+                <summary className="cursor-pointer text-xs font-semibold text-iw-navy hover:text-iw-navy transition-colors list-none">
                   Registrar movimentação
                 </summary>
                 <form action={registrarMovimentacaoAction} className="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-3">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { clearMustChangePasswordAction } from "./actions";
+import { validarSenha, REGRA_SENHA_TEXTO } from "@/utils/senha";
 
 // M9b — tela de troca obrigatória de senha, destino do redirect feito
 // pelo middleware quando profiles.must_change_password = true (usuário
@@ -21,8 +22,9 @@ export default function TrocarSenhaPage() {
     e.preventDefault();
     setErro("");
 
-    if (senha.length < 8) {
-      setErro("A senha precisa ter pelo menos 8 caracteres.");
+    const { valido, mensagem } = validarSenha(senha);
+    if (!valido) {
+      setErro(mensagem);
       return;
     }
     if (senha !== confirmar) {
@@ -71,6 +73,7 @@ export default function TrocarSenhaPage() {
               minLength={8}
               className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
             />
+            <p className="text-[11px] text-iw-muted mt-1">{REGRA_SENHA_TEXTO}</p>
           </div>
           <div>
             <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">

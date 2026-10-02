@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, GraduationCap, BookOpen } from "lucide-react";
 import type { Course } from "@/types";
-import { createCourseVoidAction, toggleCourseStatusAction } from "../actions";
+import { createCourseVoidAction, toggleCourseStatusAction, toggleCourseVisivelBuscaAction } from "../actions";
 import { checkIsStaff } from "@/utils/staff";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
@@ -40,6 +40,7 @@ export default async function TrilhasPage() {
         description="Organize as trilhas de conteúdo por módulo."
         backHref="/admin/conteudo"
         backLabel="Voltar para Biblioteca"
+        backNovoPadrao
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -47,14 +48,14 @@ export default async function TrilhasPage() {
         {/* ── Escola de Teologia ── */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-iw-blue" />
+            <GraduationCap className="w-5 h-5 text-iw-navy" />
             <h2 className="font-bold text-iw-navy">Escola de Teologia</h2>
             <span className="text-xs text-iw-muted ml-auto">{escola.length} trilhas</span>
           </div>
 
           {/* Nova trilha — Escola */}
           <details className="bg-iw-surface rounded-xl border border-iw-border overflow-hidden">
-            <summary className="px-4 py-3 flex items-center gap-2 text-sm font-semibold text-iw-blue cursor-pointer hover:bg-iw-bg/50 transition-colors list-none">
+            <summary className="px-4 py-3 flex items-center gap-2 text-sm font-semibold text-iw-navy cursor-pointer hover:bg-iw-bg/50 transition-colors list-none">
               <Plus className="w-4 h-4" /> Nova trilha na Escola de Teologia
             </summary>
             <form action={createCourseVoidAction} className="px-4 pb-4 pt-1 space-y-3 border-t border-iw-border">
@@ -102,9 +103,26 @@ export default async function TrilhasPage() {
                   {c.status === "PUBLISHED" ? "Publicado" : "Rascunho"}
                 </button>
               </form>
+              {/* 25/09/2026, pedido do Joaquim: liga/desliga se o curso
+                  aparece nas listas de seleção de nova turma/matrícula,
+                  separado do status de publicação de conteúdo acima. */}
+              <form action={toggleCourseVisivelBuscaAction} title="Aparece nas listas de nova turma/matrícula?">
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="visivel_busca" value={(!c.visivel_busca).toString()} />
+                <button
+                  type="submit"
+                  className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                    c.visivel_busca
+                      ? "bg-iw-success/10 text-iw-success"
+                      : "bg-iw-muted/10 text-iw-muted"
+                  }`}
+                >
+                  {c.visivel_busca ? "Na busca" : "Oculto da busca"}
+                </button>
+              </form>
               <Link
                 href={`/admin/conteudo/nova?course_id=${c.id}`}
-                className="text-xs text-iw-blue font-semibold hover:text-iw-navy transition-colors"
+                className="text-xs text-iw-navy font-semibold hover:text-iw-navy transition-colors"
               >
                 + Aula
               </Link>
@@ -162,6 +180,15 @@ export default async function TrilhasPage() {
                   c.status === "PUBLISHED" ? "bg-iw-success/10 text-iw-success" : "bg-iw-warning/10 text-iw-warning"
                 }`}>
                   {c.status === "PUBLISHED" ? "Publicado" : "Rascunho"}
+                </button>
+              </form>
+              <form action={toggleCourseVisivelBuscaAction} title="Aparece nas listas de nova turma/matrícula?">
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="visivel_busca" value={(!c.visivel_busca).toString()} />
+                <button type="submit" className={`text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${
+                  c.visivel_busca ? "bg-iw-success/10 text-iw-success" : "bg-iw-muted/10 text-iw-muted"
+                }`}>
+                  {c.visivel_busca ? "Na busca" : "Oculto da busca"}
                 </button>
               </form>
               <Link href={`/admin/conteudo/nova?course_id=${c.id}`} className="text-xs text-iw-gold font-semibold hover:text-iw-navy transition-colors">

@@ -7,6 +7,7 @@ import MatriculaLookup from "../../MatriculaLookup";
 import type { MembroEncontrado } from "../../actions";
 import { regiaoPorUf } from "@/utils/estadosBrasil";
 import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 
 function formatarTelefone(valor: string): string {
   const digits = valor.replace(/\D/g, "").slice(0, 11);
@@ -17,16 +18,24 @@ function formatarTelefone(valor: string): string {
 }
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20 transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const labelCls = "block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5";
 const sectionTitleCls =
   "flex items-center gap-2 text-xs font-black text-iw-navy uppercase tracking-widest mb-4 pb-2 border-b border-iw-border";
+const tabBtnCls = (ativo: boolean) =>
+  `px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors ${
+    ativo ? "bg-iw-blue text-white" : "bg-iw-bg text-iw-muted hover:text-iw-navy"
+  }`;
+
+type Ministerio = { id: string; name: string };
+type IgrejaDisponivel = { id: string; name: string; city: string | null; state: string | null };
 
 type CampoData = {
   campoId: string;
   sedeId: string;
   churchId: string | null;
   nomeCampo: string;
+  ministerioId?: string | null;
   nomeSede: string;
   cep?: string | null;
   endereco?: string | null;
@@ -42,12 +51,20 @@ type CampoData = {
 
 interface Props {
   existing?: CampoData;
+  ministerios?: Ministerio[];
+  igrejasDisponiveis?: IgrejaDisponivel[];
   submitLabel?: string;
 }
 
-export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }: Props) {
+export default function CampoForm({ existing, ministerios = [], igrejasDisponiveis = [], submitLabel = "Cadastrar Campo" }: Props) {
   const action = existing ? atualizarCampoAction : criarCampoAction;
 
+  const [ministerioId, setMinisterioId] = useState(existing?.ministerioId ?? "");
+  const [modoSede, setModoSede] = useState<"existente" | "nova">(
+    existing?.churchId || igrejasDisponiveis.length > 0 ? "existente" : "nova"
+  );
+  const [churchIdSede, setChurchIdSede] = useState(existing?.churchId ?? "");
+  const igrejaSelecionada = igrejasDisponiveis.find((i) => i.id === churchIdSede);
   const [cep, setCep] = useState(existing?.cep ?? "");
   const [endereco, setEndereco] = useState(existing?.endereco ?? "");
   const [bairro, setBairro] = useState(existing?.bairro ?? "");
@@ -59,6 +76,9 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
   const [contato, setContato] = useState(existing?.contato ?? "");
   const [telefone, setTelefone] = useState(formatarTelefone(existing?.telefone ?? ""));
   const [email, setEmail] = useState(existing?.email ?? "");
+  // 27/09/2026, auditoria de padronização de fichas: datalist de Cidade
+  // (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const regiaoIbge = useMemo(() => regiaoPorUf(uf), [uf]);
 
@@ -101,41 +121,95 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           <input type="hidden" name="church_id" value={existing.churchId ?? ""} />
         </>
       )}
+      <input type="hidden" name="modo_sede" value={modoSede} />
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Building className="w-4 h-4 text-iw-blue" />
+          <Building className="w-4 h-4 text-iw-navy" />
           Identificação
         </h3>
 
-        <div>
-          <label className={labelCls}>Nome do Campo *</label>
-          <input
-            name="nome_campo"
-            type="text"
-            required
-            defaultValue={existing?.nomeCampo}
-            placeholder="Ex: ADBRAS Caruaru Ministério Madureira"
-            onChange={aplicarMaiusculaNoEvento}
-            className={`${inputCls} uppercase`}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Nome do Campo *</label>
+            <input
+              name="nome_campo"
+              type="text"
+              required
+              defaultValue={existing?.nomeCampo}
+              placeholder="Ex: ADBRAS Caruaru"
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Ministério</label>
+            <select
+              name="ministerio_id"
+              value={ministerioId}
+              onChange={(e) => setMinisterioId(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Sem ministério vinculado</option>
+              {ministerios.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className={labelCls}>Nome da Sede *</label>
-          <input
-            name="nome_sede"
-            type="text"
-            required
-            defaultValue={existing?.nomeSede}
-            placeholder="Ex: ADBRAS Sede Caruaru"
-            onChange={aplicarMaiusculaNoEvento}
-            className={`${inputCls} uppercase`}
-          />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className={labelCls + " mb-0"}>Igreja Sede do Campo *</label>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={() => setModoSede("existente")} className={tabBtnCls(modoSede === "existente")}>
+                Igreja já cadastrada
+              </button>
+              <button type="button" onClick={() => setModoSede("nova")} className={tabBtnCls(modoSede === "nova")}>
+                Cadastrar nova
+              </button>
+            </div>
+          </div>
+
+          {modoSede === "existente" ? (
+            <>
+              <select
+                name="church_id_sede"
+                value={churchIdSede}
+                onChange={(e) => setChurchIdSede(e.target.value)}
+                required
+                className={inputCls}
+              >
+                <option value="">Busque a igreja pelo nome...</option>
+                {igrejasDisponiveis.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                    {i.city ? ` — ${i.city}${i.state ? "/" + i.state : ""}` : ""}
+                  </option>
+                ))}
+              </select>
+              <input type="hidden" name="nome_sede" value={igrejaSelecionada?.name ?? ""} />
+              <p className="text-[11px] text-iw-muted mt-1">
+                Puxa os dados direto do cadastro de igrejas — endereço, pastor e contato ficam como já estão lá.
+              </p>
+            </>
+          ) : (
+            <input
+              name="nome_sede"
+              type="text"
+              required
+              defaultValue={existing?.nomeSede}
+              placeholder="Ex: ADBRAS Sede Caruaru"
+              onChange={aplicarMaiusculaNoEvento}
+              className={`${inputCls} uppercase`}
+            />
+          )}
         </div>
       </div>
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      {modoSede === "nova" && (
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
           <MapPin className="w-4 h-4 text-iw-gold" />
           Endereço da Sede
@@ -194,10 +268,20 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
             <input
               name="cidade"
               type="text"
+              list="lista-cidades-campo"
               value={cidade}
-              onChange={(e) => setCidade(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const { cidade: nome, uf: ufEncontrada } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                setCidade(nome);
+                if (ufEncontrada) setUf(ufEncontrada);
+              }}
               className={`${inputCls} uppercase`}
             />
+            <datalist id="lista-cidades-campo">
+              {catalogoCidades.map((c) => (
+                <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+              ))}
+            </datalist>
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>UF</label>
@@ -214,7 +298,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
         </div>
 
         {regiaoIbge && (
-          <div className="inline-flex items-center gap-1.5 bg-iw-blue/10 text-iw-blue text-xs font-bold px-3 py-1.5 rounded-lg">
+          <div className="inline-flex items-center gap-1.5 bg-iw-blue/10 text-iw-navy text-xs font-bold px-3 py-1.5 rounded-lg">
             <Globe2 className="w-3.5 h-3.5" />
             Região: {regiaoIbge.charAt(0) + regiaoIbge.slice(1).toLowerCase()}
           </div>
@@ -249,10 +333,12 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           </div>
         </div>
       </div>
+      )}
 
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm p-6 space-y-4">
+      {modoSede === "nova" && (
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-4">
         <h3 className={sectionTitleCls}>
-          <Phone className="w-4 h-4 text-iw-blue" />
+          <Phone className="w-4 h-4 text-iw-navy" />
           Contato
         </h3>
 
@@ -277,6 +363,7 @@ export default function CampoForm({ existing, submitLabel = "Cadastrar Campo" }:
           Ao buscar por matrícula, o telefone e o e-mail acima (em Endereço da Sede) são preenchidos automaticamente.
         </p>
       </div>
+      )}
 
       <button
         type="submit"

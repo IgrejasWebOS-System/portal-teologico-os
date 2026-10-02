@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
 import { Send, Loader2 } from "lucide-react";
-import { submitInscricaoAction } from "./actions";
+import { submitInscricaoAction, buscarCadastroPublicoAction, type CadastroPublicoEncontrado } from "./actions";
 import { CURSOS_EAD } from "@/utils/cursos-ead";
-import { aplicarMaiusculaNoEvento } from "@/utils/uppercaseInput";
+import { aplicarMaiuscula } from "@/utils/uppercaseInput";
+import JaTemCadastroCard, { type TipoPessoa } from "@/components/matricula/JaTemCadastroCard";
+import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
+import { maskPhone } from "@/utils/maskPhone";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 
@@ -18,14 +21,6 @@ function maskCPF(raw: string): string {
   return v;
 }
 
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
-  return v;
-}
 
 const inputCls =
   "w-full bg-white border border-iw-border rounded-xl px-3.5 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-1 focus:ring-iw-gold/30 transition-colors";
@@ -64,15 +59,39 @@ export default function InscricaoForm({
 }) {
   const [cpf, setCpf] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [tipoPessoa, setTipoPessoa] = useState<TipoPessoa>("ALUNO");
+  const [nomeCompleto, setNomeCompleto] = useState("");
+  const [email, setEmail] = useState("");
   const t = useTranslations("inscricao.form");
 
   return (
     <form action={submitInscricaoAction} className="flex flex-col gap-4">
       <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="tipo_pessoa" value={tipoPessoa} />
+
+      <JaTemCadastroCard<CadastroPublicoEncontrado>
+        tipo={tipoPessoa}
+        onChangeTipo={setTipoPessoa}
+        onBuscar={buscarCadastroPublicoAction}
+        onEncontrado={(dados) => {
+          setNomeCompleto(dados.full_name.toUpperCase());
+          if (dados.cpf) setCpf(dados.cpf);
+          if (dados.phone) setTelefone(dados.phone);
+          if (dados.email) setEmail(dados.email);
+        }}
+      />
 
       <div>
         <label className={labelCls} htmlFor="nome_completo">{t("nomeCompleto")}</label>
-        <input id="nome_completo" name="nome_completo" required onChange={aplicarMaiusculaNoEvento} className={`${inputCls} uppercase`} placeholder={t("placeholderNomeCompleto")} />
+        <input
+          id="nome_completo"
+          name="nome_completo"
+          required
+          value={nomeCompleto}
+          onChange={aplicarMaiuscula(setNomeCompleto)}
+          className={`${inputCls} uppercase`}
+          placeholder={t("placeholderNomeCompleto")}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -102,13 +121,22 @@ export default function InscricaoForm({
 
       <div>
         <label className={labelCls} htmlFor="email">{t("email")}</label>
-        <input id="email" name="email" type="email" required className={inputCls} placeholder={t("placeholderEmail")} />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputCls}
+          placeholder={t("placeholderEmail")}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={labelCls} htmlFor="campo_ministerio_id">{t("campoMinisterio")}</label>
-          <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue="">
+          <select id="campo_ministerio_id" name="campo_ministerio_id" className={inputCls} defaultValue={resolverCampoPadraoId(campos)}>
             <option value="">{t("selecioneOpcional")}</option>
             {campos.map((c) => (
               <option key={c.id} value={c.id}>{c.nome}</option>

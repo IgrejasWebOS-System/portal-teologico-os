@@ -15,46 +15,37 @@
 - Trabalhe na pasta/branch de staging definida neste arquivo e nunca diretamente na pasta ou branch de produção.
 - Nunca registre segredos, tokens, credenciais, chaves, dados pessoais desnecessários ou conteúdo de `.env` na documentação.
 
-## Padrão Action-First
+## Ambientes — produção vs staging (regra fixa a partir de 14/08/2026)
 
-- Comece cada resposta com a próxima ação executável, um caminho, uma função, um comando ou um snippet.
-- Use listas numeradas de no máximo 5 itens por bloco; cada item deve representar uma ação isolada.
-- Informe estimativas em minutos inteiros e exiba `Estado: X/Y ações concluídas — <situação>`.
-- Elimine preâmbulos e encerramentos vazios, preservando justificativas necessárias para segurança, risco e arquitetura.
+Movida pra cá em 12/09/2026 (estava só lá pela metade do arquivo — o que
+já causou uma vez código novo ser escrito por engano na pasta de
+produção porque essa tabela não foi lida antes de começar o trabalho.
+Ver `staging/governance/ERROS-COMUNS-IA.md`).
 
-## M-Gates e regra ZVDT
+| Ambiente | Pasta local | Branch git | Supabase | Deploy |
+|---|---|---|---|---|
+| Produção | `C:\Projetos\portal-teologico-os` | `main` | projeto principal (`toduvwtzklntyptcodkf`) | Vercel Production — dispara automático em push/merge na `main` |
+| Staging/dev | `C:\Projetos\portal-teologico-os-staging` | qualquer branch que não seja `main` | branch Supabase `staging` (criada a partir do projeto principal) | Vercel Preview — dispara automático em push de qualquer branch |
 
-- **M0 — Entrada:** objetivo, escopo, riscos, ação imediata e critérios de aceite definidos.
-- **M1 — Estrutura:** arquitetura, dependências, migrations, contratos e plano de rollback revisados.
-- **M2 — Execução:** alteração implementada e validada com testes proporcionais ao risco.
-- **M3 — Conformidade:** evidências, decisões e pendências registradas em `staging/`.
-- **M4 — Liberação:** somente liberar com vulnerabilidades Críticas/Altas conhecidas = 0, segredos expostos = 0, controles obrigatórios = 100%, dívida Crítica/Alta vencida = 0 e crescimento líquido de dívida técnica <= 0.
-- Vulnerabilidade Crítica não admite exceção em produção. Exceção emergencial para vulnerabilidade Alta exige justificativa, impacto, controle compensatório verificável, responsável, prazo, aprovação e bloqueio após vencimento.
+### Fluxo obrigatório para qualquer mudança de código ou de banco
 
-## Disciplina de desenvolvimento assistido por IA
+1. Trabalhar sempre na pasta staging (`portal-teologico-os-staging`), nunca editar direto na pasta de produção.
+2. Validar local primeiro — `npm run dev`, conferir em `http://localhost:3000` que compila e funciona.
+3. Commit + push numa branch nova, nunca direto em `main`.
+4. O push gera Vercel Preview automático — validar lá antes de seguir.
+5. Mudança em `supabase/migrations/` — testar primeiro contra a branch Supabase `staging`, nunca contra o projeto de produção diretamente. Antes de numerar uma migration nova, conferir o maior número já existente em `supabase/migrations/` NESTA pasta (staging) — não confiar em memória de sessão anterior.
+6. Só depois de validado (local + preview + staging do banco), fazer merge em `main` — esse é o único gatilho que deve tocar produção de verdade.
 
-- Faça commits atômicos somente após uma pequena entrega validada; não misture objetivos independentes.
-- Priorize integração e E2E nos fluxos do usuário, complementando com testes unitários, contrato, autorização/RLS e segurança conforme o risco.
-- Organize o código em módulos coesos, contratos explícitos e responsabilidades únicas.
-- Registre falhas repetitivas da IA em `staging/governance/ERROS-COMUNS-IA.md`.
-- Após 3 tentativas malsucedidas, interrompa e diagnostique. Reverta apenas mudanças da tentativa; `git reset --hard` e `git clean` exigem autorização explícita e checkpoint recuperável.
+Essa regra vale para qualquer trabalho no projeto a partir desta data — inclusive para mim (Claude), que devo seguir esse fluxo por padrão em toda tarefa futura, sem precisar ser lembrado.
 
-# Portal Teológico OS — Governança para Agentes de IA
-
-## Escopo e autoridade
-
-- Este arquivo governa todo o repositório a partir da raiz.
-- Instruções do usuário e regras de segurança da plataforma têm precedência.
-- Um `AGENTS.md` em subdiretório pode estabelecer regras mais específicas apenas dentro de seu escopo.
-- A política detalhada está em `staging/governance/GOVERNANCA-IA-E-DESENVOLVIMENTO.md`.
-- Memória de IA é auxiliar; Git, código, migrations, documentação versionada e evidências são as fontes de verdade.
-
-## Área obrigatória de trabalho
-
-- Use `staging/` para análises, planos, decisões, evidências e documentação de desenvolvimento ou governança em elaboração.
-- Edite código nos diretórios canônicos (`src/`, `supabase/` e equivalentes); não copie código de produção para `staging/`.
-- Trabalhe na pasta/branch de staging definida neste arquivo e nunca diretamente na pasta ou branch de produção.
-- Nunca registre segredos, tokens, credenciais, chaves, dados pessoais desnecessários ou conteúdo de `.env` na documentação.
+**Reforço de 23/09/2026 (decisão do Joaquim, ver `staging/governance/ERROS-COMUNS-IA.md`):**
+nenhuma mudança de código ou banco vai direto pra produção, nem em caráter de urgência/hotfix — nem um
+`UPDATE`/`DELETE`/`ALTER` avulso colado no SQL Editor de produção, mesmo que pareça pequeno ou reversível.
+Toda mudança de banco em produção passa por uma migration numerada em `supabase/migrations/`, testada antes
+em staging. Sequência sempre: implementar → testar local → validar (Preview + Supabase staging) →
+**documentar** (este arquivo, `staging/governance/` ou `staging/evidence/`, conforme o caso) → commit + push →
+só então replicar em produção. Se um bug em produção parecer urgente, resolvo em staging primeiro e sigo essa
+sequência mesmo assim — "urgente" não é motivo pra pular etapa.
 
 ## Padrão Action-First
 
@@ -133,23 +124,11 @@ rollback;
 não de TypeScript. Rodar apenas o tsc como critério de "pronto" não é
 suficiente quando a mudança envolve RLS.
 
-# Ambientes — produção vs staging (regra fixa a partir de 14/08/2026)
-
-| Ambiente | Pasta local | Branch git | Supabase | Deploy |
-|---|---|---|---|---|
-| Produção | `C:\Projetos\portal-teologico-os` | `main` | projeto principal (`toduvwtzklntyptcodkf`) | Vercel Production — dispara automático em push/merge na `main` |
-| Staging/dev | `C:\Projetos\portal-teologico-os-staging` | qualquer branch que não seja `main` | branch Supabase `staging` (criada a partir do projeto principal) | Vercel Preview — dispara automático em push de qualquer branch |
-
-## Fluxo obrigatório para qualquer mudança de código ou de banco
-
-1. Trabalhar sempre na pasta staging (`portal-teologico-os-staging`), nunca editar direto na pasta de produção.
-2. Validar local primeiro — `npm run dev`, conferir em `http://localhost:3000` que compila e funciona.
-3. Commit + push numa branch nova, nunca direto em `main`.
-4. O push gera Vercel Preview automático — validar lá antes de seguir.
-5. Mudança em `supabase/migrations/` — testar primeiro contra a branch Supabase `staging`, nunca contra o projeto de produção diretamente.
-6. Só depois de validado (local + preview + staging do banco), fazer merge em `main` — esse é o único gatilho que deve tocar produção de verdade.
-
-Essa regra vale para qualquer trabalho no projeto a partir desta data — inclusive para mim (Claude), que devo seguir esse fluxo por padrão em toda tarefa futura, sem precisar ser lembrado.
+> A tabela de ambientes (produção vs staging) e o fluxo obrigatório de
+> mudança de código/banco estão na seção "Ambientes — produção vs
+> staging", logo no início deste arquivo (depois de "Área obrigatória de
+> trabalho") — não duplicada aqui de propósito, pra evitar as duas cópias
+> divergirem com o tempo.
 
 ## Como avisar sobre um PR pronto
 
@@ -196,6 +175,77 @@ build no Vercel (deployment, build logs, runtime errors) e advisors/logs
 de erro no Supabase do ambiente correspondente (produção ou branch
 staging). Não existe checagem agendada automática — só quando solicitado
 explicitamente.
+
+## Atualizar este arquivo faz parte da entrega, não é passo à parte
+
+Sempre que uma mudança desta sessão criar ou alterar uma convenção, um
+padrão de código, uma regra de ambiente/segurança, ou qualquer decisão que
+uma sessão futura precisaria saber pra não repetir um erro já corrigido
+(ex: um campo que passou a ser obrigatório, uma ordem de exibição
+definida, um fluxo de e-mail/convite que mudou), a atualização deste
+`AGENTS.md` (ou do arquivo de governança específico em `staging/`, quando
+o `AGENTS.md` só referencia) entra na mesma entrega — no mesmo commit/PR,
+não num pedido separado depois. Não esperar o Joaquim pedir "atualiza o
+AGENTS.md" pra isso acontecer; é parte padrão de "terminar a tarefa".
+
+Mudança pontual de UI/texto/estilo sem nenhum padrão novo por trás não
+precisa virar entrada aqui — só o que muda a forma de trabalhar ou evita
+um erro repetido.
+
+## Zerar staging agora zera literalmente tudo (professor/turma inclusos)
+
+Revogada a regra de 06/09/2026 que mandava preservar `professores` e
+`course_editions` (turma) ao rodar o reset de staging. Motivo: o Joaquim
+precisa testar o fluxo de `/cadastro-professor` do zero, com o banco
+totalmente vazio, sem nenhuma conta de professor/turma sobrando de rodadas
+anteriores.
+
+A partir de 26/09/2026, "zerar staging" (`scripts/zerar-staging.mjs`, ou o
+SQL equivalente) apaga, nesta ordem (filhos antes dos pais):
+`fin_contas_receber`, `fin_contas_pagar`, `fin_lancamentos`,
+`fin_caixa_diario`, `ead_matriculas`, `ead_alunos`, `professor_turmas`,
+`professores` — e por fim todo `auth.users` exceto contas
+`GLOBAL_ADMIN` (login de staff). Não recria mais nada automaticamente
+(nem "Marcelo Teste", nem "Edição 2026", nem `alunobasico`/`alunomedio`)
+— o próprio Joaquim recria testando os fluxos públicos
+(`/cadastro-professor`, `/inscricao`, mutirão) do zero.
+
+Se uma sessão futura receber um pedido de "zerar staging" e encontrar
+menção à regra antiga (preservar professor/turma) em algum lugar não
+atualizado, esta seção aqui é a versão vigente — a de 06/09 está revogada.
+
+## Máscara de telefone — utilitário único, não duplicar
+
+Até 25/09/2026 a função `maskPhone` (formatação `(00) 00000-0000`) estava
+colada, idêntica, em 11 arquivos diferentes — e um formulário novo
+(`ProfessorNovaMatriculaForm.tsx`) chegou a ser criado com o campo
+Telefone SEM nenhuma máscara, porque não havia um lugar óbvio de onde
+importar. Isso foi corrigido: agora existe `src/utils/maskPhone.ts`, e
+**todo campo de telefone deve importar `maskPhone` de lá** — nunca
+redeclarar a função localmente de novo.
+
+A versão atual também aceita formato internacional: sem "+" formata como
+sempre (`(11) 96742-8655`, compatível com todo dado já digitado); com "+"
+reconhece o Brasil (`+55 11 9 6742-8655`) e agrupa outros países de forma
+genérica. Isso existe porque o sistema vai abrir acesso a igrejas de
+outros países. Não é uma biblioteca de validação por país (tipo
+`libphonenumber-js`, que não está instalada) — é só formatação visual;
+trocar por uma lib de verdade é uma melhoria futura, não urgente.
+
+## Material de treinamento — pasta `material/` (26/09/2026)
+
+Guias passo a passo com capturas de tela reais dos fluxos do sistema,
+organizados por público, em `material/<publico>/` (ex.: `material/professores/`,
+`material/alunos/`, `material/secretaria/`). Cada subpasta tem um `README.md`
+descrevendo o fluxo esperado e recebe capturas numeradas (`01-...png`,
+`02-...png`, ...) na ordem real da tela. Ver `material/README.md` pra
+detalhe completo da convenção.
+
+Produzido sempre testando em **staging** (nunca em produção — evita ter que
+criar e depois apagar dado de teste em prod). Uso imediato: montar PDFs/
+mensagens pra mandar nos grupos de WhatsApp de professores/alunos/secretaria.
+Uso futuro combinado com o Joaquim: alimentar uma Central de Ajuda dentro do
+próprio sistema em produção.
 
 ## Outras regras fixas de comunicação
 

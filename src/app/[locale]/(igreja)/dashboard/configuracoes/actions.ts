@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -12,7 +13,8 @@ type SimpleTable =
   | "settings_schooling"
   | "settings_civil_status"
   | "settings_gender"
-  | "function_roles";
+  | "function_roles"
+  | "ministerios";
 
 // ── Adicionar item simples ────────────────────────────────────
 export async function addSettingItemAction(
@@ -26,7 +28,14 @@ export async function addSettingItemAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { error } = await supabase.from(table).insert({ name });
+  // Sigla é usada só por Cargos hoje (ex.: PASTOR = PR) — as outras
+  // tabelas simples nem mandam esse campo no formulário, então o insert
+  // fica igual a antes pra elas.
+  const siglaRaw = (formData.get("sigla") as string)?.trim().toUpperCase();
+  const payload: { name: string; sigla?: string | null } = { name };
+  if (siglaRaw !== undefined && siglaRaw !== "") payload.sigla = siglaRaw;
+
+  const { error } = await supabase.from(table).insert(payload);
   if (error) {
     console.error("[configuracoes/actions]", error);
     return { success: false, message: "Erro ao salvar. Tente novamente." };
@@ -59,7 +68,8 @@ export async function deleteSettingItemAction(
 export async function updateSettingItemAction(
   table: SimpleTable,
   id: string,
-  name: string
+  name: string,
+  sigla?: string
 ) {
   const trimmed = name.trim().toUpperCase();
   if (!trimmed) return { success: false, message: "Nome obrigatório." };
@@ -68,7 +78,10 @@ export async function updateSettingItemAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
-  const { error } = await supabase.from(table).update({ name: trimmed }).eq("id", id);
+  const payload: { name: string; sigla?: string | null } = { name: trimmed };
+  if (sigla !== undefined) payload.sigla = sigla.trim() ? sigla.trim().toUpperCase() : null;
+
+  const { error } = await supabase.from(table).update(payload).eq("id", id);
   if (error) {
     console.error("[configuracoes/actions]", error);
     return { success: false, message: "Erro ao salvar. Tente novamente." };
@@ -287,6 +300,139 @@ export async function buscarMembroPorMatriculaAction(
       registration_number: row.registration_number,
     },
   };
+}
+
+// ── Busca de cadastro completo por Matrícula OU CPF ──────────────
+// Usada no passo "já tem cadastro?" da Nova Matrícula (admin) — evita
+// redigitar os dados de alguém que já é membro de alguma igreja. RLS
+// (members_select_scoped) já limita o resultado ao que esse usuário
+// logado pode enxergar, então não precisa de checagem extra aqui.
+export type MembroCompletoEncontrado = {
+  id: string;
+  full_name: string;
+  cpf: string | null;
+  rg: string | null;
+  rg_issuer: string | null;
+  rg_state: string | null;
+  phone: string | null;
+  email: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  civil_status: string | null;
+  schooling: string | null;
+  profession: string | null;
+  nationality: string | null;
+  nationality_city: string | null;
+  nationality_state: string | null;
+  spouse_name: string | null;
+  mother_name: string | null;
+  father_name: string | null;
+  address: string | null;
+  zip_code: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  photo_url: string | null;
+  church_id: string | null;
+  registration_number: string | null;
+  cargo: string | null;
+};
+
+const CAMPOS_MEMBRO_COMPLETO =
+  "id, full_name, cpf, rg, rg_issuer, rg_state, phone, email, birth_date, gender, civil_status, schooling, profession, nationality, nationality_city, nationality_state, spouse_name, mother_name, father_name, address, zip_code, neighborhood, city, state, photo_url, church_id, registration_number, ecclesiastical_roles(name)";
+
+function mapMembroCompleto(row: Record<string, unknown>): MembroCompletoEncontrado {
+  const cargo = (row.ecclesiastical_roles as { name: string } | null)?.name ?? null;
+  return {
+    id: row.id as string,
+    full_name: (row.full_name as string) ?? "",
+    cpf: row.cpf as string | null,
+    rg: row.rg as string | null,
+    rg_issuer: row.rg_issuer as string | null,
+    rg_state: row.rg_state as string | null,
+    phone: row.phone as string | null,
+    email: row.email as string | null,
+    birth_date: row.birth_date as string | null,
+    gender: row.gender as string | null,
+    civil_status: row.civil_status as string | null,
+    schooling: row.schooling as string | null,
+    profession: row.profession as string | null,
+    nationality: row.nationality as string | null,
+    nationality_city: row.nationality_city as string | null,
+    nationality_state: row.nationality_state as string | null,
+    spouse_name: row.spouse_name as string | null,
+    mother_name: row.mother_name as string | null,
+    father_name: row.father_name as string | null,
+    address: row.address as string | null,
+    zip_code: row.zip_code as string | null,
+    neighborhood: row.neighborhood as string | null,
+    city: row.city as string | null,
+    state: row.state as string | null,
+    photo_url: row.photo_url as string | null,
+    church_id: row.church_id as string | null,
+    registration_number: row.registration_number as string | null,
+    cargo,
+  };
+}
+
+export async function buscarCadastroCompletoAction(
+  identificador: string
+): Promise<{ success: boolean; data?: MembroCompletoEncontrado; message?: string }> {
+  const termo = identificador.trim();
+  if (!termo) return { success: false, message: "Digite a matrícula ou o CPF." };
+
+  const supabase = await createClient();
+  const soDigitos = termo.replace(/\D/g, "");
+  // CPF sempre tem 11 dígitos — usa isso pra decidir se busca por CPF
+  // (formato mascarado "000.000.000-00", igual ao salvo pelo cadastro
+  // de membros) ou por matrícula (registration_number, texto livre).
+  const { data, error } =
+    soDigitos.length === 11
+      ? await supabase
+          .from("members")
+          .select(CAMPOS_MEMBRO_COMPLETO)
+          .eq("cpf", termo)
+          .maybeSingle()
+      : await supabase
+          .from("members")
+          .select(CAMPOS_MEMBRO_COMPLETO)
+          .eq("registration_number", termo)
+          .maybeSingle();
+
+  if (error) {
+    console.error("[configuracoes/actions]", error);
+    return { success: false, message: "Erro ao buscar. Tente novamente." };
+  }
+  if (!data) return { success: false, message: "Nenhum cadastro encontrado com essa matrícula/CPF." };
+
+  return { success: true, data: mapMembroCompleto(data as unknown as Record<string, unknown>) };
+}
+
+// ── Busca de cadastro completo por ID direto (members.id) ──────
+// Usada no cadastro de Professor: quando o professor já está vinculado
+// a um member_id, este painel busca a ficha completa do membro (só
+// leitura — os dados pessoais em si continuam sendo editados no
+// cadastro de Membros, não duplicados aqui) pra exibir na tela de
+// edição do professor.
+export async function buscarMembroCompletoPorIdAction(
+  memberId: string
+): Promise<{ success: boolean; data?: MembroCompletoEncontrado; message?: string }> {
+  if (!memberId) return { success: false, message: "ID do membro não informado." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("members")
+    .select(CAMPOS_MEMBRO_COMPLETO)
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[configuracoes/actions] buscarMembroCompletoPorIdAction", error);
+    return { success: false, message: "Erro ao buscar ficha do membro." };
+  }
+  if (!data) return { success: false, message: "Membro não encontrado." };
+
+  return { success: true, data: mapMembroCompleto(data as unknown as Record<string, unknown>) };
 }
 
 // ── Busca de membro por nome (retorna vários — nome não é único) ──
@@ -508,32 +654,117 @@ async function grantNucleoAccess(
       : `Convite enviado, mas houve erro ao gravar o acesso ao núcleo: ${roleError.message}`;
   }
 
+  // Sincroniza profiles.system_role com o nível recém-gravado — sem
+  // isso o professor não passa em checkIsStaff() e não entra no
+  // /dashboard mesmo já tendo o admin_roles certo (ver comentário em
+  // systemRoleParaLevel).
+  await admin.from("profiles").update({ system_role: systemRoleParaLevel(4) }).eq("id", targetUserId);
+
   return promovendoExistente
     ? `Professor salvo. ${email} já tinha conta — acesso de nível 4 a este núcleo foi adicionado.`
     : `Professor salvo. Convite de acesso enviado para ${email} (nível 4, escopado a este núcleo).`;
+}
+
+// Ficha completa do professor — mesmos campos que `members`/`ead_alunos`
+// têm, sempre gravados direto em `professores` (15/09/2026: cadastro
+// unificado). Quando o professor é achado via busca de membro, esses
+// campos chegam pré-preenchidos pelo formulário (cópia, não referência —
+// mesmo padrão de Nova Matrícula); quando não é membro, a secretaria
+// preenche na mão. De qualquer forma, `professores` é sempre a fonte de
+// verdade pra exibição — não depende de leitura ao vivo de `members`.
+function extrairFicha(formData: FormData) {
+  return {
+    cpf: (formData.get("cpf") as string)?.trim() || null,
+    rg: (formData.get("rg") as string)?.trim() || null,
+    rg_orgao_emissor: (formData.get("rg_orgao_emissor") as string)?.trim() || null,
+    rg_uf: (formData.get("rg_uf") as string)?.trim() || null,
+    data_nascimento: (formData.get("data_nascimento") as string) || null,
+    genero: (formData.get("genero") as string) || null,
+    estado_civil: (formData.get("estado_civil") as string) || null,
+    escolaridade: (formData.get("escolaridade") as string) || null,
+    profissao: (formData.get("profissao") as string)?.trim() || null,
+    naturalidade_cidade: (formData.get("naturalidade_cidade") as string)?.trim() || null,
+    naturalidade_estado: (formData.get("naturalidade_estado") as string) || null,
+    nacionalidade: (formData.get("nacionalidade") as string)?.trim() || null,
+    nome_conjuge: (formData.get("nome_conjuge") as string)?.trim() || null,
+    nome_mae: (formData.get("nome_mae") as string)?.trim() || null,
+    nome_pai: (formData.get("nome_pai") as string)?.trim() || null,
+    cep: (formData.get("cep") as string)?.trim() || null,
+    endereco: (formData.get("endereco") as string)?.trim() || null,
+    endereco_numero: (formData.get("endereco_numero") as string)?.trim() || null,
+    endereco_complemento: (formData.get("endereco_complemento") as string)?.trim() || null,
+    bairro: (formData.get("bairro") as string)?.trim() || null,
+    cidade: (formData.get("cidade") as string)?.trim() || null,
+    estado: (formData.get("estado") as string) || null,
+    foto_url: (formData.get("foto_url") as string)?.trim() || null,
+    // 27/09/2026, pedido do Joaquim: observação livre dentro da caixa
+    // "Acesso ao núcleo de ensino" (ProfessorForm.tsx).
+    observacoes: (formData.get("observacoes") as string)?.trim() || null,
+  };
 }
 
 export async function addProfessorAction(formData: FormData) {
   const nomeCompleto = (formData.get("nome_completo") as string)?.trim();
   if (!nomeCompleto) return { success: false, message: "Nome do professor é obrigatório." };
 
+  // Acesso ao núcleo de ensino virou obrigatório (pedido do Joaquim,
+  // 18/09/2026) -- validação repetida aqui porque o client pode ser
+  // contornado; sem isso o professor ficaria sem login algum.
+  const emailAcessoObrigatorio = ((formData.get("email") as string) || "").trim().toLowerCase();
+  if (!emailAcessoObrigatorio || !emailAcessoObrigatorio.includes("@")) {
+    return { success: false, message: "Informe um e-mail válido — o acesso ao núcleo de ensino é obrigatório." };
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
+
+  // 21/09/2026, achado de segurança: esta action nunca checava se quem
+  // chama é staff -- só a RLS de `professores` (migration 111) barrava
+  // de fato. Checagem explícita aqui é defesa em profundidade, no mesmo
+  // padrão de inviteStaffAction (que já checa system_role antes de agir).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
 
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
 
+  const memberId = (formData.get("member_id") as string) || null;
+  const tipoProfessor = memberId ? "MEMBRO" : "EXTERNO";
+  // 28/09/2026, achado do Joaquim: badge "De fora" da lista não pode
+  // depender de member_id (só diz se a busca achou membro) — reflete a
+  // ROTA de cadastro (só true de verdade em /novo/externo). Setado só na
+  // criação; updateProfessorAction nunca grava este campo.
+  const veioDeFora = (formData.get("veio_de_fora") as string) === "true";
+
+  // Professor de fora não tem matrícula de Membros pra copiar — ganha um
+  // código próprio, gerado uma única vez aqui na criação (mesmo padrão de
+  // get_next_matricula_ead, ver migration 105). Professor membro usa a
+  // matrícula que o formulário já trouxe da busca (registration_number).
+  let matricula = (formData.get("matricula") as string) || null;
+  if (tipoProfessor === "EXTERNO" && !matricula) {
+    const { data: matriculaGerada, error: matriculaError } = await supabase.rpc("get_next_matricula_professor");
+    if (matriculaError) {
+      console.error("[configuracoes/actions] get_next_matricula_professor", matriculaError);
+      return { success: false, message: "Erro ao gerar o código de cadastro. Tente novamente." };
+    }
+    matricula = matriculaGerada;
+  }
+
   const payload = {
     unit_id: unitId,
     sector_id,
     church_id,
-    member_id: (formData.get("member_id") as string) || null,
-    matricula: (formData.get("matricula") as string) || null,
+    tipo_professor: tipoProfessor,
+    member_id: memberId,
+    veio_de_fora: veioDeFora,
+    matricula,
     nome_completo: nomeCompleto,
     cargo: (formData.get("cargo") as string) || null,
     telefone: (formData.get("telefone") as string) || null,
+    ...extrairFicha(formData),
   };
 
   const { data, error } = await supabase
@@ -546,16 +777,11 @@ export async function addProfessorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
 
-  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
   let avisoAcesso: string | undefined;
-  if (email) {
-    if (!email.includes("@")) {
-      avisoAcesso = "Professor salvo, mas o e-mail informado é inválido — acesso não foi concedido.";
-    } else if (!unitId) {
-      avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
-    } else {
-      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
-    }
+  if (!unitId) {
+    avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
+  } else {
+    avisoAcesso = await grantNucleoAccess(user.id, emailAcessoObrigatorio, nomeCompleto, unitId);
   }
 
   revalidatePath("/dashboard/configuracoes/professores");
@@ -573,19 +799,44 @@ export async function updateProfessorAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Não autenticado." };
 
+  // 21/09/2026, achado de segurança: idem addProfessorAction -- checagem
+  // explícita de staff, além da RLS (migration 111).
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
   const unitId = (formData.get("unit_id") as string) || null;
   const setorUnitId = (formData.get("setor_unit_id") as string) || null;
   const { church_id, sector_id } = await resolverBridgeUnits(supabase, unitId, setorUnitId);
+
+  const memberId = (formData.get("member_id") as string) || null;
+  const tipoProfessor = memberId ? "MEMBRO" : "EXTERNO";
+
+  // Matrícula: o formulário já manda de volta a que estava (do membro
+  // achado na busca, ou a que já tinha sido gerada pro externo) — só gera
+  // uma nova aqui se por algum motivo estiver vazia num professor EXTERNO
+  // (ex.: professor tinha vínculo de membro e a secretaria desvinculou).
+  let matricula = (formData.get("matricula") as string) || null;
+  if (tipoProfessor === "EXTERNO" && !matricula) {
+    const { data: matriculaGerada, error: matriculaError } = await supabase.rpc("get_next_matricula_professor");
+    if (matriculaError) {
+      console.error("[configuracoes/actions] get_next_matricula_professor", matriculaError);
+      return { success: false, message: "Erro ao gerar o código de cadastro. Tente novamente." };
+    }
+    matricula = matriculaGerada;
+  }
 
   const payload = {
     unit_id: unitId,
     sector_id,
     church_id,
-    member_id: (formData.get("member_id") as string) || null,
-    matricula: (formData.get("matricula") as string) || null,
+    tipo_professor: tipoProfessor,
+    member_id: memberId,
+    matricula,
     nome_completo: nomeCompleto,
     cargo: (formData.get("cargo") as string) || null,
     telefone: (formData.get("telefone") as string) || null,
+    ...extrairFicha(formData),
   };
 
   const { error } = await supabase.from("professores").update(payload).eq("id", id);
@@ -612,6 +863,11 @@ export async function updateProfessorAction(formData: FormData) {
 
 export async function deleteProfessorAction(id: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
   const { error } = await supabase.from("professores").delete().eq("id", id);
   if (error) {
     console.error("[configuracoes/actions]", error);
@@ -619,6 +875,57 @@ export async function deleteProfessorAction(id: string) {
   }
   revalidatePath("/dashboard/configuracoes/professores");
   return { success: true };
+}
+
+// ── Vínculos de Turma do professor (professor_turmas) ───────────
+// Granularidade decidida com o Joaquim: Turma + Turno + Dia da semana
+// (AskUserQuestion, 15/09/2026) — um professor pode ter vários
+// vínculos (turmas/turnos/dias diferentes), inclusive duas "salas"
+// (Classe A/Classe B) da mesma turma em horários distintos.
+export async function addProfessorTurmaAction(formData: FormData) {
+  const professorId = (formData.get("professor_id") as string) || "";
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const turno = (formData.get("turno") as string) || "";
+  const diaSemana = (formData.get("dia_semana") as string) || "";
+
+  if (!professorId) return { success: false, message: "Professor não identificado." };
+  if (!courseEditionId) return { success: false, message: "Selecione a turma." };
+  if (!turno) return { success: false, message: "Selecione o turno." };
+  if (!diaSemana) return { success: false, message: "Selecione o dia da semana." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("professor_turmas").insert({
+    professor_id: professorId,
+    course_edition_id: courseEditionId,
+    turno,
+    dia_semana: diaSemana,
+  });
+
+  if (error) {
+    console.error("[configuracoes/actions] addProfessorTurmaAction", error);
+    if (error.code === "23505") {
+      return { success: false, message: "Este professor já tem esse mesmo vínculo (turma + turno + dia)." };
+    }
+    return { success: false, message: "Erro ao salvar o vínculo. Tente novamente." };
+  }
+
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
+}
+
+export async function deleteProfessorTurmaAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("professor_turmas").delete().eq("id", id);
+  if (error) {
+    console.error("[configuracoes/actions] deleteProfessorTurmaAction", error);
+    return { success: false, message: "Erro ao remover o vínculo." };
+  }
+  revalidatePath("/dashboard/configuracoes/professores");
+  return { success: true };
+}
+
+export async function deleteProfessorTurmaFormAction(id: string) {
+  await deleteProfessorTurmaAction(id);
 }
 
 // ── Sedes Regionais ──────────────────────────────────────────
@@ -688,6 +995,7 @@ export async function definirLiderSetorAction(formData: FormData) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
 
@@ -703,6 +1011,7 @@ export async function removerLiderSetorAction(setorId: string) {
     return { success: false, message: "Erro ao salvar. Tente novamente." };
   }
   revalidatePath("/dashboard/configuracoes/acessos/lideres-setor");
+  revalidatePath("/dashboard/configuracoes/setores");
   return { success: true };
 }
 
@@ -718,6 +1027,33 @@ export async function definirLiderSetorFormAction(formData: FormData): Promise<v
 // Restrito a GLOBAL_ADMIN via RLS (profiles_update_global_admin) — mesmo
 // critério do aviso já exibido na tela ("Master e Super Master").
 const NIVEIS_VALIDOS = ["GLOBAL_ADMIN", "SECTOR_ADMIN", "LOCAL_ADMIN", "MEMBER"];
+
+// ============================================================
+// Sincronização admin_roles.level ↔ profiles.system_role
+//
+// admin_roles (level 0-4 + unit_id) é quem manda na visibilidade real
+// de dados (RLS escopada — get_accessible_unit_ids()), mas quem manda
+// se a pessoa consegue logar em /dashboard é checkIsStaff(), que olha
+// só profiles.system_role. Os dois sistemas nunca foram sincronizados
+// automaticamente — um operador convidado (inviteStaffAction) ou um
+// professor com acesso de núcleo (grantNucleoAccess) ganhava a linha
+// em admin_roles mas ficava com system_role='MEMBER' (default do
+// trigger handle_new_user()) e não conseguia entrar. Mapeamento:
+//   nível 0 (Super-Master)  → GLOBAL_ADMIN (bypassa toda a RLS escopada,
+//                              é assim que is_super_master()/GLOBAL_ADMIN
+//                              já funcionam nas policies existentes)
+//   níveis 1-3 (Master de Campo, Admin de Sede, Admin de Setor) →
+//                              SECTOR_ADMIN (escopo maior que uma
+//                              igreja só — a visibilidade real continua
+//                              vindo de admin_roles/get_accessible_unit_ids(),
+//                              este texto só precisa passar em checkIsStaff())
+//   nível 4 (Usuário Local)  → LOCAL_ADMIN
+// ============================================================
+function systemRoleParaLevel(level: number): string {
+  if (level === 0) return "GLOBAL_ADMIN";
+  if (level === 4) return "LOCAL_ADMIN";
+  return "SECTOR_ADMIN";
+}
 
 export async function atualizarNivelUsuarioAction(formData: FormData) {
   const userId = (formData.get("user_id") as string) || "";
@@ -753,6 +1089,75 @@ export async function atualizarNivelUsuarioAction(formData: FormData) {
 
 export async function atualizarNivelUsuarioFormAction(formData: FormData): Promise<void> {
   await atualizarNivelUsuarioAction(formData);
+}
+
+// Edita o vínculo completo (nível admin_roles + unidade) de um usuário
+// já existente — a peça que faltava: até aqui só quem passava pelo
+// convite (inviteStaffAction) ou pela tela de Professores
+// (grantNucleoAccess) ganhava admin_roles; editar alguém já cadastrado
+// só mudava o texto solto em profiles.system_role. Substitui/limpa
+// qualquer admin_roles anterior do usuário antes de gravar o novo —
+// simplificação proposital: 1 vínculo principal por usuário nesta
+// tela (o banco não impede múltiplos, mas esta UI não gerencia mais
+// de um de cada vez).
+export async function atualizarVinculoUsuarioAction(formData: FormData) {
+  const userId = (formData.get("user_id") as string) || "";
+  const levelRaw = (formData.get("level") as string) || "";
+  const unitId = ((formData.get("unit_id") as string) || "").trim() || null;
+
+  if (!userId) return { success: false, message: "Usuário inválido." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (userId === user.id) {
+    return { success: false, message: "Você não pode alterar o próprio acesso por aqui." };
+  }
+
+  const { data: meuPerfil } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", user.id)
+    .single();
+  if (meuPerfil?.system_role !== "GLOBAL_ADMIN") {
+    return { success: false, message: "Apenas GLOBAL_ADMIN pode alterar o acesso de outros operadores." };
+  }
+
+  const admin = createAdminClient();
+
+  // "MEMBER" (ou vazio) = revogar: some com qualquer admin_roles e
+  // volta o operador a usuário comum, sem acesso a /dashboard.
+  if (levelRaw === "MEMBER" || levelRaw === "") {
+    await admin.from("admin_roles").delete().eq("user_id", userId);
+    const { error } = await admin.from("profiles").update({ system_role: "MEMBER" }).eq("id", userId);
+    if (error) return { success: false, message: "Erro ao salvar: " + error.message };
+    revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+    return { success: true, message: "Acesso revogado — usuário voltou a MEMBER." };
+  }
+
+  const level = Number.parseInt(levelRaw, 10);
+  if (Number.isNaN(level) || level < 0 || level > 4) return { success: false, message: "Nível inválido." };
+  if (level === 0 && unitId) return { success: false, message: "Super-Master (nível 0) não deve ter unidade selecionada." };
+  if (level > 0 && !unitId) return { success: false, message: "Selecione a unidade para esse nível." };
+
+  await admin.from("admin_roles").delete().eq("user_id", userId);
+
+  const { error: roleError } = await admin.from("admin_roles").insert({
+    user_id: userId,
+    level,
+    unit_id: level === 0 ? null : unitId,
+    invited_by: user.id,
+  });
+  if (roleError) return { success: false, message: "Erro ao gravar o vínculo: " + roleError.message };
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ system_role: systemRoleParaLevel(level) })
+    .eq("id", userId);
+  if (profileError) return { success: false, message: "Erro ao sincronizar o nível: " + profileError.message };
+
+  revalidatePath("/dashboard/configuracoes/acessos/usuarios");
+  return { success: true, message: "Acesso atualizado." };
 }
 
 // Nome/e-mail de um operador. O e-mail é a credencial de login real
@@ -812,16 +1217,33 @@ export async function atualizarPerfilUsuarioAction(formData: FormData) {
 // direto em <form action={...}> num Server Component — o tipo do
 // action de <form> exige void | Promise<void>, e uma função que só
 // termina em redirect() (never) satisfaz isso.
+// Mantém os filtros (ano/setor/igreja) na URL depois de qualquer ação
+// nessa tela — sem isso, cada Cadastrar/Salvar jogava o usuário de
+// volta pra tela sem filtro nenhum, obrigando escolher tudo de novo
+// no meio de 6.800+ turmas.
+function querystringFiltros(formData: FormData): string {
+  const params = new URLSearchParams();
+  for (const campo of ["ano", "setor_id", "igreja_id"]) {
+    const valor = formData.get(campo) as string;
+    if (valor) params.set(campo, valor);
+  }
+  const qs = params.toString();
+  return qs ? "&" + qs : "";
+}
+
 export async function addTurmaConfigAction(formData: FormData) {
   const courseId = (formData.get("course_id") as string) || "";
+  const unitId = (formData.get("unit_id") as string) || null;
   const nome = (formData.get("nome") as string)?.trim();
+  const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const dataInicio = (formData.get("data_inicio") as string) || null;
   const dataFim = (formData.get("data_fim") as string) || null;
+  const filtros = querystringFiltros(formData);
 
   if (!courseId || !nome) {
     redirect(
       "/dashboard/configuracoes/persona/turmas?error=" +
-        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+        encodeURIComponent("Selecione o curso e informe o nome da turma.") + filtros
     );
   }
 
@@ -833,7 +1255,9 @@ export async function addTurmaConfigAction(formData: FormData) {
 
   const { error } = await supabase.from("course_editions").insert({
     course_id: courseId,
+    unit_id: unitId,
     nome: nome!.toUpperCase(),
+    classe,
     ano,
     data_inicio: dataInicio,
     data_fim: dataFim,
@@ -843,29 +1267,32 @@ export async function addTurmaConfigAction(formData: FormData) {
   if (error) {
     console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.") + filtros
     );
   }
 
   revalidatePath("/dashboard/configuracoes/persona/turmas");
   redirect(
     "/dashboard/configuracoes/persona/turmas?msg=" +
-      encodeURIComponent(`Turma "${nome}" cadastrada.`)
+      encodeURIComponent(`Turma "${nome}" cadastrada.`) + filtros
   );
 }
 
 export async function updateTurmaConfigAction(formData: FormData) {
   const id = (formData.get("id") as string) || "";
   const courseId = (formData.get("course_id") as string) || "";
+  const unitId = (formData.get("unit_id") as string) || null;
   const nome = (formData.get("nome") as string)?.trim();
+  const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const dataInicio = (formData.get("data_inicio") as string) || null;
   const dataFim = (formData.get("data_fim") as string) || null;
   const status = (formData.get("status") as string) || "ABERTA";
+  const filtros = querystringFiltros(formData);
 
   if (!id || !courseId || !nome) {
     redirect(
       "/dashboard/configuracoes/persona/turmas?error=" +
-        encodeURIComponent("Selecione o curso e informe o nome da turma.")
+        encodeURIComponent("Selecione o curso e informe o nome da turma.") + filtros
     );
   }
 
@@ -879,7 +1306,9 @@ export async function updateTurmaConfigAction(formData: FormData) {
     .from("course_editions")
     .update({
       course_id: courseId,
+      unit_id: unitId,
       nome: nome!.toUpperCase(),
+      classe,
       ano,
       data_inicio: dataInicio,
       data_fim: dataFim,
@@ -890,15 +1319,101 @@ export async function updateTurmaConfigAction(formData: FormData) {
   if (error) {
     console.error("[configuracoes/actions]", error);
     redirect(
-      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.")
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar. Tente novamente.") + filtros
     );
   }
 
   revalidatePath("/dashboard/configuracoes/persona/turmas");
   redirect(
     "/dashboard/configuracoes/persona/turmas?msg=" +
-      encodeURIComponent(`Turma "${nome}" atualizada.`)
+      encodeURIComponent(`Turma "${nome}" atualizada.`) + filtros
   );
+}
+
+// ── Calendário de aulas por turma (migration 122, 29/09/2026) ───
+// Redesenho do fluxo de material didático: material é por AULA, e pra
+// saber quando "faltam 10 dias pro fim da aula" o sistema precisa de uma
+// data de início/fim por aula dentro de cada turma. Isso não existia —
+// foi gerado automaticamente (dividir o período da turma em partes iguais
+// pelo nº de aulas) pras 6.800+ turmas já criadas, mas o Joaquim pediu pra
+// poder editar/recalcular depois — daí as duas ações abaixo.
+export async function atualizarCalendarioAulaAction(formData: FormData) {
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const dataInicio = (formData.get("data_inicio") as string) || null;
+  const dataFim = (formData.get("data_fim") as string) || null;
+  const filtros = querystringFiltros(formData);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("course_edition_lesson_schedule")
+    .update({ data_inicio: dataInicio, data_fim: dataFim, gerado_automaticamente: false })
+    .eq("course_edition_id", courseEditionId)
+    .eq("lesson_id", lessonId);
+
+  if (error) {
+    console.error("[configuracoes/actions] atualizarCalendarioAulaAction", error);
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao salvar a data da aula.") + filtros
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" + encodeURIComponent("Calendário da aula atualizado.") + filtros
+  );
+}
+
+export async function recalcularCalendarioTurmaAction(formData: FormData) {
+  const courseEditionId = (formData.get("course_edition_id") as string) || "";
+  const filtros = querystringFiltros(formData);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("gerar_calendario_aulas_turma", {
+    p_course_edition_id: courseEditionId,
+    p_forcar: true,
+  });
+
+  if (error) {
+    console.error("[configuracoes/actions] recalcularCalendarioTurmaAction", error);
+    redirect(
+      "/dashboard/configuracoes/persona/turmas?error=" + encodeURIComponent("Erro ao recalcular o calendário.") + filtros
+    );
+  }
+
+  revalidatePath("/dashboard/configuracoes/persona/turmas");
+  redirect(
+    "/dashboard/configuracoes/persona/turmas?msg=" +
+      encodeURIComponent("Calendário recalculado automaticamente (sobrescreveu ajustes manuais desta turma).") +
+      filtros
+  );
+}
+
+// Turmas de uma igreja/núcleo específico, buscadas sob demanda — usada
+// no cascata "Vínculos de Turma" do cadastro de Professor. Mesmo motivo
+// de buscarTurmasPorUnidadeAction (admin/matriculas/actions.ts): com
+// 6.800+ turmas geradas em lote, pré-carregar tudo estoura o limite
+// padrão de 1000 linhas do Supabase.
+export async function buscarTurmasPorUnidadeConfigAction(unitId: string) {
+  if (!unitId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("course_editions")
+    .select("id, nome, classe, course_id, unit_id, ano")
+    .or(`unit_id.eq.${unitId},unit_id.is.null`)
+    .order("nome");
+
+  if (error) {
+    console.error("[configuracoes/actions] buscarTurmasPorUnidadeConfigAction", error);
+    return [];
+  }
+  return data ?? [];
 }
 
 export async function deleteTurmaAction(id: string) {
@@ -1037,6 +1552,11 @@ export async function inviteStaffAction(formData: FormData) {
     };
   }
 
+  // Sincroniza profiles.system_role com o level recém-gravado — sem
+  // isso a pessoa fica com admin_roles certo mas continua travada em
+  // MEMBER e não passa em checkIsStaff() (ver systemRoleParaLevel).
+  await admin.from("profiles").update({ system_role: systemRoleParaLevel(level) }).eq("id", targetUserId);
+
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
   return {
     success: true,
@@ -1048,4 +1568,55 @@ export async function inviteStaffAction(formData: FormData) {
 
 export async function inviteStaffFormAction(formData: FormData): Promise<void> {
   await inviteStaffAction(formData);
+}
+
+// ── AÇÃO: ACESSAR O PORTAL DO PROFESSOR (30/09/2026, pedido do Joaquim)
+// ────────────────────────────────────────────────────────────────────
+// Da lista de Professores, a secretaria/admin global pode entrar na área
+// de trabalho de um professor específico pra ver o que ele vê (suporte,
+// conferência). Escolha travada com o Joaquim: entra com a sessão REAL do
+// professor (não um modo "visualização" só de leitura) — mesmo mecanismo
+// do convite por e-mail (auth.admin.generateLink), só que o link é aberto
+// direto pelo admin em vez de mandado por e-mail. Isso troca a sessão do
+// navegador pra a do professor (é um login de verdade) — por isso o botão
+// abre numa aba nova, e fica a cargo do admin logar de novo (ou usar uma
+// aba anônima em paralelo) pra continuar como admin global.
+export async function acessarPortalProfessorAction(
+  professorId: string
+): Promise<{ success: boolean; url?: string; message?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
+  const admin = createAdminClient();
+  const { data: professor } = await admin
+    .from("professores")
+    .select("email, user_id")
+    .eq("id", professorId)
+    .maybeSingle();
+
+  if (!professor?.user_id) {
+    return { success: false, message: "Este professor ainda não tem acesso criado (convite pendente)." };
+  }
+  if (!professor.email) {
+    return { success: false, message: "Este professor não tem e-mail de login cadastrado." };
+  }
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: professor.email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/professor` },
+  });
+
+  if (error || !data?.properties?.action_link) {
+    console.error("[configuracoes/actions] acessarPortalProfessorAction", error);
+    return { success: false, message: "Erro ao gerar o link de acesso." };
+  }
+
+  return { success: true, url: data.properties.action_link };
 }

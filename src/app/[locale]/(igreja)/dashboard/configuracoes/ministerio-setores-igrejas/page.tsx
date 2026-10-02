@@ -15,9 +15,17 @@ import {
 
 const PANELS = [
   {
+    href: "/dashboard/configuracoes/ministerios",
+    icon: Landmark,
+    title: "Ministérios",
+    description: "Agrupamento de Campos por Ministério (Madureira, Belém...)",
+    cta: "Gerenciar",
+    accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",
+  },
+  {
     href: "/dashboard/configuracoes/acessos/campos",
     icon: Building,
-    title: "Campos / Ministérios",
+    title: "Campos",
     description: "Crie e gerencie os campos principais do sistema",
     cta: "Gerenciar Campos",
     accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",
@@ -25,7 +33,7 @@ const PANELS = [
   {
     href: "/dashboard/configuracoes/setores",
     icon: Map,
-    title: "Setores",
+    title: "Setores/Regionais",
     description: "Organização geográfica e pastoral",
     cta: "Gerenciar",
     accent: "text-[#E88D0C] bg-black border-2 border-[#E88D0C]",
@@ -81,6 +89,7 @@ export default function MinisterioSetoresIgrejasPage() {
         description="Campos, setores, igrejas, sub-congregações, células e região."
         backHref="/dashboard/configuracoes"
         backLabel="Voltar para Configurações"
+        backNovoPadrao
       />
 
       {/* Grid */}
@@ -91,7 +100,7 @@ export default function MinisterioSetoresIgrejasPage() {
             <Link
               key={panel.href}
               href={panel.href}
-              className="group bg-iw-surface border border-iw-border rounded-2xl p-5 flex flex-col gap-4 hover:border-iw-blue/40 hover:shadow-md transition-all duration-150"
+              className="group bg-iw-surface border border-iw-gold rounded-2xl p-5 flex flex-col gap-4 hover:shadow-md transition-all duration-150"
             >
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${panel.accent}`}>
                 <Icon className="w-5 h-5" />
@@ -108,7 +117,7 @@ export default function MinisterioSetoresIgrejasPage() {
                 <span className="text-xs font-bold text-iw-navy uppercase tracking-wider">
                   {panel.cta}
                 </span>
-                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-navy group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
           );

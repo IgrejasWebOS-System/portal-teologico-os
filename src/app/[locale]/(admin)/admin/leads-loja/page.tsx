@@ -45,7 +45,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_CLS: Record<string, string> = {
   NAO_CONTATADO: "bg-iw-bg text-iw-muted border-iw-border",
-  CONTATADO: "bg-iw-blue/10 text-iw-blue border-iw-blue/30",
+  CONTATADO: "bg-iw-blue/10 text-iw-navy border-iw-blue/30",
   CONVERTIDO: "bg-iw-success-bg text-iw-success border-iw-success/30",
   SEM_INTERESSE: "bg-iw-error-bg text-iw-error border-iw-error/30",
 };
@@ -182,7 +182,7 @@ export default async function LeadsLojaPage({ searchParams }: PageProps) {
         </div>
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
           <p className="text-[11px] font-bold text-iw-muted uppercase">Contatados</p>
-          <p className="text-lg font-black text-iw-blue">{contagem.CONTATADO}</p>
+          <p className="text-lg font-black text-iw-navy">{contagem.CONTATADO}</p>
         </div>
         <div className="bg-iw-surface border border-iw-border rounded-2xl p-4 text-center">
           <p className="text-[11px] font-bold text-iw-muted uppercase">Convertidos</p>
@@ -263,7 +263,7 @@ export default async function LeadsLojaPage({ searchParams }: PageProps) {
               )}
 
               <details className="pt-1">
-                <summary className="cursor-pointer list-none text-xs font-bold text-iw-blue hover:opacity-80">
+                <summary className="cursor-pointer list-none text-xs font-bold text-iw-navy hover:opacity-80">
                   Atualizar status de contato
                 </summary>
                 <form action={atualizarStatusLeadAction} className="grid grid-cols-1 sm:grid-cols-6 gap-3 mt-3">

@@ -93,6 +93,7 @@ export default async function CaixaDiarioPage({ searchParams }: PageProps) {
         description="Movimentações de entrada e saída do dia."
         backHref="/admin/financeiro"
         backLabel="Voltar para Financeiro"
+        backNovoPadrao
       />
 
       {msg && (

@@ -20,6 +20,8 @@ import {
   Flag,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { maskPhone } from "@/utils/maskPhone";
+import { useCatalogoCidades, resolverCidadeDigitada } from "@/utils/useCatalogoCidades";
 import {
   updateMemberAction,
   getNextRegistrationNumberAction,
@@ -69,14 +71,6 @@ function maskDate(raw: string): string {
   let v = raw.replace(/\D/g, "").slice(0, 8);
   if (v.length > 4) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
   else if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2)}`;
-  return v;
-}
-function maskPhone(raw: string): string {
-  let v = raw.replace(/\D/g, "").slice(0, 11);
-  if (v.length > 10) v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  else if (v.length > 6) v = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
-  else if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  else v = v.length ? `(${v}` : v;
   return v;
 }
 function maskCPF(raw: string): string {
@@ -129,11 +123,11 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: 
 // ── Styles ────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors";
 const inputErrCls =
   "w-full bg-white border border-iw-error rounded-xl px-3 py-2.5 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-error focus:outline-none transition-colors";
 const selectCls =
-  "w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none transition-colors cursor-pointer";
+  "w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors cursor-pointer";
 const labelCls =
   "block text-xs font-semibold text-iw-muted uppercase tracking-wider mb-1.5";
 
@@ -236,6 +230,10 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
     city:         member.city ?? "",
     state:        member.state ?? "",
   });
+
+  // 26/09/2026, auditoria de padronização de fichas: datalist de Cidade no
+  // endereço residencial (mesmo catálogo IBGE + DF do ProfessorForm.tsx).
+  const { catalogoCidades } = useCatalogoCidades();
 
   const [loadingCep, setLoadingCep]                 = useState(false);
   const [uploading, setUploading]                   = useState(false);
@@ -385,9 +383,10 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
         </div>
         <Link
           href="/dashboard/membros"
-          className="shrink-0 px-5 py-2.5 rounded-xl bg-iw-blue text-white text-sm font-bold uppercase tracking-wider hover:bg-iw-navy transition-colors shadow-sm"
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
-          Voltar
+          <ArrowLeft className="w-3.5 h-3.5" />
+          VOLTAR
         </Link>
       </div>
 
@@ -460,7 +459,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                 {formData.photo_url ? (
                   <img src={formData.photo_url} alt="Foto" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-blue">
+                  <div className="flex flex-col items-center gap-1 text-iw-muted group-hover:text-iw-navy">
                     {uploading ? <Loader2 className="w-7 h-7 animate-spin" /> : <Camera className="w-7 h-7" />}
                     <span className="text-[10px] font-semibold uppercase">Foto</span>
                   </div>
@@ -507,7 +506,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                 {/* Igreja (somente leitura) */}
                 <div>
                   <label className={labelCls}>
-                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    <Church className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                     Igreja
                   </label>
                   <div className="w-full bg-iw-bg border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-muted truncate">
@@ -518,7 +517,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                 {/* Cargo */}
                 <div>
                   <label className={labelCls}>
-                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                    <Briefcase className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                     Cargo
                   </label>
                   <select
@@ -653,7 +652,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
               <div className="flex gap-2">
                 <select
                   required
-                  className="w-20 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  className="w-20 bg-white border border-iw-navy rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
                   value={formData.nationality_state}
                   onChange={e => {
                     const uf = e.target.value;
@@ -666,7 +665,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                 </select>
                 <select
                   required
-                  className="flex-1 bg-white border border-iw-border rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none cursor-pointer"
+                  className="flex-1 bg-white border border-iw-navy rounded-xl px-2 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 cursor-pointer"
                   value={formData.nationality_city}
                   onChange={e => setFormData(p => ({ ...p, nationality_city: e.target.value }))}
                 >
@@ -677,7 +676,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             </div>
             <div className="col-span-12 md:col-span-3">
               <label className={labelCls}>
-                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-blue" />
+                <Flag className="inline w-3.5 h-3.5 mr-1 text-iw-navy" />
                 Nacionalidade *
               </label>
               <input
@@ -776,7 +775,7 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
                   onBlur={handleBlurCep}
                   className={`${inputCls} pl-9`}
                 />
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${loadingCep ? "text-iw-blue animate-pulse" : "text-iw-muted"}`} />
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${loadingCep ? "text-iw-navy animate-pulse" : "text-iw-muted"}`} />
               </div>
             </div>
             <div className="col-span-12 md:col-span-8">
@@ -799,8 +798,16 @@ export default function EditarMembroForm({ member }: { member: MemberData }) {
             </div>
             <div>
               <label className={labelCls}>Cidade</label>
-              <input type="text" placeholder="Cidade" value={addressData.city}
-                onChange={e => setAddressData(p => ({ ...p, city: e.target.value.toUpperCase() }))} className={`${inputCls} uppercase`} />
+              <input type="text" list="lista-cidades-endereco-membro" placeholder="Cidade" value={addressData.city}
+                onChange={e => {
+                  const { cidade, uf } = resolverCidadeDigitada(e.target.value, catalogoCidades);
+                  setAddressData(p => ({ ...p, city: cidade, state: uf ?? p.state }));
+                }} className={`${inputCls} uppercase`} />
+              <datalist id="lista-cidades-endereco-membro">
+                {catalogoCidades.map((c) => (
+                  <option key={`${c.nome}-${c.uf}`} value={`${c.nome} (${c.uf})`} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className={labelCls}>UF</label>

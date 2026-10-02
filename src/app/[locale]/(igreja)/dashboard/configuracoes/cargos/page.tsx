@@ -2,16 +2,20 @@ import { Briefcase } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
 import SimpleSettingsCRUD from "../SimpleSettingsCRUD";
-import { addSettingItemAction, deleteSettingItemAction } from "../actions";
+import { addSettingItemAction, deleteSettingItemAction, updateSettingItemAction } from "../actions";
 
 export default async function CargosPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("ecclesiastical_roles")
-    .select("id, name")
+    .select("id, name, sigla")
     .order("name");
 
-  const items = (data ?? []).map((d) => ({ id: d.id as string, name: d.name as string }));
+  const items = (data ?? []).map((d) => ({
+    id: d.id as string,
+    name: d.name as string,
+    sigla: d.sigla as string | null,
+  }));
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -21,12 +25,17 @@ export default async function CargosPage() {
         description="Funções eclesiásticas e administrativas"
         iconColor="text-iw-gold"
         iconBg="bg-iw-gold/10"
+        backHref="/dashboard/configuracoes/membrasia"
+        backNovoPadrao
       />
       <SimpleSettingsCRUD
         items={items}
         placeholder="Ex: PASTOR PRESIDENTE"
+        showSigla
+        siglaPlaceholder="Ex: PR"
         onAdd={addSettingItemAction.bind(null, "ecclesiastical_roles")}
         onDelete={deleteSettingItemAction.bind(null, "ecclesiastical_roles")}
+        onUpdate={updateSettingItemAction.bind(null, "ecclesiastical_roles")}
       />
     </div>
   );

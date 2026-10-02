@@ -99,7 +99,7 @@ interface StatCardProps {
 }
 
 const ACCENT = {
-  blue:    { bg: "bg-iw-blue/10",    icon: "text-iw-blue",    border: "border-iw-blue/20"    },
+  blue:    { bg: "bg-iw-blue/10",    icon: "text-iw-navy",    border: "border-iw-blue/20"    },
   gold:    { bg: "bg-iw-gold/10",    icon: "text-iw-gold",    border: "border-iw-gold/20"    },
   success: { bg: "bg-iw-success/10", icon: "text-iw-success", border: "border-iw-success/20" },
   error:   { bg: "bg-iw-error/10",   icon: "text-iw-error",   border: "border-iw-error/20"   },

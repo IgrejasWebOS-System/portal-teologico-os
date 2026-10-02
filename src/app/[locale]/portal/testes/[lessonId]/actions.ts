@@ -1,0 +1,327 @@
+"use server";
+
+import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import {
+  gerarQuestoesLicao,
+  respostaCorretaLicao,
+  TOTAL_TESTES_POR_MATERIA,
+  type FormatoQuestaoLicao,
+  type TipoAvaliacaoLicao,
+} from "@/utils/avaliacoes/geradorLicao";
+
+// ============================================================
+// Teste 1-4 (parcial, por par de lições internas) e Prova (cumulativa,
+// todas as 8 lições) de uma matéria (lesson_id) — decisão de
+// 11-12/09/2026: sempre 20 questões sorteadas de um pool maior, nunca
+// lista fixa, rótulo visível ao aluno sempre "Teste 1/2/3/4" ou
+// "Prova" (nunca "Teste Geral"). Espelha o fluxo de
+// portal/avaliacoes/actions.ts (SIMULADO/PROVA por curso inteiro,
+// só múltipla escolha), mas por matéria e com os 4 formatos do
+// banco novo (avaliacoes_banco_questoes_licao).
+//
+// Diferente do SIMULADO/PROVA por curso: aqui não há gate de "100%
+// das aulas concluídas" (essas matérias não têm vídeo cadastrado,
+// video_type = 'none' — o progress_percent é do curso inteiro, com
+// 10 disciplinas, não dá pra usar como sinal de conclusão desta
+// matéria específica). Fica só a exigência de matrícula em andamento
+// e, na Prova, a confirmação de tentativa única.
+// ============================================================
+
+// 29/09/2026, pedido do Joaquim: nota mínima subiu de 6,0 pra 6,1 e passou
+// a valer pra TESTE_LICAO também (antes só PROVA tinha "aprovado"). A
+// regra de "1 tentativa" (testes/prova cumulativa desta matéria) caiu —
+// índices avaliacoes_prova_unica_por_materia/avaliacoes_teste_licao_unica
+// removidos na migration 121 — agora é sem limite, igual ao sistema por
+// curso inteiro (portal/avaliacoes/actions.ts).
+const NOTA_MINIMA = 6.1;
+
+function fail(lessonId: string, message: string): never {
+  redirect(`/portal/testes/${lessonId}?error=` + encodeURIComponent(message));
+}
+
+async function carregarContexto(lessonId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+
+  const { data: lesson } = await admin
+    .from("lessons")
+    .select("id, title, course_id")
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (!lesson) fail(lessonId, "Matéria não encontrada.");
+
+  const { data: aluno } = await admin
+    .from("ead_alunos")
+    .select("id")
+    .eq("user_id", user!.id)
+    .maybeSingle();
+  if (!aluno) fail(lessonId, "Você não tem ficha de aluno oficial vinculada a este login.");
+
+  const { data: matricula } = await admin
+    .from("ead_matriculas")
+    .select("id, status")
+    .eq("aluno_id", aluno.id)
+    .eq("course_id", lesson!.course_id)
+    .maybeSingle();
+  if (!matricula) fail(lessonId, "Você não tem matrícula no curso desta matéria.");
+
+  return { userId: user!.id, lesson: lesson!, matricula };
+}
+
+export async function iniciarTesteLicaoAction(formData: FormData) {
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const tipo = formData.get("tipo") as TipoAvaliacaoLicao;
+  const numeroTesteRaw = formData.get("numero_teste") as string | null;
+  const numeroTeste = numeroTesteRaw ? Number(numeroTesteRaw) : undefined;
+  const confirmou = formData.get("confirmo_prova") === "on";
+  // 28/09/2026, achado do Joaquim: o redirect pro teste recém-criado não
+  // levava o "voltar" adiante -- sem isso, ao terminar o teste o botão
+  // VOLTAR caía no destino padrão da página de teste em vez de retornar
+  // pra Simulados e Provas.
+  const voltarRaw = (formData.get("voltar") as string) || "";
+  const voltarQuery = voltarRaw && voltarRaw.startsWith("/") && !voltarRaw.startsWith("//")
+    ? `?voltar=${encodeURIComponent(voltarRaw)}`
+    : "";
+
+  if (!lessonId || !["TESTE_LICAO", "PROVA"].includes(tipo)) {
+    fail(lessonId, "Dados inválidos.");
+  }
+  if (tipo === "TESTE_LICAO" && (!numeroTeste || numeroTeste < 1 || numeroTeste > TOTAL_TESTES_POR_MATERIA)) {
+    fail(lessonId, "Número de teste inválido.");
+  }
+
+  const { matricula } = await carregarContexto(lessonId);
+
+  if (matricula.status !== "EM_ANDAMENTO") {
+    fail(lessonId, "Esta matrícula não está em andamento — não é possível fazer teste/prova.");
+  }
+  if (tipo === "PROVA" && !confirmou) {
+    fail(lessonId, "Confirme que está ciente da nota mínima de aprovação (6,1) antes de começar.");
+  }
+
+  const admin = createAdminClient();
+
+  // 28/09/2026, achado do Joaquim: a prova cumulativa estava liberada mesmo
+  // com testes parciais pendentes — a checagem existia só na UI (que tinha
+  // um bug e nem filtrava certo) e nunca no servidor. Aqui é a barreira de
+  // verdade: conta quantos dos TOTAL_TESTES_POR_MATERIA testes desta
+  // matéria já foram FINALIZADA; se faltar algum, barra antes de gerar a
+  // prova.
+  if (tipo === "PROVA") {
+    const { data: testesFeitos } = await admin
+      .from("avaliacoes")
+      .select("numero_teste, status")
+      .eq("matricula_id", matricula.id)
+      .eq("lesson_id", lessonId)
+      .eq("tipo", "TESTE_LICAO");
+    // 29/09/2026: com refazer sem limite, o mesmo numero_teste pode
+    // aparecer mais de uma vez (tentativas antigas) — conta por número de
+    // teste DISTINTO já finalizado ao menos uma vez, não por linha.
+    const concluidos = new Set(
+      (testesFeitos ?? []).filter((t) => t.status === "FINALIZADA").map((t) => t.numero_teste)
+    ).size;
+    if (concluidos < TOTAL_TESTES_POR_MATERIA) {
+      fail(lessonId, `Conclua os ${TOTAL_TESTES_POR_MATERIA} testes desta matéria antes de iniciar a prova (${concluidos}/${TOTAL_TESTES_POR_MATERIA} concluídos).`);
+    }
+  }
+
+  const questoes = await gerarQuestoesLicao({ lessonId, tipo, numeroTeste });
+  if (questoes.length === 0) {
+    fail(lessonId, "Ainda não há questões suficientes cadastradas para esta matéria. Fale com a secretaria.");
+  }
+
+  const { data: avaliacao, error } = await admin
+    .from("avaliacoes")
+    .insert({
+      matricula_id: matricula.id,
+      lesson_id: lessonId,
+      tipo,
+      numero_teste: tipo === "TESTE_LICAO" ? numeroTeste : null,
+      num_questoes: questoes.length,
+    })
+    .select("id")
+    .single();
+
+  if (error || !avaliacao) {
+    fail(lessonId, "Erro ao iniciar avaliação: " + (error?.message ?? "desconhecido"));
+  }
+
+  const { error: questoesError } = await admin.from("avaliacao_questoes").insert(
+    questoes.map((q, i) => ({
+      avaliacao_id: avaliacao!.id,
+      ordem: i + 1,
+      enunciado: q.enunciado,
+      opcoes: q.opcoes,
+      formato: q.formato,
+      resposta_correta: q.resposta_correta,
+    }))
+  );
+
+  if (questoesError) {
+    fail(lessonId, "Erro ao gerar questões: " + questoesError.message);
+  }
+
+  redirect(`/portal/testes/${lessonId}/${avaliacao!.id}${voltarQuery}`);
+}
+
+export async function submeterTesteLicaoAction(formData: FormData) {
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const avaliacaoId = formData.get("avaliacao_id") as string;
+  if (!avaliacaoId) fail(lessonId, "Avaliação inválida.");
+
+  // 28/09/2026, achado do Joaquim: o mesmo "voltar" precisa sobreviver ao
+  // finalizar o teste — sem isso, o resultado voltava pro destino padrão
+  // em vez de Simulados e Provas.
+  const voltarRaw = (formData.get("voltar") as string) || "";
+  const voltarParam = voltarRaw && voltarRaw.startsWith("/") && !voltarRaw.startsWith("//")
+    ? `&voltar=${encodeURIComponent(voltarRaw)}`
+    : "";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+
+  const { data: avaliacao } = await admin
+    .from("avaliacoes")
+    .select("id, tipo, status, matricula_id, lesson_id, ead_matriculas(ead_alunos(user_id))")
+    .eq("id", avaliacaoId)
+    .single();
+
+  const matriculaInfo = avaliacao?.ead_matriculas as unknown as
+    | { ead_alunos: { user_id: string | null } | null }
+    | null;
+
+  if (!avaliacao || matriculaInfo?.ead_alunos?.user_id !== user!.id) {
+    redirect(`/portal/testes/${lessonId}?error=` + encodeURIComponent("Avaliação não encontrada."));
+  }
+  if (avaliacao!.status !== "EM_ANDAMENTO") {
+    redirect(
+      `/portal/testes/${lessonId}/${avaliacaoId}?error=` +
+        encodeURIComponent("Esta avaliação já foi finalizada.")
+    );
+  }
+
+  const { data: questoes } = await admin
+    .from("avaliacao_questoes")
+    .select("id, ordem, formato, resposta_correta")
+    .eq("avaliacao_id", avaliacaoId)
+    .order("ordem");
+
+  if (!questoes || questoes.length === 0) {
+    redirect(
+      `/portal/testes/${lessonId}/${avaliacaoId}?error=` + encodeURIComponent("Nenhuma questão encontrada.")
+    );
+  }
+
+  let acertos = 0;
+  for (const q of questoes!) {
+    const respostaAluno = (formData.get(`questao_${q.id}`) as string | null) ?? null;
+    const formato = q.formato as FormatoQuestaoLicao;
+    const correta = respostaCorretaLicao(formato, q.resposta_correta as string, respostaAluno);
+    if (correta) acertos++;
+
+    await admin
+      .from("avaliacao_questoes")
+      .update({
+        resposta_aluno: respostaAluno,
+        correta,
+        respondida_em: new Date().toISOString(),
+      })
+      .eq("id", q.id);
+  }
+
+  const nota = Number(((acertos / questoes!.length) * 10).toFixed(2));
+  // 29/09/2026: média mínima vale pra TESTE_LICAO e PROVA aqui também.
+  const aprovado = nota >= NOTA_MINIMA;
+
+  await admin
+    .from("avaliacoes")
+    .update({
+      status: "FINALIZADA",
+      acertos,
+      nota,
+      aprovado,
+      finalizada_em: new Date().toISOString(),
+    })
+    .eq("id", avaliacaoId);
+
+  revalidatePath(`/portal/testes/${lessonId}`);
+  redirect(`/portal/testes/${lessonId}/${avaliacaoId}?msg=` + encodeURIComponent("Avaliação finalizada.") + voltarParam);
+}
+
+// ── REFAZER (29/09/2026, pedido do Joaquim) ─────────────────────
+// Mesmo espírito de portal/avaliacoes/actions.ts::refazerAvaliacaoAction —
+// gera uma tentativa nova do mesmo Teste/Prova desta matéria, sem limite.
+export async function refazerTesteLicaoAction(formData: FormData) {
+  const lessonId = (formData.get("lesson_id") as string) || "";
+  const avaliacaoAnteriorId = formData.get("avaliacao_id") as string;
+  if (!avaliacaoAnteriorId) fail(lessonId, "Avaliação inválida.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+
+  const { data: anterior } = await admin
+    .from("avaliacoes")
+    .select("id, tipo, numero_teste, matricula_id, lesson_id, ead_matriculas(ead_alunos(user_id))")
+    .eq("id", avaliacaoAnteriorId)
+    .single();
+
+  const matriculaInfo = anterior?.ead_matriculas as unknown as
+    | { ead_alunos: { user_id: string | null } | null }
+    | null;
+  if (!anterior || matriculaInfo?.ead_alunos?.user_id !== user.id) {
+    fail(lessonId, "Avaliação não encontrada ou não pertence a você.");
+  }
+
+  const questoes = await gerarQuestoesLicao({
+    lessonId: anterior!.lesson_id!,
+    tipo: anterior!.tipo as TipoAvaliacaoLicao,
+    numeroTeste: anterior!.numero_teste ?? undefined,
+  });
+  if (questoes.length === 0) {
+    fail(lessonId, "Ainda não há questões suficientes cadastradas para esta matéria.");
+  }
+
+  const { data: nova, error } = await admin
+    .from("avaliacoes")
+    .insert({
+      matricula_id: anterior!.matricula_id,
+      lesson_id: anterior!.lesson_id,
+      tipo: anterior!.tipo,
+      numero_teste: anterior!.numero_teste,
+      num_questoes: questoes.length,
+    })
+    .select("id")
+    .single();
+  if (error || !nova) fail(lessonId, "Erro ao recomeçar: " + (error?.message ?? "desconhecido"));
+
+  await admin.from("avaliacao_questoes").insert(
+    questoes.map((q, i) => ({
+      avaliacao_id: nova!.id,
+      ordem: i + 1,
+      enunciado: q.enunciado,
+      opcoes: q.opcoes,
+      formato: q.formato,
+      resposta_correta: q.resposta_correta,
+    }))
+  );
+
+  redirect(`/portal/testes/${lessonId}/${nova!.id}`);
+}

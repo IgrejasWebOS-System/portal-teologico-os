@@ -23,7 +23,7 @@ export interface GerarParcelasParams {
   valorTotalCentavos: number;
   totalParcelas: number;
   primeiroVencimento: string; // ISO yyyy-mm-dd
-  formaPagamentoPrevista: "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA";
+  formaPagamentoPrevista: "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA";
 }
 
 function somarMeses(dataIso: string, meses: number): string {

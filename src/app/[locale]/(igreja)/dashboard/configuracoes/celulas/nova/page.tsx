@@ -23,6 +23,7 @@ export default async function NovaCelulaPage() {
         description="Vinculada a uma igreja/sub-congregação e a um setor."
         backHref="/dashboard/configuracoes/celulas"
         backLabel="Voltar para Células"
+        backNovoPadrao
       />
 
       <NovaIgrejaForm

@@ -1,122 +1,92 @@
-import Link from "next/link";
-import { Church, Plus, Building2, GitBranch } from "lucide-react";
+import { Church } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PageHeader from "../PageHeader";
-
-type ChurchRow = {
-  id: string;
-  name: string;
-  church_type: string | null;
-  sector_id: string | null;
-  sectors: { name: string } | null;
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  CHURCH:    "Igreja",
-  SUB:       "Sub-congregação",
-  CELL:      "Célula",
-};
-
-const TYPE_COLOR: Record<string, string> = {
-  CHURCH: "bg-iw-blue/10 text-iw-blue",
-  SUB:    "bg-iw-gold/10 text-iw-gold",
-  CELL:   "bg-iw-success/10 text-iw-success",
-};
+import CongregacoesListClient, { type CongregacaoRow } from "../CongregacoesListClient";
+import { carregarEscopoConfiguracoes } from "../accessoScope";
+import ImportarMembrosLinks from "../ImportarMembrosLinks";
 
 export default async function IgrejasPage() {
   const supabase = await createClient();
+  const { escopo, sedeUnitId } = await carregarEscopoConfiguracoes(supabase);
 
-  const { data } = await supabase
-    .from("churches")
-    .select("id, name, church_type, sector_id, sectors(name)")
-    .order("name");
+  const [{ data, error }, { data: sectorsData }, { data: membrosData }] = await Promise.all([
+    supabase
+      .from("churches")
+      .select("id, name, church_type, sector_id, unit_id, pastor_name, pastor_role, pastor_phone")
+      .order("name"),
+    supabase.from("sectors").select("id, name, categoria, unit_id"),
+    // Contagem de membros ativos por igreja -- alimenta o botão "Membros"
+    // na lista (ver CongregacoesListClient). Base ainda pequena (dezenas
+    // de registros nesta fase de importação), então um select simples +
+    // reduce em JS é suficiente; não precisa de agregação no banco.
+    supabase.from("members").select("church_id").eq("status", "ACTIVE"),
+  ]);
 
-  const churches = (data ?? []) as unknown as ChurchRow[];
+  if (error) {
+    console.error("[igrejas/page]", error);
+  }
 
-  // Separar por tipo
-  const main  = churches.filter((c) => c.church_type === "CHURCH" || !c.church_type);
-  const subs  = churches.filter((c) => c.church_type === "SUB");
-  const cells = churches.filter((c) => c.church_type === "CELL");
+  // Sem restrição (GLOBAL_ADMIN) = escopo null, mostra tudo. Senão, só o
+  // que estiver dentro da subárvore de unidades acessíveis ao usuário.
+  const setores = (sectorsData ?? []).filter((s) => !escopo || (s.unit_id && escopo.has(s.unit_id)));
+  const nomeSetor = new Map(setores.map((s) => [s.id as string, s.name as string]));
+
+  const all = (data ?? []).filter((c) => !escopo || (c.unit_id && escopo.has(c.unit_id)));
+  const main = all.filter((c) => c.church_type === "CHURCH" || !c.church_type);
+  const sedeChurchId = sedeUnitId ? main.find((c) => c.unit_id === sedeUnitId)?.id ?? null : null;
+
+  const memberCounts: Record<string, number> = {};
+  for (const m of membrosData ?? []) {
+    if (m.church_id) memberCounts[m.church_id] = (memberCounts[m.church_id] ?? 0) + 1;
+  }
+
+  const rows: CongregacaoRow[] = main.map((c) => ({
+    id: c.id,
+    name: c.name,
+    pastor_name: c.pastor_name,
+    pastor_role: c.pastor_role,
+    pastor_phone: c.pastor_phone,
+    sector_id: c.sector_id,
+    sector_name: c.sector_id ? nomeSetor.get(c.sector_id) ?? "—" : null,
+    parent_name: null,
+  }));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          icon={Church}
-          title="Igrejas"
-          description="Congregações, sub-congregações e células"
-        />
-        <Link
-          href="/dashboard/configuracoes/igrejas/nova"
-          className="flex items-center gap-2 bg-iw-blue hover:bg-iw-navy text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Igreja
-        </Link>
-      </div>
-
-      {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Igrejas", count: main.length,  color: "text-iw-blue",    icon: Church },
-          { label: "Sub-congregações", count: subs.length,  color: "text-iw-gold",    icon: Building2 },
-          { label: "Células",  count: cells.length, color: "text-iw-success", icon: GitBranch },
-        ].map(({ label, count, color, icon: Icon }) => (
-          <div
-            key={label}
-            className="bg-iw-surface rounded-2xl border border-iw-border p-4 flex items-center gap-3"
-          >
-            <Icon className={`w-5 h-5 shrink-0 ${color}`} />
-            <div>
-              <p className="text-xl font-black text-iw-navy">{count}</p>
-              <p className="text-xs text-iw-muted">{label}</p>
-            </div>
+      <PageHeader
+        icon={Church}
+        title="Igrejas"
+        description="Congregações, sub-congregações e células"
+        backHref="/dashboard/configuracoes/ministerio-setores-igrejas"
+        backLabel="VOLTAR"
+        backNovoPadrao
+        actions={
+          <div className="flex items-center gap-2">
+            <ImportarMembrosLinks />
           </div>
-        ))}
-      </div>
+        }
+      />
 
-      {/* Tabela */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
-        <div className="grid grid-cols-[1fr_auto_auto] px-5 py-2.5 bg-iw-bg border-b border-iw-border gap-4">
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Nome</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Tipo</span>
-          <span className="text-xs font-bold text-iw-muted uppercase tracking-wider">Setor</span>
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">
+          Erro ao carregar as igrejas: {error.message}
         </div>
+      )}
 
-        {churches.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <Church className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />
-            <p className="text-iw-muted text-sm font-medium">Nenhuma igreja cadastrada.</p>
-            <p className="text-iw-muted/60 text-xs mt-1">
-              Clique em &ldquo;Nova Igreja&rdquo; para começar.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-iw-border">
-            {churches.map((church) => {
-              const type = church.church_type ?? "CHURCH";
-              return (
-                <li
-                  key={church.id}
-                  className="grid grid-cols-[1fr_auto_auto] items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4"
-                >
-                  <span className="text-sm font-semibold text-iw-navy truncate">
-                    {church.name}
-                  </span>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border border-transparent ${TYPE_COLOR[type] ?? "bg-iw-bg text-iw-muted"}`}
-                  >
-                    {TYPE_LABEL[type] ?? type}
-                  </span>
-                  <span className="text-xs text-iw-muted truncate max-w-[120px]">
-                    {church.sectors?.name ?? "—"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      <CongregacoesListClient
+        rows={rows}
+        setores={setores}
+        editBasePath="/dashboard/configuracoes/igrejas"
+        emptyIcon={<Church className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />}
+        emptyTitle="Nenhuma igreja cadastrada."
+        emptyHint='Clique em "Nova Igreja" para começar.'
+        allChurches={all.map((c) => ({ church_type: c.church_type, sector_id: c.sector_id }))}
+        novoHref="/dashboard/configuracoes/igrejas/nova"
+        novoLabel="Nova Igreja"
+        sedeChurchId={sedeChurchId}
+        mostrarSeletorIgreja
+        memberCounts={memberCounts}
+      />
     </div>
   );
 }

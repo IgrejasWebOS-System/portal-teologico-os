@@ -107,6 +107,11 @@ export async function createCourseAction(formData: FormData) {
   const level           = (formData.get("level") as string) || "iniciante";
   const thumbnail_url   = formData.get("thumbnail_url") as string;
   const featured        = formData.get("featured") === "true";
+  // 25/09/2026, pedido do Joaquim: cursos novos entram por padrão FORA das
+  // listas de seleção de nova turma/matrícula (visivel_busca=false) — só
+  // Curso Teológico Básico e Médio ficam visíveis por enquanto; staff
+  // habilita explicitamente quando o curso estiver pronto pra liberar.
+  const visivelBusca    = formData.get("visivel_busca") === "true";
 
   if (!title || !moduleName) return { success: false, message: "Título e módulo são obrigatórios." };
 
@@ -119,6 +124,7 @@ export async function createCourseAction(formData: FormData) {
     thumbnail_url:    thumbnail_url || null,
     featured,
     status:           "DRAFT",
+    visivel_busca:    visivelBusca,
     created_at:       new Date().toISOString(),
     updated_at:       new Date().toISOString(),
   });
@@ -149,4 +155,20 @@ export async function toggleCourseStatusAction(formData: FormData) {
   revalidatePath("/admin/conteudo");
   revalidatePath("/escola");
   revalidatePath("/cursos");
+}
+
+// 25/09/2026, pedido do Joaquim: liga/desliga se o curso aparece nas
+// listas de seleção de nova turma/vincular turma/nova matrícula
+// (courses.visivel_busca) — não afeta o conteúdo do curso em si, só some
+// da lista de escolha enquanto estiver desmarcado.
+export async function toggleCourseVisivelBuscaAction(formData: FormData) {
+  const supabase = await requireStaff();
+
+  const id     = formData.get("id") as string;
+  const ligar  = formData.get("visivel_busca") === "true";
+
+  await supabase.from("courses").update({ visivel_busca: ligar, updated_at: new Date().toISOString() }).eq("id", id);
+
+  revalidatePath("/admin/conteudo");
+  revalidatePath("/admin/conteudo/trilhas");
 }

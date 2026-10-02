@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CheckCircle2, XCircle } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import PublicHeader from "@/components/public/PublicHeader";
 import PublicFooter from "@/components/public/PublicFooter";
@@ -98,9 +98,10 @@ export default async function CertificadosPage({ searchParams }: PageProps) {
 
           <Link
             href="/"
-            className="inline-block border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold px-6 py-3 rounded-xl text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
           >
-            Voltar para o início
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
           </Link>
         </div>
 

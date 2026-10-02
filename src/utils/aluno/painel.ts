@@ -37,7 +37,34 @@ export async function carregarAlunoPainelData(
     .maybeSingle();
 
   if (!aluno) return null;
+  return montarAlunoPainelData(supabase, aluno);
+}
 
+// ============================================================
+// Mesmo painel "Minha Área", mas buscado direto por ead_alunos.id em
+// vez de user_id — usado pela secretaria (staff) pra gerenciar em nome
+// de um aluno específico (Cadastro de Alunos > acessar aluno), inclusive
+// alunos que nunca logaram (user_id nulo/sem acesso próprio ainda). O
+// caller (a rota) é responsável por confirmar checkIsStaff antes de
+// chamar isso — esta função em si não faz nenhum controle de acesso.
+// ============================================================
+export async function carregarAlunoPainelDataPorAlunoId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  alunoId: string
+): Promise<AlunoPainelData | null> {
+  const { data: aluno } = await supabase
+    .from("ead_alunos")
+    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .eq("id", alunoId)
+    .maybeSingle();
+
+  if (!aluno) return null;
+  return montarAlunoPainelData(supabase, aluno);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPainelData> {
   const { data: matriculasRaw } = await supabase
     .from("ead_matriculas")
     .select("id, curso_nome_snapshot, matricula, status, data_matricula")
@@ -59,7 +86,7 @@ export async function carregarAlunoPainelData(
   const [{ data: parcelasRaw }, { data: avaliacoesRaw }] = await Promise.all([
     admin
       .from("fin_contas_receber")
-      .select("descricao, numero_parcela, total_parcelas, valor_bruto_centavos, status, data_vencimento, responsavel_pagamento")
+      .select("id, descricao, numero_parcela, total_parcelas, valor_bruto_centavos, status, data_vencimento, responsavel_pagamento")
       .eq("aluno_id", aluno.id)
       .order("data_vencimento", { ascending: true }),
     supabase
@@ -87,6 +114,7 @@ export async function carregarAlunoPainelData(
       dataMatricula: m.data_matricula,
     })),
     parcelas: (parcelasRaw ?? []).map((p) => ({
+      id: p.id,
       descricao: p.descricao,
       numeroParcela: p.numero_parcela,
       totalParcelas: p.total_parcelas,

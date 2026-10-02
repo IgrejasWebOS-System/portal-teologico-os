@@ -309,7 +309,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
                                 <span>
                                   <span
                                     className={`font-bold ${
-                                      m.tipo === "SAIDA" ? "text-iw-error" : m.tipo === "ENTRADA" ? "text-iw-success" : "text-iw-blue"
+                                      m.tipo === "SAIDA" ? "text-iw-error" : m.tipo === "ENTRADA" ? "text-iw-success" : "text-iw-navy"
                                     }`}
                                   >
                                     {m.tipo}

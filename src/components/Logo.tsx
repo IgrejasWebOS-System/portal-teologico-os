@@ -43,9 +43,18 @@ interface LogoProps {
 const IMG_SIZE = { sm: "w-8 h-8", md: "w-10 h-10", lg: "w-20 h-20" };
 const ICON_SIZE = { sm: "w-6 h-6", md: "w-8 h-8", lg: "w-16 h-16" };
 
+// Usamos os arquivos .png (raster) em vez dos .svg oficiais como fonte do
+// logo no app: os .svg do kit de marca têm milhares de pontos de path
+// (arte vetorial bem detalhada, poucas linhas mas cada uma enorme — o
+// arquivo darco 250KB+ numa única linha), o que é pesado pra decodificar
+// em navegadores mobile com rede fraca (confirmado: logo não carregava em
+// teste real de celular via WhatsApp, mesmo funcionando normalmente em
+// desktop). O .png já vem em 2048x2048, mais que suficiente pro maior uso
+// (size="lg" = 80px), e decodifica de forma previsível em qualquer
+// dispositivo.
 const LOGO_SRC: Record<NonNullable<LogoProps["variant"]>, string> = {
-  dark: "/branding/logos/logo-colorida.svg",
-  light: "/branding/logos/logo-fundo-escuro.svg",
+  dark: "/branding/logos/logo-colorida.png",
+  light: "/branding/logos/logo-fundo-escuro.png",
 };
 
 export default function Logo({ size = "md", variant = "dark", className }: LogoProps) {

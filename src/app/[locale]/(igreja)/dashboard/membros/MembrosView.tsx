@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -12,34 +12,132 @@ import {
   ArchiveRestore,
   X,
   Loader2,
+  ImagePlus,
+  MapPin,
+  FileSpreadsheet,
+  ArrowLeft,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { archiveMemberAction, restoreMemberAction } from "./actions";
 import HistoricoRelatorio from "./HistoricoRelatorio";
+import SeletorHierarquico, { type SectorOption, type ChurchOption } from "./SeletorHierarquico";
+import { expandirUnidades, type UnitLite } from "./unitScope";
 
 type MemberRow = {
   id: string;
   full_name: string;
   email: string | null;
   phone: string | null;
+  cpf: string | null;
   registration_number: string | null;
+  photo_url: string | null;
   status: string;
   financial_status: string;
   ecclesiastical_status: string | null;
   ecclesiastical_roles: { name: string } | null;
 };
 
+type EscopoFixo = { churchId: string; nome: string } | null;
+
 type Props = {
   initialMembers: MemberRow[];
+  sectors: SectorOption[];
+  units: UnitLite[];
+  churches: ChurchOption[];
+  // null = GLOBAL_ADMIN, sem restrição. Preenchido = já vem expandido
+  // (unidade + subárvore) por get_accessible_unit_ids().
+  accessibleUnitIds: string[] | null;
+  // Login com uma única igreja no escopo: não mostra seletor, já
+  // carrega direto (RLS garante que só essa igreja é visível mesmo).
+  escopoFixo: EscopoFixo;
+  // Id da igreja "SEDE" (unit type='SEDE') -- null se não existir. Ver
+  // nota no cálculo de churchIdsSelecionados: a unidade SEDE é pai de
+  // TODOS os Setores/Regionais, então NÃO pode ser expandida como
+  // subárvore normal (senão traria todo mundo) -- selecioná-la deve
+  // mostrar só os membros da própria SEDE.
+  sedeChurchId: string | null;
+  // Deep-link vindo de /dashboard/configuracoes/igrejas (botão "Membros
+  // > Ir para Cadastro", ?igreja=<id>) -- pré-seleciona Setor + Igreja no
+  // seletor assim que a tela abre, sem precisar de mais nenhum clique.
+  // null quando a página abriu sem esse parâmetro (fluxo normal).
+  setorInicialId?: string | null;
+  igrejaInicialId?: string | null;
+  // Deep-link vindo do botão "Arquivo Morto" em Igrejas/Pontos de
+  // Pregação/Células/Sub-congregações (?arquivo=1) -- abre a tela já no
+  // modo Arquivo Morto (pedido do Joaquim em 2026-09-18).
+  arquivoInicial?: boolean;
 };
 
-export default function MembrosView({ initialMembers }: Props) {
-  const [viewMode, setViewMode] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
-  const [archivedMembers, setArchivedMembers] = useState<MemberRow[]>([]);
+const CAMPOS_MEMBRO =
+  "id, full_name, email, phone, cpf, registration_number, photo_url, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)";
+
+export default function MembrosView({
+  initialMembers,
+  sectors,
+  units,
+  churches,
+  accessibleUnitIds,
+  escopoFixo,
+  sedeChurchId,
+  setorInicialId = null,
+  igrejaInicialId = null,
+  arquivoInicial = false,
+}: Props) {
+  const [viewMode, setViewMode] = useState<"ACTIVE" | "ARCHIVED">(arquivoInicial ? "ARCHIVED" : "ACTIVE");
+  const [members, setMembers] = useState<MemberRow[]>(initialMembers);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const primeiraCarga = useRef(true);
+
+  // ── Seleção do seletor hierárquico (só usada quando não há escopoFixo) ──
+  // Semeada com o deep-link (?igreja=) quando presente, pra já abrir com
+  // Setor + Igreja escolhidos.
+  const [setorId, setSetorId] = useState(setorInicialId ?? "");
+  const [igrejaId, setIgrejaId] = useState(igrejaInicialId ?? "");
+  const [subUnidadeId, setSubUnidadeId] = useState("");
+  const [celulaId, setCelulaId] = useState("");
+
+  const setorSelecionado = sectors.find((s) => s.id === setorId);
+  const igrejaSelecionada = churches.find((c) => c.id === igrejaId);
+  const subUnidadeSelecionada = units.find((u) => u.id === subUnidadeId);
+  const celulaSelecionada = units.find((u) => u.id === celulaId);
+
+  const noEscolhidoId =
+    celulaSelecionada?.id ??
+    subUnidadeSelecionada?.id ??
+    igrejaSelecionada?.unit_id ??
+    setorSelecionado?.unit_id ??
+    null;
+
+  // Quais church_id caem dentro do nó escolhido no seletor (null =
+  // nada escolhido ainda). Só recalcula quando o nó escolhido muda —
+  // units/churches são as mesmas referências vindas do servidor.
+  //
+  // Caso especial SEDE: a unidade SEDE é PAI de todos os Setores/
+  // Regionais (raiz da árvore), então expandir a subárvore dela traria
+  // TODO mundo, não só a SEDE. Selecionar a igreja SEDE (sem descer pra
+  // sub-unidade/célula) deve trazer só os membros dela mesma.
+  const churchIdsSelecionados = useMemo(() => {
+    if (
+      igrejaSelecionada &&
+      igrejaSelecionada.id === sedeChurchId &&
+      !subUnidadeSelecionada &&
+      !celulaSelecionada
+    ) {
+      return [igrejaSelecionada.id];
+    }
+    if (!noEscolhidoId) return null;
+    const subarvore = expandirUnidades([noEscolhidoId], units);
+    return churches.filter((c) => c.unit_id && subarvore.has(c.unit_id)).map((c) => c.id);
+  }, [noEscolhidoId, units, churches, igrejaSelecionada, sedeChurchId, subUnidadeSelecionada, celulaSelecionada]);
+
+  const escopoLabel = escopoFixo
+    ? escopoFixo.nome
+    : [setorSelecionado?.name, igrejaSelecionada?.name, subUnidadeSelecionada?.name, celulaSelecionada?.name]
+        .filter(Boolean)
+        .join(" › ") || null;
 
   // Fecha menu ao clicar fora
   useEffect(() => {
@@ -52,38 +150,64 @@ export default function MembrosView({ initialMembers }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Re-busca ao trocar viewMode para ARCHIVED
+  // Busca membros sempre que o modo (ativo/arquivado) ou o escopo
+  // escolhido mudarem. A primeira carga (igreja fixa + ativos) já veio
+  // pronta do servidor em initialMembers — não repete a mesma consulta
+  // assim que o componente monta.
   useEffect(() => {
-    if (viewMode !== "ARCHIVED") return;
+    if (primeiraCarga.current) {
+      primeiraCarga.current = false;
+      if (escopoFixo && viewMode === "ACTIVE") return;
+    }
 
-    async function fetchArchived() {
+    const idsParaBuscar = escopoFixo ? [escopoFixo.churchId] : churchIdsSelecionados;
+
+    // Sem escopo escolhido ainda: nada pra buscar. Não precisa limpar
+    // `members`/`loading` aqui — a renderização já checa `escopoDefinido`
+    // antes de olhar pra `filtered`, então o estado antigo fica só
+    // guardado, sem aparecer na tela (e evita setState síncrono direto
+    // no corpo do efeito).
+    if (!idsParaBuscar || idsParaBuscar.length === 0) {
+      return;
+    }
+
+    let cancelado = false;
+    async function buscar() {
       setLoading(true);
       const supabase = createClient();
       const { data } = await supabase
         .from("members")
-        .select("id, full_name, email, phone, registration_number, status, financial_status, ecclesiastical_status, ecclesiastical_roles(name)")
-        .eq("status", "ARCHIVED")
+        .select(CAMPOS_MEMBRO)
+        .eq("status", viewMode)
+        .in("church_id", idsParaBuscar as string[])
         .order("full_name");
-      setArchivedMembers((data as unknown as MemberRow[]) ?? []);
-      setLoading(false);
+      if (!cancelado) {
+        setMembers((data as unknown as MemberRow[]) ?? []);
+        setLoading(false);
+      }
     }
-    fetchArchived();
-  }, [viewMode]);
-
-  const members = viewMode === "ACTIVE" ? initialMembers : archivedMembers;
+    buscar();
+    return () => {
+      cancelado = true;
+    };
+  }, [viewMode, churchIdsSelecionados, escopoFixo]);
 
   const filtered = members.filter((m) => {
     if (!search) return true;
     const q = search.toLowerCase();
+    const soDigitosQ = search.replace(/\D/g, "");
     return (
       m.full_name.toLowerCase().includes(q) ||
       (m.email ?? "").toLowerCase().includes(q) ||
       (m.registration_number ?? "").toLowerCase().includes(q) ||
-      (m.phone ?? "").includes(q)
+      (m.phone ?? "").includes(q) ||
+      // CPF: compara só dígitos, assim funciona buscar com ou sem pontuação
+      (soDigitosQ.length > 0 && (m.cpf ?? "").replace(/\D/g, "").includes(soDigitosQ))
     );
   });
 
   const isArchived = viewMode === "ARCHIVED";
+  const escopoDefinido = !!escopoFixo || !!churchIdsSelecionados;
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -95,10 +219,13 @@ export default function MembrosView({ initialMembers }: Props) {
             <h1 className="text-2xl font-black text-iw-navy tracking-tight">
               {isArchived ? "Arquivo Morto" : "Gestão de Membros"}
             </h1>
-            <p className="text-iw-muted text-sm">
-              {isArchived ? "Membros arquivados — fora do rol ativo." : "Membros ativos da congregação."}
-            </p>
           </div>
+          {escopoFixo && (
+            <p className="flex items-center gap-1.5 text-xs text-iw-navy font-semibold mt-1">
+              <MapPin className="w-3.5 h-3.5" />
+              {escopoFixo.nome}
+            </p>
+          )}
         </div>
 
         {/* Busca */}
@@ -106,10 +233,10 @@ export default function MembrosView({ initialMembers }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-iw-muted pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar por nome, matrícula..."
+            placeholder="Buscar por nome, matrícula ou CPF..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-iw-surface border border-iw-border rounded-xl py-2.5 pl-9 pr-9 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-blue focus:outline-none transition-colors"
+            className="w-full bg-iw-surface border border-iw-navy rounded-xl py-2.5 pl-9 pr-9 text-sm text-iw-navy placeholder-iw-muted focus:border-iw-gold focus:outline-none focus:ring-2 focus:ring-iw-gold/40 transition-colors"
           />
           {search && (
             <button
@@ -132,7 +259,7 @@ export default function MembrosView({ initialMembers }: Props) {
             }}
             className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
               isArchived
-                ? "bg-iw-blue/10 text-iw-blue border-iw-blue/30 hover:bg-iw-blue/20"
+                ? "bg-iw-blue/10 text-iw-navy border-iw-blue/30 hover:bg-iw-blue/20"
                 : "bg-iw-error/8 text-iw-error border-iw-error/20 hover:bg-iw-error/15"
             }`}
           >
@@ -143,6 +270,30 @@ export default function MembrosView({ initialMembers }: Props) {
             )}
           </button>
 
+          {/* Importar CSV/Fotos só ficam soltas aqui no cabeçalho quando não
+              há caixa "Escolha o escopo" pra recebê-las (login de igreja
+              fixa) -- senão elas moram dentro da caixa (pedido do Joaquim
+              em 2026-09-18). */}
+          {escopoFixo && !isArchived && (
+            <Link
+              href="/dashboard/membros/importar-csv"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Importar CSV
+            </Link>
+          )}
+
+          {escopoFixo && !isArchived && (
+            <Link
+              href="/dashboard/membros/importar-fotos"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-iw-gold/10 text-iw-gold border border-iw-gold/30 hover:bg-iw-gold/20 transition-colors"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              Importar Fotos
+            </Link>
+          )}
+
           {!isArchived && (
             <Link
               href="/dashboard/membros/novo"
@@ -152,11 +303,39 @@ export default function MembrosView({ initialMembers }: Props) {
               Novo Membro
             </Link>
           )}
+
+          <Link
+            href="/dashboard/configuracoes/membrasia"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            VOLTAR
+          </Link>
         </div>
       </div>
 
+      {/* ── Seletor hierárquico (só quando o login não é de uma igreja fixa) ── */}
+      {!escopoFixo && (
+        <SeletorHierarquico
+          sectors={sectors}
+          units={units}
+          churches={churches}
+          accessibleUnitIds={accessibleUnitIds}
+          sedeChurchId={sedeChurchId}
+          setorId={setorId}
+          igrejaId={igrejaId}
+          subUnidadeId={subUnidadeId}
+          celulaId={celulaId}
+          onSetorChange={setSetorId}
+          onIgrejaChange={setIgrejaId}
+          onSubUnidadeChange={setSubUnidadeId}
+          onCelulaChange={setCelulaId}
+          mostrarImportar={!isArchived}
+        />
+      )}
+
       {/* ── Tabela ── */}
-      <div className="bg-iw-surface rounded-2xl border border-iw-border shadow-sm overflow-hidden">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm overflow-hidden">
         {/* Header da tabela */}
         <div className="grid grid-cols-[1fr_140px_110px_110px_80px] gap-4 px-6 py-3 border-b border-iw-border bg-iw-bg/60">
           <span className="text-xs font-semibold text-iw-muted uppercase tracking-wider">Membro</span>
@@ -174,19 +353,26 @@ export default function MembrosView({ initialMembers }: Props) {
           </div>
         )}
 
-        {/* Empty */}
-        {!loading && filtered.length === 0 && (
+        {/* Sem escopo escolhido ainda */}
+        {!loading && !escopoDefinido && (
+          <div className="py-16 text-center text-iw-muted text-sm">
+            Selecione um Setor/Regional acima para carregar os membros.
+          </div>
+        )}
+
+        {/* Empty (escopo definido, mas sem resultado) */}
+        {!loading && escopoDefinido && filtered.length === 0 && (
           <div className="py-16 text-center text-iw-muted text-sm">
             {search
               ? `Nenhum resultado para "${search}".`
               : isArchived
-              ? "Nenhum membro arquivado."
-              : "Nenhum membro cadastrado ainda."}
+              ? "Nenhum membro arquivado neste escopo."
+              : "Nenhum membro cadastrado neste escopo ainda."}
           </div>
         )}
 
         {/* Rows */}
-        {!loading && (
+        {!loading && escopoDefinido && filtered.length > 0 && (
           <div className="divide-y divide-iw-border" ref={menuRef}>
             {filtered.map((member) => {
               const role = member.ecclesiastical_roles;
@@ -202,13 +388,22 @@ export default function MembrosView({ initialMembers }: Props) {
                     href={`/dashboard/membros/editar/${member.id}`}
                     className="flex items-center gap-3 min-w-0 group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 group-hover:bg-iw-blue/20 transition-colors">
-                      <span className="text-iw-blue font-bold text-xs">
-                        {member.full_name.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-9 h-9 rounded-full bg-iw-blue/12 border border-iw-sky/25 flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-iw-blue/20 transition-colors">
+                      {member.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.photo_url}
+                          alt={member.full_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-iw-navy font-bold text-xs">
+                          {member.full_name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-blue transition-colors">
+                      <p className="text-sm font-semibold text-iw-navy truncate group-hover:text-iw-navy transition-colors">
                         {member.full_name}
                       </p>
                       <p className="text-xs text-iw-muted truncate">
@@ -272,7 +467,7 @@ export default function MembrosView({ initialMembers }: Props) {
                             className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-iw-navy hover:bg-iw-bg transition-colors"
                             onClick={() => setOpenMenuId(null)}
                           >
-                            <Pencil className="w-3.5 h-3.5 text-iw-blue" />
+                            <Pencil className="w-3.5 h-3.5 text-iw-navy" />
                             Editar ficha
                           </Link>
                         )}
@@ -316,16 +511,17 @@ export default function MembrosView({ initialMembers }: Props) {
         )}
 
         {/* Footer com contagem */}
-        {!loading && filtered.length > 0 && (
+        {!loading && escopoDefinido && filtered.length > 0 && (
           <div className="px-6 py-3 border-t border-iw-border bg-iw-bg/40 flex items-center justify-between">
             <span className="text-xs text-iw-muted">
               {filtered.length} membro{filtered.length !== 1 ? "s" : ""}
               {search && ` encontrado${filtered.length !== 1 ? "s" : ""}`}
+              {!search && escopoLabel && !escopoFixo && ` em ${escopoLabel}`}
             </span>
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="text-xs text-iw-blue hover:text-iw-navy font-medium transition-colors"
+                className="text-xs text-iw-navy hover:text-iw-navy font-medium transition-colors"
               >
                 Limpar busca
               </button>

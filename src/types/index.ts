@@ -230,6 +230,10 @@ export interface Course {
   duration_hours: number | null;
   featured: boolean;
   level: CourseLevel;
+  // 25/09/2026, pedido do Joaquim: controla se o curso aparece nos
+  // dropdowns de seleção (nova turma, vincular turma, nova matrícula) —
+  // não afeta o conteúdo/status de publicação do curso em si.
+  visivel_busca: boolean;
   created_at: string;
   updated_at: string;
 }

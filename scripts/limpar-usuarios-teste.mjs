@@ -1,93 +1,32 @@
 // ============================================================
-// Apaga (via Supabase Admin API) as contas de teste/desenvolvimento
-// que sobraram no Auth de producao apos a limpeza de dados da
-// migration 077 (que so limpou tabelas do banco, nunca auth.users).
+// OBSOLETO — desativado em 12/09/2026, ver
+// staging/governance/ERROS-COMUNS-IA.md.
 //
-// Lista revisada e confirmada com o Joaquim em 02/09/2026 — NAO
-// adicione e-mails aqui sem confirmar de novo, e-mail por e-mail.
+// Este script era um one-off de 02/09/2026 pra limpar contas órfãs
+// especificamente no Auth de PRODUÇÃO, sem nenhuma trava de ambiente
+// (diferente de zerar-staging.mjs / limpar-tentativas-teste.mjs, que
+// recusam rodar fora da branch staging). A lista de e-mails também usa
+// o formato antigo com ponto (aluno.basico@...), que não é mais o
+// formato usado pelas contas de teste atuais (alunobasico@..., sem
+// ponto) — ou seja, hoje ele não faria nada útil mesmo que rodasse.
 //
-// Uso (PowerShell, na pasta do projeto):
-//   node --env-file=.env.local scripts/limpar-usuarios-teste.mjs
+// Ninguém deve rodar este arquivo. Pra limpar dados de teste, use:
+//   - node --env-file=.env.local scripts/zerar-staging.mjs
+//     (reset completo + recria as contas de teste do zero)
+//   - node --env-file=.env.local scripts/limpar-tentativas-teste.mjs
+//     (limpa só as tentativas de Teste/Prova/Simulado, mantém login)
+// Ver staging/governance/QA-PROCEDIMENTO-TESTES.md pra saber qual usar.
 //
-// Pede confirmacao digitada (CONFIRMAR) antes de apagar qualquer
-// coisa. Mostra a lista encontrada primeiro, sempre.
+// Este arquivo fica só como registro histórico (não apaguei fisicamente
+// porque não tenho acesso a terminal nesta sessão pra fazer `git rm` —
+// se quiser removê-lo de vez, pode rodar isso na pasta staging:
+//   git rm scripts/limpar-usuarios-teste.mjs
+//   git commit -m "chore(scripts): remove script obsoleto de limpeza de producao"
 // ============================================================
 
-import { createClient } from "@supabase/supabase-js";
-import readline from "node:readline";
-
-const EMAILS_PARA_APAGAR = [
-  "aluno.basico@cetadp.teo.br",
-  "aluno.medio@cetadp.teo.br",
-  "alunoprova@cetadp.teo.br",
-  "igrejaswebos@gmail.com",
-  "portalteologicoos@gmail.com",
-  "josiascardoso05@gmail.com",
-];
-
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!url || !serviceRoleKey) {
-  console.error("NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY nao encontrados.");
-  console.error("Rode com: node --env-file=.env.local scripts/limpar-usuarios-teste.mjs");
-  process.exit(1);
-}
-
-function perguntar(pergunta) {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(pergunta, (resposta) => {
-      rl.close();
-      resolve(resposta);
-    });
-  });
-}
-
-const admin = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
-
-const { data: usuarios, error: buscaError } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-if (buscaError) {
-  console.error("Erro ao buscar usuarios:", buscaError.message);
-  process.exit(1);
-}
-
-const encontrados = EMAILS_PARA_APAGAR
-  .map((email) => usuarios.users.find((u) => u.email === email))
-  .filter(Boolean);
-
-const naoEncontrados = EMAILS_PARA_APAGAR.filter(
-  (email) => !usuarios.users.some((u) => u.email === email)
+console.error(
+  "Este script foi desativado — era um one-off de producao, obsoleto e sem trava de ambiente.\n" +
+  "Use scripts/zerar-staging.mjs ou scripts/limpar-tentativas-teste.mjs em vez disso.\n" +
+  "Ver staging/governance/QA-PROCEDIMENTO-TESTES.md."
 );
-
-console.log("\nContas que serao apagadas:");
-encontrados.forEach((u) => console.log(`  - ${u.email}  (${u.id})`));
-
-if (naoEncontrados.length > 0) {
-  console.log("\nJa nao existem (ignorando):");
-  naoEncontrados.forEach((email) => console.log(`  - ${email}`));
-}
-
-if (encontrados.length === 0) {
-  console.log("\nNenhuma conta da lista foi encontrada. Nada a fazer.");
-  process.exit(0);
-}
-
-console.log(`\n${encontrados.length} conta(s) serao apagadas PERMANENTEMENTE do Auth de producao.`);
-const resposta = await perguntar('Digite "CONFIRMAR" (em maiusculas) para prosseguir: ');
-
-if (resposta.trim() !== "CONFIRMAR") {
-  console.log("Cancelado — nada foi apagado.");
-  process.exit(0);
-}
-
-for (const u of encontrados) {
-  const { error } = await admin.auth.admin.deleteUser(u.id);
-  if (error) {
-    console.error(`Erro ao apagar ${u.email}:`, error.message);
-  } else {
-    console.log(`Apagado: ${u.email}`);
-  }
-}
-
-console.log("\nConcluido.");
+process.exit(1);

@@ -204,7 +204,7 @@ export async function gerarParcelamentoAvulsoAction(formData: FormData) {
     valorTotalCentavos,
     totalParcelas,
     primeiroVencimento,
-    formaPagamentoPrevista: forma as "DINHEIRO" | "PIX" | "CARTAO" | "BOLETO" | "TRANSFERENCIA",
+    formaPagamentoPrevista: forma as "DINHEIRO" | "PIX" | "DEBITO" | "CREDITO" | "BOLETO" | "TRANSFERENCIA",
   });
 
   if (error) {
@@ -322,6 +322,38 @@ export async function cancelarParcelaAction(formData: FormData) {
 
   revalidatePath("/admin/financeiro/contas-a-receber");
   redirect("/admin/financeiro/contas-a-receber?msg=" + encodeURIComponent("Parcela cancelada."));
+}
+
+// 28/09/2026, achado do Joaquim: cancelou uma parcela sem querer (abriu
+// "Dar baixa/cancelar" só pra olhar e clicou errado) e não tinha nenhum
+// jeito de desfazer pela tela. Volta a parcela CANCELADO pra PENDENTE —
+// nunca marca como paga sozinha (se ela já estivesse paga antes do
+// cancelamento, dar baixa de novo é uma decisão separada, não automática
+// aqui).
+export async function reativarParcelaAction(formData: FormData) {
+  const { supabase } = await requireStaff();
+  const id = formData.get("id") as string;
+
+  const { data: conta } = await supabase.from("fin_contas_receber").select("id, status").eq("id", id).maybeSingle();
+  if (!conta) {
+    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Parcela não encontrada."));
+  }
+  if (conta!.status !== "CANCELADO") {
+    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Essa parcela não está cancelada."));
+  }
+
+  const { error } = await supabase
+    .from("fin_contas_receber")
+    .update({ status: "PENDENTE", updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("[financeiro/actions]", error);
+    redirect("/admin/financeiro/contas-a-receber?error=" + encodeURIComponent("Erro ao reativar. Tente novamente."));
+  }
+
+  revalidatePath("/admin/financeiro/contas-a-receber");
+  redirect("/admin/financeiro/contas-a-receber?msg=" + encodeURIComponent("Parcela reativada — voltou para pendente."));
 }
 
 // ── Contas a pagar ─────────────────────────────────────────────

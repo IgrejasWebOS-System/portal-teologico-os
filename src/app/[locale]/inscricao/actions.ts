@@ -31,6 +31,59 @@ import { routing } from "@/i18n/routing";
 //   cria aluno + matrícula (mesma rotina), sem passar pela secretaria.
 // ============================================================
 
+// ── "Já tem cadastro?" — busca pública por Matrícula ou CPF ──────
+// Rota sem login, então NÃO usa o client normal (RLS bloquearia mesmo
+// membro nenhum aparecendo pra "anon") — usa o client admin, mas só
+// devolve o mínimo necessário pra pré-preencher o formulário de
+// inscrição (nome/CPF/telefone/e-mail). Nunca endereço, RG, nome dos
+// pais nem outros dados sensíveis — aqueles só aparecem já autenticado
+// (Nova Matrícula, dashboard de membros).
+export type CadastroPublicoEncontrado = {
+  full_name: string;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
+export async function buscarCadastroPublicoAction(
+  identificador: string
+): Promise<{ success: boolean; data?: CadastroPublicoEncontrado; message?: string }> {
+  const termo = identificador.trim();
+  if (!termo) return { success: false, message: "Digite a matrícula ou o CPF." };
+
+  const admin = createAdminClient();
+  const soDigitos = termo.replace(/\D/g, "");
+
+  const { data, error } =
+    soDigitos.length === 11
+      ? await admin
+          .from("members")
+          .select("full_name, cpf, phone, email")
+          .eq("cpf", termo)
+          .maybeSingle()
+      : await admin
+          .from("members")
+          .select("full_name, cpf, phone, email")
+          .eq("registration_number", termo)
+          .maybeSingle();
+
+  if (error) {
+    console.error("[inscricao/actions] buscarCadastroPublicoAction", error);
+    return { success: false, message: "Erro ao buscar. Tente novamente." };
+  }
+  if (!data) return { success: false, message: "Nenhum cadastro encontrado com essa matrícula/CPF." };
+
+  return {
+    success: true,
+    data: {
+      full_name: data.full_name ?? "",
+      cpf: data.cpf,
+      phone: data.phone,
+      email: data.email,
+    },
+  };
+}
+
 export async function submitInscricaoAction(formData: FormData) {
   // getLocale() não é confiável em Server Actions — idioma vem de campo
   // oculto preenchido pela página com os parâmetros de rota.

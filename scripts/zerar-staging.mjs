@@ -1,15 +1,22 @@
 // ============================================================
-// Zera os dados de TESTE do ambiente de STAGING — matriculas, alunos e
-// contas a receber — preservando:
-//   - qualquer conta com profiles.system_role = 'GLOBAL_ADMIN' (login de
-//     staff usado pra acessar /admin em localhost, ex.:
-//     teste.staff@cetadp.teo.br, criado por criar-usuario-teste-staff.mjs)
-//   - professores e course_editions (turma) — pedido explicito do
-//     Joaquim em 2026-09-06: sao dado de configuracao reaproveitavel
-//     entre rodadas de teste, nao dado de teste descartavel. Se por
-//     qualquer motivo essas tabelas ja estiverem vazias, o script recria
-//     um professor e uma turma basicos pra nao deixar os dropdowns de
-//     Nova Matricula vazios.
+// PROCEDIMENTO "X" — zera TODOS os dados de TESTE do ambiente de STAGING:
+// financeiro, matrículas, alunos, vínculo professor/turma e professores.
+//
+// 26/09/2026 — MUDANÇA DE REGRA (Joaquim): até aqui este script preservava
+// `professores` e `course_editions` de propósito (decisão de 06/09/2026,
+// pra sempre sobrar 1 professor/turma nos dropdowns). O Joaquim pediu
+// explicitamente pra reverter isso: "quero que zerar professores, alunos,
+// financeiro" — ele quer testar o fluxo de cadastro de professor
+// (/cadastro-professor) do ZERO, sem nenhuma conta pré-existente sobrando.
+// A regra de 06/09 foi revogada — não recriar mais nada automaticamente
+// (nem professor de referência, nem turma, nem alunos de teste). Ver
+// AGENTS.md, seção "Zerar staging agora zera literalmente tudo".
+//
+// Ordem das deleções respeita as dependências (filhos antes dos pais):
+//   financeiro -> matrículas -> alunos -> vínculo professor/turma -> professores
+// Depois, apaga também os logins em auth.users (exceto GLOBAL_ADMIN) —
+// sem isso, e-mails de teste ficam "presos" (não dá pra recadastrar o
+// mesmo e-mail) mesmo com os dados já apagados.
 //
 // NUNCA roda em producao: trava se NEXT_PUBLIC_SUPABASE_URL nao for o
 // projeto de staging (cjxdroyyplpknygtcdgr).
@@ -36,14 +43,21 @@ if (!url.includes("cjxdroyyplpknygtcdgr")) {
 
 const admin = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-// Ordem importa: fin_contas_receber referencia ead_matriculas, que
-// referencia ead_alunos. NAO inclui professores/course_editions —
-// mantidos de propósito (ver comentario acima).
-const TABELAS_TESTE = ["fin_contas_receber", "ead_matriculas", "ead_alunos"];
+// Ordem importa: filhos antes dos pais.
+const TABELAS = [
+  "fin_contas_receber",
+  "fin_contas_pagar",
+  "fin_lancamentos",
+  "fin_caixa_diario",
+  "ead_matriculas",
+  "ead_alunos",
+  "professor_turmas",
+  "professores",
+];
 
-console.log("Zerando staging — tabelas de teste:\n");
+console.log("Zerando staging — TODOS os dados de teste (professores, alunos, financeiro):\n");
 
-for (const tabela of TABELAS_TESTE) {
+for (const tabela of TABELAS) {
   const { error, count } = await admin.from(tabela).delete({ count: "exact" }).not("id", "is", null);
   if (error) {
     console.error(`  [ERRO] ${tabela}: ${error.message}`);
@@ -53,7 +67,7 @@ for (const tabela of TABELAS_TESTE) {
 }
 
 // Preserva qualquer conta GLOBAL_ADMIN (login de staff em staging) e apaga
-// todo o resto de auth.users (alunos de teste, cascade de profiles junto).
+// todo o resto de auth.users — sem isso, e-mails de teste ficam presos.
 const { data: profilesAdmin } = await admin.from("profiles").select("id, email").eq("system_role", "GLOBAL_ADMIN");
 const idsPreservados = new Set((profilesAdmin ?? []).map((p) => p.id));
 
@@ -77,31 +91,5 @@ for (const u of usuarios?.users ?? []) {
 console.log(`\nUsuarios de teste apagados: ${apagados}.`);
 console.log(`Contas GLOBAL_ADMIN preservadas: ${(profilesAdmin ?? []).map((p) => p.email).join(", ") || "(nenhuma encontrada)"}.`);
 
-// Garante que sempre sobra pelo menos 1 professor e 1 turma pros
-// dropdowns de Nova Matricula (mantidos por pedido explicito, mas
-// recriados aqui como rede de seguranca caso alguem apague na mao).
-const { count: totalProfessores } = await admin.from("professores").select("id", { count: "exact", head: true });
-if (!totalProfessores) {
-  const { error } = await admin.from("professores").insert({ nome_completo: "Marcelo Teste" });
-  console.log(error ? `  [ERRO] recriar professor: ${error.message}` : "  [OK] professor de referencia recriado (Marcelo Teste).");
-}
-
-const { count: totalTurmas } = await admin.from("course_editions").select("id", { count: "exact", head: true });
-if (!totalTurmas) {
-  const { data: curso } = await admin.from("courses").select("id").eq("title", "Curso Teológico Básico").maybeSingle();
-  if (curso) {
-    const { error } = await admin.from("course_editions").insert({
-      course_id: curso.id,
-      nome: "Edição 2026",
-      ano: 2026,
-      status: "ABERTA",
-      data_inicio: "2026-01-01",
-      data_fim: "2026-12-31",
-    });
-    console.log(error ? `  [ERRO] recriar turma: ${error.message}` : "  [OK] turma de referencia recriada (Edição 2026).");
-  } else {
-    console.log("  [AVISO] Curso 'Curso Teológico Básico' nao encontrado — nao foi possivel recriar a turma automaticamente.");
-  }
-}
-
-console.log("\nStaging zerado (turma e professor mantidos).");
+console.log("\nStaging zerado por completo — nenhum professor, turma, aluno ou e-mail de teste sobrou.");
+console.log("Pra testar de novo: use /cadastro-professor (ou /inscricao) pra recriar tudo do zero.");

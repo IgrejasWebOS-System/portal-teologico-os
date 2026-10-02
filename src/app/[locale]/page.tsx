@@ -69,19 +69,23 @@ export default function HomePage() {
                 {t("hero.subtitulo")}
               </p>
 
+              {/* 26/09/2026, pedido do Joaquim: inscrições pausadas
+                  temporariamente -- os dois CTAs abaixo ficam desabilitados
+                  (sem link) até novo aviso. Reverter trocando de volta pra
+                  <Link href="/inscricao"> e <Link href="/login">. */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <Link
-                  href="/inscricao"
-                  className="bg-[#E88D0C] hover:opacity-90 text-white font-bold px-7 py-3.5 rounded-xl text-sm transition-opacity border border-black"
+                <span
+                  aria-disabled="true"
+                  className="bg-[#E88D0C] opacity-50 cursor-not-allowed text-white font-bold px-7 py-3.5 rounded-xl text-sm border border-black select-none"
                 >
                   {t("hero.ctaInscricao")}
-                </Link>
-                <Link
-                  href="/login"
-                  className="border border-iw-navy/30 hover:border-iw-navy text-iw-navy font-semibold px-7 py-3.5 rounded-xl text-sm transition-colors"
+                </span>
+                <span
+                  aria-disabled="true"
+                  className="border border-iw-navy/30 opacity-50 cursor-not-allowed text-iw-navy font-semibold px-7 py-3.5 rounded-xl text-sm select-none"
                 >
                   {t("hero.ctaLogin")}
-                </Link>
+                </span>
               </div>
 
               <a
@@ -172,19 +176,21 @@ export default function HomePage() {
                 <p className="text-white/60 text-sm leading-relaxed mb-6">
                   {t("cta.texto")}
                 </p>
+                {/* 26/09/2026, pedido do Joaquim: mesma pausa de inscrições
+                    do hero, aplicada aqui também. */}
                 <div className="flex flex-col gap-3">
-                  <Link
-                    href="/inscricao"
-                    className="w-full text-center bg-[#E88D0C] hover:opacity-90 text-white font-bold py-3 rounded-xl text-sm transition-opacity border border-black"
+                  <span
+                    aria-disabled="true"
+                    className="w-full text-center bg-[#E88D0C] opacity-50 cursor-not-allowed text-white font-bold py-3 rounded-xl text-sm border border-black select-none"
                   >
                     {t("cta.ctaInscricao")}
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="w-full text-center border border-white/15 hover:border-white/30 text-white/80 hover:text-white font-semibold py-3 rounded-xl text-sm transition-all"
+                  </span>
+                  <span
+                    aria-disabled="true"
+                    className="w-full text-center border border-white/15 opacity-50 cursor-not-allowed text-white/80 font-semibold py-3 rounded-xl text-sm select-none"
                   >
                     {t("cta.ctaLogin")}
-                  </Link>
+                  </span>
                 </div>
               </div>
             </div>

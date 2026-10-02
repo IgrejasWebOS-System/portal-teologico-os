@@ -37,7 +37,7 @@ export default async function AdminLojaPage() {
       title: "Pedidos",
       description: "Vendas, envios e entregas da Loja.",
       stat: `${pedidosAguardando ?? 0} aguardando envio`,
-      accent: "text-iw-blue bg-iw-blue/10",
+      accent: "text-iw-navy bg-iw-blue/10",
     },
     {
       href: "/admin/produtos",
@@ -88,7 +88,7 @@ export default async function AdminLojaPage() {
 
               <div className="flex items-center justify-between pt-2 border-t border-iw-border">
                 <span className="text-xs font-bold text-iw-navy">{card.stat}</span>
-                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-blue group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="w-4 h-4 text-iw-muted group-hover:text-iw-navy group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
           );

@@ -39,7 +39,7 @@ export default function BotaoBaixarPdfMatricula({ alunoId }: { alunoId: string }
         type="button"
         onClick={handleClick}
         disabled={carregando}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-iw-navy bg-iw-gold/10 hover:bg-iw-gold/20 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-white bg-[#0D0D0D] hover:opacity-90 disabled:opacity-50 border-[1.5px] border-[#CF8403] px-3 py-1.5 rounded-lg transition-opacity"
       >
         {carregando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
         Baixar PDF
