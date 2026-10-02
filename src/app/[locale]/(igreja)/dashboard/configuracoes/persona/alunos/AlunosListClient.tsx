@@ -24,7 +24,7 @@ type Row = {
   campo_ministerio_nome: string | null;
   sector_id: string | null;
   church_id: string | null;
-  sectors: { name: string } | null;
+  sectors: { name: string; categoria: string | null } | null;
   churches: { name: string; is_sede: boolean | null } | null;
 };
 
@@ -59,6 +59,27 @@ function AlunoRow({ r }: { r: Row }) {
   );
 }
 
+// 02/10/2026, pedido do Joaquim: a tela agora abre com só 3 opções — SEDE /
+// SETOR / REGIONAL, uma embaixo da outra (mesmo critério aplicado em
+// Professores/ProfessoresListClient.tsx). Clicar em SEDE abre a lista de
+// igrejas/alunos da sede direto. Clicar em SETOR ou REGIONAL abre, dentro,
+// os sub-grupos por setor/regional individual > igreja (nível extra que
+// Professores não tem). Função fora do componente (não depende de nenhum
+// estado/prop em closure) pra não disparar aviso de dependência no useMemo.
+type Igreja = { key: string; nome: string; alunos: Row[] };
+type SubGrupo = { key: string; nome: string; total: number; igrejas: Igreja[] };
+
+function agruparPorIgreja(rows: Row[]): Igreja[] {
+  const map = new Map<string, Igreja>();
+  for (const r of rows) {
+    const key = r.church_id ?? "SEM_IGREJA";
+    const nome = r.churches?.name ?? r.campo_ministerio_nome ?? "Sem igreja definida";
+    if (!map.has(key)) map.set(key, { key, nome, alunos: [] });
+    map.get(key)!.alunos.push(r);
+  }
+  return Array.from(map.values());
+}
+
 export default function AlunosListClient({ rows, setores }: { rows: Row[]; setores: SetorItem[] }) {
   const [busca, setBusca] = useState("");
   const [setorFiltro, setSetorFiltro] = useState("");
@@ -79,31 +100,42 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
     return rowsFiltradas.filter((r) => r.nome_completo.toLowerCase().includes(buscaLower));
   }, [rowsFiltradas, buscaLower, modoBusca]);
 
-  // Setor/Regional > Igreja, só quando não está buscando por nome.
-  const grupos = useMemo(() => {
+  const categorias = useMemo(() => {
     if (modoBusca) return [];
-    const porSetor = new Map<string, { nome: string; igrejas: Map<string, { nome: string; alunos: Row[] }> }>();
+    const setorMap = new Map<string, Row[]>();
+    const setorNomes = new Map<string, string>();
+    const regionalMap = new Map<string, Row[]>();
+    const regionalNomes = new Map<string, string>();
+    const sedeRows: Row[] = [];
 
     for (const r of rowsFiltradas) {
-      const setorKey = r.churches?.is_sede ? "SEDE" : r.sector_id ?? "SEM_SETOR";
-      const setorNome = r.churches?.is_sede ? "SEDE" : r.sectors?.name ?? "Sem setor definido";
-      if (!porSetor.has(setorKey)) porSetor.set(setorKey, { nome: setorNome, igrejas: new Map() });
-      const setorEntry = porSetor.get(setorKey)!;
-
-      const igrejaKey = r.church_id ?? "SEM_IGREJA";
-      const igrejaNome = r.churches?.name ?? r.campo_ministerio_nome ?? "Sem igreja definida";
-      if (!setorEntry.igrejas.has(igrejaKey)) setorEntry.igrejas.set(igrejaKey, { nome: igrejaNome, alunos: [] });
-      setorEntry.igrejas.get(igrejaKey)!.alunos.push(r);
+      const ehSede = !!r.churches?.is_sede;
+      const ehRegional = !ehSede && r.sectors?.categoria === "REGIONAL";
+      if (ehSede) {
+        sedeRows.push(r);
+      } else if (ehRegional) {
+        const key = r.sector_id ?? "SEM_SETOR";
+        regionalNomes.set(key, r.sectors?.name ?? "Sem setor definido");
+        if (!regionalMap.has(key)) regionalMap.set(key, []);
+        regionalMap.get(key)!.push(r);
+      } else {
+        const key = r.sector_id ?? "SEM_SETOR";
+        setorNomes.set(key, r.sectors?.name ?? "Sem setor definido");
+        if (!setorMap.has(key)) setorMap.set(key, []);
+        setorMap.get(key)!.push(r);
+      }
     }
 
-    return Array.from(porSetor.entries())
-      .map(([key, v]) => ({
-        key,
-        nome: v.nome,
-        total: Array.from(v.igrejas.values()).reduce((acc, i) => acc + i.alunos.length, 0),
-        igrejas: Array.from(v.igrejas.entries()).map(([ik, iv]) => ({ key: ik, ...iv })),
-      }))
-      .sort((a, b) => (a.nome === "SEDE" ? -1 : b.nome === "SEDE" ? 1 : a.nome.localeCompare(b.nome)));
+    const montarSubgrupos = (map: Map<string, Row[]>, nomes: Map<string, string>): SubGrupo[] =>
+      Array.from(map.entries())
+        .map(([key, rows]) => ({ key, nome: nomes.get(key) ?? "Sem setor definido", total: rows.length, igrejas: agruparPorIgreja(rows) }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    return [
+      { chave: "SEDE", nome: "SEDE", total: sedeRows.length, subgrupos: null, igrejas: agruparPorIgreja(sedeRows) },
+      { chave: "SETOR", nome: "SETOR", total: Array.from(setorMap.values()).reduce((acc, rows) => acc + rows.length, 0), subgrupos: montarSubgrupos(setorMap, setorNomes), igrejas: null },
+      { chave: "REGIONAL", nome: "REGIONAL", total: Array.from(regionalMap.values()).reduce((acc, rows) => acc + rows.length, 0), subgrupos: montarSubgrupos(regionalMap, regionalNomes), igrejas: null },
+    ] as const;
   }, [rowsFiltradas, modoBusca]);
 
   return (
@@ -149,39 +181,77 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
         </div>
       ) : (
         <div className="space-y-3">
-          {grupos.length === 0 ? (
-            <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm px-5 py-12 text-center text-iw-muted text-sm">
-              Nenhum aluno encontrado com esse filtro.
-            </div>
-          ) : (
-            grupos.map((setor) => (
-              <details key={setor.key} className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm group">
-                <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-iw-bg select-none list-none">
-                  <span className="flex items-center gap-2 text-sm font-bold text-iw-navy">
-                    <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
-                    {setor.nome}
-                  </span>
-                  <span className="text-xs font-bold text-iw-muted">{setor.total} aluno{setor.total === 1 ? "" : "s"}</span>
-                </summary>
+          {categorias.map((cat) => (
+            <details key={cat.chave} className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm group">
+              <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer bg-iw-bg select-none list-none">
+                <span className="flex items-center gap-2 text-sm font-bold text-iw-navy">
+                  <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+                  {cat.nome}
+                </span>
+                <span className="text-xs font-semibold text-iw-muted">
+                  <span className="text-[15px] font-black text-iw-navy">{cat.total}</span> aluno
+                  {cat.total === 1 ? "" : "s"}
+                </span>
+              </summary>
+
+              {cat.igrejas !== null ? (
+                cat.igrejas.length === 0 ? (
+                  <div className="px-5 py-8 text-center text-iw-muted text-sm">Nenhum aluno nesta categoria.</div>
+                ) : (
+                  <div className="divide-y divide-iw-border">
+                    {cat.igrejas.map((igreja) => (
+                      <details key={igreja.key} className="group/igreja">
+                        <summary className="flex items-center justify-between px-6 py-2.5 cursor-pointer hover:bg-iw-bg/50 select-none list-none">
+                          <span className="flex items-center gap-2 text-xs font-semibold text-iw-navy">
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-open/igreja:rotate-90" />
+                            {igreja.nome}
+                          </span>
+                          <span className="text-[11px] font-bold text-iw-muted">{igreja.alunos.length}</span>
+                        </summary>
+                        <ul className="divide-y divide-iw-border bg-iw-bg/30">
+                          {igreja.alunos.map((r) => <li key={r.id}><AlunoRow r={r} /></li>)}
+                        </ul>
+                      </details>
+                    ))}
+                  </div>
+                )
+              ) : cat.subgrupos!.length === 0 ? (
+                <div className="px-5 py-8 text-center text-iw-muted text-sm">Nenhum aluno nesta categoria.</div>
+              ) : (
                 <div className="divide-y divide-iw-border">
-                  {setor.igrejas.map((igreja) => (
-                    <details key={igreja.key} className="group/igreja">
+                  {cat.subgrupos!.map((sub) => (
+                    <details key={sub.key} className="group/sub">
                       <summary className="flex items-center justify-between px-6 py-2.5 cursor-pointer hover:bg-iw-bg/50 select-none list-none">
                         <span className="flex items-center gap-2 text-xs font-semibold text-iw-navy">
-                          <ChevronRight className="w-3.5 h-3.5 transition-transform group-open/igreja:rotate-90" />
-                          {igreja.nome}
+                          <ChevronRight className="w-3.5 h-3.5 transition-transform group-open/sub:rotate-90" />
+                          {sub.nome}
                         </span>
-                        <span className="text-[11px] font-bold text-iw-muted">{igreja.alunos.length}</span>
+                        <span className="text-[11px] font-bold text-iw-muted">
+                          {sub.total} aluno{sub.total === 1 ? "" : "s"}
+                        </span>
                       </summary>
-                      <ul className="divide-y divide-iw-border bg-iw-bg/30">
-                        {igreja.alunos.map((r) => <li key={r.id}><AlunoRow r={r} /></li>)}
-                      </ul>
+                      <div className="divide-y divide-iw-border bg-iw-bg/30">
+                        {sub.igrejas.map((igreja) => (
+                          <details key={igreja.key} className="group/igreja">
+                            <summary className="flex items-center justify-between px-8 py-2 cursor-pointer hover:bg-iw-bg/50 select-none list-none">
+                              <span className="flex items-center gap-2 text-xs font-semibold text-iw-navy">
+                                <ChevronRight className="w-3 h-3 transition-transform group-open/igreja:rotate-90" />
+                                {igreja.nome}
+                              </span>
+                              <span className="text-[11px] font-bold text-iw-muted">{igreja.alunos.length}</span>
+                            </summary>
+                            <ul className="divide-y divide-iw-border bg-iw-bg/50">
+                              {igreja.alunos.map((r) => <li key={r.id}><AlunoRow r={r} /></li>)}
+                            </ul>
+                          </details>
+                        ))}
+                      </div>
                     </details>
                   ))}
                 </div>
-              </details>
-            ))
-          )}
+              )}
+            </details>
+          ))}
         </div>
       )}
     </>

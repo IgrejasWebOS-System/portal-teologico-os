@@ -7,8 +7,8 @@ interface PageHeaderProps {
   icon?: LucideIcon;
   /** Título da página (fica em 22px, preto, negrito). */
   title: string;
-  /** Descrição curta, exibida ao lado do título na mesma linha (14px, preta). */
-  description?: string;
+  /** Descrição curta, exibida ao lado do título na mesma linha (14px, preta). Aceita texto simples ou JSX (ex.: pra destacar um número em negrito/maior dentro da frase). */
+  description?: ReactNode;
   /** Se informado, mostra o link "Voltar" na extremidade direita do cabeçalho. */
   backHref?: string;
   /** Texto do link de volta (ex.: "Voltar para Matrículas"). Só é usado se `backHref` for informado. */
@@ -25,6 +25,13 @@ interface PageHeaderProps {
   backNovoPadrao?: boolean;
   /** Botões/ações extras exibidos ao lado do link "Voltar", na extremidade direita. */
   actions?: ReactNode;
+  /**
+   * Conteúdo extra em linha própria, abaixo do título/descrição — ainda
+   * dentro da mesma caixa do cabeçalho, acima da linha laranja divisória
+   * (não depois dela). Usado, por exemplo, pro detalhamento SEDE/SETOR/
+   * REGIONAL em Professores/Alunos (02/10/2026, pedido do Joaquim).
+   */
+  extra?: ReactNode;
 }
 
 /**
@@ -34,38 +41,41 @@ interface PageHeaderProps {
  * quando houver, fica na extremidade direita da mesma linha, com borda
  * preta de 1,5pt.
  */
-export default function PageHeader({ icon: Icon, title, description, backHref, backLabel, backNovoPadrao, actions }: PageHeaderProps) {
+export default function PageHeader({ icon: Icon, title, description, backHref, backLabel, backNovoPadrao, actions, extra }: PageHeaderProps) {
   return (
-    <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C] flex items-start justify-between gap-4">
-      <div className="flex items-center gap-3">
-        {Icon && (
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-black border-2 border-[#E88D0C]">
-            <Icon className="w-5 h-5 text-[#E88D0C]" />
+    <div className="sticky top-0 z-30 bg-iw-bg pb-4 mb-2 border-b-[1.5px] border-[#E88D0C] flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {Icon && (
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-black border-2 border-[#E88D0C]">
+              <Icon className="w-5 h-5 text-[#E88D0C]" />
+            </div>
+          )}
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h1 className="text-[22px] font-black text-black tracking-tight">{title}</h1>
+            {description && <p className="text-black text-sm">{description}</p>}
+          </div>
+        </div>
+        {(backHref || actions) && (
+          <div className="flex items-center gap-3 shrink-0">
+            {actions}
+            {backHref && (
+              <Link
+                href={backHref}
+                className={
+                  backNovoPadrao
+                    ? "inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+                    : "inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+                }
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                {backNovoPadrao ? "VOLTAR" : backLabel}
+              </Link>
+            )}
           </div>
         )}
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="text-[22px] font-black text-black tracking-tight">{title}</h1>
-          {description && <p className="text-black text-sm">{description}</p>}
-        </div>
       </div>
-      {(backHref || actions) && (
-        <div className="flex items-center gap-3 shrink-0">
-          {actions}
-          {backHref && (
-            <Link
-              href={backHref}
-              className={
-                backNovoPadrao
-                  ? "inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
-                  : "inline-flex items-center gap-1.5 text-sm text-[#E88D0C] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[1.5px] border-black rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
-              }
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              {backNovoPadrao ? "VOLTAR" : backLabel}
-            </Link>
-          )}
-        </div>
-      )}
+      {extra}
     </div>
   );
 }

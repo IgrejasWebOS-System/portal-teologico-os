@@ -5,7 +5,7 @@ import PageHeader from "@/components/layout/PageHeader";
 interface Props {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description: ReactNode;
   // M24: fundo/ícone agora são fixos (dourado/preto) em todas as telas —
   // iconColor/iconBg deixaram de ser usados, mas ficam no tipo pra não
   // quebrar quem ainda passa esses props.
@@ -22,6 +22,9 @@ interface Props {
   /** Botões extras antes do link "Voltar" (ex.: Importar CSV/Fotos em
    * Igrejas/Pontos de Pregação/Células/Sub-congregações). */
   actions?: ReactNode;
+  /** Conteúdo extra em linha própria, abaixo do título/descrição, ainda
+   * dentro da caixa do cabeçalho — ver PageHeader compartilhado. */
+  extra?: ReactNode;
 }
 
 /**
@@ -38,6 +41,7 @@ export default function ConfiguracoesPageHeader({
   backLabel = "Voltar para Configurações",
   backNovoPadrao,
   actions,
+  extra,
 }: Props) {
   return (
     <PageHeader
@@ -48,6 +52,7 @@ export default function ConfiguracoesPageHeader({
       backLabel={backLabel}
       backNovoPadrao={backNovoPadrao}
       actions={actions}
+      extra={extra}
     />
   );
 }
