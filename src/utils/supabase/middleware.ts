@@ -17,6 +17,10 @@ const PUBLIC_PATHS = [
   "/matricula/pagamento",
   "/api/webhooks/mercadopago",
   "/confirmar-cadastro",
+  // Prova pública por link + CPF (deploy 02/10/2026) — aluno sem matrícula
+  // ainda faz a prova sem login, validação é por CPF dentro da própria
+  // página.
+  "/prova-publica",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
