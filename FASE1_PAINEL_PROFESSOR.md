@@ -647,3 +647,49 @@ tela onde já vincula turmas existentes.
    pública funciona normalmente pra essa turma nova.
 5. Apague o professor de teste (e a turma/matrícula gerada) depois de validar.
 6. Rode de novo `npx tsc --noEmit` e `npm run lint`.
+
+---
+
+## Retoques de 30/09–01/10/2026 (registrados em 03/10/2026, auditoria)
+
+Quatro ajustes feitos em staging nesses dois dias, sem commit/registro intermediário —
+encontrados numa auditoria de "o que falta promover" em 03/10/2026. Todos de baixo risco
+(visual/informativo, nenhum mexe em cálculo ou gravação de dado), mas ficam documentados aqui
+antes de seguir pro fluxo normal de promoção.
+
+**Caixa do Núcleo ganhou os mesmos filtros de Financeiro (30/09/2026).** `/professor/caixa`
+(`CaixaDoNucleoPainel.tsx`) passou a ter os filtros de mês/turma/curso que `/professor/financeiro`
+já tinha — `page.tsx` do Caixa agora busca `curso_nome_snapshot` e `course_editions(nome)` por
+matrícula pra alimentar os selects. Só filtro de visualização, o saldo recalcula em cima da lista
+já filtrada, nenhuma gravação muda.
+
+**Financeiro do núcleo abre no mês atual por padrão (30/09/2026).** `FinanceiroDoNucleoPainel.tsx`
+— o filtro de mês, que antes vinha vazio ("Todas as datas"), agora inicia no mês corrente
+(`new Date().toISOString().slice(0,7)`); o professor ainda troca pra "Todas as datas" ou outro mês
+no próprio seletor.
+
+**Modal de confirmação de parcelas mostra a taxa de matrícula separada (01/10/2026).**
+`ConfirmarParcelasModal.tsx`/`NovaMatriculaForm.tsx` (admin, Nova Matrícula Direta) — quando o
+curso tem `valor_matricula_centavos > 0` (ex. Básico), o modal agora mostra uma caixa avisando que
+esse valor é lançado separado das mensalidades (vence junto com a 1ª parcela, vai pro Financeiro
+como "Matrícula"). Puramente informativo — não muda nenhum cálculo nem o que é enviado ao
+confirmar; a lógica de lançar a matrícula à parte já existia antes em `matricularDiretoAction`.
+
+**Texto cinza-claro corrigido em todas as telas de `/admin` (30/09/2026).** `(admin)/layout.tsx`
+passou a envolver as páginas com a classe `iw-scope-preto` (`globals.css`) — o mesmo tratamento que
+`/dashboard/configuracoes` já usava, corrigindo texto que aparecia cinza claro/ilegível em vez de
+preto no Dashboard e demais telas de `/admin`. Puramente cosmético.
+
+### Como testar
+
+1. `/professor/caixa` — confirme que aparecem os 3 selects (data/turma/curso) e que trocar
+   qualquer um recalcula a lista e o saldo (Entradas/Saídas) corretamente.
+2. `/professor/financeiro` — abra a tela e confirme que já vem filtrada no mês atual (não "Todas
+   as datas"); troque pra "Todas as datas" e confirme que volta a mostrar tudo.
+3. `/admin/matriculas/nova` — escolha um curso com valor de matrícula (ex. Básico) e gere uma
+   matrícula com mensalidade — confirme que o modal de confirmação mostra a caixa "Matrícula
+   (lançamento separado...)" com o valor e vencimento certos, e que a matrícula gerada no Financeiro
+   continua idêntica a antes (como "Matrícula", separada das parcelas).
+4. `/admin` (Dashboard) e outras telas de `/admin` — confirme visualmente que não sobrou texto
+   cinza-claro ilegível.
+5. Rode `npx tsc --noEmit` e `npm run lint`.

@@ -39,7 +39,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <AutoLogout />
-      <SidebarShell isStaff={isStaff} isAdminRestrito={isAdminRestrito}>{children}</SidebarShell>
+      <SidebarShell isStaff={isStaff} isAdminRestrito={isAdminRestrito}>
+        {/* 30/09/2026, pedido do Joaquim: Dashboard e demais telas de
+            /admin estavam com texto cinza claro (nunca tinham o
+            tratamento iw-scope-preto que /dashboard/configuracoes já
+            usa) — ver globals.css. */}
+        <div className="iw-scope-preto">{children}</div>
+      </SidebarShell>
     </>
   );
 }
