@@ -61,6 +61,7 @@ do MCP do Supabase — não via Supabase CLI.
 | `124_provas_publicas_aprovado.sql` | `provas_publicas_respostas.aprovado` — mesma nota mínima das provas oficiais (6,1) aplicada às provas públicas |
 | `125_provas_publicas_sem_duplicata_pendente.sql` | Índice único parcial (só 1 pendente por prova+CPF) + `enviarProvaPublicaAction` passa a apagar a tentativa pendente anterior antes de gravar a nova — corrige duplicação de linhas pendentes ao refazer o mesmo teste |
 | `126_provas_publicas_unico_por_cpf_sempre.sql` | Substitui o índice da 125 por um de verdade (1 linha por prova+CPF, vinculada ou não) — a trava anterior só valia pra pendentes, deixando reenvios de CPF já matriculado acumularem linhas "VINCULADO" sem limite |
+| `127_provas_publicas_lideranca_crista.sql` | Replica a rotina da 123 pra matéria "Liderança Cristã" — 5 provas (`lideranca-crista-teste-1..5`) + 100 questões Certo/Errado. Validada ponta a ponta em staging primeiro, depois aplicada aqui pra liberar os links oficiais. |
 
 **Como aplicar uma migração nova daqui pra frente:**
 1. Peça para o Claude aplicar via MCP do Supabase (`apply_migration`), **ou**
