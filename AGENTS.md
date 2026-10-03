@@ -132,21 +132,37 @@ suficiente quando a mudança envolve RLS.
 
 ## Como avisar sobre um PR pronto
 
-Depois do `git push` de uma branch nova, mandar direto o link
-`https://github.com/IgrejasWebOS-System/portal-teologico-os/pull/new/<nome-da-branch>`
-(ou o link que o próprio `git push` devolve), já acompanhado de um título e
-uma descrição sugeridos para o PR (resumindo o que mudou nos commits dessa
-branch), prontos pra colar nos campos "Add a title"/"Add a description" que
-o GitHub abre nessa tela. Não repetir a explicação do fluxo (abrir →
-conferir Preview → merge) a cada vez — isso já está documentado aqui em
-cima, só o link + título + descrição são necessários.
+**Atualizado em 03/10/2026** — o `gh` (GitHub CLI) está instalado e
+autenticado nesta máquina para este repositório (confirmado via `gh auth
+status`/`gh auth login` nesta data). Quando eu tiver acesso a terminal na
+sessão, o fluxo real passa a ser via `gh`, não mais só "link + título +
+descrição pra colar":
 
-Motivo de eu não abrir o PR sozinho: não tenho uma ferramenta do GitHub
-conectada nesta sessão para criar o PR via API, e mesmo que tivesse, abrir
-("publicar") um PR é uma ação que exige minha confirmação com o usuário a
-cada vez, por regra de segurança — então o fluxo real é: eu preencho tudo
-que dá pra preencher (link + título + descrição), e o clique final em
-"Create pull request" é sempre do Joaquim.
+1. Validar: `npm run type-check` e `npm run lint` (zero erros) — é o "init"
+   de toda entrega, nunca pular.
+2. `git add -A; git commit -m "..."; git push origin <branch>` (primeira
+   vez: `git push -u origin <branch>`).
+3. Abrir o PR direto pelo terminal: `gh pr create --repo
+   IgrejasWebOS-System/portal-teologico-os --base main --head <branch>
+   --title "..." --body "..."` — isso já devolve o link do PR no próprio
+   terminal, sem precisar do navegador.
+4. **Nunca rodar `gh pr merge` sozinho sem o Joaquim confirmar antes** — eu
+   crio o PR, mas o merge em `main` (que dispara deploy de produção) exige
+   aviso prévio e confirmação explícita dele a cada vez, mesmo com CI
+   verde. Depois de aprovado por ele, `gh pr merge <branch> --merge
+   --delete-branch` fecha o ciclo.
+
+Se a sessão NÃO tiver terminal (ex.: ambiente de execução indisponível,
+como aconteceu em 02-03/10/2026), cai no fluxo manual antigo: eu preparo
+tudo (comando de validação, de commit/push, e o link
+`https://github.com/IgrejasWebOS-System/portal-teologico-os/compare/main...<branch>?expand=1`
+já com título e descrição prontos pra colar) e o Joaquim roda os comandos e
+clica em "Create pull request" ele mesmo.
+
+Se o `git push` falhar com "Invalid username or token" mesmo com o `gh`
+autenticado, rodar `gh auth setup-git` primeiro — isso reconfigura o Git
+pra usar a credencial do `gh` em vez de uma credencial do Windows
+Credential Manager desatualizada (causa raiz encontrada em 03/10/2026).
 
 ## Proteção de branch (desde 04/09/2026)
 
@@ -246,6 +262,40 @@ criar e depois apagar dado de teste em prod). Uso imediato: montar PDFs/
 mensagens pra mandar nos grupos de WhatsApp de professores/alunos/secretaria.
 Uso futuro combinado com o Joaquim: alimentar uma Central de Ajuda dentro do
 próprio sistema em produção.
+
+## Padrão "Total X, composição SEDE/SETOR/REGIONAL" (03/10/2026)
+
+Professores, Alunos e Turmas (`dashboard/configuracoes/{professores,persona/alunos,persona/turmas}`)
+seguem o mesmo padrão visual de cabeçalho: um parágrafo no `extra` do
+`PageHeader` (`@/components/layout/PageHeader`) com o texto "Total <Entidade>
+**N**, composição **SEDE**: **N**, **SETOR**: **N** e **REGIONAL**: **N**."
+— números em `font-black`, fonte `var(--font-merriweather), 'Cinzel',
+Georgia, serif'`. Critério de categoria: `churches.is_sede` → SEDE;
+`sectors.categoria === 'REGIONAL'` (ou, em Turmas, nome do setor começando
+com "REGIONAL") → REGIONAL; resto → SETOR. Qualquer tela nova de listagem
+agrupada por Sede/Setor/Regional deve replicar esse mesmo texto/estilo, não
+inventar um formato novo.
+
+Em Turmas especificamente: o total no cabeçalho é sempre GLOBAL (soma de
+todos os anos, consulta separada sem filtro de `ano`); o total por Ano
+aparece à parte, do lado do seletor de Ano dentro de `TurmasFiltros.tsx`,
+só depois que um Ano é escolhido — os dois nunca devem ser fundidos num só
+número.
+
+## Importação automática de provas por PDF — status (03/10/2026)
+
+Existe em staging (`src/utils/provasPublicas/`,
+`/admin/provas-publicas/importar`) uma tentativa de automatizar a extração
+de questões/gabarito de PDF (`pdf-parse`) pra alimentar o módulo de provas
+públicas (ver `123_provas_publicas_link_cpf.sql`). **Não terminada e não
+deployada em produção**: a extração por regex não bateu com o texto real
+que o `pdf-parse` devolve na primeira tentativa (achado em teste,
+03/10/2026) — há um campo `amostraTexto` (texto bruto extraído) já exposto
+na tela de importação pra diagnosticar isso, mas as regras ainda não foram
+recalibradas contra um caso real. Até isso ser validado ponta a ponta em
+staging, continuar cadastrando novas provas públicas manualmente via
+migration SQL (replicar o padrão de `123_...sql`/`127_...sql`), e não
+copiar esse código de importação pra produção.
 
 ## Outras regras fixas de comunicação
 
