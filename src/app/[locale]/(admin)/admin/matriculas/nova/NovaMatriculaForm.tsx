@@ -131,7 +131,7 @@ const boxCls =
 // mais estreito (foi pro lado direito, dividindo espaço com a foto do aluno).
 const boxClsCompact =
   "border border-iw-navy rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
-const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
+const boxLabelCls = "iw-field-label block text-[10px] font-extrabold uppercase tracking-wider mb-0.5";
 const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
 const boxFilledCls =
@@ -1328,6 +1328,14 @@ export default function NovaMatriculaForm({
           enviando={enviandoConfirmacao}
           onCancelar={() => setMostrarConfirmacao(false)}
           onConfirmar={handleConfirmarParcelas}
+          // 01/10/2026, pedido do Joaquim: só exibição -- não muda em nada
+          // o que é calculado/enviado (matricularDiretoAction continua
+          // lançando a matrícula separada do jeito que já funcionava).
+          matricula={
+            textoParaCentavos(valorMatricula) > 0 && parcelasPreview.length > 0
+              ? { valorCentavos: textoParaCentavos(valorMatricula), vencimento: parcelasPreview[0].vencimentoFinal }
+              : undefined
+          }
         />
       )}
     </div>

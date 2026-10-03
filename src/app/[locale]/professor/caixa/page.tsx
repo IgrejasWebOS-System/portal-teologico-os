@@ -41,15 +41,29 @@ export default async function CaixaDoNucleoPage({
       .eq("professor_id", professor.id)
       .order("data_despesa", { ascending: false }),
     admin.from("fin_categorias").select("id, nome").eq("tipo", "DESPESA").eq("ativo", true).order("nome"),
-    admin.from("ead_matriculas").select("id").eq("professor_id", professor.id),
+    // 30/09/2026, pedido do Joaquim: mesmos filtros de turma/curso da tela
+    // Financeiro — precisa do nome do curso/turma por matrícula aqui também.
+    admin
+      .from("ead_matriculas")
+      .select("id, curso_nome_snapshot, course_edition_id, course_editions(nome)")
+      .eq("professor_id", professor.id),
   ]);
 
-  const matriculaIds = (matriculas ?? []).map((m) => m.id);
+  const listaMatriculas = matriculas ?? [];
+  const matriculaIds = listaMatriculas.map((m) => m.id);
+  const cursoPorMatriculaId = new Map(listaMatriculas.map((m) => [m.id, m.curso_nome_snapshot]));
+  const turmaPorMatriculaId = new Map(
+    listaMatriculas.map((m) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ce = (Array.isArray(m.course_editions) ? m.course_editions[0] : m.course_editions) as any;
+      return [m.id, ce?.nome ?? null];
+    })
+  );
 
   const { data: parcelasPagas } = matriculaIds.length
     ? await admin
         .from("fin_contas_receber")
-        .select("id, descricao, valor_bruto_centavos, pago_em, data_vencimento")
+        .select("id, descricao, valor_bruto_centavos, pago_em, data_vencimento, origem_id")
         .eq("origem_tipo", "MATRICULA_DIRETA")
         .eq("status", "PAGO")
         .in("origem_id", matriculaIds)
@@ -66,6 +80,8 @@ export default async function CaixaDoNucleoPage({
     categoriaNome: null,
     formaPagamento: null,
     excluivel: false,
+    cursoNome: cursoPorMatriculaId.get(p.origem_id) ?? null,
+    turmaNome: turmaPorMatriculaId.get(p.origem_id) ?? null,
   }));
 
   const saidas: Movimentacao[] = (despesasRaw ?? []).map((d) => ({
@@ -78,6 +94,9 @@ export default async function CaixaDoNucleoPage({
     categoriaNome: (Array.isArray(d.fin_categorias) ? d.fin_categorias[0] : d.fin_categorias as any)?.nome ?? null,
     formaPagamento: d.forma_pagamento,
     excluivel: true,
+    // despesas do núcleo não são ligadas a uma matrícula/turma específica.
+    cursoNome: null,
+    turmaNome: null,
   }));
 
   return (
