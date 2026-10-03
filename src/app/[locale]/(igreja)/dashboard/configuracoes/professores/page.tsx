@@ -69,7 +69,15 @@ export default async function ProfessoresPage() {
           </Link>
         }
         extra={
-          <p>
+          <p className="text-black text-sm">
+            Total Professor{" "}
+            <span
+              className="text-[22px] font-black text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              {rows.length}
+            </span>
+            , composição{" "}
             <span
               className="text-[20px] font-black uppercase text-black"
               style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
@@ -82,8 +90,8 @@ export default async function ProfessoresPage() {
               style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
             >
               {totalSede}
-            </span>{" "}
-            ·{" "}
+            </span>
+            ,{" "}
             <span
               className="text-[20px] font-black uppercase text-black"
               style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
@@ -97,7 +105,7 @@ export default async function ProfessoresPage() {
             >
               {totalSetor}
             </span>{" "}
-            ·{" "}
+            e{" "}
             <span
               className="text-[20px] font-black uppercase text-black"
               style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
@@ -111,6 +119,7 @@ export default async function ProfessoresPage() {
             >
               {totalRegional}
             </span>
+            .
           </p>
         }
       />
