@@ -35,11 +35,16 @@ export default async function CaixaDoNucleoPage({
   const admin = createAdminClient();
 
   const [{ data: despesasRaw }, { data: categoriasRaw }, { data: matriculas }] = await Promise.all([
-    admin
-      .from("nucleo_despesas")
-      .select("id, descricao, valor_centavos, data_despesa, forma_pagamento, categoria_id, fin_categorias(nome)")
-      .eq("professor_id", professor.id)
-      .order("data_despesa", { ascending: false }),
+    // Migration 129: saídas = despesas pagas do NÚCLEO (fin_contas_pagar,
+    // church_id), não só as lançadas por este professor.
+    professor.church_id
+      ? admin
+          .from("fin_contas_pagar")
+          .select("id, descricao, valor_centavos, data_vencimento, pago_em, forma_pagamento_prevista, categoria_id, fin_lancamento_id, fin_categorias(nome)")
+          .eq("church_id", professor.church_id)
+          .eq("status", "PAGO")
+          .order("data_vencimento", { ascending: false })
+      : Promise.resolve({ data: [] as never[] }),
     admin.from("fin_categorias").select("id, nome").eq("tipo", "DESPESA").eq("ativo", true).order("nome"),
     // 30/09/2026, pedido do Joaquim: mesmos filtros de turma/curso da tela
     // Financeiro — precisa do nome do curso/turma por matrícula aqui também.
@@ -84,16 +89,16 @@ export default async function CaixaDoNucleoPage({
     turmaNome: turmaPorMatriculaId.get(p.origem_id) ?? null,
   }));
 
-  const saidas: Movimentacao[] = (despesasRaw ?? []).map((d) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const saidas: Movimentacao[] = ((despesasRaw ?? []) as any[]).map((d) => ({
     id: d.id,
     tipo: "SAIDA" as const,
     descricao: d.descricao,
     valor_centavos: d.valor_centavos,
-    data: d.data_despesa,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    categoriaNome: (Array.isArray(d.fin_categorias) ? d.fin_categorias[0] : d.fin_categorias as any)?.nome ?? null,
-    formaPagamento: d.forma_pagamento,
-    excluivel: true,
+    data: (d.pago_em ?? d.data_vencimento).slice(0, 10),
+    categoriaNome: (Array.isArray(d.fin_categorias) ? d.fin_categorias[0] : d.fin_categorias)?.nome ?? null,
+    formaPagamento: d.forma_pagamento_prevista,
+    excluivel: !d.fin_lancamento_id,
     // despesas do núcleo não são ligadas a uma matrícula/turma específica.
     cursoNome: null,
     turmaNome: null,

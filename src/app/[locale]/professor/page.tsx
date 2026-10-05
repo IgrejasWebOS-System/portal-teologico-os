@@ -141,12 +141,16 @@ export default async function DashboardDoProfessorPage() {
         .gte("data_vencimento", primeiroDiaMes)
         .lte("data_vencimento", ultimoDiaMes)
     : { data: [] };
-  const { data: despesasMes } = await admin
-    .from("nucleo_despesas")
-    .select("valor_centavos")
-    .eq("professor_id", professor.id)
-    .gte("data_despesa", primeiroDiaMes)
-    .lte("data_despesa", ultimoDiaMes);
+  // Migration 129: saídas do mês = despesas pagas do núcleo em fin_contas_pagar.
+  const { data: despesasMes } = professor.church_id
+    ? await admin
+        .from("fin_contas_pagar")
+        .select("valor_centavos")
+        .eq("church_id", professor.church_id)
+        .eq("status", "PAGO")
+        .gte("data_vencimento", primeiroDiaMes)
+        .lte("data_vencimento", ultimoDiaMes)
+    : { data: [] };
 
   const entradasMesCentavos = (parcelasPagasMes ?? []).reduce((acc, p) => acc + p.valor_bruto_centavos, 0);
   const saidasMesCentavos = (despesasMes ?? []).reduce((acc, d) => acc + d.valor_centavos, 0);

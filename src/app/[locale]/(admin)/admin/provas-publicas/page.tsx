@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { redirect } from "next/navigation";
-import { ShieldAlert, FileCheck2, Link2 } from "lucide-react";
+import Link from "next/link";
+import { ShieldAlert, FileCheck2, Link2, UploadCloud } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { checkIsStaff } from "@/utils/staff";
 
@@ -56,6 +57,16 @@ export default async function ProvasPublicasAdminPage() {
         description="Respostas enviadas pelos links públicos, com o status de vínculo ao cadastro do aluno."
         backHref="/admin"
         backLabel="Voltar para o Painel"
+        backNovoPadrao
+        actions={
+          <Link
+            href="/admin/provas-publicas/importar"
+            className="inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] hover:opacity-80 font-semibold transition-opacity shrink-0 border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D]"
+          >
+            <UploadCloud className="w-3.5 h-3.5" />
+            Importar de PDF
+          </Link>
+        }
       />
 
       {(provas ?? []).map((prova) => {

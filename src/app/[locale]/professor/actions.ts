@@ -23,6 +23,13 @@ import { validarCPF } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { gerarPdfMatricula } from "@/utils/pdf/matricula";
+import {
+  lancarDespesaNucleo,
+  criarContaPagarNucleo,
+  baixarContaPagarNucleo,
+  cancelarContaPagarNucleo,
+  valorParaCentavos,
+} from "@/utils/financeiro/despesa-nucleo";
 
 // 27/09/2026, pedido do Joaquim: Nova Matrícula do professor ganhou a
 // mesma caixa de Pagamento da Nova Matrícula Direta da secretaria (valor
@@ -1058,18 +1065,22 @@ export async function professorLancarDespesaAction(formData: FormData) {
   }
   const valor_centavos = Math.round(valorNumero * 100);
 
-  // Professor pode não ter church_id preenchido (ficha antiga) — despesa
-  // ainda é salva, só sem o vínculo de igreja (staff não vê ela no filtro
-  // por unidade nesse caso, mas o professor continua vendo a própria).
-  const { error } = await admin.from("nucleo_despesas").insert({
-    professor_id: professor.id,
-    church_id: professor.church_id,
-    categoria_id,
+  // Migration 129: despesa do núcleo vive em fin_contas_pagar (mesma
+  // estrutura do /admin/financeiro). Sem núcleo vinculado a despesa ficaria
+  // invisível pra todos (a RLS é por igreja), então exige church_id.
+  if (!professor.church_id) {
+    erro("Seu cadastro ainda não tem um núcleo (igreja) vinculado — fale com a secretaria.", "/professor/caixa");
+  }
+
+  const { error } = await lancarDespesaNucleo(admin, {
+    churchId: professor.church_id!,
+    professorId: professor.id,
+    categoriaId: categoria_id,
     descricao,
-    valor_centavos,
-    data_despesa,
-    forma_pagamento,
-    created_by: userId,
+    valorCentavos: valor_centavos,
+    dataDespesa: data_despesa,
+    forma: forma_pagamento,
+    userId,
   });
 
   if (error) {
@@ -1088,15 +1099,124 @@ export async function professorExcluirDespesaAction(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) erro("Despesa não informada.", "/professor/caixa");
 
-  const { data: despesa } = await admin.from("nucleo_despesas").select("id, professor_id").eq("id", id).maybeSingle();
-  if (!despesa || despesa.professor_id !== professor.id) {
-    erro("Essa despesa não pertence a você.", "/professor/caixa");
+  // A despesa é do núcleo (church_id), não só de quem lançou — mesmo escopo
+  // que o Caixa do núcleo mostra. Só exclui o que ainda não passou pelo
+  // Caixa Diário da secretaria (fin_lancamento_id nulo).
+  const { data: despesa } = await admin
+    .from("fin_contas_pagar")
+    .select("id, church_id, fin_lancamento_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!despesa || !professor.church_id || despesa.church_id !== professor.church_id) {
+    erro("Essa despesa não pertence ao seu núcleo.", "/professor/caixa");
+  }
+  if (despesa!.fin_lancamento_id) {
+    erro("Essa despesa já foi lançada no Caixa Diário da secretaria — não pode ser excluída aqui.", "/professor/caixa");
   }
 
-  await admin.from("nucleo_despesas").delete().eq("id", id);
+  // Cancela em vez de apagar: o histórico da conta paga fica (aba
+  // "Canceladas" em Financeiro > Contas a Pagar), só sai do Caixa.
+  await cancelarContaPagarNucleo(admin, id);
 
   revalidatePath("/professor/caixa");
-  redirect("/professor/caixa?msg=" + encodeURIComponent("Despesa excluída."));
+  revalidatePath("/professor/financeiro");
+  redirect("/professor/caixa?msg=" + encodeURIComponent("Despesa cancelada — o histórico foi mantido."));
+}
+
+// ── CONTAS A PAGAR DO NÚCLEO (migration 129, 04/10/2026) ─────────
+// O professor também lança contas a pagar (internet, luz, água, faxina...)
+// do próprio núcleo — mesma tabela do /admin/financeiro, escopada pelo
+// church_id do professor. Posse sempre conferida aqui (client admin).
+function erroPagarProf(msg: string): never {
+  redirect("/professor/financeiro?aba=pagar&error=" + encodeURIComponent(msg));
+}
+
+async function assertContaPagarDoNucleo(
+  admin: ReturnType<typeof createAdminClient>,
+  churchId: string | null,
+  id: string
+) {
+  const { data: conta } = await admin
+    .from("fin_contas_pagar")
+    .select("id, church_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!conta || !churchId || conta.church_id !== churchId) {
+    erroPagarProf("Essa conta não pertence ao seu núcleo.");
+  }
+  return conta!;
+}
+
+export async function professorCriarContaPagarAction(formData: FormData) {
+  const { professor, userId, admin } = await requireProfessor();
+
+  const fornecedor = (formData.get("fornecedor") as string)?.trim();
+  const descricao = (formData.get("descricao") as string)?.trim();
+  const dataVencimento = (formData.get("data_vencimento") as string) || "";
+  const categoria_id = (formData.get("categoria_id") as string) || null;
+  const forma = (formData.get("forma_pagamento_prevista") as string) || null;
+  const valorCentavos = valorParaCentavos((formData.get("valor") as string) || "");
+
+  if (!professor.church_id) {
+    erroPagarProf("Seu cadastro ainda não tem um núcleo (igreja) vinculado — fale com a secretaria.");
+  }
+  if (!fornecedor || !descricao || !dataVencimento || valorCentavos <= 0) {
+    erroPagarProf("Preencha fornecedor, descrição, valor e vencimento.");
+  }
+
+  const { error } = await criarContaPagarNucleo(admin, {
+    churchId: professor.church_id!,
+    professorId: professor.id,
+    categoriaId: categoria_id,
+    fornecedor: fornecedor!,
+    descricao: descricao!,
+    valorCentavos,
+    dataVencimento,
+    formaPrevista: forma,
+    userId,
+  });
+  if (error) {
+    console.error("[professor/actions] criar conta a pagar", error);
+    erroPagarProf("Erro ao cadastrar a conta. Tente novamente.");
+  }
+
+  revalidatePath("/professor/financeiro");
+  redirect("/professor/financeiro?aba=pagar&msg=" + encodeURIComponent("Conta a pagar cadastrada."));
+}
+
+export async function professorBaixarContaPagarAction(formData: FormData) {
+  const { professor, userId, admin } = await requireProfessor();
+  const id = (formData.get("id") as string) || "";
+  const forma = (formData.get("forma_pagamento") as string) || null;
+  if (!id) erroPagarProf("Conta não informada.");
+
+  const conta = await assertContaPagarDoNucleo(admin, professor.church_id, id);
+  if (conta.status === "PAGO") erroPagarProf("Essa conta já foi paga.");
+  if (conta.status === "CANCELADO") erroPagarProf("Essa conta está cancelada.");
+
+  const { error } = await baixarContaPagarNucleo(admin, id, forma, userId);
+  if (error) {
+    console.error("[professor/actions] baixar conta a pagar", error);
+    erroPagarProf("Erro ao dar baixa. Tente novamente.");
+  }
+
+  revalidatePath("/professor/financeiro");
+  revalidatePath("/professor/caixa");
+  redirect("/professor/financeiro?aba=pagar&msg=" + encodeURIComponent("Conta paga com sucesso."));
+}
+
+export async function professorCancelarContaPagarAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+  const id = (formData.get("id") as string) || "";
+  if (!id) erroPagarProf("Conta não informada.");
+
+  const conta = await assertContaPagarDoNucleo(admin, professor.church_id, id);
+  if (conta.status === "PAGO") erroPagarProf("Conta já paga não pode ser cancelada.");
+
+  await cancelarContaPagarNucleo(admin, id);
+
+  revalidatePath("/professor/financeiro");
+  redirect("/professor/financeiro?aba=pagar&msg=" + encodeURIComponent("Conta cancelada."));
 }
 
 // ============================================================

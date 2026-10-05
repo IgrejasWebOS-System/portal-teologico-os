@@ -295,6 +295,22 @@ export default function InviteStaffForm({ units, churches }: { units: UnitOption
         </div>
 
         <div className="sm:col-span-2">
+          <label className={labelCls}>Domínio de acesso</label>
+          <select
+            name="dominio"
+            defaultValue="CETADP"
+            className="w-full bg-white border border-iw-navy rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-gold focus:outline-none cursor-pointer"
+          >
+            <option value="CETADP">CETADP — escola, matrículas, financeiro e professores</option>
+            <option value="IGREJA">IGREJA — membros e movimentações da igreja</option>
+            <option value="AMBOS">AMBOS — secretário geral (CETADP + igreja)</option>
+          </select>
+          <p className="text-[11px] text-iw-muted mt-1">
+            Define o que este acesso enxerga dentro da unidade escolhida. Nível 0 sempre vê tudo.
+          </p>
+        </div>
+
+        <div className="sm:col-span-2">
           <label className={labelCls}>Rótulo do papel (opcional)</label>
           <input
             type="text"

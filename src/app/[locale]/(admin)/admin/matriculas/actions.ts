@@ -77,7 +77,7 @@ async function assertAlunoNoEscopo(alunoId: string, matriculaIdParaErro: string)
 
   if (meProfile?.system_role === "GLOBAL_ADMIN") return; // Super-Master/GLOBAL_ADMIN — mesmo bypass da RLS
 
-  const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids");
+  const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids_dominio", { p_dominio: "CETADP" });
   const unitIds = new Set((acessiveis ?? []).map((r: { unit_id: string }) => r.unit_id));
 
   const admin = createAdminClient();
@@ -164,7 +164,7 @@ export async function gerarLinkPdfMatriculaAction(
       ? await supabase.from("profiles").select("system_role").eq("id", user.id).single()
       : { data: null };
     if (meProfile?.system_role !== "GLOBAL_ADMIN") {
-      const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids");
+      const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids_dominio", { p_dominio: "CETADP" });
       const unitIds = new Set((acessiveis ?? []).map((r: { unit_id: string }) => r.unit_id));
       if (!aluno.unit_id || !unitIds.has(aluno.unit_id)) {
         return { success: false, message: "Você não tem acesso a este aluno — ele pertence a outra unidade." };

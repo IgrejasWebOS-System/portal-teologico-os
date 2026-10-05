@@ -16,7 +16,14 @@ type Profile = {
 };
 
 type UnitOption = { id: string; type: string; name: string; parent_id: string | null };
-type AdminRole = { user_id: string; level: number; unit_id: string | null };
+type AdminRole = { user_id: string; level: number; unit_id: string | null; dominio?: string | null };
+
+// Migration 130 — o que este acesso enxerga dentro da unidade.
+const DOMINIO_LABEL: Record<string, string> = {
+  CETADP: "CETADP — escola e financeiro",
+  IGREJA: "IGREJA — membros e movimentações",
+  AMBOS: "AMBOS — CETADP + igreja",
+};
 
 const ROLE_COLOR: Record<string, string> = {
   GLOBAL_ADMIN: "bg-iw-error-bg text-iw-error border-iw-error/30",
@@ -56,6 +63,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
   const [editingVinculoId, setEditingVinculoId] = useState<string | null>(null);
   const [vinculoLevel, setVinculoLevel] = useState("MEMBER");
   const [vinculoUnitId, setVinculoUnitId] = useState("");
+  const [vinculoDominio, setVinculoDominio] = useState("CETADP");
   const [vinculoResult, setVinculoResult] = useState<{ success: boolean; message?: string } | null>(null);
 
   const roleAtualPorUsuario = useMemo(() => {
@@ -96,6 +104,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
     const atual = roleAtualPorUsuario.get(u.id);
     setVinculoLevel(atual ? String(atual.level) : "MEMBER");
     setVinculoUnitId(atual?.unit_id ?? "");
+    setVinculoDominio(atual?.dominio ?? "CETADP");
   };
 
   const cancelEditVinculo = () => {
@@ -113,6 +122,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
     fd.set("user_id", userId);
     fd.set("level", vinculoLevel);
     fd.set("unit_id", vinculoLevel === "0" || vinculoLevel === "MEMBER" ? "" : vinculoUnitId);
+    fd.set("dominio", vinculoDominio);
     startTransition(async () => {
       const res = await atualizarVinculoUsuarioAction(fd);
       setVinculoResult(res);
@@ -197,8 +207,11 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                         className="bg-white border border-iw-blue rounded-lg px-2.5 py-1.5 text-sm text-iw-navy focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
                       />
                     </div>
-                    <p className="text-[11px] text-iw-muted mb-2">
+                    <p className="text-[11px] text-iw-muted mb-1">
                       Alterar o e-mail troca também o login desse operador.
+                    </p>
+                    <p className="text-[11px] text-iw-muted mb-2">
+                      Para mudar nível, unidade ou <strong>domínio de acesso</strong> (CETADP / IGREJA / AMBOS), use o botão <strong>Acesso</strong> desta linha.
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -261,6 +274,22 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                       </select>
                     </div>
 
+                    <div className="mb-2">
+                      <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1">
+                        Domínio de acesso
+                      </label>
+                      <select
+                        value={vinculoDominio}
+                        onChange={(e) => setVinculoDominio(e.target.value)}
+                        disabled={vinculoLevel === "0" || vinculoLevel === "MEMBER"}
+                        className="w-full bg-white border border-iw-gold rounded-lg px-2.5 py-1.5 text-sm text-iw-navy focus:outline-none focus:ring-2 focus:ring-iw-gold/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {Object.entries(DOMINIO_LABEL).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -302,6 +331,7 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                     <ShieldCheck className="w-3 h-3" />
                     {role}
                     {vinculo ? ` · N${vinculo.level}` : ""}
+                    {vinculo && vinculo.level > 0 && vinculo.dominio ? ` · ${vinculo.dominio}` : ""}
                   </span>
                   <span className="text-xs text-iw-muted truncate max-w-[160px]">
                     {unidadeAtual ? `${unidadeAtual.type} · ${unidadeAtual.name}` : vinculo?.level === 0 ? "todas" : "—"}

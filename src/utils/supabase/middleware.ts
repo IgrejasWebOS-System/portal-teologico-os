@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkIsStaff, checkMenuRestrito } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
+import { checkIsSecretario, checkSecretarioSoCetadp } from "@/utils/secretaria";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
 import { routing } from "@/i18n/routing";
@@ -134,15 +135,23 @@ export async function updateSession(
   if (user && path.startsWith("/login")) {
     const url = request.nextUrl.clone();
     const isStaff = await checkIsStaff(supabase, user.id);
+    // 04/10/2026, "Secretário de Setor" — staff com admin_roles.level
+    // 1-3 (escopo de uma unidade, ex.: Admin de Setor) tem área própria
+    // (/secretaria) em vez do /admin genérico (pensado pro GLOBAL_ADMIN,
+    // nível 0, sem unidade). Só roda essa checagem extra pra quem já é
+    // staff, pra não gastar a consulta em todo login de aluno/professor.
+    const secretario = isStaff ? await checkIsSecretario(supabase, user.id) : null;
     const professor = isStaff ? null : await checkIsProfessor(supabase, user.id);
     const gate = isStaff ? null : await resolverGateCompletarCadastro(supabase, user.id, professor);
-    const destino = isStaff
-      ? "/admin"
-      : gate
-        ? gate
-        : professor
-          ? "/professor"
-          : await resolverDestinoPosLogin(supabase, user.id);
+    const destino = secretario
+      ? "/secretaria"
+      : isStaff
+        ? "/admin"
+        : gate
+          ? gate
+          : professor
+            ? "/professor"
+            : await resolverDestinoPosLogin(supabase, user.id);
     url.pathname = comPrefixoDeIdioma(locale, destino);
     return NextResponse.redirect(url);
   }
@@ -182,6 +191,20 @@ export async function updateSession(
         url.pathname = comPrefixoDeIdioma(locale, "/admin");
         return NextResponse.redirect(url);
       }
+    }
+  }
+
+  // Secretário só da CETADP (admin_roles.dominio = 'CETADP', migration 130)
+  // não tem acesso à área de membros da igreja: em vez de cair numa tela
+  // vazia/login, volta pra sua área. Só /dashboard (raiz) e /dashboard/membros
+  // — o resto de /dashboard/configuracoes/* é reaproveitado pela Secretaria
+  // (ex.: editar professor).
+  if (user && !isPublic && (path === "/dashboard" || path.startsWith("/dashboard/membros"))) {
+    if (await checkSecretarioSoCetadp(supabase, user.id)) {
+      const url = request.nextUrl.clone();
+      url.pathname = comPrefixoDeIdioma(locale, "/secretaria");
+      url.search = "";
+      return NextResponse.redirect(url);
     }
   }
 

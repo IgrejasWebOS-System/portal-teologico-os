@@ -184,6 +184,28 @@ const professorModules: SidebarModule[] = [
   { label: "Configurações", href: "/professor/configuracoes", icon: Settings2, description: "Seus dados" },
 ];
 
+// Menu da Área da Secretaria (04/10/2026, "Secretário de Setor") —
+// quarto "modo" da sidebar, mesmo padrão de isProfessor: itens fixos,
+// mas aqui o escopo é vários núcleos (igrejas) dentro da unidade do
+// secretário, não um só — cada página tem um seletor de núcleo próprio
+// (Todos / uma igreja específica), não faz parte do menu lateral.
+//
+// Ordem definida pelo Joaquim (04/10/2026): Dashboard, Professores,
+// Turmas, Alunos, Matrículas, Financeiro, Caixa, Configurações. Só os
+// itens já construídos entram aqui — Turmas/Matrícula/Financeiro/Caixa/
+// Configurações ficam pras próximas etapas, nas mesmas posições 3, 5,
+// 6, 7 e 8 desta lista quando forem feitos.
+const secretariaModules: SidebarModule[] = [
+  { label: "Dashboard", href: "/secretaria", icon: LayoutDashboard, description: "Visão geral do seu escopo" },
+  { label: "Professores", href: "/secretaria/professores", icon: GraduationCap, description: "Professores dos seus núcleos" },
+  { label: "Turmas", href: "/secretaria/turmas", icon: GraduationCap, description: "Turmas dos seus núcleos" },
+  { label: "Alunos", href: "/secretaria/alunos", icon: Users, description: "Alunos dos seus núcleos" },
+  { label: "Matrícula", href: "/secretaria/matricula", icon: UserPlus, description: "Nova matrícula completa" },
+  { label: "Financeiro", href: "/secretaria/financeiro", icon: Wallet, description: "Parcelas dos seus núcleos" },
+  { label: "Caixa", href: "/secretaria/caixa", icon: Banknote, description: "Entradas e saídas dos seus núcleos" },
+  { label: "Configurações", href: "/secretaria/configuracoes", icon: Settings2, description: "Seus dados" },
+];
+
 export default function Sidebar({
   isStaff = false,
   isAdminRestrito = false,
@@ -191,6 +213,8 @@ export default function Sidebar({
   alunoPainel = null,
   isProfessor = false,
   professorResumo = null,
+  isSecretario = false,
+  secretarioResumo = null,
   isOpen = true,
   menuColapsado = false,
   onToggleColapso,
@@ -208,6 +232,8 @@ export default function Sidebar({
   } | null;
   isProfessor?: boolean;
   professorResumo?: { nome: string; fotoUrl?: string | null } | null;
+  isSecretario?: boolean;
+  secretarioResumo?: { nome: string; roleTitle?: string | null } | null;
   // Controla o efeito "off-canvas" só no mobile: recolhido pra fora da
   // borda esquerda por padrão, só aparece quando acionado (SidebarShell).
   // No desktop (md+) o menu fica sempre fixo e visível — "md:translate-x-0"
@@ -413,7 +439,50 @@ export default function Sidebar({
         </>
         )}
 
-        {!isAlunoOficial && !isProfessor && !isAdminRestrito && (
+        {isSecretario && (
+        <>
+        <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
+          {secretarioResumo?.roleTitle || secretarioResumo?.nome || "Secretaria"}
+        </p>
+
+        {secretariaModules.map((mod) => {
+          const Icon = mod.icon;
+          const isModuleActive =
+            mod.href === "/secretaria"
+              ? pathname === "/secretaria"
+              : pathname === mod.href || pathname.startsWith(mod.href + "/");
+
+          return (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                menuColapsado && "md:justify-center md:px-0",
+                isModuleActive
+                  ? "bg-iw-blue text-white shadow-md"
+                  : "text-iw-sky/80 hover:bg-white/8 hover:text-white"
+              )}
+            >
+              <div className="w-7 h-7 rounded-lg bg-black border-2 border-[#E88D0C] flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[#E88D0C]" />
+              </div>
+              <div className={cn("flex-1 min-w-0", menuColapsado && "md:hidden")}>
+                <p className="leading-tight truncate">{mod.label}</p>
+                {!isModuleActive && (
+                  <p className="text-xs truncate text-iw-sky/40 group-hover:text-iw-sky/60 transition-colors">
+                    {mod.description}
+                  </p>
+                )}
+              </div>
+              {isModuleActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-iw-gold shrink-0" />}
+            </Link>
+          );
+        })}
+        </>
+        )}
+
+        {!isAlunoOficial && !isProfessor && !isSecretario && !isAdminRestrito && (
         <>
         <p className={cn("text-iw-sky/40 text-xs font-semibold uppercase tracking-wider px-3 pb-2", menuColapsado && "md:hidden")}>
           Módulos

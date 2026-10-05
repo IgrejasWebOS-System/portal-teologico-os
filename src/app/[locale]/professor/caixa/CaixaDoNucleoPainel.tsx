@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Wallet, X, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Ban, Wallet, X, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 // ============================================================
 // /professor/caixa (Fase 2, 27/09/2026 — atualizado no mesmo dia a
@@ -219,10 +219,10 @@ export default function CaixaDoNucleoPainel({ movimentacoes, categorias, lancarA
                         <input type="hidden" name="id" value={m.id} />
                         <button
                           type="submit"
-                          title="Excluir despesa"
+                          title="Cancelar despesa (continua no histórico)"
                           className="text-iw-muted hover:text-iw-error transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Ban className="w-3.5 h-3.5" />
                         </button>
                       </form>
                     )}

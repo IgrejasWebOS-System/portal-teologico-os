@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
+import { checkIsSecretario } from "@/utils/secretaria";
 import { resolverDestinoPosLogin } from "@/utils/aluno/destino";
 import { resolverGateCompletarCadastro } from "@/utils/completarCadastro";
 import { redirect } from "@/i18n/navigation";
@@ -63,7 +64,17 @@ export async function loginAction(formData: FormData) {
       // o núcleo de trabalho deles, não o hub do aluno. Checado antes de
       // qualquer coisa de aluno: uma conta de staff que também seja aluno
       // continua indo pro /admin primeiro.
+      //
+      // 04/10/2026, "Secretário de Setor" — staff com admin_roles.level
+      // 1-3 (escopo de uma unidade) cai em /secretaria em vez do /admin
+      // genérico (pensado pro GLOBAL_ADMIN, nível 0, sem unidade). Mesma
+      // checagem espelhada em src/utils/supabase/middleware.ts (cobre
+      // quem já tinha sessão ativa e só reabriu /login).
       if (isStaff) {
+        const secretario = await checkIsSecretario(supabase, signInData.user.id);
+        if (secretario) {
+          redirect({ href: "/secretaria", locale });
+        }
         redirect({ href: "/admin", locale });
       }
 

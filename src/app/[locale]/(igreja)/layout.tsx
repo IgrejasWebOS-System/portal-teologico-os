@@ -4,6 +4,7 @@ import AutoLogout from "@/components/security/AutoLogout";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff, checkMenuRestrito } from "@/utils/staff";
+import { checkIsSecretario } from "@/utils/secretaria";
 
 // ============================================================
 // Gate de acesso do módulo Igreja (/dashboard e todas as
@@ -44,10 +45,28 @@ export default async function IgrejaLayout({
 
   const isAdminRestrito = await checkMenuRestrito(supabase, user.id);
 
+  // 04/10/2026, "Secretário de Setor" — um secretário escopado (level
+  // 1-3) pode cair em telas deste grupo por link direto (ex.: editar
+  // professor, a partir de /secretaria/professores) sem navegar pelo
+  // menu completo de staff. A RLS já protege os dados (só vê/edita o
+  // que está no próprio escopo); aqui é só pra mostrar o menu CERTO
+  // (o dele, igual o resto da área da secretaria) em vez do menu cheio
+  // de Administração, que mostraria opções (Matriz de Usuários, Sedes
+  // Regionais etc.) que não fazem sentido pro nível dele.
+  const secretario = await checkIsSecretario(supabase, user.id);
+
   return (
     <>
       <AutoLogout />
-      <SidebarShell isStaff={isStaff} isAdminRestrito={isAdminRestrito}>{children}</SidebarShell>
+      {secretario ? (
+        <SidebarShell isSecretario secretarioResumo={{ nome: "Secretaria", roleTitle: secretario.roleTitle }}>
+          {children}
+        </SidebarShell>
+      ) : (
+        <SidebarShell isStaff={isStaff} isAdminRestrito={isAdminRestrito}>
+          {children}
+        </SidebarShell>
+      )}
     </>
   );
 }

@@ -31,7 +31,7 @@ export default async function UsuariosPage() {
       .order("type")
       .order("name"),
     supabase.from("churches").select("id, unit_id"),
-    supabase.from("admin_roles").select("user_id, level, unit_id"),
+    supabase.from("admin_roles").select("user_id, level, unit_id, dominio"),
   ]);
 
   const users = (data ?? []) as Profile[];
