@@ -17,6 +17,11 @@
 -- acesso (ler prova, gravar resposta, consultar resultado) passa pelo
 -- cliente admin (service_role) dentro de Server Actions, mesmo padrão já
 -- usado em /inscricao e no mutirão (108_mutirao_cadastro_professor_aluno.sql).
+--
+-- 02/10/2026 (deploy pra produção, toduvwtzklntyptcodkf): o lesson_id da
+-- lição "Escatologia" tem UUID diferente do banco de staging (cada banco
+-- gerou o seu) -- aqui usamos o UUID real de produção
+-- (ba9e8cde-01a1-4658-9d81-6d441366c8a0), confirmado por consulta direta.
 
 create table if not exists public.provas_publicas (
   id uuid primary key default gen_random_uuid(),
@@ -124,10 +129,10 @@ create trigger trg_vincular_provas_publicas_update
 -- informativas -- não bloqueiam o link (decisão do Joaquim, 01/10/2026).
 -- ============================================================
 insert into public.provas_publicas (materia, titulo, numero_teste, slug, lesson_id) values
-  ('Escatologia Bíblica', 'Teste 1 - Lições 1 e 2', 1, 'escatologia-teste-1', 'd6f9047b-4d77-4a31-add2-bf546c529191'),
-  ('Escatologia Bíblica', 'Teste 2 - Lições 3 e 4', 2, 'escatologia-teste-2', 'd6f9047b-4d77-4a31-add2-bf546c529191'),
-  ('Escatologia Bíblica', 'Teste 3 - Lições 5 e 6', 3, 'escatologia-teste-3', 'd6f9047b-4d77-4a31-add2-bf546c529191'),
-  ('Escatologia Bíblica', 'Teste 4 - Lições 7 e 8', 4, 'escatologia-teste-4', 'd6f9047b-4d77-4a31-add2-bf546c529191')
+  ('Escatologia Bíblica', 'Teste 1 - Lições 1 e 2', 1, 'escatologia-teste-1', 'ba9e8cde-01a1-4658-9d81-6d441366c8a0'),
+  ('Escatologia Bíblica', 'Teste 2 - Lições 3 e 4', 2, 'escatologia-teste-2', 'ba9e8cde-01a1-4658-9d81-6d441366c8a0'),
+  ('Escatologia Bíblica', 'Teste 3 - Lições 5 e 6', 3, 'escatologia-teste-3', 'ba9e8cde-01a1-4658-9d81-6d441366c8a0'),
+  ('Escatologia Bíblica', 'Teste 4 - Lições 7 e 8', 4, 'escatologia-teste-4', 'ba9e8cde-01a1-4658-9d81-6d441366c8a0')
 on conflict (slug) do nothing;
 
 -- TESTE 1 (20 Certo/Errado)

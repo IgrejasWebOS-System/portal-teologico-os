@@ -16,6 +16,11 @@
 -- lesson_id: UUID real de produção (toduvwtzklntyptcodkf) da lição
 -- "Liderança Cristã" (confirmado por consulta direta, mesmo critério usado
 -- em 123 para Escatologia).
+--
+-- Aplicada originalmente só em staging (cjxdroyyplpknygtcdgr) em 02-03/10/2026
+-- e validada ponta a ponta pelo Joaquim (5 testes enviados, notas conferidas,
+-- vínculo por CPF testado). Aplicada em PRODUÇÃO (toduvwtzklntyptcodkf) em
+-- 02/10/2026 pra liberar os links oficiais /prova-publica/lideranca-crista-teste-1..5.
 insert into public.provas_publicas (materia, titulo, numero_teste, slug, lesson_id) values
   ('Liderança Cristã', 'Teste 1 - Lições 1 e 2', 1, 'lideranca-crista-teste-1', '1e4781b3-ff58-4e1c-a476-6c64d881017b'),
   ('Liderança Cristã', 'Teste 2 - Lições 3 e 4', 2, 'lideranca-crista-teste-2', '1e4781b3-ff58-4e1c-a476-6c64d881017b'),

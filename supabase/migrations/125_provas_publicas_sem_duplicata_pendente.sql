@@ -7,8 +7,9 @@
 -- vez só, bagunçando o histórico do aluno.
 --
 -- Limpeza: apaga tentativas pendentes repetidas de teste (deixa só a mais
--- recente por prova+CPF) -- dados de teste do próprio Joaquim em staging,
--- nenhuma ainda tinha sido vinculada a aluno (ead_aluno_id todas nulas).
+-- recente por prova+CPF) -- em produção a tabela ainda está vazia neste
+-- ponto, então este DELETE é um no-op; aplicado mesmo assim pra manter o
+-- histórico de migrations idêntico ao de staging.
 delete from public.provas_publicas_respostas r
 where r.ead_aluno_id is null
   and r.id not in (

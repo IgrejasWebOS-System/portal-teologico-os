@@ -31,7 +31,7 @@ export default async function ProfessoresPage() {
 
   const rows = (data ?? []) as unknown as Row[];
 
-  // 01/10/2026, pedido do Joaquim: na linha do título, além da quantidade
+  // 02/10/2026, pedido do Joaquim: na linha do título, além da quantidade
   // total, mostrar o total quebrado por Sede/Setor/Regional.
   let totalSede = 0;
   let totalSetor = 0;
