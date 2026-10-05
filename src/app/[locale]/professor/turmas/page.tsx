@@ -5,7 +5,11 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import TurmasDoProfessor, { type TurmaVinculo } from "../TurmasDoProfessor";
 import PedidosMaterialProfessor, { type TurmaPedidoMaterial } from "./PedidosMaterialProfessor";
-import { professorCriarPedidoMaterialAction } from "../actions";
+import {
+  professorCriarPedidoMaterialAction,
+  professorAtualizarCalendarioAulaAction,
+  professorRecalcularCalendarioTurmaAction,
+} from "../actions";
 
 export const metadata = { title: "Minhas Turmas — Área do Professor" };
 
@@ -79,7 +83,7 @@ export default async function TurmasDoProfessorPage({
         .from("pedidos_material")
         .select("course_edition_id, lesson_id, status, quantidade_solicitada, created_at")
         .in("course_edition_id", courseEditionIds)
-        .neq("status", "CANCELADO"),
+        .order("created_at", { ascending: false }),
     ]);
 
     const alunosPorTurma = new Map<string, number>();
@@ -87,13 +91,28 @@ export default async function TurmasDoProfessorPage({
       alunosPorTurma.set(m.course_edition_id, (alunosPorTurma.get(m.course_edition_id) ?? 0) + 1);
     }
 
+    // pedidosRaw vem ordenado do mais recente pro mais antigo — só guarda o
+    // primeiro que aparecer por (turma, aula), que é sempre o pedido mais
+    // recente daquela aula.
     const pedidosPorTurmaAula = new Map<string, { status: string; quantidade_solicitada: number; created_at: string }>();
     for (const p of pedidosRaw ?? []) {
-      pedidosPorTurmaAula.set(`${p.course_edition_id}:${p.lesson_id}`, {
-        status: p.status,
-        quantidade_solicitada: p.quantidade_solicitada,
-        created_at: p.created_at,
-      });
+      const chave = `${p.course_edition_id}:${p.lesson_id}`;
+      if (!pedidosPorTurmaAula.has(chave)) {
+        pedidosPorTurmaAula.set(chave, {
+          status: p.status,
+          quantidade_solicitada: p.quantidade_solicitada,
+          created_at: p.created_at,
+        });
+      }
+    }
+
+    const licoesPorTurma = new Map<string, Map<string, string>>();
+    for (const s of scheduleRaw ?? []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const titulo = ((Array.isArray(s.lessons) ? s.lessons[0] : s.lessons) as any)?.title ?? `Aula ${s.ordem}`;
+      const mapa = licoesPorTurma.get(s.course_edition_id) ?? new Map<string, string>();
+      mapa.set(s.lesson_id, titulo);
+      licoesPorTurma.set(s.course_edition_id, mapa);
     }
 
     turmasPedidoMaterial = turmasDoProfessor.map((t) => {
@@ -106,9 +125,24 @@ export default async function TurmasDoProfessorPage({
           data_fim: s.data_fim,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           titulo: ((Array.isArray(s.lessons) ? s.lessons[0] : s.lessons) as any)?.title ?? `Aula ${s.ordem}`,
-          pedido: pedidosPorTurmaAula.get(`${t.course_edition_id}:${s.lesson_id}`) ?? null,
+          // Um pedido CANCELADO não conta como "já pedido" — libera o form
+          // de novo pra essa aula.
+          pedido: (() => {
+            const p = pedidosPorTurmaAula.get(`${t.course_edition_id}:${s.lesson_id}`);
+            return p && p.status !== "CANCELADO" ? p : null;
+          })(),
         }))
         .sort((a, b) => a.ordem - b.ordem);
+
+      const historico = (pedidosRaw ?? [])
+        .filter((p) => p.course_edition_id === t.course_edition_id)
+        .map((p) => ({
+          lesson_id: p.lesson_id,
+          titulo: licoesPorTurma.get(t.course_edition_id)?.get(p.lesson_id) ?? "—",
+          status: p.status,
+          quantidade_solicitada: p.quantidade_solicitada,
+          created_at: p.created_at,
+        }));
 
       return {
         course_edition_id: t.course_edition_id,
@@ -117,6 +151,7 @@ export default async function TurmasDoProfessorPage({
           (t.course_edition?.classe ? ` (Classe ${t.course_edition.classe})` : ""),
         aulas,
         alunosEmAndamento: alunosPorTurma.get(t.course_edition_id) ?? 0,
+        historico,
       };
     });
   }
@@ -157,6 +192,8 @@ export default async function TurmasDoProfessorPage({
         <PedidosMaterialProfessor
           turmas={turmasPedidoMaterial}
           criarPedidoAction={professorCriarPedidoMaterialAction}
+          atualizarCalendarioAction={professorAtualizarCalendarioAulaAction}
+          recalcularCalendarioAction={professorRecalcularCalendarioTurmaAction}
         />
       )}
     </div>

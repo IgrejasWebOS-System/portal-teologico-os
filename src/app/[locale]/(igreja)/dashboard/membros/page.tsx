@@ -81,7 +81,9 @@ export default async function MembrosPage({
   // Demais perfis (SECTOR_ADMIN, LOCAL_ADMIN, etc.): escopo restrito ao
   // que get_accessible_unit_ids() devolve pro usuário logado — a função
   // já retorna a subárvore expandida (unidade atribuída + descendentes).
-  const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids");
+  // Migration 130: membros são domínio da IGREJA — secretário só CETADP
+  // não enxerga nenhuma unidade aqui.
+  const { data: acessiveis } = await supabase.rpc("get_accessible_unit_ids_dominio", { p_dominio: "IGREJA" });
   const idsAcessiveis = ((acessiveis ?? []) as { unit_id: string }[]).map((r) => r.unit_id);
   const escopo = expandirUnidades(idsAcessiveis, units);
 

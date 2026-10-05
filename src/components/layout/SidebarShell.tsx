@@ -28,6 +28,8 @@ export default function SidebarShell({
   alunoPainel = null,
   isProfessor = false,
   professorResumo = null,
+  isSecretario = false,
+  secretarioResumo = null,
   children,
 }: {
   isStaff?: boolean;
@@ -41,6 +43,8 @@ export default function SidebarShell({
   } | null;
   isProfessor?: boolean;
   professorResumo?: { nome: string; fotoUrl?: string | null } | null;
+  isSecretario?: boolean;
+  secretarioResumo?: { nome: string; roleTitle?: string | null } | null;
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -94,6 +98,8 @@ export default function SidebarShell({
         alunoPainel={alunoPainel}
         isProfessor={isProfessor}
         professorResumo={professorResumo}
+        isSecretario={isSecretario}
+        secretarioResumo={secretarioResumo}
         isOpen={isOpen}
         menuColapsado={menuColapsado}
         onToggleColapso={() => setMenuColapsado((v) => !v)}

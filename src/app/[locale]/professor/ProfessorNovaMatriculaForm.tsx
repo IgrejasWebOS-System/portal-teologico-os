@@ -87,7 +87,7 @@ const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy plac
 const bareSelectCls = `${bareCls} cursor-pointer`;
 const boxCls = "border border-iw-navy rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 const boxErrCls = "border border-iw-error rounded-xl px-3.5 pt-1.5 pb-2 bg-white focus-within:ring-2 focus-within:ring-iw-error/30 transition-colors";
-const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
+const boxLabelCls = "iw-field-label block text-[10px] font-extrabold uppercase tracking-wider mb-0.5";
 const cardCls = "bg-white rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3";
 
 function Field({

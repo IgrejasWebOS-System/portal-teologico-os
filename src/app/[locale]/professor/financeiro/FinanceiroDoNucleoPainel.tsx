@@ -51,7 +51,11 @@ export default function FinanceiroDoNucleoPainel({ parcelas, baixarParcelaAction
   // 27/09/2026, pedido do Joaquim: filtros extra na extremidade direita da
   // linha de botões (A receber/Recebidas/Todas) — por mês de vencimento,
   // por turma e por curso. "" = sem filtro (todas).
-  const [mesFiltro, setMesFiltro] = useState("");
+  // 30/09/2026, pedido do Joaquim: por padrão a tela abre já filtrada no
+  // mês presente (não "todas as datas") — o professor ainda pode trocar
+  // pra "Todas as datas" ou outro mês no próprio seletor.
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const [mesFiltro, setMesFiltro] = useState(mesAtual);
   const [turmaFiltro, setTurmaFiltro] = useState("");
   const [cursoFiltro, setCursoFiltro] = useState("");
 

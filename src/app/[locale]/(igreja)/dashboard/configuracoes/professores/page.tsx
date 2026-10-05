@@ -12,7 +12,7 @@ type Row = {
   veio_de_fora: boolean;
   matricula: string | null;
   sector_id: string | null;
-  sectors: { name: string } | null;
+  sectors: { name: string; categoria: string | null } | null;
   churches: { name: string; is_sede: boolean | null } | null;
 };
 
@@ -23,7 +23,7 @@ export default async function ProfessoresPage() {
     supabase
       .from("professores")
       .select(
-        "id, nome_completo, cargo, telefone, veio_de_fora, matricula, sector_id, sectors(name), churches(name, is_sede)"
+        "id, nome_completo, cargo, telefone, veio_de_fora, matricula, sector_id, sectors(name, categoria), churches(name, is_sede)"
       )
       .order("nome_completo"),
     supabase.from("sectors").select("id, name").order("name"),
@@ -31,12 +31,30 @@ export default async function ProfessoresPage() {
 
   const rows = (data ?? []) as unknown as Row[];
 
+  // 01/10/2026, pedido do Joaquim: na linha do título, além da quantidade
+  // total, mostrar o total quebrado por Sede/Setor/Regional.
+  let totalSede = 0;
+  let totalSetor = 0;
+  let totalRegional = 0;
+  for (const r of rows) {
+    if (r.churches?.is_sede) totalSede += 1;
+    else if (r.sectors?.categoria === "REGIONAL") totalRegional += 1;
+    else totalSetor += 1;
+  }
+
   return (
-    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
         icon={GraduationCap}
         title="Professores"
-        description="Membros responsáveis por turmas, por setor e igreja"
+        description={
+          <>
+            (<span className="text-lg font-black text-black">{rows.length}</span>){" "}
+            <span style={{ color: "#000000" }}>
+              Membros responsáveis por turmas, por setor e igreja
+            </span>
+          </>
+        }
         iconColor="text-iw-gold"
         iconBg="bg-iw-gold/10"
         backHref="/dashboard/configuracoes/persona"
@@ -49,6 +67,60 @@ export default async function ProfessoresPage() {
             <Plus className="w-4 h-4" />
             Novo Professor
           </Link>
+        }
+        extra={
+          <p className="text-black text-sm">
+            Total Professor{" "}
+            <span
+              className="text-[22px] font-black text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              {rows.length}
+            </span>
+            , composição{" "}
+            <span
+              className="text-[20px] font-black uppercase text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              SEDE
+            </span>
+            :{" "}
+            <span
+              className="text-[22px] font-black text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              {totalSede}
+            </span>
+            ,{" "}
+            <span
+              className="text-[20px] font-black uppercase text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              SETOR
+            </span>
+            :{" "}
+            <span
+              className="text-[22px] font-black text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              {totalSetor}
+            </span>{" "}
+            e{" "}
+            <span
+              className="text-[20px] font-black uppercase text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              REGIONAL
+            </span>
+            :{" "}
+            <span
+              className="text-[22px] font-black text-black"
+              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
+            >
+              {totalRegional}
+            </span>
+            .
+          </p>
         }
       />
 

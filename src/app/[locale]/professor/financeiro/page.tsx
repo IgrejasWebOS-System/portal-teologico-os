@@ -1,10 +1,17 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
-import { professorBaixarParcelaAction } from "../actions";
+import {
+  professorBaixarParcelaAction,
+  professorCriarContaPagarAction,
+  professorBaixarContaPagarAction,
+  professorCancelarContaPagarAction,
+} from "../actions";
 import FinanceiroDoNucleoPainel, { type ParcelaComAluno } from "./FinanceiroDoNucleoPainel";
+import ContasAPagarNucleoPainel, { type ContaPagarNucleo } from "@/components/financeiro/ContasAPagarNucleoPainel";
 
 export const metadata = { title: "Financeiro — Área do Professor" };
 
@@ -20,9 +27,10 @@ export const metadata = { title: "Financeiro — Área do Professor" };
 export default async function FinanceiroDoProfessorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ msg?: string; error?: string }>;
+  searchParams: Promise<{ msg?: string; error?: string; aba?: string }>;
 }) {
-  const { msg, error } = await searchParams;
+  const { msg, error, aba: abaRaw } = await searchParams;
+  const aba: "receber" | "pagar" = abaRaw === "pagar" ? "pagar" : "receber";
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +41,102 @@ export default async function FinanceiroDoProfessorPage({
   if (!professor) redirect("/portal");
 
   const admin = createAdminClient();
+
+  const abas = (
+    <div className="flex items-center gap-2 mb-6">
+      {(
+        [
+          ["receber", "Contas a Receber"],
+          ["pagar", "Contas a Pagar"],
+        ] as const
+      ).map(([valor, label]) => (
+        <Link
+          key={valor}
+          href={`?aba=${valor}`}
+          className={`text-sm font-bold px-4 py-2 rounded-xl border transition-colors ${
+            aba === valor ? "bg-black text-iw-gold border-black" : "bg-white text-black border-iw-border hover:bg-iw-bg"
+          }`}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+
+  // Migration 129: Contas a Pagar do núcleo (fin_contas_pagar, church_id).
+  if (aba === "pagar") {
+    const [{ data: categoriasRaw }, { data: pagarRaw }] = await Promise.all([
+      admin.from("fin_categorias").select("id, nome").eq("tipo", "DESPESA").eq("ativo", true).order("nome"),
+      professor.church_id
+        ? admin
+            .from("fin_contas_pagar")
+            .select("id, fornecedor, descricao, valor_centavos, data_vencimento, status, forma_pagamento_prevista, fin_categorias(nome)")
+            .eq("church_id", professor.church_id)
+            .order("data_vencimento")
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lista = (pagarRaw ?? []) as any[];
+    const hoje = new Date().toISOString().slice(0, 10);
+    const abertas = lista.filter((c) => c.status === "PENDENTE" || c.status === "ATRASADO");
+    const emAbertoCentavos = abertas.reduce((a, c) => a + c.valor_centavos, 0);
+    const atrasadoCentavos = abertas.filter((c) => c.data_vencimento < hoje).reduce((a, c) => a + c.valor_centavos, 0);
+    const pagoCentavos = lista.filter((c) => c.status === "PAGO").reduce((a, c) => a + c.valor_centavos, 0);
+    const fmtBRL = (cent: number) => (cent / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const contas: ContaPagarNucleo[] = lista.map((c) => ({
+      id: c.id,
+      nucleoNome: "",
+      fornecedor: c.fornecedor,
+      descricao: c.descricao,
+      valorCentavos: c.valor_centavos,
+      dataVencimento: c.data_vencimento,
+      status: c.status,
+      formaPrevista: c.forma_pagamento_prevista ?? null,
+      categoriaNome: (Array.isArray(c.fin_categorias) ? c.fin_categorias[0] : c.fin_categorias)?.nome ?? null,
+    }));
+
+    return (
+      <div>
+        <h1 className="text-2xl font-black text-iw-navy mb-6">Financeiro do núcleo</h1>
+        {abas}
+
+        {msg && (
+          <div className="mb-6 flex items-center gap-2 bg-iw-success/8 border border-iw-success/30 text-iw-success px-4 py-3 rounded-xl text-sm font-medium">
+            <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
+          </div>
+        )}
+        {error && (
+          <div className="mb-6 flex items-center gap-2 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm font-medium">
+            <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+            <p className="text-[10px] font-extrabold text-black uppercase tracking-wider">A pagar (em aberto)</p>
+            <p className="text-2xl font-black text-iw-error">{fmtBRL(emAbertoCentavos)}</p>
+          </div>
+          <div className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+            <p className="text-[10px] font-extrabold text-black uppercase tracking-wider">Atrasado</p>
+            <p className="text-2xl font-black text-iw-error">{fmtBRL(atrasadoCentavos)}</p>
+          </div>
+          <div className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5">
+            <p className="text-[10px] font-extrabold text-black uppercase tracking-wider">Pago</p>
+            <p className="text-2xl font-black text-black">{fmtBRL(pagoCentavos)}</p>
+          </div>
+        </div>
+
+        <ContasAPagarNucleoPainel
+          contas={contas}
+          categorias={categoriasRaw ?? []}
+          criarAction={professorCriarContaPagarAction}
+          baixarAction={professorBaixarContaPagarAction}
+          cancelarAction={professorCancelarContaPagarAction}
+        />
+      </div>
+    );
+  }
 
   const { data: matriculas } = await admin
     .from("ead_matriculas")
@@ -86,6 +190,7 @@ export default async function FinanceiroDoProfessorPage({
   return (
     <div>
       <h1 className="text-2xl font-black text-iw-navy mb-6">Financeiro do núcleo</h1>
+      {abas}
 
       {msg && (
         <div className="mb-6 flex items-center gap-2 bg-iw-success/8 border border-iw-success/30 text-iw-success px-4 py-3 rounded-xl text-sm font-medium">

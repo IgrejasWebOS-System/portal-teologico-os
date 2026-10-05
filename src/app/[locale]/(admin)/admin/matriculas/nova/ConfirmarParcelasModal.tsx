@@ -43,10 +43,18 @@ interface Props {
   enviando: boolean;
   onCancelar: () => void;
   onConfirmar: () => void;
+  // 01/10/2026, achado do Joaquim: a taxa de matrícula (curso com
+  // course_pricing.valor_matricula_centavos > 0, ex. Básico) não entra em
+  // nenhuma das parcelas abaixo -- ela é lançada à parte em Contas a
+  // Receber (mesma lógica de matricularDiretoAction/completar-cadastro,
+  // não mexida aqui), com vencimento igual ao da 1ª mensalidade. Esse
+  // campo é só pra deixar isso visível neste modal também, não muda
+  // nenhum cálculo nem o que é enviado ao confirmar.
+  matricula?: { valorCentavos: number; vencimento: string };
 }
 
 export default function ConfirmarParcelasModal({
-  parcelas, pagas, onTogglePaga, dataMatriculaIso, enviando, onCancelar, onConfirmar,
+  parcelas, pagas, onTogglePaga, dataMatriculaIso, enviando, onCancelar, onConfirmar, matricula,
 }: Props) {
   const totalPagoCentavos = parcelas.reduce((acc, p, i) => (pagas[i] ? acc + p.valorCentavos : acc), 0);
 
@@ -80,6 +88,20 @@ export default function ConfirmarParcelasModal({
         </div>
 
         <div className="overflow-y-auto px-5 py-3 flex-1">
+          {matricula && matricula.valorCentavos > 0 && (
+            <div className="flex items-center justify-between gap-3 bg-iw-gold/10 border border-iw-gold/40 rounded-xl px-3 py-2.5 mb-3">
+              <div>
+                <p className="text-xs font-extrabold text-black uppercase tracking-wider">
+                  Matrícula (lançamento separado, fora das parcelas abaixo)
+                </p>
+                <p className="text-[11px] text-black">
+                  Vence junto com a 1ª parcela ({fmtDataBr(matricula.vencimento)}) — vai pro Financeiro como
+                  &ldquo;Matrícula&rdquo;, não soma em nenhuma mensalidade.
+                </p>
+              </div>
+              <p className="text-sm font-bold text-black whitespace-nowrap">{fmtMoeda(matricula.valorCentavos)}</p>
+            </div>
+          )}
           <p className="text-xs text-black mb-2">
             Parcelas com vencimento até hoje já vêm marcadas como pagas — desmarque as que ainda
             não foram quitadas. As com vencimento futuro vêm desmarcadas.

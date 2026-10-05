@@ -15,6 +15,8 @@ npm run type-check    # tsc --noEmit — run before every commit
 
 No test framework is configured — there is no `npm test`. CI (`.github/workflows/ci.yml`) runs lint → type-check → build on every PR to `main`, using placeholder secrets (real values live in GitHub Actions secrets, not in the repo).
 
+**Git/PR workflow (confirmed 03/10/2026):** `gh` (GitHub CLI) is installed and authenticated on this machine for `IgrejasWebOS-System/portal-teologico-os`. Standard sequence on a feature branch: `npm run type-check && npm run lint` (zero errors, non-negotiable) → `git add -A && git commit -m "..." && git push origin <branch>` → `gh pr create --repo IgrejasWebOS-System/portal-teologico-os --base main --head <branch> --title "..." --body "..."` (prints the PR URL directly). Never run `gh pr merge` without the user's explicit go-ahead first, even with CI green — merging into `main` triggers a production deploy. If push fails with "Invalid username or token", run `gh auth setup-git` to make Git use the `gh` credential instead of a stale Windows Credential Manager entry. Full detail in `AGENTS.md` under "Como avisar sobre um PR pronto".
+
 There is no Supabase CLI in this project. Migrations in `supabase/migrations/` are applied by hand, in numeric order, either by pasting the `.sql` into the Supabase SQL Editor or via the `apply_migration` MCP tool — see `supabase/migrations/README.md` for the full log of what each numbered file does.
 
 ## Architecture

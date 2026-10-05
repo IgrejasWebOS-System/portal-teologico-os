@@ -45,3 +45,15 @@ next-env.d.ts
 # produção (contém dados pessoais reais — nunca commitar)
 /logs/
 /backups/
+
+# dumps manuais de produção feitos via pg_dump (ex.: backup antes de zerar
+# produção em 26/09/2026) — prod_users_dump.sql tem e-mail + hash de senha
+# real de usuários; nunca commitar (03/10/2026)
+prod_data_dump.sql
+prod_users_dump.sql
+
+# saidas do Backup Manager v2 (05/10/2026): dumps do banco, bundles e
+# arquivos criptografados nunca devem entrar no Git
+*.dump
+*.bundle
+*.dump.7z

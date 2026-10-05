@@ -138,6 +138,61 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 
+/* ===== TEXTO "CLARO DEMAIS" DENTRO DO ESCOPO PRETO (30/09/2026) =====
+   Achado do Joaquim em várias telas (Dashboard admin, Professores,
+   Turmas): mesmo com --color-iw-muted/navy/text zerados pra #000000
+   acima, qualquer classe com modificador de opacidade (ex.:
+   text-iw-muted/60, text-black/70) continua parecendo cinza — a
+   opacidade do Tailwind v4 usa color-mix() sobre a variável, então
+   "preto a 60%" ainda É um cinza visível, trocar só a variável não
+   resolve. Esta regra força essas classes a preto sólido dentro do
+   escopo, restrita a elementos de texto (não <svg>/ícone) pra não
+   apagar o esmaecido intencional de ícones decorativos em estados
+   vazios. */
+.iw-scope-preto p[class*="muted/"],
+.iw-scope-preto span[class*="muted/"],
+.iw-scope-preto label[class*="muted/"],
+.iw-scope-preto div[class*="muted/"],
+.iw-scope-preto td[class*="muted/"],
+.iw-scope-preto th[class*="muted/"],
+.iw-scope-preto li[class*="muted/"],
+.iw-scope-preto p[class*="navy/"],
+.iw-scope-preto span[class*="navy/"],
+.iw-scope-preto p[class*="black/"],
+.iw-scope-preto span[class*="black/"],
+.iw-scope-preto label[class*="black/"],
+.iw-scope-preto p[class*="text-gray-"],
+.iw-scope-preto span[class*="text-gray-"],
+.iw-scope-preto label[class*="text-gray-"],
+.iw-scope-preto div[class*="text-gray-"] {
+  color: #000000 !important;
+}
+
+/* ===== PADRÃO LABEL (preto) + DESCRIÇÃO (cinza escuro) EM CAIXAS DE INPUT =====
+   30/09/2026, pedido do Joaquim: dentro de uma caixa de input, o título
+   do campo ("NOME COMPLETO *") fica preto sólido, e uma legenda
+   complementar abaixo ("Nome completo do aluno") fica num cinza mais
+   escuro e legível (#8c8c8c) em vez do cinza claro padrão — testado
+   primeiro nos formulários de Matrícula (admin e professor) antes de
+   virar padrão do projeto. */
+.iw-field-label {
+  color: #000000 !important;
+}
+.iw-field-caption {
+  color: #8c8c8c !important;
+}
+
+/* 30/09/2026, pedido do Joaquim: placeholder de input (a "legenda" que
+   aparece dentro da caixa antes de digitar, ex. "Nome completo do
+   aluno") padronizado pro mesmo cinza escuro #8c8c8c em todo o site —
+   teste inicial nos formulários de Matrícula (admin e professor),
+   ver AGENTS.md/DESIGN_SYSTEM.md antes de expandir o padrão. */
+input::placeholder,
+textarea::placeholder {
+  color: #8c8c8c;
+  opacity: 1;
+}
+
 /* ===== SCROLLBAR CUSTOMIZADA ===== */
 ::-webkit-scrollbar {
   width: 6px;

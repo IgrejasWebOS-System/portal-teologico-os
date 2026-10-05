@@ -259,6 +259,26 @@ export default function ProfessorPainel({
     });
   }, [linhas, busca, tipoBusca, turmaFiltro]);
 
+  // 30/09/2026, pedido do Joaquim: "Meus Alunos" separado por turma, com
+  // subtotal individual por turma e total geral — antes era uma lista
+  // plana. Agrupa pelo course_edition_id (turma); quem não tem turma
+  // vinculada (cadastro antigo/avulso) cai num grupo "Sem turma vinculada".
+  const turmaLabelPorId = useMemo(
+    () => new Map(turmasFiltroOptions.map((t) => [t.id, t.label])),
+    [turmasFiltroOptions]
+  );
+
+  const gruposPorTurma = useMemo(() => {
+    const map = new Map<string, { label: string; linhas: LinhaAluno[] }>();
+    for (const l of linhasFiltradas) {
+      const key = l.courseEditionId ?? "__sem_turma__";
+      const label = l.courseEditionId ? turmaLabelPorId.get(l.courseEditionId) ?? l.curso : "Sem turma vinculada";
+      if (!map.has(key)) map.set(key, { label, linhas: [] });
+      map.get(key)!.linhas.push(l);
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }, [linhasFiltradas, turmaLabelPorId]);
+
   function toggleExpandido(id: string) {
     setExpandidos((prev) => {
       const next = new Set(prev);
@@ -321,10 +341,20 @@ export default function ProfessorPainel({
               </tr>
             </thead>
             <tbody>
-              {linhasFiltradas.map((l) => {
-                const aberto = expandidos.has(l.matriculaId);
-                return (
-                  <Fragment key={l.matriculaId}>
+              {gruposPorTurma.map((grupo) => (
+                <Fragment key={grupo.label}>
+                  <tr className="bg-iw-bg border-b border-iw-border">
+                    <td colSpan={5} className="px-4 py-2 text-xs font-black text-iw-navy uppercase tracking-wide">
+                      {grupo.label}{" "}
+                      <span className="font-semibold text-iw-muted normal-case">
+                        ({grupo.linhas.length} aluno{grupo.linhas.length === 1 ? "" : "s"})
+                      </span>
+                    </td>
+                  </tr>
+                  {grupo.linhas.map((l) => {
+                    const aberto = expandidos.has(l.matriculaId);
+                    return (
+                      <Fragment key={l.matriculaId}>
                     <tr
                       onClick={() => toggleExpandido(l.matriculaId)}
                       className="border-b border-iw-border/60 last:border-b-0 hover:bg-iw-bg/60 cursor-pointer transition-colors"
@@ -343,8 +373,8 @@ export default function ProfessorPainel({
                       <td className="px-2 py-2.5 text-iw-navy">{l.numeroMatricula}</td>
                       <td className="px-2 py-2.5 text-iw-navy truncate max-w-[240px] hidden md:table-cell">{l.curso}</td>
                       <td className="px-2 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403]">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] shrink-0">
                             {l.status}
                           </span>
                           <form
@@ -355,9 +385,9 @@ export default function ProfessorPainel({
                             <button
                               type="submit"
                               title="Reenviar link de matrícula/acesso pro aluno"
-                              className="text-iw-muted hover:text-iw-blue transition-colors"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
                             >
-                              <Send className="w-3.5 h-3.5" />
+                              <Send className="w-3.5 h-3.5" /> Reenviar link
                             </button>
                           </form>
                         </div>
@@ -547,9 +577,16 @@ export default function ProfessorPainel({
                         </td>
                       </tr>
                     )}
-                  </Fragment>
-                );
-              })}
+                      </Fragment>
+                    );
+                  })}
+                </Fragment>
+              ))}
+              <tr className="bg-iw-navy/5 border-t-2 border-iw-navy">
+                <td colSpan={5} className="px-4 py-3 text-xs font-black text-iw-navy uppercase tracking-wide">
+                  Total geral — {linhasFiltradas.length} aluno{linhasFiltradas.length === 1 ? "" : "s"}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>

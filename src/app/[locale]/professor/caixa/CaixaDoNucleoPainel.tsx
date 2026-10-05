@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2, Wallet, X, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Ban, Wallet, X, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 // ============================================================
 // /professor/caixa (Fase 2, 27/09/2026 — atualizado no mesmo dia a
@@ -23,6 +23,10 @@ export type Movimentacao = {
   categoriaNome: string | null;
   formaPagamento: string | null;
   excluivel: boolean;
+  // 30/09/2026, pedido do Joaquim: mesmos filtros de turma/curso da tela
+  // Financeiro. Despesas do núcleo não têm turma/curso (ficam null).
+  cursoNome: string | null;
+  turmaNome: string | null;
 };
 
 interface Props {
@@ -44,15 +48,44 @@ export default function CaixaDoNucleoPainel({ movimentacoes, categorias, lancarA
   const [aberto, setAberto] = useState(false);
   const hojeIso = new Date().toISOString().slice(0, 10);
 
-  const totalEntradasCentavos = movimentacoes
+  // 30/09/2026, pedido do Joaquim: os mesmos filtros de data/turma/curso já
+  // usados em /professor/financeiro, com o mesmo padrão de mês atual por
+  // default (o professor pode trocar pra "Todas as datas" no seletor).
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const [mesFiltro, setMesFiltro] = useState(mesAtual);
+  const [turmaFiltro, setTurmaFiltro] = useState("");
+  const [cursoFiltro, setCursoFiltro] = useState("");
+
+  const mesesDisponiveis = useMemo(
+    () => Array.from(new Set(movimentacoes.map((m) => m.data.slice(0, 7)))).sort(),
+    [movimentacoes]
+  );
+  const turmasDisponiveis = useMemo(
+    () => Array.from(new Set(movimentacoes.map((m) => m.turmaNome).filter((t): t is string => !!t))).sort(),
+    [movimentacoes]
+  );
+  const cursosDisponiveis = useMemo(
+    () => Array.from(new Set(movimentacoes.map((m) => m.cursoNome).filter((c): c is string => !!c))).sort(),
+    [movimentacoes]
+  );
+
+  const movimentacoesFiltradas = useMemo(() => {
+    let lista = movimentacoes;
+    if (mesFiltro) lista = lista.filter((m) => m.data.slice(0, 7) === mesFiltro);
+    if (turmaFiltro) lista = lista.filter((m) => m.turmaNome === turmaFiltro);
+    if (cursoFiltro) lista = lista.filter((m) => m.cursoNome === cursoFiltro);
+    return lista;
+  }, [movimentacoes, mesFiltro, turmaFiltro, cursoFiltro]);
+
+  const totalEntradasCentavos = movimentacoesFiltradas
     .filter((m) => m.tipo === "ENTRADA")
     .reduce((acc, m) => acc + m.valor_centavos, 0);
-  const totalSaidasCentavos = movimentacoes
+  const totalSaidasCentavos = movimentacoesFiltradas
     .filter((m) => m.tipo === "SAIDA")
     .reduce((acc, m) => acc + m.valor_centavos, 0);
   const saldoCentavos = totalEntradasCentavos - totalSaidasCentavos;
 
-  const movimentacoesOrdenadas = [...movimentacoes].sort((a, b) => b.data.localeCompare(a.data));
+  const movimentacoesOrdenadas = [...movimentacoesFiltradas].sort((a, b) => b.data.localeCompare(a.data));
 
   return (
     <>
@@ -88,7 +121,47 @@ export default function CaixaDoNucleoPainel({ movimentacoes, categorias, lancarA
         </div>
       </div>
 
-      <div className="flex items-center justify-end mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        {/* 30/09/2026, pedido do Joaquim: mesmos filtros extra da tela
+            Financeiro — data (mês), turma e curso. */}
+        <div className="flex items-center gap-2">
+          <select
+            value={mesFiltro}
+            onChange={(e) => setMesFiltro(e.target.value)}
+            className="bg-white border border-iw-border rounded-lg px-2.5 py-1.5 text-xs font-semibold text-iw-navy"
+          >
+            <option value="">Todas as datas</option>
+            {mesesDisponiveis.map((m) => (
+              <option key={m} value={m}>
+                {new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1, 1).toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </option>
+            ))}
+          </select>
+          <select
+            value={turmaFiltro}
+            onChange={(e) => setTurmaFiltro(e.target.value)}
+            className="bg-white border border-iw-border rounded-lg px-2.5 py-1.5 text-xs font-semibold text-iw-navy"
+          >
+            <option value="">Todas as turmas</option>
+            {turmasDisponiveis.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <select
+            value={cursoFiltro}
+            onChange={(e) => setCursoFiltro(e.target.value)}
+            className="bg-white border border-iw-border rounded-lg px-2.5 py-1.5 text-xs font-semibold text-iw-navy"
+          >
+            <option value="">Todos os cursos</option>
+            {cursosDisponiveis.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           type="button"
           onClick={() => setAberto(true)}
@@ -146,10 +219,10 @@ export default function CaixaDoNucleoPainel({ movimentacoes, categorias, lancarA
                         <input type="hidden" name="id" value={m.id} />
                         <button
                           type="submit"
-                          title="Excluir despesa"
+                          title="Cancelar despesa (continua no histórico)"
                           className="text-iw-muted hover:text-iw-error transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Ban className="w-3.5 h-3.5" />
                         </button>
                       </form>
                     )}

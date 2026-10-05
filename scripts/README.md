@@ -18,6 +18,12 @@ Pra saber **quando usar qual** ao testar Teste/Prova/Simulado, ver
 | `limpar-usuarios-teste.mjs` | **Obsoleto/desativado em 12/09/2026** — era um one-off de produção sem trava de ambiente, com lista de e-mails no formato antigo. Não usar; o arquivo só recusa rodar e aponta pros scripts certos. | — | — |
 | `PERIGO-apagar-logins-nao-admin.mjs` | **26/09/2026, pedido do Joaquim.** ⚠️ Roda contra QUALQUER projeto do `.env.local` carregado, inclusive produção — sem trava fixa de ambiente. Apaga todos os logins de `auth.users` exceto contas `GLOBAL_ADMIN`, pra liberar e-mails de teste/professor presos depois de rodar `PERIGO-zerar-dados-producao.sql`. Não mexe em nenhuma tabela de dado. | Sim (é a função dele) | Não — exige digitar `APAGAR LOGINS <ambiente detectado>` interativamente antes de continuar, e mostra a URL do projeto antes de pedir confirmação |
 
+## Backup (PowerShell)
+
+| Script | Pra que serve |
+|---|---|
+| `backup-manager-v2.ps1` | **05/10/2026.** Backup consolidado: código de produção + staging sem lixo (E: e OneDrive), `git bundle` + manifesto, e dump validado do banco de **produção** (em claro só no E:; na nuvem só criptografado com 7-Zip AES-256). Não faz commit/push. Só lista retenção, nunca apaga. Opções: `-DryRun`, `-PreMigration -Label pre-XXX`, `-SkipDb`, `-SkipCode`, `-SkipCloud`, `-Status` (idade do último dump). Cabeçalho do arquivo tem o passo a passo. |
+
 Ver também `staging/governance/PERIGO-zerar-dados-producao.sql` — SQL solto (não é `.mjs`) pra colar no SQL Editor do Supabase e limpar financeiro/matrículas/alunos/professores em produção ou staging. Os dois "PERIGO-*" são pra uso excepcional e devem ser registrados em `staging/governance/ERROS-COMUNS-IA.md` depois de cada execução.
 
 ## Regra geral

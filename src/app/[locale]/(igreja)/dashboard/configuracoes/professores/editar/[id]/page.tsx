@@ -8,6 +8,15 @@ import ProfessorTurmasVinculos, { type VinculoExistente } from "../../ProfessorT
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  // 04/10/2026, pedido do Joaquim: o botão VOLTAR era fixo pra
+  // /dashboard/configuracoes/professores (fluxo normal do admin). Quando a
+  // Secretaria chega aqui a partir de /secretaria/professores ou
+  // /secretaria/turmas, isso jogava o secretário pro meio da árvore de
+  // Configurações do admin global (professores → persona → configurações),
+  // telas que ele nem deveria navegar. voltarPara/voltarLabel (mesmo padrão
+  // já usado em /admin/matriculas/[id]) permite voltar direto pra onde ele
+  // veio, sem alterar o comportamento padrão do admin.
+  searchParams: Promise<{ voltarPara?: string; voltarLabel?: string }>;
 }
 
 type VinculoRow = {
@@ -22,8 +31,9 @@ type VinculoRow = {
 const CAMPOS_PROFESSOR =
   "id, unit_id, member_id, matricula, nome_completo, cargo, telefone, email, tipo_professor, cpf, rg, rg_orgao_emissor, rg_uf, data_nascimento, genero, estado_civil, escolaridade, profissao, naturalidade_cidade, naturalidade_estado, nacionalidade, nome_conjuge, nome_mae, nome_pai, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, estado, foto_url, observacoes, user_id";
 
-export default async function EditarProfessorPage({ params }: PageProps) {
+export default async function EditarProfessorPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { voltarPara, voltarLabel } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: professor }, unitsRes, churchesRes, { data: cursos }, { data: vinculosRaw }, { data: generos }, { data: estadosCivis }, { data: escolaridadesOpts }, { data: profissoesOpts }, { data: cargosOpts }] = await Promise.all([
@@ -79,11 +89,11 @@ export default async function EditarProfessorPage({ params }: PageProps) {
           <p className="text-iw-muted text-sm">{professor.nome_completo}</p>
         </div>
         <Link
-          href="/dashboard/configuracoes/professores"
+          href={voltarPara || "/dashboard/configuracoes/professores"}
           className="shrink-0 inline-flex items-center gap-1.5 text-sm uppercase text-[#CF8403] font-semibold border-[2px] border-[#CF8403] rounded-lg px-2.5 py-1 bg-[#0D0D0D] hover:opacity-80 transition-opacity"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          VOLTAR
+          {voltarLabel ? `VOLTAR PARA ${voltarLabel.toUpperCase()}` : "VOLTAR"}
         </Link>
       </div>
 

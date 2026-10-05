@@ -1104,6 +1104,12 @@ export async function atualizarVinculoUsuarioAction(formData: FormData) {
   const userId = (formData.get("user_id") as string) || "";
   const levelRaw = (formData.get("level") as string) || "";
   const unitId = ((formData.get("unit_id") as string) || "").trim() || null;
+  // Migration 130: CETADP | IGREJA | AMBOS. Vazio = preserva o domínio atual
+  // do usuário (ver abaixo), ou CETADP se ele ainda não tinha vínculo.
+  const dominioRaw = ((formData.get("dominio") as string) || "").trim().toUpperCase();
+  if (dominioRaw && !["CETADP", "IGREJA", "AMBOS"].includes(dominioRaw)) {
+    return { success: false, message: "Domínio inválido." };
+  }
 
   if (!userId) return { success: false, message: "Usuário inválido." };
 
@@ -1140,12 +1146,23 @@ export async function atualizarVinculoUsuarioAction(formData: FormData) {
   if (level === 0 && unitId) return { success: false, message: "Super-Master (nível 0) não deve ter unidade selecionada." };
   if (level > 0 && !unitId) return { success: false, message: "Selecione a unidade para esse nível." };
 
+  // Lê o domínio atual ANTES de apagar o vínculo, pra não resetar um
+  // AMBOS/IGREJA pra CETADP só porque o formulário não mandou o campo.
+  const { data: vinculoAtual } = await admin
+    .from("admin_roles")
+    .select("dominio")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  const dominio = level === 0 ? "AMBOS" : dominioRaw || vinculoAtual?.dominio || "CETADP";
+
   await admin.from("admin_roles").delete().eq("user_id", userId);
 
   const { error: roleError } = await admin.from("admin_roles").insert({
     user_id: userId,
     level,
     unit_id: level === 0 ? null : unitId,
+    dominio,
     invited_by: user.id,
   });
   if (roleError) return { success: false, message: "Erro ao gravar o vínculo: " + roleError.message };
@@ -1461,6 +1478,11 @@ export async function inviteStaffAction(formData: FormData) {
   const levelRaw = (formData.get("level") as string) || "";
   const unitId = ((formData.get("unit_id") as string) || "").trim() || null;
   const roleTitle = ((formData.get("role_title") as string) || "").trim() || null;
+  // Migration 130: domínio do acesso. Padrão CETADP (menor privilégio).
+  const dominioRaw = ((formData.get("dominio") as string) || "CETADP").trim().toUpperCase();
+  if (!["CETADP", "IGREJA", "AMBOS"].includes(dominioRaw)) {
+    return { success: false, message: "Domínio inválido." };
+  }
 
   const level = Number.parseInt(levelRaw, 10);
 
@@ -1540,6 +1562,7 @@ export async function inviteStaffAction(formData: FormData) {
     level,
     unit_id: level === 0 ? null : unitId,
     role_title: roleTitle,
+    dominio: level === 0 ? "AMBOS" : dominioRaw,
     invited_by: currentUser.id,
   });
 
@@ -1568,4 +1591,55 @@ export async function inviteStaffAction(formData: FormData) {
 
 export async function inviteStaffFormAction(formData: FormData): Promise<void> {
   await inviteStaffAction(formData);
+}
+
+// ── AÇÃO: ACESSAR O PORTAL DO PROFESSOR (30/09/2026, pedido do Joaquim)
+// ────────────────────────────────────────────────────────────────────
+// Da lista de Professores, a secretaria/admin global pode entrar na área
+// de trabalho de um professor específico pra ver o que ele vê (suporte,
+// conferência). Escolha travada com o Joaquim: entra com a sessão REAL do
+// professor (não um modo "visualização" só de leitura) — mesmo mecanismo
+// do convite por e-mail (auth.admin.generateLink), só que o link é aberto
+// direto pelo admin em vez de mandado por e-mail. Isso troca a sessão do
+// navegador pra a do professor (é um login de verdade) — por isso o botão
+// abre numa aba nova, e fica a cargo do admin logar de novo (ou usar uma
+// aba anônima em paralelo) pra continuar como admin global.
+export async function acessarPortalProfessorAction(
+  professorId: string
+): Promise<{ success: boolean; url?: string; message?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Não autenticado." };
+  if (!(await checkIsStaff(supabase, user.id))) {
+    return { success: false, message: "Acesso restrito à secretaria." };
+  }
+
+  const admin = createAdminClient();
+  const { data: professor } = await admin
+    .from("professores")
+    .select("email, user_id")
+    .eq("id", professorId)
+    .maybeSingle();
+
+  if (!professor?.user_id) {
+    return { success: false, message: "Este professor ainda não tem acesso criado (convite pendente)." };
+  }
+  if (!professor.email) {
+    return { success: false, message: "Este professor não tem e-mail de login cadastrado." };
+  }
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: professor.email,
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/professor` },
+  });
+
+  if (error || !data?.properties?.action_link) {
+    console.error("[configuracoes/actions] acessarPortalProfessorAction", error);
+    return { success: false, message: "Erro ao gerar o link de acesso." };
+  }
+
+  return { success: true, url: data.properties.action_link };
 }
