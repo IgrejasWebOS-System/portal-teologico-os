@@ -350,11 +350,23 @@ function Backup-Banco {
     $rotuloSql = if ($Label) { ($Label -replace "[^a-zA-Z0-9\-]", "") } else { "" }
     $tamBytes = (Get-Item $arq).Length
     $sqlReg = "insert into public.monitor_backups (rotulo, arquivo, tamanho_bytes, sha256, entradas) values (nullif('{0}',''), '{1}', {2}, '{3}', {4});" -f $rotuloSql, $nomeDump, $tamBytes, $hash, $lista.Count
-    & psql $url -v ON_ERROR_STOP=1 -q -c $sqlReg 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    # Em PowerShell 5.1 com ErrorActionPreference=Stop, o stderr de um programa
+    # nativo vira excecao: por isso Continue + try/catch locais. Nunca derruba
+    # o backup (a copia para a nuvem logo abaixo precisa continuar).
+    $eapAnterior = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $regOk = $false
+    try {
+      $null = & psql $url -v ON_ERROR_STOP=1 -q -c $sqlReg 2>&1
+      $regOk = ($LASTEXITCODE -eq 0)
+    } catch {
+      $regOk = $false
+    }
+    $ErrorActionPreference = $eapAnterior
+    if ($regOk) {
       Write-Log "Backup registrado no painel de saude (monitor_backups)."
     } else {
-      Write-Log "Nao foi possivel registrar o backup no painel (migration 133 aplicada em producao?). O backup em si esta OK." "AVISO"
+      Write-Log "Backup nao registrado no painel (migration 133 ainda nao aplicada em producao?). O backup em si esta OK." "AVISO"
     }
   } else {
     Write-Log "psql nao encontrado: backup nao registrado no painel de saude (o backup em si esta OK)." "AVISO"
