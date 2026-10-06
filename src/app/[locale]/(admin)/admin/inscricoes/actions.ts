@@ -5,6 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { labelCurso } from "@/utils/cursos-ead";
+import { cpfVariantes } from "@/utils/cpf";
 
 // ============================================================
 // Aprovação/rejeição de inscrições do Portal EAD (CETADP)
@@ -99,7 +100,9 @@ export async function approveInscricaoAction(formData: FormData) {
     const { data } = await admin
       .from("ead_alunos")
       .select("id, user_id")
-      .eq("cpf", cpfLimpo)
+      .in("cpf", cpfVariantes(cpfLimpo))
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
     aluno = data;
   }

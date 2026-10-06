@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
-import { validarCPF } from "@/utils/cpf";
+import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { gerarQrCodeDataUrl } from "@/utils/qrcode";
 import { enviarLinkFichaRapida } from "@/utils/email/resend";
 import { revalidatePath } from "next/cache";
@@ -95,7 +95,9 @@ export async function criarFichaPendenteAction(formData: FormData) {
   const { data: existente } = await admin
     .from("ead_alunos")
     .select("id, user_id, status, nome_completo")
-    .eq("cpf", cpf)
+    .in("cpf", cpfVariantes(cpf))
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (existente) {

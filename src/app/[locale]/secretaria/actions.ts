@@ -24,7 +24,8 @@ import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsSecretario } from "@/utils/secretaria";
-import { validarCPF } from "@/utils/cpf";
+import { traduzirErro } from "@/utils/mensagens-erro";
+import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { gerarPdfMatricula } from "@/utils/pdf/matricula";
@@ -168,7 +169,13 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
     ? `${courseEdition.nome}${courseEdition.classe ? ` - Classe ${courseEdition.classe}` : ""}`
     : null;
 
-  const { data: alunoExistente } = await admin.from("ead_alunos").select("id, user_id").eq("cpf", cpf).maybeSingle();
+  const { data: alunoExistente } = await admin
+    .from("ead_alunos")
+    .select("id, user_id")
+    .in("cpf", cpfVariantes(cpf))
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (alunoExistente) {
     const { data: conflito } = await admin
       .from("ead_matriculas")
@@ -524,7 +531,8 @@ export async function secretariaReenviarLinkAlunoAction(formData: FormData) {
   if (!userIdVinculo) {
     console.error("[secretaria/actions] secretariaReenviarLinkAlunoAction", inviteError);
     erro(
-      "Erro ao reenviar o link: " + (inviteError?.message ?? "não foi possível identificar o login deste aluno"),
+      `Não foi possível enviar o link para ${aluno!.email}: ` +
+        (inviteError ? traduzirErro(inviteError.message) : "não foi possível identificar o login deste aluno."),
       "/secretaria/alunos"
     );
   }
@@ -540,7 +548,10 @@ export async function secretariaReenviarLinkAlunoAction(formData: FormData) {
     .eq("id", alunoId);
 
   revalidatePath("/secretaria/alunos");
-  redirect("/secretaria/alunos?msg=" + encodeURIComponent(`Link de acesso reenviado pra ${aluno!.nome_completo}.`));
+  redirect(
+    "/secretaria/alunos?msg=" +
+      encodeURIComponent(`Link de acesso enviado para ${aluno!.nome_completo} no e-mail ${aluno!.email}.`)
+  );
 }
 
 // ── AÇÕES: CONFIGURAÇÕES (ficha do próprio secretário) ──────────
@@ -701,13 +712,15 @@ export async function secretariaReenviarLinkProfessorAction(formData: FormData) 
   }
 
   if (!userIdVinculo) {
-    const mensagemErro = inviteError?.message ?? "não foi possível identificar o login deste professor";
+    const mensagemErro = inviteError
+      ? traduzirErro(inviteError.message)
+      : "não foi possível identificar o login deste professor.";
     console.error("[secretaria/actions] secretariaReenviarLinkProfessorAction", inviteError);
     await admin
       .from("professores")
       .update({ convite_status: "FALHOU", convite_erro: mensagemErro })
       .eq("id", professorId);
-    erro("Erro ao reenviar o link: " + mensagemErro, "/secretaria/professores");
+    erro(`Não foi possível enviar o link para ${professor!.email}: ` + mensagemErro, "/secretaria/professores");
   }
 
   await admin
@@ -722,7 +735,8 @@ export async function secretariaReenviarLinkProfessorAction(formData: FormData) 
 
   revalidatePath("/secretaria/professores");
   redirect(
-    "/secretaria/professores?msg=" + encodeURIComponent(`Link de acesso reenviado pra ${professor!.nome_completo}.`)
+    "/secretaria/professores?msg=" +
+      encodeURIComponent(`Link de acesso enviado para ${professor!.nome_completo} no e-mail ${professor!.email}.`)
   );
 }
 

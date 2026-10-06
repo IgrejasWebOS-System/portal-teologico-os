@@ -16,8 +16,8 @@ import {
   Copy,
   Check,
   Pencil,
-  Send,
 } from "lucide-react";
+import ReenviarLinkButton from "@/components/ui/ReenviarLinkButton";
 import QRCodeLib from "qrcode";
 import { montarPayloadPix, DADOS_PIX_CETADP } from "@/utils/financeiro/pix";
 
@@ -55,6 +55,7 @@ export type LinhaAluno = {
   alunoId: string;
   nome: string;
   cpf: string | null;
+  email: string | null;
   curso: string;
   numeroMatricula: string;
   status: string;
@@ -377,19 +378,16 @@ export default function ProfessorPainel({
                           <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] shrink-0">
                             {l.status}
                           </span>
-                          <form
+                          <ReenviarLinkButton
                             action={reenviarLinkAction}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <input type="hidden" name="aluno_id" value={l.alunoId} />
-                            <button
-                              type="submit"
-                              title="Reenviar link de matrícula/acesso pro aluno"
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
-                            >
-                              <Send className="w-3.5 h-3.5" /> Reenviar link
-                            </button>
-                          </form>
+                            campo="aluno_id"
+                            valor={l.alunoId}
+                            nome={l.nome}
+                            email={l.email}
+                            tipo="aluno"
+                            title="Reenviar link de matrícula/acesso pro aluno"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
+                          />
                         </div>
                       </td>
                     </tr>

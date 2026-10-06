@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BookUser, Pencil, Send, CheckCircle2 } from "lucide-react";
+import { BookUser, Pencil, CheckCircle2, AlertTriangle } from "lucide-react";
+import ReenviarLinkButton from "@/components/ui/ReenviarLinkButton";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsSecretario, getNucleosDoEscopo } from "@/utils/secretaria";
 import { secretariaReenviarLinkAlunoAction } from "../actions";
@@ -35,9 +36,9 @@ const STATUS_COR: Record<string, string> = {
 export default async function AlunosSecretariaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ nucleo?: string; msg?: string }>;
+  searchParams: Promise<{ nucleo?: string; msg?: string; error?: string }>;
 }) {
-  const { nucleo, msg } = await searchParams;
+  const { nucleo, msg, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,7 +52,7 @@ export default async function AlunosSecretariaPage({
 
   let query = supabase
     .from("ead_alunos")
-    .select("id, nome_completo, matricula, status, telefone, church_id, churches(name)")
+    .select("id, nome_completo, matricula, status, telefone, email, church_id, churches(name)")
     .order("nome_completo");
   if (nucleo) query = query.eq("church_id", nucleo);
   const { data: alunosRaw } = await query;
@@ -97,6 +98,11 @@ export default async function AlunosSecretariaPage({
       {msg && (
         <div className="flex items-center gap-2 bg-iw-success/8 border border-iw-success/30 text-iw-success px-4 py-3 rounded-xl text-sm font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm font-medium">
+          <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
 
@@ -146,16 +152,14 @@ export default async function AlunosSecretariaPage({
                         ) : (
                           <span className="text-xs text-black">—</span>
                         )}
-                        <form action={secretariaReenviarLinkAlunoAction}>
-                          <input type="hidden" name="aluno_id" value={a.id} />
-                          <button
-                            type="submit"
-                            title="Reenviar link de acesso pro aluno"
-                            className="inline-flex items-center gap-1 text-xs font-semibold bg-white text-black border border-iw-gold rounded-lg px-3 py-1.5 shadow-sm hover:bg-iw-gold/10 transition-colors"
-                          >
-                            <Send className="w-3.5 h-3.5" /> Reenviar link
-                          </button>
-                        </form>
+                        <ReenviarLinkButton
+                          action={secretariaReenviarLinkAlunoAction}
+                          campo="aluno_id"
+                          valor={a.id}
+                          nome={a.nome_completo}
+                          email={a.email ?? null}
+                          tipo="aluno"
+                        />
                       </div>
                     </td>
                   </tr>
