@@ -344,6 +344,22 @@ function Backup-Banco {
   Write-Log ("SHA256: {0}" -f $hash)
   Add-Content -Path (Join-Path $dbDir "HASHES.txt") -Value ("{0}  {1}  {2} KB" -f $hash, $nomeDump, $tamanhoKb) -Encoding ASCII
 
+  # Registra o backup no painel /admin/saude-sistema (tabela monitor_backups,
+  # migration 133). Tolerante a falha: se psql ou a tabela nao existirem, so avisa.
+  if (Test-Ferramenta "psql") {
+    $rotuloSql = if ($Label) { ($Label -replace "[^a-zA-Z0-9\-]", "") } else { "" }
+    $tamBytes = (Get-Item $arq).Length
+    $sqlReg = "insert into public.monitor_backups (rotulo, arquivo, tamanho_bytes, sha256, entradas) values (nullif('{0}',''), '{1}', {2}, '{3}', {4});" -f $rotuloSql, $nomeDump, $tamBytes, $hash, $lista.Count
+    & psql $url -v ON_ERROR_STOP=1 -q -c $sqlReg 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      Write-Log "Backup registrado no painel de saude (monitor_backups)."
+    } else {
+      Write-Log "Nao foi possivel registrar o backup no painel (migration 133 aplicada em producao?). O backup em si esta OK." "AVISO"
+    }
+  } else {
+    Write-Log "psql nao encontrado: backup nao registrado no painel de saude (o backup em si esta OK)." "AVISO"
+  }
+
   # Copia para a nuvem: SO criptografada
   if ($SkipCloud) { return }
 
