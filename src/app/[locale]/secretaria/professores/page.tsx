@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, Pencil, Send, CheckCircle2, UserPlus } from "lucide-react";
+import { GraduationCap, Pencil, CheckCircle2, UserPlus, AlertTriangle } from "lucide-react";
+import ReenviarLinkButton from "@/components/ui/ReenviarLinkButton";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsSecretario, getNucleosDoEscopo } from "@/utils/secretaria";
 import { secretariaReenviarLinkProfessorAction } from "../actions";
@@ -20,9 +21,9 @@ export const metadata = { title: "Professores — Área da Secretaria" };
 export default async function ProfessoresSecretariaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ nucleo?: string; msg?: string }>;
+  searchParams: Promise<{ nucleo?: string; msg?: string; error?: string }>;
 }) {
-  const { nucleo, msg } = await searchParams;
+  const { nucleo, msg, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,7 +37,7 @@ export default async function ProfessoresSecretariaPage({
 
   let query = supabase
     .from("professores")
-    .select("id, nome_completo, cargo, telefone, matricula, church_id, churches(name)")
+    .select("id, nome_completo, cargo, telefone, email, matricula, church_id, churches(name)")
     .order("nome_completo");
   if (nucleo) query = query.eq("church_id", nucleo);
   const { data: professoresRaw } = await query;
@@ -74,6 +75,11 @@ export default async function ProfessoresSecretariaPage({
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {msg}
         </div>
       )}
+      {error && (
+        <div className="flex items-center gap-2 bg-iw-error/8 border border-iw-error/30 text-iw-error px-4 py-3 rounded-xl text-sm font-medium">
+          <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+        </div>
+      )}
 
       {professores.length === 0 ? (
         <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm px-5 py-12 text-center">
@@ -109,16 +115,14 @@ export default async function ProfessoresSecretariaPage({
                       >
                         <Pencil className="w-3.5 h-3.5" /> Editar
                       </Link>
-                      <form action={secretariaReenviarLinkProfessorAction}>
-                        <input type="hidden" name="professor_id" value={p.id} />
-                        <button
-                          type="submit"
-                          title="Reenviar link de acesso/definir senha pro professor"
-                          className="inline-flex items-center gap-1 text-xs font-semibold bg-white text-black border border-iw-gold rounded-lg px-3 py-1.5 shadow-sm hover:bg-iw-gold/10 transition-colors"
-                        >
-                          <Send className="w-3.5 h-3.5" /> Reenviar link
-                        </button>
-                      </form>
+                      <ReenviarLinkButton
+                        action={secretariaReenviarLinkProfessorAction}
+                        campo="professor_id"
+                        valor={p.id}
+                        nome={p.nome_completo}
+                        email={p.email ?? null}
+                        tipo="professor"
+                      />
                     </div>
                   </td>
                 </tr>

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { traduzirErro } from "@/utils/mensagens-erro";
 import { checkIsStaff } from "@/utils/staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -1543,7 +1544,7 @@ export async function inviteStaffAction(formData: FormData) {
     if (inviteError || !invited?.user) {
       return {
         success: false,
-        message: inviteError?.message ?? "Não foi possível enviar o convite.",
+        message: inviteError ? traduzirErro(inviteError.message) : "Não foi possível enviar o convite.",
       };
     }
 
@@ -1567,11 +1568,17 @@ export async function inviteStaffAction(formData: FormData) {
   });
 
   if (roleError) {
+    console.error("[configuracoes/actions] inviteStaffAction admin_roles", roleError);
+    // 23505 = violação de unicidade: essa pessoa já tem acesso nessa unidade.
+    const detalhe =
+      roleError.code === "23505"
+        ? "este e-mail já tem um acesso cadastrado nesta unidade. Para mudar o nível ou o domínio, use a edição do acesso na lista de operadores abaixo."
+        : traduzirErro(roleError.message);
     return {
       success: false,
       message: promovendoExistente
-        ? `Falha ao gravar o nível de acesso: ${roleError.message}`
-        : `Convite enviado, mas houve um erro ao gravar o nível de acesso: ${roleError.message}`,
+        ? `Não foi possível gravar o nível de acesso: ${detalhe}`
+        : `Convite enviado, mas não foi possível gravar o nível de acesso: ${detalhe}`,
     };
   }
 

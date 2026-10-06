@@ -19,7 +19,8 @@ import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
-import { validarCPF } from "@/utils/cpf";
+import { traduzirErro } from "@/utils/mensagens-erro";
+import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { gerarPdfMatricula } from "@/utils/pdf/matricula";
@@ -273,7 +274,13 @@ export async function professorCriarMatriculaAction(formData: FormData) {
     ? `${courseEdition.nome}${courseEdition.classe ? ` - Classe ${courseEdition.classe}` : ""}`
     : null;
 
-  const { data: alunoExistente } = await admin.from("ead_alunos").select("id, user_id").eq("cpf", cpf).maybeSingle();
+  const { data: alunoExistente } = await admin
+    .from("ead_alunos")
+    .select("id, user_id")
+    .in("cpf", cpfVariantes(cpf))
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (alunoExistente) {
     const { data: conflito } = await admin
       .from("ead_matriculas")
@@ -824,7 +831,7 @@ export async function professorReenviarLinkAlunoAction(formData: FormData) {
 
   if (inviteError) {
     console.error("[professor/actions] professorReenviarLinkAlunoAction", inviteError);
-    erro("Erro ao reenviar o link: " + inviteError.message, "/professor/alunos");
+    erro(`Não foi possível enviar o link para ${aluno!.email}: ` + traduzirErro(inviteError.message), "/professor/alunos");
   }
 
   await admin
@@ -833,7 +840,10 @@ export async function professorReenviarLinkAlunoAction(formData: FormData) {
     .eq("id", alunoId);
 
   revalidatePath("/professor/alunos");
-  redirect("/professor/alunos?msg=" + encodeURIComponent(`Link de acesso reenviado pra ${aluno!.nome_completo}.`));
+  redirect(
+    "/professor/alunos?msg=" +
+      encodeURIComponent(`Link de acesso enviado para ${aluno!.nome_completo} no e-mail ${aluno!.email}.`)
+  );
 }
 
 // ── AÇÃO: PEDIDO DE MATERIAL (remessa da próxima aula) ──────────

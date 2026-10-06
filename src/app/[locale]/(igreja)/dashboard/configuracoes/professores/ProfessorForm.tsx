@@ -18,7 +18,7 @@
 // tela usava um padrão de input/label diferente (fora do padrão).
 // ============================================================
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -230,7 +230,7 @@ export default function ProfessorForm({
   const [loadingCep, setLoadingCep] = useState(false);
   const [cepError, setCepError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [cpfError, setCpfError] = useState("");
+  const [cpfDuplicado, setCpfDuplicado] = useState("");
 
   // UF ainda entra manualmente (DF, ou quando a cidade não bate no
   // catálogo), mas Naturalidade e Cidade (endereço) buscam por CIDADE
@@ -283,17 +283,34 @@ export default function ProfessorForm({
     }
   };
 
-  const checkCpfExists = async (cpfVal: string) => {
-    const digitos = cpfVal.replace(/\D/g, "");
-    if (!digitos) { setCpfError(""); return; }
-    if (digitos.length < 11) { setCpfError(""); return; }
-    if (!validarCPF(cpfVal)) { setCpfError("CPF inválido — confira os números digitados."); return; }
-    const supabase = createClient();
-    let query = supabase.from("professores").select("id").eq("cpf", cpfVal);
-    if (existing?.id) query = query.neq("id", existing.id);
-    const { data } = await query.maybeSingle();
-    setCpfError(data ? "Este CPF já está cadastrado para outro professor." : "");
-  };
+  // 05/10/2026: o erro de CPF ficava preso depois de corrigir o número (ou de
+  // preencher o CPF pela busca de membro), porque só era recalculado ao sair
+  // do campo. Agora é recalculado a cada mudança do CPF; `cancelado` impede
+  // que uma consulta antiga sobrescreva o resultado do CPF atual.
+  // Validação de formato é derivada (sem estado); só a checagem de duplicidade
+  // (consulta ao banco) guarda estado — o CPF encontrado como duplicado.
+  const cpfFormatoErro = useMemo(() => {
+    const digitos = cpf.replace(/\D/g, "");
+    if (digitos.length < 11) return "";
+    return validarCPF(cpf) ? "" : "CPF inválido — confira os números digitados.";
+  }, [cpf]);
+  const cpfPronto = cpf.replace(/\D/g, "").length >= 11 && !cpfFormatoErro;
+
+  useEffect(() => {
+    if (!cpfPronto) return;
+    let cancelado = false;
+    (async () => {
+      const supabase = createClient();
+      let query = supabase.from("professores").select("id").eq("cpf", cpf);
+      if (existing?.id) query = query.neq("id", existing.id);
+      const { data } = await query.maybeSingle();
+      if (!cancelado) setCpfDuplicado(data ? cpf : "");
+    })();
+    return () => { cancelado = true; };
+  }, [cpf, cpfPronto, existing?.id]);
+
+  const cpfError =
+    cpfFormatoErro || (cpfPronto && cpfDuplicado === cpf ? "Este CPF já está cadastrado para outro professor." : "");
 
   const campos = useMemo(() => units.filter((u) => u.type === "CAMPO"), [units]);
   const sedeDoCampo = useMemo(() => units.find((u) => u.type === "SEDE" && u.parent_id === campoId), [units, campoId]);
@@ -650,8 +667,7 @@ export default function ProfessorForm({
           <Field label="CPF" span="col-span-6 md:col-span-3" error={!!cpfError}>
             <input
               value={cpf}
-              onChange={(e) => { setCpf(maskCPF(e.target.value)); if (cpfError) setCpfError(""); }}
-              onBlur={() => checkCpfExists(cpf)}
+              onChange={(e) => setCpf(maskCPF(e.target.value))}
               placeholder="000.000.000-00"
               className={bareCls}
             />

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { labelCurso } from "@/utils/cursos-ead";
+import { cpfVariantes } from "@/utils/cpf";
 
 // ============================================================
 // Auto-matrícula — decisão do CETADP de 16/07/2026: matrícula deixou
@@ -120,7 +121,14 @@ export async function matricularAlunoEmCurso(
     aluno = data;
   }
   if (!aluno && cpfLimpo) {
-    const { data } = await admin.from("ead_alunos").select("id, user_id").eq("cpf", cpfLimpo).maybeSingle();
+    // Casa os dois formatos de CPF (com e sem máscara) — ver cpfVariantes.
+    const { data } = await admin
+      .from("ead_alunos")
+      .select("id, user_id")
+      .in("cpf", cpfVariantes(cpfLimpo))
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
     aluno = data;
   }
 

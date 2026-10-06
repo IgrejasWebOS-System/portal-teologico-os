@@ -46,6 +46,10 @@ const ADMIN_RESTRITO_PREFIXOS = [
   "/dashboard/configuracoes/persona/turmas",
   "/dashboard/configuracoes/professores",
   "/dashboard/configuracoes/persona/alunos",
+  // Impressão (Ficha, Testes, Prova, Declaração, Certificado) aberta a partir
+  // da ficha do aluno em ".../persona/alunos/[id]" — sem isto o admin
+  // restrito era mandado de volta pro /admin ao clicar (05/10/2026).
+  "/portal/impressao",
   // Só "Matriz de Usuários" — a raiz /acessos (com os cards de Sedes
   // Regionais e Líderes de Setor) fica de fora de propósito, pedido do
   // Joaquim (28/09/2026): não precisa dessas duas pro menu restrito.

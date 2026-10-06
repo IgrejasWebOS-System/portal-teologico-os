@@ -5,6 +5,19 @@
 // não garante que o número é matematicamente válido.
 // ============================================================
 
+// ------------------------------------------------------------
+// ead_alunos.cpf tem registros nos DOIS formatos (só dígitos e com máscara
+// 000.000.000-00) — o índice único comparava texto cru e deixou passar o
+// mesmo CPF duas vezes (achado 05/10/2026: ANA PAULA e PEDRO HENRIQUE com
+// duas fichas e duas matrículas). Toda busca de aluno por CPF deve usar
+// `.in("cpf", cpfVariantes(cpf))` para casar os dois formatos.
+// ------------------------------------------------------------
+export function cpfVariantes(cpfRaw: string): string[] {
+  const d = cpfRaw.replace(/\D/g, "");
+  if (d.length !== 11) return [cpfRaw];
+  return [d, `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`];
+}
+
 export function validarCPF(cpfRaw: string): boolean {
   const cpf = cpfRaw.replace(/\D/g, "");
 

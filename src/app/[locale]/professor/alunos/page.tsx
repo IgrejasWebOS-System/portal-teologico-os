@@ -151,6 +151,7 @@ export default async function AlunosDoProfessorPage({
       alunoId: m.aluno_id,
       nome: aluno?.nome_completo ?? "—",
       cpf: aluno?.cpf ?? null,
+      email: aluno?.email ?? null,
       curso: m.curso_nome_snapshot,
       numeroMatricula: m.matricula,
       status: m.status,

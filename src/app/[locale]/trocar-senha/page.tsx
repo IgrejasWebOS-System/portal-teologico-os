@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { KeyRound } from "lucide-react";
+import { traduzirErro } from "@/utils/mensagens-erro";
 import { createClient } from "@/utils/supabase/client";
 import { clearMustChangePasswordAction } from "./actions";
 import { validarSenha, REGRA_SENHA_TEXTO } from "@/utils/senha";
@@ -12,7 +12,6 @@ import { validarSenha, REGRA_SENHA_TEXTO } from "@/utils/senha";
 // recém-convidado via inviteStaffAction). Sem senha padrão compartilhada
 // entre contas: cada pessoa define a própria senha aqui, uma vez.
 export default function TrocarSenhaPage() {
-  const router = useRouter();
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState("");
@@ -33,15 +32,23 @@ export default function TrocarSenhaPage() {
     }
 
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: senha });
-      if (error) {
-        setErro(error.message);
-        return;
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.auth.updateUser({ password: senha });
+        if (error) {
+          setErro(traduzirErro(error.message));
+          return;
+        }
+        await clearMustChangePasswordAction();
+        // 05/10/2026: antes mandava todo mundo pra /dashboard (tela da igreja)
+        // e a tela ficava presa em "Salvando..." quando o destino redirecionava
+        // (secretário só da CETADP, professor, aluno). Agora navegação completa
+        // para /login: o middleware leva cada perfil ao seu destino certo.
+        window.location.assign("/login");
+      } catch (e) {
+        console.error("[trocar-senha]", e);
+        setErro("Não foi possível salvar a senha agora. Verifique a conexão e tente novamente.");
       }
-      await clearMustChangePasswordAction();
-      router.push("/dashboard");
-      router.refresh();
     });
   };
 

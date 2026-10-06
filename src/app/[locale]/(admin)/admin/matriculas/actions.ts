@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
 import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
-import { validarCPF } from "@/utils/cpf";
+import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { gerarPdfMatricula, type DadosPagamentoPdf } from "@/utils/pdf/matricula";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 
@@ -435,7 +435,9 @@ export async function matricularDiretoAction(formData: FormData) {
   const { data: existente } = await admin
     .from("ead_alunos")
     .select("id, user_id")
-    .eq("cpf", cpf)
+    .in("cpf", cpfVariantes(cpf))
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
   aluno = existente;
 
