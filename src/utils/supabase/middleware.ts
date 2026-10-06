@@ -29,6 +29,9 @@ const PUBLIC_PATHS = [
   // ainda faz a prova sem login, validação é por CPF dentro da própria
   // página.
   "/prova-publica",
+  // Verificação diária de saúde do Supabase (Vercel Cron). Sem sessão de
+  // usuário: a própria rota exige o header Authorization: Bearer CRON_SECRET.
+  "/api/cron/saude-supabase",
 ];
 // Rotas públicas de correspondência exata (evita casar "/" com tudo)
 const PUBLIC_EXACT = ["/"];
