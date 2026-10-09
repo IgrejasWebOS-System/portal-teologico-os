@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import type { UnitLite } from "./TurmasFiltros";
+import PeriodoTurmaFields from "@/components/turmas/PeriodoTurmaFields";
 
 type Curso = { id: string; title: string };
 
@@ -122,8 +123,7 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
           maxLength={40}
           className={`${inputCls} sm:col-span-1 uppercase`}
         />
-        <input name="data_inicio" type="date" className={`${inputCls} sm:col-span-1`} />
-        <input name="data_fim" type="date" className={`${inputCls} sm:col-span-1`} />
+        <PeriodoTurmaFields inputClassName={inputCls} selectClassName={selectCls} />
 
         <button
           type="submit"

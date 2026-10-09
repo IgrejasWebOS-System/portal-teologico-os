@@ -27,6 +27,7 @@ import { checkIsSecretario } from "@/utils/secretaria";
 import { traduzirErro } from "@/utils/mensagens-erro";
 import { MSG_AUTOATENDIMENTO, cpfEhOProprio } from "@/utils/autoatendimento";
 import { registrarAuditoria } from "@/utils/auditoria";
+import { dataFimPadrao } from "@/utils/turmas/periodo";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -616,7 +617,8 @@ export async function secretariaCriarTurmaAction(formData: FormData) {
   const dia_semana = formData.get("dia_semana") as string;
   const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const data_inicio = (formData.get("data_inicio") as string) || null;
-  const data_fim = (formData.get("data_fim") as string) || null;
+  // Cursos de 12 meses: sem data final informada, usa início + 12 meses.
+  const data_fim = (formData.get("data_fim") as string) || (data_inicio ? dataFimPadrao(data_inicio) || null : null);
 
   const voltar = "/secretaria/turmas";
 

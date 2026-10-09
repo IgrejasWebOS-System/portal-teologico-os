@@ -5,6 +5,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { traduzirErro } from "@/utils/mensagens-erro";
 import { checkIsStaff } from "@/utils/staff";
 import { registrarAuditoria } from "@/utils/auditoria";
+import { dataFimPadrao } from "@/utils/turmas/periodo";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -1293,7 +1294,8 @@ export async function addTurmaConfigAction(formData: FormData) {
   const nome = (formData.get("nome") as string)?.trim();
   const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const dataInicio = (formData.get("data_inicio") as string) || null;
-  const dataFim = (formData.get("data_fim") as string) || null;
+  // Cursos de 12 meses: sem data final informada, usa início + 12 meses.
+  const dataFim = (formData.get("data_fim") as string) || (dataInicio ? dataFimPadrao(dataInicio) || null : null);
   const filtros = querystringFiltros(formData);
 
   if (!courseId || !nome) {
