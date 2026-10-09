@@ -819,8 +819,8 @@ export default function ProfessorForm({
         />
         <p className="text-sm text-black -mt-1">
           {existing
-            ? "Este professor já tem (ou não) acesso próprio pra gerenciar sozinho este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a Campo/Setor/Igreja selecionados acima. Concessão de acesso fica bloqueada por aqui por enquanto."
-            : "Todo professor novo já sai com acesso próprio pra gerenciar sozinho este núcleo — matrículas, turmas e alunos só dele — nível 4, escopado a Campo/Setor/Igreja selecionados acima. O e-mail informado é o login dele."}
+            ? "Este professor acessa a Área do Professor (/professor), restrita às próprias turmas, alunos e matrículas do núcleo selecionado acima. Concessão de acesso fica bloqueada por aqui por enquanto."
+            : "Todo professor novo recebe um convite por e-mail para criar a senha e acessar a Área do Professor (/professor), onde gerencia só as próprias turmas, alunos e matrículas do núcleo selecionado acima (Campo/Setor/Igreja). O e-mail informado é o login dele. Professor não acessa o painel administrativo."}
         </p>
 
         {existing ? (
