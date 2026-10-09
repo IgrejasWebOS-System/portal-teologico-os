@@ -25,6 +25,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsSecretario } from "@/utils/secretaria";
 import { traduzirErro } from "@/utils/mensagens-erro";
+import { MSG_AUTOATENDIMENTO, cpfEhOProprio } from "@/utils/autoatendimento";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -61,7 +62,7 @@ function erro(msg: string, path: string = "/secretaria/matricula"): never {
 }
 
 export async function secretariaCriarMatriculaAction(formData: FormData) {
-  const { supabase, admin } = await requireSecretario();
+  const { userId, supabase, admin } = await requireSecretario();
 
   const nome_completo = (formData.get("nome_completo") as string)?.trim();
   const cpf = (formData.get("cpf") as string)?.trim();
@@ -129,6 +130,13 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
 
   if (!validarCPF(cpf)) {
     erro("CPF inválido — confira os dígitos digitados.", voltarEmErro);
+  }
+
+  // Segregação de funções (09/10/2026): secretário(a) não matricula a si
+  // mesmo(a) como aluno(a) (nem usando o CPF do próprio cadastro de
+  // professor(a), no caso de quem acumula os papéis).
+  if (await cpfEhOProprio(admin, { userId }, cpf)) {
+    erro(MSG_AUTOATENDIMENTO, voltarEmErro);
   }
 
   if (dataMatriculaInformada && dataMatriculaInformada > new Date().toISOString().slice(0, 10)) {
