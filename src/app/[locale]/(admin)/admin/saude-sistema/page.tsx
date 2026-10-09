@@ -114,11 +114,12 @@ export default async function SaudeSistemaPage() {
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <DatabaseBackup className="h-5 w-5" /> Backups registrados
         </h2>
-        <p className="text-sm opacity-80">
+        <p className="text-base text-center uppercase opacity-80">
           Padrão atual: o plano do Supabase deste projeto é <b>Free</b> e não faz backup automático. O backup é o
-          dump manual gerado pelo <code>scripts/backup-manager-v2.ps1</code> (validado com pg_restore --list e
-          copiado criptografado para o OneDrive), que registra cada execução aqui. Recomendado: rodar diariamente
-          e sempre antes de migrations (<code>-PreMigration -Label ...</code>).
+          dump manual gerado pelo <code className="normal-case">scripts/backup-manager-v2.ps1</code> (validado com
+          pg_restore --list e copiado criptografado para o OneDrive), que registra cada execução aqui.
+          Recomendado: rodar diariamente e sempre antes de migrations (
+          <code className="normal-case">-PreMigration -Label ...</code>).
         </p>
         {resultado.backups.length === 0 ? (
           <p className="text-sm">Nenhum backup registrado ainda.</p>
@@ -155,7 +156,7 @@ export default async function SaudeSistemaPage() {
         {!historico || historico.length === 0 ? (
           <p className="text-sm">Nenhum alerta registrado.</p>
         ) : (
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-2 text-base text-center uppercase">
             {historico.map((a) => (
               <li key={a.id}>
                 [{a.severidade}] {a.titulo} — desde {fmtData(a.primeiro_em)}
@@ -165,7 +166,7 @@ export default async function SaudeSistemaPage() {
             ))}
           </ul>
         )}
-        <p className="text-xs opacity-70">
+        <p className="text-base text-center uppercase opacity-70">
           A verificação automática roda 1x por dia (Vercel Cron) e avisa por e-mail os administradores globais.
         </p>
       </section>

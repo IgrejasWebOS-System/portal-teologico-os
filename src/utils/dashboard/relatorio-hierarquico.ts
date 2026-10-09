@@ -7,7 +7,9 @@
 //
 // Função pura (sem acesso a banco): a página busca os dados e passa
 // para cá. Matrículas CANCELADAS ficam de fora (não são alunos ativos
-// nem geram valor a receber).
+// nem geram valor a receber). Turmas do ano SEM alunos entram com zeros
+// (`turmasSemAluno`), para o Dashboard listar as mesmas regionais,
+// setores e igrejas da tela de Turmas.
 // ============================================================
 
 export type Agg = {
@@ -46,6 +48,14 @@ export interface MatriculaInfo {
   course_edition_id: string | null;
 }
 
+// Turma do ano que ainda não tem nenhum aluno ativo.
+export interface TurmaSemAluno {
+  tipo: "SEDE" | "SETOR" | "REGIONAL";
+  setor: string | null; // nome do Setor/Regional pai (null na Sede)
+  igreja: string; // nome da igreja (unidade) da turma
+  turma: string;
+}
+
 const vazio = (): Agg => ({ basico: 0, medio: 0, vBasico: 0, vMedio: 0, pago: 0 });
 
 function somar(a: Agg, b: Agg) {
@@ -63,8 +73,9 @@ export function montarRelatorioGlobal(params: {
   alunos: Map<string, AlunoInfo>;
   financeiroPorMatricula: Map<string, { aPagar: number; pago: number }>;
   nomeTurmaPorEdicao: Map<string, string>;
+  turmasSemAluno?: TurmaSemAluno[];
 }): RelatorioGlobalDados {
-  const { matriculas, alunos, financeiroPorMatricula, nomeTurmaPorEdicao } = params;
+  const { matriculas, alunos, financeiroPorMatricula, nomeTurmaPorEdicao, turmasSemAluno = [] } = params;
 
   type TurmaMut = NoTurma;
   type IgrejaMut = NoIgreja & { _turmas: Map<string, TurmaMut> };
@@ -73,6 +84,31 @@ export function montarRelatorioGlobal(params: {
   const sedeTurmas = new Map<string, TurmaMut>();
   const grupos = new Map<string, GrupoMut>();
   const sede = { ...vazio(), turmas: [] as NoTurma[] };
+
+  const turmaEm = (mapa: Map<string, TurmaMut>, nome: string) => {
+    let t = mapa.get(nome);
+    if (!t) {
+      t = { nome, alunos: [], ...vazio() };
+      mapa.set(nome, t);
+    }
+    return t;
+  };
+  const grupoEm = (nome: string, tipo: "SETOR" | "REGIONAL") => {
+    let g = grupos.get(nome);
+    if (!g) {
+      g = { nome, igrejas: [], _igrejas: new Map(), _tipo: tipo, ...vazio() };
+      grupos.set(nome, g);
+    }
+    return g;
+  };
+  const igrejaEm = (g: GrupoMut, nome: string) => {
+    let ig = g._igrejas.get(nome);
+    if (!ig) {
+      ig = { nome, turmas: [], _turmas: new Map(), ...vazio() };
+      g._igrejas.set(nome, ig);
+    }
+    return ig;
+  };
 
   for (const m of matriculas) {
     if (m.status === "CANCELADO") continue;
@@ -95,17 +131,8 @@ export function montarRelatorioGlobal(params: {
     const noAluno: NoAluno = { nome: aluno?.nome_completo ?? "—", ...contrib };
     const nomeTurma = (m.course_edition_id && nomeTurmaPorEdicao.get(m.course_edition_id)) || "Sem turma definida";
 
-    const turmaDe = (mapa: Map<string, TurmaMut>) => {
-      let t = mapa.get(nomeTurma);
-      if (!t) {
-        t = { nome: nomeTurma, alunos: [], ...vazio() };
-        mapa.set(nomeTurma, t);
-      }
-      return t;
-    };
-
     if (aluno?.churches?.is_sede) {
-      const t = turmaDe(sedeTurmas);
+      const t = turmaEm(sedeTurmas, nomeTurma);
       t.alunos.push(noAluno);
       somar(t, contrib);
       somar(sede, contrib);
@@ -114,22 +141,24 @@ export function montarRelatorioGlobal(params: {
 
     const setorNome = aluno?.sectors?.name ?? "Sem setor definido";
     const tipo: "SETOR" | "REGIONAL" = setorNome.toUpperCase().startsWith("REGIONAL") ? "REGIONAL" : "SETOR";
-    let g = grupos.get(setorNome);
-    if (!g) {
-      g = { nome: setorNome, igrejas: [], _igrejas: new Map(), _tipo: tipo, ...vazio() };
-      grupos.set(setorNome, g);
-    }
-    const igrejaNome = aluno?.churches?.name ?? "Sem igreja definida";
-    let ig = g._igrejas.get(igrejaNome);
-    if (!ig) {
-      ig = { nome: igrejaNome, turmas: [], _turmas: new Map(), ...vazio() };
-      g._igrejas.set(igrejaNome, ig);
-    }
-    const t = turmaDe(ig._turmas);
+    const g = grupoEm(setorNome, tipo);
+    const ig = igrejaEm(g, aluno?.churches?.name ?? "Sem igreja definida");
+    const t = turmaEm(ig._turmas, nomeTurma);
     t.alunos.push(noAluno);
     somar(t, contrib);
     somar(ig, contrib);
     somar(g, contrib);
+  }
+
+  // Turmas do ano sem alunos: entram com zeros (não alteram nenhum total).
+  for (const v of turmasSemAluno) {
+    if (v.tipo === "SEDE") {
+      turmaEm(sedeTurmas, v.turma);
+      continue;
+    }
+    const g = grupoEm(v.setor ?? "Sem setor definido", v.tipo);
+    const ig = igrejaEm(g, v.igreja);
+    turmaEm(ig._turmas, v.turma);
   }
 
   const finalizarTurmas = (mapa: Map<string, TurmaMut>) =>
