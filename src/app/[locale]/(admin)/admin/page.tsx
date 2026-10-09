@@ -24,6 +24,7 @@ import {
   montarRelatorioGlobal,
   type AlunoInfo,
   type MatriculaInfo,
+  type TurmaSemAluno,
 } from "@/utils/dashboard/relatorio-hierarquico";
 import RelatorioGlobalHierarquico from "./RelatorioGlobalHierarquico";
 import EstoqueMateriaisPainel from "./EstoqueMateriaisPainel";
@@ -215,11 +216,56 @@ export default async function AdminDashboardPage() {
     (edicoesUsadas ?? []).map((e) => [e.id as string, (e.nome as string | null) ?? "Turma sem nome"])
   );
 
+  // Turmas do ano corrente que ainda não têm nenhum aluno ativo: entram no
+  // relatório com zeros, para o Dashboard listar as mesmas regionais,
+  // setores e igrejas da tela de Turmas (08/10/2026, pedido do Joaquim).
+  const anoRelatorio = new Date().getFullYear();
+  const { data: edicoesAno } = await supabase
+    .from("course_editions")
+    .select("id, nome, unit_id")
+    .eq("ano", anoRelatorio);
+  const edicoesComAluno = new Set(
+    (matriculasSetor ?? []).filter((m) => m.status !== "CANCELADO" && m.course_edition_id).map((m) => m.course_edition_id as string)
+  );
+  const unidadeIds = Array.from(new Set((edicoesAno ?? []).map((e) => e.unit_id).filter((x): x is string => !!x)));
+  const { data: unidadesAno } = unidadeIds.length
+    ? await supabase.from("units").select("id, name, type, parent_id").in("id", unidadeIds)
+    : { data: [] as { id: string; name: string; type: string; parent_id: string | null }[] };
+  const paiIds = Array.from(
+    new Set((unidadesAno ?? []).map((u) => u.parent_id).filter((x): x is string => !!x))
+  );
+  const { data: paisAno } = paiIds.length
+    ? await supabase.from("units").select("id, name").in("id", paiIds)
+    : { data: [] as { id: string; name: string }[] };
+  const unidadePorId = new Map((unidadesAno ?? []).map((u) => [u.id as string, u]));
+  const paiPorId = new Map((paisAno ?? []).map((p) => [p.id as string, p.name as string]));
+
+  const turmasSemAluno: TurmaSemAluno[] = [];
+  for (const e of edicoesAno ?? []) {
+    if (edicoesComAluno.has(e.id)) continue;
+    const unidade = e.unit_id ? unidadePorId.get(e.unit_id) : undefined;
+    if (!unidade) continue;
+    const setorNome = unidade.parent_id ? paiPorId.get(unidade.parent_id) ?? null : null;
+    const tipo: TurmaSemAluno["tipo"] =
+      unidade.type === "SEDE"
+        ? "SEDE"
+        : (setorNome ?? "").toUpperCase().startsWith("REGIONAL")
+          ? "REGIONAL"
+          : "SETOR";
+    turmasSemAluno.push({
+      tipo,
+      setor: setorNome,
+      igreja: unidade.name as string,
+      turma: ((e.nome as string | null) ?? "Turma sem nome") as string,
+    });
+  }
+
   const relatorioGlobal = montarRelatorioGlobal({
     matriculas: (matriculasSetor ?? []) as MatriculaInfo[],
     alunos: alunoInfo,
     financeiroPorMatricula,
     nomeTurmaPorEdicao,
+    turmasSemAluno,
   });
 
   // ---------- Estoque de material didático (por AULA — migration 122) ----------
