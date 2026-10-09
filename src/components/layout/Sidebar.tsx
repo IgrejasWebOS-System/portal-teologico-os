@@ -26,6 +26,7 @@ import {
   Users,
   Banknote,
   Activity,
+  ClipboardList,
 } from "lucide-react";
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
@@ -160,6 +161,7 @@ const adminModules: SidebarModule[] = [
       { label: "Patrimônio", href: "/admin/patrimonio", icon: Boxes },
       { label: "FAQ", href: "/admin/faq", icon: HelpCircle },
       { label: "Saúde do sistema", href: "/admin/saude-sistema", icon: Activity },
+      { label: "Auditoria", href: "/admin/auditoria", icon: ClipboardList },
     ],
   },
 ];

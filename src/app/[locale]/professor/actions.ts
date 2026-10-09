@@ -26,6 +26,7 @@ import {
   cpfEhOProprio,
   matriculaEhDoProprio,
 } from "@/utils/autoatendimento";
+import { registrarAuditoria } from "@/utils/auditoria";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -73,6 +74,22 @@ function erro(msg: string, path: string = "/professor/alunos"): never {
   redirect(path + "?error=" + encodeURIComponent(msg));
 }
 
+// Auditoria (09/10/2026): grava "quem fez, em qual papel" — nunca derruba a ação.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function auditarProfessor(admin: any, professorId: string, acao: string, extra: {
+  entidade?: string; entidadeId?: string; alunoId?: string | null; detalhe?: Record<string, unknown>;
+} = {}) {
+  await registrarAuditoria(admin, {
+    ator: { professorId },
+    papel: "PROFESSOR",
+    acao,
+    entidade: extra.entidade ?? null,
+    entidadeId: extra.entidadeId ?? null,
+    alunoId: extra.alunoId ?? null,
+    detalhe: extra.detalhe ?? null,
+  });
+}
+
 // ── AÇÃO 1: DAR BAIXA EM PARCELA (só forma não-dinheiro) ────────
 // Dinheiro fica de fora de propósito: exige Caixa Diário aberto, que é
 // um controle de secretaria (fin_lancamentos) — professor não abre caixa.
@@ -114,6 +131,9 @@ export async function professorBaixarParcelaAction(formData: FormData) {
   // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
   // parcelas de aluno(a).
   if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    await auditarProfessor(admin, professor.id, "AUTOATENDIMENTO_BLOQUEADO", {
+      entidade: "fin_contas_receber", entidadeId: id, detalhe: { tentou: "BAIXAR_PARCELA" },
+    });
     erro(MSG_AUTOATENDIMENTO, redirectTo);
   }
 
@@ -137,6 +157,10 @@ export async function professorBaixarParcelaAction(formData: FormData) {
   revalidatePath("/professor");
   revalidatePath("/professor/alunos");
   revalidatePath("/professor/financeiro");
+  await auditarProfessor(admin, professor.id, "BAIXAR_PARCELA", {
+    entidade: "fin_contas_receber", entidadeId: id,
+    detalhe: { forma_pagamento, matricula_id: matricula!.id, valor_centavos: conta!.valor_bruto_centavos },
+  });
   redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela baixada com sucesso."));
 }
 
@@ -260,6 +284,9 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   // Segregação de funções (09/10/2026): professor(a) não matricula a si
   // mesmo(a) como aluno(a).
   if (await cpfEhOProprio(admin, { professorId: professor.id }, cpf)) {
+    await auditarProfessor(admin, professor.id, "AUTOATENDIMENTO_BLOQUEADO", {
+      entidade: "ead_matriculas", detalhe: { tentou: "CRIAR_MATRICULA" },
+    });
     erro(MSG_AUTOATENDIMENTO, voltarEmErro);
   }
 
@@ -627,6 +654,9 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   revalidatePath("/professor/alunos");
   revalidatePath("/professor/financeiro");
   revalidatePath("/admin/matriculas");
+  await auditarProfessor(admin, professor.id, "CRIAR_MATRICULA", {
+    entidade: "ead_alunos", entidadeId: aluno!.id, alunoId: aluno!.id,
+  });
   // 25/09/2026, pedido do Joaquim: alguns professores preferem cadastrar o
   // aluno direto pela Área do Professor em vez de mandar o link da turma —
   // nesse caso o único jeito de o aluno acessar era o e-mail de convite
@@ -1280,6 +1310,9 @@ async function assertMatriculaDoProfessor(admin: ReturnType<typeof createAdminCl
   // Segregação de funções (09/10/2026): professor(a) não edita, cancela nem
   // lança pagamento na própria matrícula de aluno(a).
   if (await alunoEhOProprio(admin, { professorId }, matricula!.aluno_id)) {
+    await auditarProfessor(admin, professorId, "AUTOATENDIMENTO_BLOQUEADO", {
+      entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: matricula!.aluno_id,
+    });
     erro(MSG_AUTOATENDIMENTO, "/professor/alunos");
   }
   return matricula!;
@@ -1387,6 +1420,9 @@ export async function professorAtualizarMatriculaAction(formData: FormData) {
 
   revalidatePath(`/professor/alunos/editar/${matriculaId}`);
   revalidatePath("/professor/alunos");
+  await auditarProfessor(admin, professor.id, "ATUALIZAR_MATRICULA", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId,
+  });
   redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Dados atualizados."));
 }
 
@@ -1416,6 +1452,9 @@ export async function professorCancelarParcelaAction(formData: FormData) {
   // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
   // parcelas de aluno(a).
   if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    await auditarProfessor(admin, professor.id, "AUTOATENDIMENTO_BLOQUEADO", {
+      entidade: "fin_contas_receber", entidadeId: id, detalhe: { tentou: "CANCELAR_PARCELA" },
+    });
     erro(MSG_AUTOATENDIMENTO, redirectTo);
   }
 
@@ -1431,6 +1470,9 @@ export async function professorCancelarParcelaAction(formData: FormData) {
 
   revalidatePath("/professor/alunos");
   revalidatePath("/professor/financeiro");
+  await auditarProfessor(admin, professor.id, "CANCELAR_PARCELA", {
+    entidade: "fin_contas_receber", entidadeId: id, detalhe: { matricula_id: matricula!.id },
+  });
   redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela cancelada."));
 }
 
@@ -1465,6 +1507,9 @@ export async function professorReativarParcelaAction(formData: FormData) {
   // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
   // parcelas de aluno(a).
   if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    await auditarProfessor(admin, professor.id, "AUTOATENDIMENTO_BLOQUEADO", {
+      entidade: "fin_contas_receber", entidadeId: id, detalhe: { tentou: "REATIVAR_PARCELA" },
+    });
     erro(MSG_AUTOATENDIMENTO, redirectTo);
   }
 
@@ -1480,6 +1525,9 @@ export async function professorReativarParcelaAction(formData: FormData) {
 
   revalidatePath("/professor/alunos");
   revalidatePath("/professor/financeiro");
+  await auditarProfessor(admin, professor.id, "REATIVAR_PARCELA", {
+    entidade: "fin_contas_receber", entidadeId: id, detalhe: { matricula_id: matricula!.id },
+  });
   redirect(redirectTo + "?msg=" + encodeURIComponent("Parcela reativada — voltou para pendente."));
 }
 
@@ -1530,6 +1578,10 @@ export async function professorLancarPagamentoRetroativoAction(formData: FormDat
 
   revalidatePath(`/professor/alunos/editar/${matriculaId}`);
   revalidatePath("/professor/financeiro");
+  await auditarProfessor(admin, professor.id, "PAGAMENTO_RETROATIVO", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId,
+    detalhe: { valor_centavos: valorTotalCentavos, parcelas: totalParcelas, forma: formaPagamento },
+  });
   redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Pagamento retroativo lançado."));
 }
 
@@ -1580,6 +1632,9 @@ export async function professorGerarParcelasMensalidadeAction(formData: FormData
 
   revalidatePath(`/professor/alunos/editar/${matriculaId}`);
   revalidatePath("/professor/financeiro");
+  await auditarProfessor(admin, professor.id, "GERAR_PARCELAS", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId,
+  });
   redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent("Parcelas de mensalidade geradas."));
 }
 
@@ -1589,7 +1644,7 @@ export async function professorCancelarMatriculaAction(formData: FormData) {
 
   const matriculaId = (formData.get("matricula_id") as string) || "";
   if (!matriculaId) erro("Matrícula inválida.", "/professor/alunos");
-  await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+  const matriculaCancelada = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
 
   const { error } = await admin
     .from("ead_matriculas")
@@ -1599,5 +1654,8 @@ export async function professorCancelarMatriculaAction(formData: FormData) {
   if (error) erroEdicaoAluno(matriculaId, "Erro ao cancelar: " + error.message);
 
   revalidatePath("/professor/alunos");
+  await auditarProfessor(admin, professor.id, "CANCELAR_MATRICULA", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: matriculaCancelada.aluno_id,
+  });
   redirect("/professor/alunos?msg=" + encodeURIComponent("Matrícula cancelada."));
 }
