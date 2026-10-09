@@ -26,6 +26,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsSecretario } from "@/utils/secretaria";
 import { traduzirErro } from "@/utils/mensagens-erro";
 import { MSG_AUTOATENDIMENTO, cpfEhOProprio } from "@/utils/autoatendimento";
+import { registrarAuditoria } from "@/utils/auditoria";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -136,6 +137,10 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
   // mesmo(a) como aluno(a) (nem usando o CPF do próprio cadastro de
   // professor(a), no caso de quem acumula os papéis).
   if (await cpfEhOProprio(admin, { userId }, cpf)) {
+    await registrarAuditoria(admin, {
+      ator: { userId }, papel: "SECRETARIA", acao: "AUTOATENDIMENTO_BLOQUEADO",
+      entidade: "ead_matriculas", detalhe: { tentou: "CRIAR_MATRICULA" },
+    });
     erro(MSG_AUTOATENDIMENTO, voltarEmErro);
   }
 
@@ -474,6 +479,11 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
   revalidatePath("/secretaria/alunos");
   revalidatePath("/secretaria/financeiro");
   revalidatePath("/admin/matriculas");
+
+  await registrarAuditoria(admin, {
+    ator: { userId }, papel: "SECRETARIA", acao: "CRIAR_MATRICULA",
+    entidade: "ead_alunos", entidadeId: aluno!.id, alunoId: aluno!.id,
+  });
 
   redirect(
     "/secretaria/alunos?msg=" +

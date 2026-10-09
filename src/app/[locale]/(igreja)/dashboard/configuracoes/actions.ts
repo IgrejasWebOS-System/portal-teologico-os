@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { traduzirErro } from "@/utils/mensagens-erro";
 import { checkIsStaff } from "@/utils/staff";
+import { registrarAuditoria } from "@/utils/auditoria";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -1586,6 +1587,15 @@ export async function inviteStaffAction(formData: FormData) {
   // isso a pessoa fica com admin_roles certo mas continua travada em
   // MEMBER e não passa em checkIsStaff() (ver systemRoleParaLevel).
   await admin.from("profiles").update({ system_role: systemRoleParaLevel(level) }).eq("id", targetUserId);
+
+  await registrarAuditoria(admin, {
+    ator: { userId: currentUser.id },
+    papel: "ADMIN_GLOBAL",
+    acao: "CONCEDER_ACESSO",
+    entidade: "admin_roles",
+    entidadeId: targetUserId,
+    detalhe: { email, level, unit_id: level === 0 ? null : unitId, dominio: level === 0 ? "AMBOS" : dominioRaw, conta_existente: promovendoExistente },
+  });
 
   revalidatePath("/dashboard/configuracoes/acessos/usuarios");
   return {
