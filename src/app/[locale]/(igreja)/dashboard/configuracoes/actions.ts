@@ -600,11 +600,24 @@ async function resolverBridgeUnits(
 // Núcleos de Ensino). Usa o cliente admin (service_role) porque
 // convidar via Auth e gravar admin_roles em nome de outra pessoa
 // exige privilégio que o usuário comum não tem.
+//
+// 09/10/2026, BUG achado pelo Joaquim (gravando vídeo de cadastro): professor
+// cadastrado por este caminho entrava no /admin com o menu de STAFF e lia a
+// lista de usuários, e /professor dizia "convite pendente". Causa: esta
+// função (a) promovia profiles.system_role a LOCAL_ADMIN — o que o torna
+// "staff" (checkIsStaff) e abre profiles_select_staff (lê TODOS os perfis) —
+// e (b) nunca gravava professores.user_id, então o sistema não reconhecia a
+// pessoa como professor. Agora segue o mesmo padrão do cadastro público e da
+// Secretaria: vincula professores.user_id, envia o convite para
+// /definir-senha e NÃO mexe em system_role (professor não é staff; também
+// nunca rebaixa/altera a conta de quem já era admin). A linha em admin_roles
+// (nível 4, escopo do núcleo) continua sendo gravada.
 async function grantNucleoAccess(
   currentUserId: string,
   email: string,
   fullName: string,
-  unitId: string
+  unitId: string,
+  professorId?: string
 ): Promise<string> {
   const admin = createAdminClient();
 
@@ -626,15 +639,42 @@ async function grantNucleoAccess(
   } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: fullName ? { full_name: fullName } : undefined,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
     });
     if (inviteError || !invited?.user) {
+      if (professorId) {
+        await admin
+          .from("professores")
+          .update({ convite_status: "FALHOU", convite_erro: inviteError?.message ?? "erro desconhecido" })
+          .eq("id", professorId);
+      }
       return `Professor salvo, mas não foi possível enviar o convite de acesso: ${inviteError?.message ?? "erro desconhecido"}.`;
     }
     targetUserId = invited.user.id;
-    await admin
-      .from("profiles")
-      .update({ full_name: fullName || null, must_change_password: true })
-      .eq("id", targetUserId);
+    await admin.from("profiles").update({ full_name: fullName || null }).eq("id", targetUserId);
+  }
+
+  // É professores.user_id que faz o sistema reconhecer a pessoa como professor
+  // (checkIsProfessor) e mandá-la pra /professor — mesmo vínculo do cadastro
+  // público e da Secretaria.
+  if (professorId) {
+    const { error: vinculoError } = await admin
+      .from("professores")
+      .update({
+        user_id: targetUserId,
+        // O e-mail de login precisa ficar no cadastro (sem ele "Acessar portal
+        // do professor" e "Reenviar link" não funcionam) — achado 09/10/2026:
+        // professores.email ficava nulo neste fluxo.
+        email,
+        convite_status: "ENVIADO",
+        convite_enviado_em: new Date().toISOString(),
+        convite_erro: null,
+      })
+      .eq("id", professorId);
+    if (vinculoError) {
+      console.error("[configuracoes/actions] grantNucleoAccess vínculo professores.user_id", vinculoError);
+      return `Professor salvo, mas não foi possível vincular o login ao cadastro de professor: ${vinculoError.message}`;
+    }
   }
 
   const { error: roleError } = await admin
@@ -656,15 +696,12 @@ async function grantNucleoAccess(
       : `Convite enviado, mas houve erro ao gravar o acesso ao núcleo: ${roleError.message}`;
   }
 
-  // Sincroniza profiles.system_role com o nível recém-gravado — sem
-  // isso o professor não passa em checkIsStaff() e não entra no
-  // /dashboard mesmo já tendo o admin_roles certo (ver comentário em
-  // systemRoleParaLevel).
-  await admin.from("profiles").update({ system_role: systemRoleParaLevel(4) }).eq("id", targetUserId);
+  // NÃO sincroniza profiles.system_role aqui (ver comentário no topo da
+  // função): professor acessa /professor, não o painel de staff.
 
   return promovendoExistente
-    ? `Professor salvo. ${email} já tinha conta — acesso de nível 4 a este núcleo foi adicionado.`
-    : `Professor salvo. Convite de acesso enviado para ${email} (nível 4, escopado a este núcleo).`;
+    ? `Professor salvo. ${email} já tinha conta — o login foi vinculado ao cadastro de professor (acesso em /professor).`
+    : `Professor salvo. Convite de acesso enviado para ${email} (área do professor, escopada a este núcleo).`;
 }
 
 // Ficha completa do professor — mesmos campos que `members`/`ead_alunos`
@@ -783,7 +820,7 @@ export async function addProfessorAction(formData: FormData) {
   if (!unitId) {
     avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
   } else {
-    avisoAcesso = await grantNucleoAccess(user.id, emailAcessoObrigatorio, nomeCompleto, unitId);
+    avisoAcesso = await grantNucleoAccess(user.id, emailAcessoObrigatorio, nomeCompleto, unitId, data.id);
   }
 
   revalidatePath("/dashboard/configuracoes/professores");
@@ -855,7 +892,7 @@ export async function updateProfessorAction(formData: FormData) {
     } else if (!unitId) {
       avisoAcesso = "Professor salvo, mas não foi possível conceder acesso: nenhuma unidade selecionada.";
     } else {
-      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId);
+      avisoAcesso = await grantNucleoAccess(user.id, email, nomeCompleto, unitId, id);
     }
   }
 

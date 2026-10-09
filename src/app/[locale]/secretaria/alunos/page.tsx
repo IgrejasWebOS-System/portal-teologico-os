@@ -129,7 +129,11 @@ export default async function AlunosSecretariaPage({
                 const matriculaId = matriculaIdPorAluno.get(a.id);
                 return (
                   <tr key={a.id} className="border-b border-iw-border/50 last:border-0 hover:bg-iw-bg/30">
-                    <td className="py-2.5 px-4 text-black font-medium">{a.nome_completo}</td>
+                    <td className="py-2.5 px-4 text-black font-medium">
+                      <Link href={`/secretaria/alunos/${a.id}`} className="underline underline-offset-2 hover:opacity-70">
+                        {a.nome_completo}
+                      </Link>
+                    </td>
                     <td className="py-2.5 px-4 text-black">{a.matricula ?? "—"}</td>
                     <td className="py-2.5 px-4 text-black">{a.churches?.name ?? "—"}</td>
                     <td className="py-2.5 px-4 text-black">{a.telefone ?? "—"}</td>
@@ -142,6 +146,12 @@ export default async function AlunosSecretariaPage({
                     </td>
                     <td className="py-2.5 px-4">
                       <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          href={`/secretaria/alunos/${a.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-black bg-black/5 border border-black/15 rounded-lg px-3 py-1.5 shadow-sm hover:bg-black/10 transition-colors"
+                        >
+                          <BookUser className="w-3.5 h-3.5" /> Área do aluno
+                        </Link>
                         {matriculaId ? (
                           <Link
                             href={`/admin/matriculas/${matriculaId}?voltarPara=/secretaria/alunos&voltarLabel=Alunos`}

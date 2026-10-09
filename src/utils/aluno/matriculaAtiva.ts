@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsStaff } from "@/utils/staff";
+import { checkIsProfessor } from "@/utils/professor";
 
 // ============================================================
 // Resolve a ficha de aluno + matrícula "de referência" do usuário
@@ -127,6 +128,20 @@ export async function resolverAlunoParaImpressao(
     const isStaff = await checkIsStaff(supabase, userId);
     if (isStaff) {
       return resolverAlunoEMatriculaPorAlunoId(alunoIdParam);
+    }
+    // 09/10/2026: professor também emite os documentos, mas SÓ de aluno que
+    // tem matrícula vinculada a ele (ead_matriculas.professor_id).
+    const professor = await checkIsProfessor(supabase, userId);
+    if (professor) {
+      const admin = createAdminClient();
+      const { count } = await admin
+        .from("ead_matriculas")
+        .select("id", { count: "exact", head: true })
+        .eq("aluno_id", alunoIdParam)
+        .eq("professor_id", professor.id);
+      if (count && count > 0) {
+        return resolverAlunoEMatriculaPorAlunoId(alunoIdParam);
+      }
     }
   }
   return resolverAlunoEMatricula(userId);

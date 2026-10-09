@@ -16,6 +16,7 @@ import {
   Copy,
   Check,
   Pencil,
+  BookUser,
 } from "lucide-react";
 import ReenviarLinkButton from "@/components/ui/ReenviarLinkButton";
 import QRCodeLib from "qrcode";
@@ -563,6 +564,14 @@ export default function ProfessorPainel({
                                 a mesma ficha completa da secretaria (EditarMatriculaForm.tsx),
                                 escopada ao próprio professor (ver professor/actions.ts:
                                 professorAtualizarMatriculaAction e afins). */}
+                            <Link
+                              href={`/professor/alunos/area/${l.matriculaId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 inline-flex items-center gap-1.5 bg-white hover:bg-black/5 border border-black text-black font-bold text-[11px] px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <BookUser className="w-3.5 h-3.5" />
+                              Área do aluno / Testes
+                            </Link>
                             <Link
                               href={`/professor/alunos/editar/${l.matriculaId}`}
                               onClick={(e) => e.stopPropagation()}

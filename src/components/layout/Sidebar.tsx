@@ -185,6 +185,7 @@ const professorModules: SidebarModule[] = [
   { label: "Alunos", href: "/professor/alunos", icon: Users, description: "Seus alunos e matrículas" },
   { label: "Financeiro", href: "/professor/financeiro", icon: Wallet, description: "Parcelas do seu núcleo" },
   { label: "Caixa", href: "/professor/caixa", icon: Banknote, description: "Despesas do seu núcleo" },
+  { label: "Testes e Provas", href: "/professor/testes-provas", icon: ClipboardList, description: "Links e resultados das provas" },
   { label: "Configurações", href: "/professor/configuracoes", icon: Settings2, description: "Seus dados" },
 ];
 
@@ -207,6 +208,7 @@ const secretariaModules: SidebarModule[] = [
   { label: "Matrícula", href: "/secretaria/matricula", icon: UserPlus, description: "Nova matrícula completa" },
   { label: "Financeiro", href: "/secretaria/financeiro", icon: Wallet, description: "Parcelas dos seus núcleos" },
   { label: "Caixa", href: "/secretaria/caixa", icon: Banknote, description: "Entradas e saídas dos seus núcleos" },
+  { label: "Testes e Provas", href: "/secretaria/testes-provas", icon: ClipboardList, description: "Links e resultados das provas" },
   { label: "Configurações", href: "/secretaria/configuracoes", icon: Settings2, description: "Seus dados" },
 ];
 
