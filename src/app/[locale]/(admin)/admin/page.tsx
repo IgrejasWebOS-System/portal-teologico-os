@@ -11,7 +11,6 @@ import {
   GraduationCap,
   BarChart3,
   PieChart,
-  ChevronRight,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
@@ -21,6 +20,12 @@ import PageHeader from "@/components/layout/PageHeader";
 import MonthlyBarChart from "@/components/admin/dashboard/MonthlyBarChart";
 import BreakdownBars from "@/components/admin/dashboard/BreakdownBars";
 import { contarPorMes, somarPorMes } from "@/utils/dashboard/agrupar-por-mes";
+import {
+  montarRelatorioGlobal,
+  type AlunoInfo,
+  type MatriculaInfo,
+} from "@/utils/dashboard/relatorio-hierarquico";
+import RelatorioGlobalHierarquico from "./RelatorioGlobalHierarquico";
 import EstoqueMateriaisPainel from "./EstoqueMateriaisPainel";
 import PedidosMaterialAdminPainel from "./PedidosMaterialAdminPainel";
 
@@ -171,25 +176,25 @@ export default async function AdminDashboardPage() {
   const matriculasPorCurso = Array.from(cursoContagem, ([label, value]) => ({ label, value })).slice(0, 8);
   const origemMatriculas = Array.from(origemContagem, ([label, value]) => ({ label, value }));
 
-  // ---------- Relatório por Setor/Regional (formato original, restaurado
-  // em 01/10/2026 — as versões "SEDE/SETOR/REGIONAL/GLOBAL em caixas" e
-  // depois "em modal" não eram o que o Joaquim pediu; o pedido real
-  // sempre foi esta tabela única e simples, uma linha por setor/
-  // regional, igual já está em produção). SEDE fica de fora da lista
-  // (não tem setor) e "REGIONAL" vs "SETOR" nunca foi distinção visual
-  // aqui — é só uma lista plana ordenada por nome.
+  // ---------- Relatório Global hierárquico (08/10/2026, pedido do Joaquim,
+  // base: Relatório Cetadp Setembro 2026). SEDE → Turma → Aluno;
+  // SETOR/REGIONAL → Setor/Regional → Igreja → Turma → Aluno. A árvore é
+  // montada em utils/dashboard/relatorio-hierarquico.ts e desenhada em
+  // RelatorioGlobalHierarquico.tsx. Matrículas CANCELADAS ficam de fora.
   const [
     { data: alunosSetor },
     { data: matriculasSetor },
     { data: contasReceberTodas },
   ] = await Promise.all([
     supabase.from("ead_alunos").select("id, nome_completo, sector_id, church_id, sectors(name), churches(name, is_sede)"),
-    supabase.from("ead_matriculas").select("id, aluno_id, curso_nome_snapshot"),
+    supabase.from("ead_matriculas").select("id, aluno_id, status, curso_nome_snapshot, course_edition_id"),
     supabase.from("fin_contas_receber").select("origem_id, valor_bruto_centavos, status"),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const alunoInfo = new Map((alunosSetor ?? []).map((a: any) => [a.id, a]));
+  const alunoInfo = new Map<string, AlunoInfo>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (alunosSetor ?? []).map((a: any) => [a.id as string, a as AlunoInfo])
+  );
   const financeiroPorMatricula = new Map<string, { aPagar: number; pago: number }>();
   for (const c of contasReceberTodas ?? []) {
     const atual = financeiroPorMatricula.get(c.origem_id) ?? { aPagar: 0, pago: 0 };
@@ -198,97 +203,24 @@ export default async function AdminDashboardPage() {
     financeiroPorMatricula.set(c.origem_id, atual);
   }
 
-  type LinhaSetorRegional = { nome: string; basico: number; medio: number; aPagar: number; pago: number };
-
-  const linhasPorSetor = new Map<string, LinhaSetorRegional & { tipo: "SETOR" | "REGIONAL" }>();
-  const linhaSede: LinhaSetorRegional = { nome: "SEDE", basico: 0, medio: 0, aPagar: 0, pago: 0 };
-  // 03/10/2026, pedido do Joaquim: a linha SEDE do quadro "Relatório
-  // Global" abre (accordion) e mostra os alunos da Sede individualmente,
-  // igual ao padrão de Setor/Regional em Professores/Alunos.
-  type LinhaAluno = { nome: string; basico: number; medio: number; aPagar: number; pago: number };
-  const detalheAlunosSede: LinhaAluno[] = [];
-  // 03/10/2026, pedido do Joaquim: segundo nível de accordion — dentro de
-  // SETOR/REGIONAL, cada setor/regional individual também abre e lista
-  // os próprios alunos (mesmo padrão aplicado à SEDE acima).
-  const detalheAlunosPorSetor = new Map<string, LinhaAluno[]>();
-
-  for (const m of matriculasSetor ?? []) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const aluno = alunoInfo.get(m.aluno_id) as any;
-    const curso = (m.curso_nome_snapshot || "").toLowerCase();
-    const ehBasico = curso.includes("básico") || curso.includes("basico");
-    const ehMedio = curso.includes("médio") || curso.includes("medio");
-    const fin = financeiroPorMatricula.get(m.id);
-
-    const aplicar = (linha: LinhaSetorRegional) => {
-      if (ehBasico) linha.basico += 1;
-      else if (ehMedio) linha.medio += 1;
-      if (fin) {
-        linha.aPagar += fin.aPagar;
-        linha.pago += fin.pago;
-      }
-    };
-
-    if (aluno?.churches?.is_sede) {
-      aplicar(linhaSede);
-      detalheAlunosSede.push({
-        nome: aluno?.nome_completo ?? "—",
-        basico: ehBasico ? 1 : 0,
-        medio: ehMedio ? 1 : 0,
-        aPagar: fin?.aPagar ?? 0,
-        pago: fin?.pago ?? 0,
-      });
-      continue;
-    }
-
-    const setorId = aluno?.sector_id ?? "SEM_SETOR";
-    const setorNome = aluno?.sectors?.name ?? "Sem setor definido";
-    const tipo: "SETOR" | "REGIONAL" = setorNome.toUpperCase().startsWith("REGIONAL") ? "REGIONAL" : "SETOR";
-    if (!linhasPorSetor.has(setorId)) {
-      linhasPorSetor.set(setorId, { nome: setorNome, tipo, basico: 0, medio: 0, aPagar: 0, pago: 0 });
-    }
-    aplicar(linhasPorSetor.get(setorId)!);
-
-    if (!detalheAlunosPorSetor.has(setorNome)) detalheAlunosPorSetor.set(setorNome, []);
-    detalheAlunosPorSetor.get(setorNome)!.push({
-      nome: aluno?.nome_completo ?? "—",
-      basico: ehBasico ? 1 : 0,
-      medio: ehMedio ? 1 : 0,
-      aPagar: fin?.aPagar ?? 0,
-      pago: fin?.pago ?? 0,
-    });
-  }
-  for (const lista of detalheAlunosPorSetor.values()) {
-    lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }
-
-  const relatorioSetorRegional = Array.from(linhasPorSetor.values()).sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR")
+  // Nome da turma (course_editions) só das edições realmente usadas — a
+  // tabela tem milhares de linhas, então busca por id.
+  const edicaoIds = Array.from(
+    new Set((matriculasSetor ?? []).map((m) => m.course_edition_id).filter((x): x is string => !!x))
   );
-  detalheAlunosSede.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const { data: edicoesUsadas } = edicaoIds.length
+    ? await supabase.from("course_editions").select("id, nome").in("id", edicaoIds)
+    : { data: [] as { id: string; nome: string | null }[] };
+  const nomeTurmaPorEdicao = new Map<string, string>(
+    (edicoesUsadas ?? []).map((e) => [e.id as string, (e.nome as string | null) ?? "Turma sem nome"])
+  );
 
-  // 01/10/2026, pedido do Joaquim: abaixo da tabela original, uma caixa
-  // "Relatório Global" (SEDE/SETOR/REGIONAL/TOTAL GERAL) sempre visível
-  // — não é mais modal, é só o resumo consolidado estático.
-  function somarLinhas(lista: LinhaSetorRegional[]) {
-    return lista.reduce(
-      (acc, l) => ({
-        basico: acc.basico + l.basico,
-        medio: acc.medio + l.medio,
-        aPagar: acc.aPagar + l.aPagar,
-        pago: acc.pago + l.pago,
-      }),
-      { basico: 0, medio: 0, aPagar: 0, pago: 0 }
-    );
-  }
-  const totalSetorGlobal = somarLinhas(relatorioSetorRegional.filter((l) => l.tipo === "SETOR"));
-  const totalRegionalGlobal = somarLinhas(relatorioSetorRegional.filter((l) => l.tipo === "REGIONAL"));
-  const totalGeralGlobal = {
-    basico: linhaSede.basico + totalSetorGlobal.basico + totalRegionalGlobal.basico,
-    medio: linhaSede.medio + totalSetorGlobal.medio + totalRegionalGlobal.medio,
-    aPagar: linhaSede.aPagar + totalSetorGlobal.aPagar + totalRegionalGlobal.aPagar,
-    pago: linhaSede.pago + totalSetorGlobal.pago + totalRegionalGlobal.pago,
-  };
+  const relatorioGlobal = montarRelatorioGlobal({
+    matriculas: (matriculasSetor ?? []) as MatriculaInfo[],
+    alunos: alunoInfo,
+    financeiroPorMatricula,
+    nomeTurmaPorEdicao,
+  });
 
   // ---------- Estoque de material didático (por AULA — migration 122) ----------
   const [
@@ -380,209 +312,12 @@ export default async function AdminDashboardPage() {
       />
 
       {/* 30/09/2026, pedido do Joaquim: quadro de gerenciamento (relatório
-          Global/Sede/Setor/Regional + estoque + pedidos de material) é o
-          PRIMEIRO bloco do Dashboard, antes dos KPIs/gráficos.
-          01/10/2026: a tabela única "Relatório por Setor/Regional" (todos
-          os setores/regionais misturados numa lista só) foi removida —
-          redundante com as caixas Global/Sede/Setor/Regional abaixo, que
-          já trazem a mesma informação separada por categoria. */}
-      {/* 01/10/2026, pedido do Joaquim: caixa "Relatório Global" sempre
-          visível (não é modal) com o resumo consolidado
-          SEDE/SETOR/REGIONAL/TOTAL GERAL. */}
-      <div className="bg-iw-surface border border-iw-gold rounded-2xl p-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-iw-border">
-                <th className="pb-2 pr-3 font-bold text-iw-navy text-base whitespace-nowrap">
-                  <span className="inline-flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-iw-gold" />
-                    Relatório Global
-                  </span>
-                </th>
-                <th className="pb-2 pr-3 font-semibold text-iw-muted text-right">Básico</th>
-                <th className="pb-2 pr-3 font-semibold text-iw-muted text-right">Médio</th>
-                <th className="pb-2 pr-3 font-semibold text-iw-muted text-right">Total</th>
-                <th className="pb-2 pr-3 font-semibold text-iw-muted text-right">A Pagar</th>
-                <th className="pb-2 pr-3 font-semibold text-iw-muted text-right">Pago</th>
-                <th className="pb-2 font-semibold text-iw-muted text-right">Saldo Devedor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* 03/10/2026, pedido do Joaquim: linha SEDE abre (accordion)
-                  e lista os alunos da Sede individualmente — por isso vai
-                  dentro de um <td colSpan> com <details>/grid em vez de um
-                  <tr> comum, já que <details> não pode envolver vários
-                  <tr> irmãos. As colunas do grid abaixo reproduzem as
-                  mesmas proporções do cabeçalho da tabela. */}
-              <tr className="border-b border-iw-border/60">
-                <td colSpan={7} className="p-0">
-                  <details className="group/sede">
-                    <summary className="cursor-pointer list-none grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.2fr_1.3fr] gap-2 items-center px-0 py-2">
-                      <span className="text-iw-navy font-semibold inline-flex items-center gap-1.5">
-                        <ChevronRight className="w-3.5 h-3.5 text-iw-muted transition-transform group-open/sede:rotate-90 shrink-0" />
-                        SEDE
-                        <span className="text-[11px] font-normal text-iw-muted">
-                          ({detalheAlunosSede.length} aluno{detalheAlunosSede.length === 1 ? "" : "s"})
-                        </span>
-                      </span>
-                      <span className="text-right text-iw-muted">{linhaSede.basico}</span>
-                      <span className="text-right text-iw-muted">{linhaSede.medio}</span>
-                      <span className="text-right font-bold text-iw-navy">{linhaSede.basico + linhaSede.medio}</span>
-                      <span className="text-right text-iw-muted">{linhaSede.aPagar > 0 ? fmt(linhaSede.aPagar) : "—"}</span>
-                      <span className="text-right text-iw-success">{linhaSede.pago > 0 ? fmt(linhaSede.pago) : "—"}</span>
-                      <span className="text-right font-bold text-iw-error">
-                        {linhaSede.aPagar - linhaSede.pago !== 0 ? fmt(linhaSede.aPagar - linhaSede.pago) : "—"}
-                      </span>
-                    </summary>
-                    <div className="bg-iw-bg/40 -mx-0">
-                      {detalheAlunosSede.length === 0 ? (
-                        <p className="text-xs text-iw-muted py-2 pl-5">Nenhum aluno na Sede.</p>
-                      ) : (
-                        detalheAlunosSede.map((a, i) => {
-                          const totalA = a.basico + a.medio;
-                          const saldoA = a.aPagar - a.pago;
-                          return (
-                            <div
-                              key={`${a.nome}-${i}`}
-                              className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.2fr_1.3fr] gap-2 items-center px-0 py-1.5 border-t border-iw-border/40"
-                            >
-                              <span className="text-xs text-iw-muted truncate pl-5">{a.nome}</span>
-                              <span className="text-xs text-right text-iw-muted">{a.basico}</span>
-                              <span className="text-xs text-right text-iw-muted">{a.medio}</span>
-                              <span className="text-xs text-right font-semibold text-iw-navy">{totalA}</span>
-                              <span className="text-xs text-right text-iw-muted">{a.aPagar > 0 ? fmt(a.aPagar) : "—"}</span>
-                              <span className="text-xs text-right text-iw-success">{a.pago > 0 ? fmt(a.pago) : "—"}</span>
-                              <span className="text-xs text-right font-semibold text-iw-error">
-                                {saldoA !== 0 ? fmt(saldoA) : "—"}
-                              </span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </details>
-                </td>
-              </tr>
-              {/* 03/10/2026, pedido do Joaquim: mesmo tratamento da linha
-                  SEDE acima — SETOR e REGIONAL também abrem (accordion) e
-                  listam cada setor/regional individualmente (reaproveita
-                  `relatorioSetorRegional`, a mesma lista das caixas
-                  "Relatório Setor"/"Relatório Regional" abaixo). */}
-              {[
-                { tipo: "SETOR" as const, nome: "SETOR", linha: { nome: "SETOR", ...totalSetorGlobal } },
-                { tipo: "REGIONAL" as const, nome: "REGIONAL", linha: { nome: "REGIONAL", ...totalRegionalGlobal } },
-              ].map(({ tipo, nome, linha }) => {
-                const grupos = relatorioSetorRegional.filter((l) => l.tipo === tipo);
-                const saldo = linha.aPagar - linha.pago;
-                return (
-                  <tr key={nome} className="border-b border-iw-border/60 last:border-b-0">
-                    <td colSpan={7} className="p-0">
-                      <details className="group/grupo-global">
-                        <summary className="cursor-pointer list-none grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.2fr_1.3fr] gap-2 items-center px-0 py-2">
-                          <span className="text-iw-navy font-semibold inline-flex items-center gap-1.5">
-                            <ChevronRight className="w-3.5 h-3.5 text-iw-muted transition-transform group-open/grupo-global:rotate-90 shrink-0" />
-                            {nome}
-                            <span className="text-[11px] font-normal text-iw-muted">
-                              ({grupos.length} {tipo === "SETOR" ? "setor" : "regional"}
-                              {grupos.length === 1 ? "" : "is"})
-                            </span>
-                          </span>
-                          <span className="text-right text-iw-muted">{linha.basico}</span>
-                          <span className="text-right text-iw-muted">{linha.medio}</span>
-                          <span className="text-right font-bold text-iw-navy">{linha.basico + linha.medio}</span>
-                          <span className="text-right text-iw-muted">{linha.aPagar > 0 ? fmt(linha.aPagar) : "—"}</span>
-                          <span className="text-right text-iw-success">{linha.pago > 0 ? fmt(linha.pago) : "—"}</span>
-                          <span className="text-right font-bold text-iw-error">{saldo !== 0 ? fmt(saldo) : "—"}</span>
-                        </summary>
-                        <div className="bg-iw-bg/40">
-                          {grupos.length === 0 ? (
-                            <p className="text-xs text-iw-muted py-2 pl-5">
-                              Nenhum{tipo === "SETOR" ? " setor" : "a regional"} com registros.
-                            </p>
-                          ) : (
-                            grupos.map((g) => {
-                              const totalG = g.basico + g.medio;
-                              const saldoG = g.aPagar - g.pago;
-                              const alunosG = detalheAlunosPorSetor.get(g.nome) ?? [];
-                              return (
-                                <details key={g.nome} className="group/grupo-item border-t border-iw-border/40">
-                                  <summary className="cursor-pointer list-none grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.2fr_1.3fr] gap-2 items-center px-0 py-1.5">
-                                    <span className="text-xs text-iw-muted truncate pl-5 inline-flex items-center gap-1.5">
-                                      <ChevronRight className="w-3 h-3 text-iw-muted transition-transform group-open/grupo-item:rotate-90 shrink-0" />
-                                      {g.nome}
-                                      <span className="text-[10px] font-normal text-iw-muted/70">
-                                        ({alunosG.length} aluno{alunosG.length === 1 ? "" : "s"})
-                                      </span>
-                                    </span>
-                                    <span className="text-xs text-right text-iw-muted">{g.basico}</span>
-                                    <span className="text-xs text-right text-iw-muted">{g.medio}</span>
-                                    <span className="text-xs text-right font-semibold text-iw-navy">{totalG}</span>
-                                    <span className="text-xs text-right text-iw-muted">{g.aPagar > 0 ? fmt(g.aPagar) : "—"}</span>
-                                    <span className="text-xs text-right text-iw-success">{g.pago > 0 ? fmt(g.pago) : "—"}</span>
-                                    <span className="text-xs text-right font-semibold text-iw-error">
-                                      {saldoG !== 0 ? fmt(saldoG) : "—"}
-                                    </span>
-                                  </summary>
-                                  <div className="bg-iw-bg/60">
-                                    {alunosG.length === 0 ? (
-                                      <p className="text-[11px] text-iw-muted py-1.5 pl-10">Nenhum aluno.</p>
-                                    ) : (
-                                      alunosG.map((a, i) => {
-                                        const totalA = a.basico + a.medio;
-                                        const saldoA = a.aPagar - a.pago;
-                                        return (
-                                          <div
-                                            key={`${a.nome}-${i}`}
-                                            className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.2fr_1.3fr] gap-2 items-center px-0 py-1 border-t border-iw-border/30"
-                                          >
-                                            <span className="text-[11px] text-iw-muted truncate pl-10">{a.nome}</span>
-                                            <span className="text-[11px] text-right text-iw-muted">{a.basico}</span>
-                                            <span className="text-[11px] text-right text-iw-muted">{a.medio}</span>
-                                            <span className="text-[11px] text-right font-semibold text-iw-navy">{totalA}</span>
-                                            <span className="text-[11px] text-right text-iw-muted">{a.aPagar > 0 ? fmt(a.aPagar) : "—"}</span>
-                                            <span className="text-[11px] text-right text-iw-success">{a.pago > 0 ? fmt(a.pago) : "—"}</span>
-                                            <span className="text-[11px] text-right font-semibold text-iw-error">
-                                              {saldoA !== 0 ? fmt(saldoA) : "—"}
-                                            </span>
-                                          </div>
-                                        );
-                                      })
-                                    )}
-                                  </div>
-                                </details>
-                              );
-                            })
-                          )}
-                        </div>
-                      </details>
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr>
-                <td className="py-2.5 pr-3 font-black text-iw-navy uppercase">Total geral</td>
-                <td className="py-2.5 pr-3 text-right font-bold text-iw-navy">{totalGeralGlobal.basico}</td>
-                <td className="py-2.5 pr-3 text-right font-bold text-iw-navy">{totalGeralGlobal.medio}</td>
-                <td className="py-2.5 pr-3 text-right font-black text-iw-navy">
-                  {totalGeralGlobal.basico + totalGeralGlobal.medio}
-                </td>
-                <td className="py-2.5 pr-3 text-right text-iw-muted">
-                  {totalGeralGlobal.aPagar > 0 ? fmt(totalGeralGlobal.aPagar) : "—"}
-                </td>
-                <td className="py-2.5 pr-3 text-right text-iw-success">
-                  {totalGeralGlobal.pago > 0 ? fmt(totalGeralGlobal.pago) : "—"}
-                </td>
-                <td className="py-2.5 text-right font-black text-iw-error">
-                  {totalGeralGlobal.aPagar - totalGeralGlobal.pago !== 0
-                    ? fmt(totalGeralGlobal.aPagar - totalGeralGlobal.pago)
-                    : "—"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+          Global + estoque + pedidos de material) é o PRIMEIRO bloco do
+          Dashboard, antes dos KPIs/gráficos.
+          08/10/2026: o Relatório Global passou a ser hierárquico (SEDE →
+          Turma → Aluno; SETOR/REGIONAL → Setor/Regional → Igreja → Turma →
+          Aluno), com Básico/Médio lado a lado (alunos e valor). */}
+      <RelatorioGlobalHierarquico dados={relatorioGlobal} />
 
       <EstoqueMateriaisPainel materiais={materiais} cursos={cursosParaMaterial ?? []} licoes={licoesParaMaterial} />
       <PedidosMaterialAdminPainel pedidos={pedidosMaterial} />

@@ -229,7 +229,18 @@ function TurmaRow({
 }
 
 export default async function TurmasPage({ searchParams }: PageProps) {
-  const { msg, error, ano = "" } = await searchParams;
+  const { msg, error, ano: anoParam } = await searchParams;
+  // 08/10/2026, pedido do Joaquim: ao abrir a tela já vem o ANO CORRENTE
+  // (2026) selecionado e as turmas daquele ano visíveis. Só quando a URL
+  // traz `?ano=` explícito (inclusive vazio, "Selecione...") é que se
+  // respeita o que veio — assim o usuário ainda consegue limpar o filtro.
+  const anoCorrente = String(new Date().getFullYear());
+  const ano =
+    anoParam !== undefined
+      ? anoParam
+      : ANOS_DISPONIVEIS.includes(Number(anoCorrente))
+        ? anoCorrente
+        : "";
   const supabase = await createClient();
 
   const [{ data: cursos }, { data: unitsRaw }] = await Promise.all([

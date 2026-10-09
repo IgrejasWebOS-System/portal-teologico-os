@@ -46,7 +46,8 @@ param(
   [switch]$SkipDb,
   [switch]$SkipCloud,
   [switch]$Status,
-  [int]$KeepCode = 10
+  [int]$KeepCode = 10,
+  [string]$LocalRoot = "E:\bk-projetos"
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,7 +56,6 @@ $ErrorActionPreference = "Stop"
 # Configuracao
 # ---------------------------------------------------------------
 $Stamp     = Get-Date -Format "yyyy-MM-dd_HHmm"
-$LocalRoot = "E:\bk-projetos"
 $CloudRoot = "C:\Users\joaqu\OneDrive\bk-projetos"
 
 $Projetos = @(
@@ -76,6 +76,13 @@ $XD = @("node_modules", ".next", ".git", ".vercel", ".turbo", ".cache", ".temp",
 $XF = @("*.log", "*.tmp", "*.tsbuildinfo", "Thumbs.db", ".DS_Store", "next-env.d.ts")
 # Segredos: ficam so no E: (local), nunca na nuvem
 $Segredos = @(".env", ".env.local", ".env.*.local", ".env.production", ".env.staging", ".env.development", ".env.test")
+
+# Destino local inexistente (ex.: HD externo E: desconectado): para com aviso claro.
+$driveLocal = [System.IO.Path]::GetPathRoot($LocalRoot)
+if ($driveLocal -and -not (Test-Path $driveLocal)) {
+  Write-Host ("ERRO: o drive {0} nao esta disponivel. Conecte o disco ou rode de novo com -LocalRoot C:\bk-projetos (outro destino local)." -f $driveLocal)
+  exit 1
+}
 
 $LogDir = Join-Path $LocalRoot "logs"
 $script:LogFile = $null
