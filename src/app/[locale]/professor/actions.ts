@@ -20,6 +20,12 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { checkIsProfessor } from "@/utils/professor";
 import { traduzirErro } from "@/utils/mensagens-erro";
+import {
+  MSG_AUTOATENDIMENTO,
+  alunoEhOProprio,
+  cpfEhOProprio,
+  matriculaEhDoProprio,
+} from "@/utils/autoatendimento";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -104,6 +110,11 @@ export async function professorBaixarParcelaAction(formData: FormData) {
 
   if (!matricula || matricula.professor_id !== professor.id) {
     erro("Essa parcela não pertence a um aluno seu.", redirectTo);
+  }
+  // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
+  // parcelas de aluno(a).
+  if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    erro(MSG_AUTOATENDIMENTO, redirectTo);
   }
 
   const { error } = await admin
@@ -244,6 +255,12 @@ export async function professorCriarMatriculaAction(formData: FormData) {
 
   if (!validarCPF(cpf)) {
     erro("CPF inválido — confira os dígitos digitados.", voltarEmErro);
+  }
+
+  // Segregação de funções (09/10/2026): professor(a) não matricula a si
+  // mesmo(a) como aluno(a).
+  if (await cpfEhOProprio(admin, { professorId: professor.id }, cpf)) {
+    erro(MSG_AUTOATENDIMENTO, voltarEmErro);
   }
 
   if (dataMatriculaInformada && dataMatriculaInformada > new Date().toISOString().slice(0, 10)) {
@@ -1260,6 +1277,11 @@ async function assertMatriculaDoProfessor(admin: ReturnType<typeof createAdminCl
   if (!matricula || matricula.professor_id !== professorId) {
     erro("Esse aluno não pertence a você.", "/professor/alunos");
   }
+  // Segregação de funções (09/10/2026): professor(a) não edita, cancela nem
+  // lança pagamento na própria matrícula de aluno(a).
+  if (await alunoEhOProprio(admin, { professorId }, matricula!.aluno_id)) {
+    erro(MSG_AUTOATENDIMENTO, "/professor/alunos");
+  }
   return matricula!;
 }
 
@@ -1391,6 +1413,11 @@ export async function professorCancelarParcelaAction(formData: FormData) {
   if (!matricula || matricula.professor_id !== professor.id) {
     erro("Essa parcela não pertence a um aluno seu.", redirectTo);
   }
+  // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
+  // parcelas de aluno(a).
+  if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    erro(MSG_AUTOATENDIMENTO, redirectTo);
+  }
 
   const { error } = await admin
     .from("fin_contas_receber")
@@ -1434,6 +1461,11 @@ export async function professorReativarParcelaAction(formData: FormData) {
     .maybeSingle();
   if (!matricula || matricula.professor_id !== professor.id) {
     erro("Essa parcela não pertence a um aluno seu.", redirectTo);
+  }
+  // Segregação de funções (09/10/2026): professor(a) não mexe nas próprias
+  // parcelas de aluno(a).
+  if (await matriculaEhDoProprio(admin, { professorId: professor.id }, matricula!.id)) {
+    erro(MSG_AUTOATENDIMENTO, redirectTo);
   }
 
   const { error } = await admin
