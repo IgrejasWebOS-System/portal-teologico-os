@@ -14,6 +14,7 @@ import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2, PlusCircle } from "lucide-react";
 import { secretariaCriarTurmaAction } from "../actions";
+import PeriodoTurmaFields from "@/components/turmas/PeriodoTurmaFields";
 
 type Professor = { id: string; nomeCompleto: string; churchId: string | null };
 type Curso = { id: string; title: string };
@@ -141,7 +142,7 @@ export default function CriarTurmaSecretariaForm({
             </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
             <select name="dia_semana" required defaultValue="" className={selectCls}>
               <option value="" disabled>
                 Dia da semana...
@@ -152,8 +153,7 @@ export default function CriarTurmaSecretariaForm({
                 </option>
               ))}
             </select>
-            <input type="date" name="data_inicio" className={inputCls} />
-            <input type="date" name="data_fim" className={inputCls} />
+            <PeriodoTurmaFields inputClassName={inputCls} selectClassName={selectCls} />
           </div>
 
           <BotaoCriarTurma podeEnviar={!!nucleoId && !!professorId} />

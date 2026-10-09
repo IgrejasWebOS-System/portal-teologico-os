@@ -27,6 +27,7 @@ import {
   matriculaEhDoProprio,
 } from "@/utils/autoatendimento";
 import { registrarAuditoria } from "@/utils/auditoria";
+import { dataFimPadrao } from "@/utils/turmas/periodo";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
@@ -730,7 +731,8 @@ export async function professorCriarTurmaAction(formData: FormData) {
   const dia_semana = formData.get("dia_semana") as string;
   const classe = (formData.get("classe") as string)?.trim().toUpperCase() || null;
   const data_inicio = (formData.get("data_inicio") as string) || null;
-  const data_fim = (formData.get("data_fim") as string) || null;
+  // Cursos de 12 meses: sem data final informada, usa início + 12 meses.
+  const data_fim = (formData.get("data_fim") as string) || (data_inicio ? dataFimPadrao(data_inicio) || null : null);
 
   if (!course_id || !nome || !unit_id || !turno || !dia_semana) {
     erro("Preencha curso, igreja, nome da turma, turno e dia da semana.", "/professor/turmas");

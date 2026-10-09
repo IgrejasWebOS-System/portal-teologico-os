@@ -15,6 +15,7 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
+import PeriodoTurmaFields from "@/components/turmas/PeriodoTurmaFields";
 import { professorAlternarLinkTurmaAction, professorApagarTurmaAction, professorCriarTurmaAction } from "./actions";
 import { buscarTurmasPorUnidadeConfigAction } from "../(igreja)/dashboard/configuracoes/actions";
 import { vincularTurmaProfessorSelfAction } from "../completar-cadastro/actions";
@@ -396,13 +397,12 @@ export default function TurmasDoProfessor({ cursos, units, turmas, appUrl, heade
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <select name="dia_semana" required defaultValue="" className={criarSelectCls}>
                 <option value="" disabled>Dia da semana...</option>
                 {DIAS.map((d) => (<option key={d.value} value={d.value}>{d.label}</option>))}
               </select>
-              <input type="date" name="data_inicio" className={criarInputCls} />
-              <input type="date" name="data_fim" className={criarInputCls} />
+              <PeriodoTurmaFields inputClassName={criarInputCls} selectClassName={criarSelectCls} />
             </div>
 
             <BotaoCriarTurma podeEnviar={!!criarIgrejaId} />
