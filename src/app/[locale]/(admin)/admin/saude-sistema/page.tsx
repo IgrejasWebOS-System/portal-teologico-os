@@ -70,7 +70,7 @@ export default async function SaudeSistemaPage() {
       : "OK";
 
   return (
-    <div className="min-h-screen px-8 py-8 space-y-8">
+    <div className="min-h-screen px-8 py-8 space-y-8 bg-white text-black">
       <PageHeader
         icon={Activity}
         title="Saúde do sistema"
@@ -93,7 +93,7 @@ export default async function SaudeSistemaPage() {
             <div className="flex items-center gap-2">
               <Icone s={v.severidade} />
               <span className="font-semibold">{v.titulo}</span>
-              <span className="text-xs uppercase tracking-wide opacity-70">{v.severidade}</span>
+              <span className="text-xs uppercase tracking-wide">{v.severidade}</span>
             </div>
             <p className="mt-1 text-sm">{v.resumo}</p>
             {v.causa && (
@@ -114,7 +114,7 @@ export default async function SaudeSistemaPage() {
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <DatabaseBackup className="h-5 w-5" /> Backups registrados
         </h2>
-        <p className="text-base text-center uppercase opacity-80">
+        <p className="text-base text-center uppercase">
           Padrão atual: o plano do Supabase deste projeto é <b>Free</b> e não faz backup automático. O backup é o
           dump manual gerado pelo <code className="normal-case">scripts/backup-manager-v2.ps1</code> (validado com
           pg_restore --list e copiado criptografado para o OneDrive), que registra cada execução aqui.
@@ -166,7 +166,7 @@ export default async function SaudeSistemaPage() {
             ))}
           </ul>
         )}
-        <p className="text-base text-center uppercase opacity-70">
+        <p className="text-base text-center uppercase">
           A verificação automática roda 1x por dia (Vercel Cron) e avisa por e-mail os administradores globais.
         </p>
       </section>
