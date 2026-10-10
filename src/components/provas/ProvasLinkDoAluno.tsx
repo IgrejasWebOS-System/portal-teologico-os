@@ -84,12 +84,16 @@ export default function ProvasLinkDoAluno({
                 const ok = marcada === q.respostaCorreta;
                 return (
                   <li key={q.ordem} className="text-[11pt] text-[#000000] rounded-lg p-2.5 border border-black/15">
+                    {/* Na TELA o resultado fica numa linha abaixo da pergunta; só no
+                        PDF impresso ele vai na mesma linha (imprimirProva.ts). */}
                     <p>
-                      <b>{q.ordem}.</b> {q.enunciado} (Marcada: <b>{marcada}</b> &nbsp;Correta: <b>{q.respostaCorreta}</b>{" "}
-                      &nbsp;
-                      <b style={{ color: ok ? COR_ACERTOU : COR_ERROU }}>{ok ? "ACERTOU" : "ERROU"}</b>)
+                      <b>{q.ordem}.</b> {q.enunciado}
                     </p>
                     {q.opcoes && <p className="mt-0.5">{q.opcoes.join("  |  ")}</p>}
+                    <p className="mt-1">
+                      Marcada: <b>{marcada}</b> &nbsp;Correta: <b>{q.respostaCorreta}</b> &nbsp;
+                      <b style={{ color: ok ? COR_ACERTOU : COR_ERROU }}>{ok ? "ACERTOU" : "ERROU"}</b>
+                    </p>
                   </li>
                 );
               })}

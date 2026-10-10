@@ -136,6 +136,15 @@ export function GraficoReceita({
       fim = inicio + 6;
       rotulo = `${s}º semestre de ${ano}`;
     }
+    // ANUAL: 4 barras (uma por trimestre) em vez de 12 meses — cabe no card e
+    // acompanha as opções 1º–4º trimestre (10/10/2026, pedido do Joaquim).
+    if (periodo === "ANUAL") {
+      const trimestres = [0, 1, 2, 3].map((t) => ({
+        label: `${t + 1}º trimestre`,
+        value: porMes.slice(t * 3, t * 3 + 3).reduce((s, v) => s + v, 0),
+      }));
+      return { dados: trimestres, titulo: `Receita líquida por trimestre (${rotulo})` };
+    }
     const lista = porMes.slice(inicio, fim).map((value, i) => ({ label: MESES[inicio + i], value }));
     return { dados: lista, titulo: `Receita líquida por mês (${rotulo})` };
   }, [itens, ano, periodo, referencia]);
