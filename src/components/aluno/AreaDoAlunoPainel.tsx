@@ -71,6 +71,8 @@ export interface AvaliacaoResumo {
   tipo: string;
   // Só nos testes feitos pelo link público (tipo "TESTE_PUBLICO").
   titulo?: string;
+  // Entra na "Média atual" mostrada no menu lateral do aluno.
+  contaNaMedia?: boolean;
   status: string;
   nota: number | null;
   aprovado: boolean | null;

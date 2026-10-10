@@ -60,6 +60,10 @@ export interface ResultadoItem {
 
 const fmtData = fmtDataHora;
 
+// Selo Aprovado/Reprovado: MESMO tamanho do botão (px/py/text-xs/borda), texto preto.
+export const BADGE =
+  "inline-flex items-center gap-1.5 text-xs font-bold uppercase text-[#000000] rounded-lg px-3 py-1.5 border border-transparent shadow-sm";
+
 // Botão padrão (preto, borda dourada, texto branco) — compartilhado com a
 // tela de provas do aluno.
 export const BOTAO =
@@ -286,27 +290,31 @@ export default function TestesProvasPainel({
                         const chave = `${a.id}:${p.id}`;
                         return (
                           <div key={p.id} className="border border-black/15 rounded-xl p-3 space-y-2 bg-white">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div>
-                                <p className="text-sm font-bold text-black">{p.titulo}</p>
-                                <p className="text-xs text-black">{p.materia}</p>
-                              </div>
-                              <span
-                                className={`text-[11px] font-bold uppercase px-2 py-1 rounded-full text-black ${
-                                  r ? (r.aprovado ? "bg-iw-success-bg" : "bg-iw-error-bg") : "bg-black/10"
-                                }`}
-                              >
-                                {r ? (r.aprovado ? "Aprovado" : "Reprovado") : "Não feita"}
+                            {/* Tudo na mesma linha (10/10/2026, pedido do Joaquim):
+                                Título - Matéria - acertos · nota · enviada em */}
+                            <p className="text-[#000000]">
+                              <span className="text-[12.5pt] font-bold">
+                                {p.titulo} - {p.materia}
                               </span>
-                            </div>
+                              {r && (
+                                <span className="text-[11pt]">
+                                  {" "}
+                                  - {r.acertos}/{r.total} acertos{" "}
+                                  <span className="font-black bg-[#FFE08A] rounded px-1">· nota {r.nota.toFixed(1)} ·</span>{" "}
+                                  enviada em {fmtData(r.enviadoEm)}
+                                </span>
+                              )}
+                            </p>
+
+                            {!r && (
+                              <div className="flex gap-2 flex-wrap items-center">
+                                <span className={`${BADGE} bg-black/10`}>Não feita</span>
+                              </div>
+                            )}
 
                             {r && (
                               <>
-                                <p className="text-xs text-black">
-                                  {r.acertos}/{r.total} acertos · nota {r.nota.toFixed(1)} · enviada em{" "}
-                                  {fmtData(r.enviadoEm)}
-                                </p>
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex gap-2 flex-wrap items-center">
                                   <button
                                     type="button"
                                     className={BOTAO}
@@ -318,6 +326,9 @@ export default function TestesProvasPainel({
                                   <button type="button" className={BOTAO} onClick={() => imprimir(a, p, r)}>
                                     <Printer className="w-3.5 h-3.5" /> Imprimir
                                   </button>
+                                  <span className={`${BADGE} ${r.aprovado ? "bg-iw-success-bg" : "bg-iw-error-bg"}`}>
+                                    {r.aprovado ? "Aprovado" : "Reprovado"}
+                                  </span>
                                 </div>
 
                                 {provaAberta === chave && (

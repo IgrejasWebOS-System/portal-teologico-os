@@ -32,6 +32,7 @@ import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
 import Logo from "@/components/Logo";
 import FotoAlunoMenu from "@/components/aluno/FotoAlunoMenu";
+import { MEDIA_MINIMA_CERTIFICADO } from "@/utils/avaliacoes/mediaCertificado";
 import AreaDoAlunoPainel, {
   type AlunoResumo,
   type MatriculaResumo,
@@ -255,6 +256,17 @@ export default function Sidebar({
   const pathname = usePathname();
   const locale = useLocale();
 
+  // Média atual do aluno (menu lateral): Testes/Provas que contam na média
+  // (avaliacoes de matéria finalizadas + testes/provas feitos pelo link).
+  const mostrarMedia = isAlunoOficial && !!alunoPainel;
+  const notasMedia = (alunoPainel?.avaliacoes ?? [])
+    .filter((a) => a.contaNaMedia && a.nota != null)
+    .map((a) => Number(a.nota));
+  const mediaAluno =
+    notasMedia.length > 0
+      ? Number((notasMedia.reduce((s, n) => s + n, 0) / notasMedia.length).toFixed(2))
+      : null;
+
   return (
     <aside
       className={cn(
@@ -290,7 +302,12 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav
+        className={cn(
+          "px-3 py-4 space-y-0.5 overflow-y-auto",
+          mostrarMedia ? "flex-none shrink min-h-0" : "flex-1"
+        )}
+      >
         {/* Menu curado (28/09/2026) — admin com menu_restrito, no lugar do
             bloco completo de Administração abaixo. */}
         {isStaff && isAdminRestrito && (
@@ -640,6 +657,30 @@ export default function Sidebar({
           </div>
         )}
       </nav>
+
+      {/* 10/10/2026, pedido do Joaquim: Média atual do aluno, centralizada na
+          área livre entre o menu e o "Sair da conta". Verde = aprovado,
+          vermelho = reprovado (média mínima 6,1). Só no menu do aluno. */}
+      {mostrarMedia && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-1 px-3 py-4 min-h-0">
+          <div className={cn("flex flex-col items-center gap-1", menuColapsado && "md:hidden")}>
+            <p className="text-iw-sky/70 text-xs font-semibold uppercase tracking-wider">Média atual</p>
+            <p className="text-white text-4xl font-black leading-none">
+              {mediaAluno != null ? mediaAluno.toFixed(2).replace(".", ",") : "—"}
+            </p>
+            {mediaAluno != null ? (
+              <p
+                className="text-xl font-black uppercase tracking-wide"
+                style={{ color: mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "#22C55E" : "#EF4444" }}
+              >
+                {mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "Aprovado" : "Reprovado"}
+              </p>
+            ) : (
+              <p className="text-iw-sky/60 text-xs">Sem notas ainda</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="mx-4 border-t border-white/10" />
