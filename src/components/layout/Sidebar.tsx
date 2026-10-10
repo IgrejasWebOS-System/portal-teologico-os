@@ -302,12 +302,7 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav
-        className={cn(
-          "px-3 py-4 space-y-0.5 overflow-y-auto",
-          mostrarMedia ? "flex-none shrink min-h-0" : "flex-1"
-        )}
-      >
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {/* Menu curado (28/09/2026) — admin com menu_restrito, no lugar do
             bloco completo de Administração abaixo. */}
         {isStaff && isAdminRestrito && (
@@ -661,24 +656,16 @@ export default function Sidebar({
       {/* 10/10/2026, pedido do Joaquim: Média atual do aluno, centralizada na
           área livre entre o menu e o "Sair da conta". Verde = aprovado,
           vermelho = reprovado (média mínima 6,1). Só no menu do aluno. */}
-      {mostrarMedia && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-1 px-3 py-4 min-h-0">
-          <div className={cn("flex flex-col items-center gap-1", menuColapsado && "md:hidden")}>
-            <p className="text-iw-sky/70 text-xs font-semibold uppercase tracking-wider">Média atual</p>
-            <p className="text-white text-4xl font-black leading-none">
-              {mediaAluno != null ? mediaAluno.toFixed(2).replace(".", ",") : "—"}
-            </p>
-            {mediaAluno != null ? (
-              <p
-                className="text-xl font-black uppercase tracking-wide"
-                style={{ color: mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "#22C55E" : "#EF4444" }}
-              >
-                {mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "Aprovado" : "Reprovado"}
-              </p>
-            ) : (
-              <p className="text-iw-sky/60 text-xs">Sem notas ainda</p>
-            )}
-          </div>
+      {/* Uma linha só ("6,50 - APROVADO"), fixa logo acima do traço do "Sair da
+          conta" — não flutua, então não se sobrepõe ao menu quando ele expande. */}
+      {mostrarMedia && mediaAluno != null && (
+        <div className={cn("shrink-0 px-3 py-3 text-center", menuColapsado && "md:hidden")}>
+          <p className="text-xl font-black uppercase tracking-wide leading-none text-white">
+            {mediaAluno.toFixed(2).replace(".", ",")} -{" "}
+            <span style={{ color: mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "#22C55E" : "#EF4444" }}>
+              {mediaAluno >= MEDIA_MINIMA_CERTIFICADO ? "Aprovado" : "Reprovado"}
+            </span>
+          </p>
         </div>
       )}
 
