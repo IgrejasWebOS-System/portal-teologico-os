@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/utils/supabase/admin";
+import { carregarProvasPublicasDoAluno } from "@/utils/provasPublicas/provasDoAluno";
 import type {
   AlunoResumo,
   MatriculaResumo,
@@ -96,6 +97,9 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       .order("iniciada_em", { ascending: false }),
   ]);
 
+  // Provas feitas pelo link público (CPF) também aparecem em "Provas e Testes".
+  const provasPublicas = await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf });
+
   return {
     aluno: {
       nomeCompleto: aluno.nome_completo,
@@ -123,15 +127,27 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       dataVencimento: p.data_vencimento,
       responsavelPagamento: p.responsavel_pagamento,
     })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    avaliacoes: (avaliacoesRaw ?? []).map((a: any) => ({
-      tipo: a.tipo,
-      status: a.status,
-      nota: a.nota,
-      aprovado: a.aprovado,
-      numQuestoes: a.num_questoes,
-      acertos: a.acertos,
-      finalizadaEm: a.finalizada_em,
-    })),
+    avaliacoes: [
+      ...provasPublicas.map((p) => ({
+        tipo: "TESTE_PUBLICO",
+        titulo: `${p.titulo}${p.materia ? ` — ${p.materia}` : ""}`,
+        status: "FINALIZADA",
+        nota: p.nota,
+        aprovado: p.aprovado,
+        numQuestoes: p.total,
+        acertos: p.acertos,
+        finalizadaEm: p.enviadoEm,
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(avaliacoesRaw ?? []).map((a: any) => ({
+        tipo: a.tipo,
+        status: a.status,
+        nota: a.nota,
+        aprovado: a.aprovado,
+        numQuestoes: a.num_questoes,
+        acertos: a.acertos,
+        finalizadaEm: a.finalizada_em,
+      })),
+    ],
   };
 }
