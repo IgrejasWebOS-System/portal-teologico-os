@@ -171,7 +171,7 @@ export default async function DashboardDoProfessorPage() {
           boa ali) e veio pra cá, do lado esquerdo da saudação. */}
       <div className="flex items-center gap-3 mb-1">
         {professor.foto_url && (
-          <div className="w-[50px] h-[50px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
+          <div className="w-[53px] h-[53px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={professor.foto_url} alt="Sua foto" className="w-full h-full object-cover" />
           </div>
