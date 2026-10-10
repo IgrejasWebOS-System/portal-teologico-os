@@ -152,22 +152,54 @@ export default function TestesProvasPainel({
     const questoes = questoesPorProva[p.id] ?? [];
     const corpo = questoes
       .map((q) => {
-        const marcada = r.marcadas[q.ordem] ?? "—";
+        const marcada = r.marcadas[q.ordem] || "";
         const ok = marcada === q.respostaCorreta;
         const opcoes = q.opcoes ? `<div class="op">${q.opcoes.map(escapeHtml).join(" &nbsp;|&nbsp; ")}</div>` : "";
         return `<div class="q"><b>${q.ordem}.</b> ${escapeHtml(q.enunciado)}${opcoes}
-          <div>Marcada: <b>${escapeHtml(marcada)}</b> &nbsp; Correta: <b>${escapeHtml(q.respostaCorreta)}</b> &nbsp; <b>${ok ? "ACERTOU" : "ERROU"}</b></div></div>`;
+          <div>Marcada: <b>${marcada ? escapeHtml(marcada) : "em branco"}</b> &nbsp; Correta: <b>${escapeHtml(q.respostaCorreta)}</b> &nbsp; <b>${ok ? "ACERTOU" : "ERROU"}</b></div></div>`;
       })
       .join("");
+    const logo = `${window.location.origin}/branding/logos/logo-colorida.png`;
     const w = window.open("", "_blank");
     if (!w) return;
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(p.titulo)} — ${escapeHtml(a.nome)}</title>
-      <style>body{font-family:Arial,sans-serif;font-size:13px;color:#000;margin:24px}h1{font-size:16px;margin:0 0 4px}
-      .q{border-bottom:1px solid #ccc;padding:8px 0}.op{color:#000;margin:4px 0}</style></head><body>
-      <h1>${escapeHtml(p.titulo)}</h1><div>${escapeHtml(p.materia)}</div>
-      <p>Aluno: <b>${escapeHtml(a.nome)}</b> — CPF ${escapeHtml(fmtCpf(a.cpf))}<br>
-      Enviada em ${escapeHtml(fmtData(r.enviadoEm))} — ${r.acertos}/${r.total} acertos — nota ${r.nota.toFixed(1)} — ${r.aprovado ? "APROVADO" : "REPROVADO"}</p>
-      ${corpo}<script>window.onload=function(){window.print()}<\/script></body></html>`);
+    // Layout (09/10/2026, pedido do Joaquim): logo à esquerda; à direita, linha 1
+    // = título + aluno/CPF, linha 2 = matéria + dados gerais; rodapé institucional
+    // em todas as páginas. @page margin 0 remove o cabeçalho/rodapé do navegador
+    // (data, título, "about:blank", nº de página); as margens vêm do thead/tfoot.
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(p.titulo)}</title>
+      <style>
+        @page{size:A4;margin:0}
+        *{box-sizing:border-box}
+        body{margin:0;font-family:Arial,sans-serif;font-size:12px;color:#000}
+        table.wrap{width:100%;border-collapse:collapse}
+        .sp-top{height:12mm}.sp-bot{height:26mm}
+        .conteudo{padding:0 14mm}
+        .cab{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:6px}
+        .cab img{width:70px;height:70px;object-fit:contain;flex:none}
+        .cab .info{flex:1}
+        .linha{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+        .linha+.linha{margin-top:4px}
+        .titulo{font-size:15px;font-weight:bold}
+        .q{border-bottom:1px solid #ccc;padding:7px 0;break-inside:avoid}
+        .op{margin:3px 0}
+        .rodape{position:fixed;left:0;right:0;bottom:0;padding:6px 14mm 8mm;border-top:1px solid #000;text-align:center;font-size:10px;background:#fff}
+      </style></head><body>
+      <table class="wrap">
+        <thead><tr><td><div class="sp-top"></div></td></tr></thead>
+        <tfoot><tr><td><div class="sp-bot"></div></td></tr></tfoot>
+        <tbody><tr><td><div class="conteudo">
+          <div class="cab">
+            <img src="${logo}" alt="CETADP" />
+            <div class="info">
+              <div class="linha"><span class="titulo">${escapeHtml(p.titulo)}</span><span>Aluno: <b>${escapeHtml(a.nome)}</b> — CPF ${escapeHtml(fmtCpf(a.cpf))}</span></div>
+              <div class="linha"><span>${escapeHtml(p.materia)}</span><span>Enviada em ${escapeHtml(fmtData(r.enviadoEm))} — ${r.acertos}/${r.total} acertos — nota ${r.nota.toFixed(1)} — <b>${r.aprovado ? "APROVADO" : "REPROVADO"}</b></span></div>
+            </div>
+          </div>
+          ${corpo}
+        </div></td></tr></tbody>
+      </table>
+      <div class="rodape">Rua Alfredo Guedes, 1950 — Bairro Alto — Piracicaba — SP — 13.419-080<br>Tel./WhatsApp: (19) 99812-1950 · www.cetadp.teo.br</div>
+      <script>window.onload=function(){var i=document.querySelector('img');function p(){window.print()}if(i&&!i.complete){i.onload=p;i.onerror=p}else{p()}}<\/script></body></html>`);
     w.document.close();
   }
 
@@ -342,7 +374,7 @@ export default function TestesProvasPainel({
                                 {provaAberta === chave && (
                                   <ol className="space-y-2 pt-1">
                                     {questoes.map((q) => {
-                                      const marcada = r.marcadas[q.ordem] ?? "—";
+                                      const marcada = r.marcadas[q.ordem] || "em branco";
                                       const ok = marcada === q.respostaCorreta;
                                       return (
                                         <li

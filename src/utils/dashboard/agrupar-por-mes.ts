@@ -28,6 +28,46 @@ function baldesVazios(meses: number): BaldeMensal[] {
   return baldes;
 }
 
+/** Soma um valor por mês de um ANO CIVIL (Jan–Dez), incluindo meses sem valor. */
+export function somarPorMesDoAno(
+  itens: { data: string | null | undefined; valor: number }[],
+  ano: number
+): BaldeMensal[] {
+  const baldes: BaldeMensal[] = MESES_ABREV.map((nome, m) => ({
+    chave: `${ano}-${String(m + 1).padStart(2, "0")}`,
+    label: nome,
+    value: 0,
+  }));
+  for (const item of itens) {
+    if (!item.data) continue;
+    const d = new Date(item.data);
+    if (Number.isNaN(d.getTime()) || d.getFullYear() !== ano) continue;
+    baldes[d.getMonth()].value += item.valor;
+  }
+  return baldes;
+}
+
+/** Conta ocorrências por DIA de um mês (todos os dias do mês, mesmo com zero). */
+export function contarPorDiaDoMes(
+  datas: (string | null | undefined)[],
+  ano: number,
+  mes: number // 0-11
+): BaldeMensal[] {
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const baldes: BaldeMensal[] = Array.from({ length: diasNoMes }, (_, i) => ({
+    chave: `${ano}-${String(mes + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`,
+    label: String(i + 1),
+    value: 0,
+  }));
+  for (const iso of datas) {
+    if (!iso) continue;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime()) || d.getFullYear() !== ano || d.getMonth() !== mes) continue;
+    baldes[d.getDate() - 1].value += 1;
+  }
+  return baldes;
+}
+
 /** Conta quantas datas caem em cada um dos últimos `meses` meses. */
 export function contarPorMes(datas: (string | null | undefined)[], meses = 6): BaldeMensal[] {
   const baldes = baldesVazios(meses);

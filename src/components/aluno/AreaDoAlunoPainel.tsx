@@ -67,6 +67,8 @@ export interface ParcelaResumo {
 
 export interface AvaliacaoResumo {
   tipo: string;
+  // Só nos testes feitos pelo link público (tipo "TESTE_PUBLICO").
+  titulo?: string;
   status: string;
   nota: number | null;
   aprovado: boolean | null;
@@ -360,7 +362,7 @@ export default function AreaDoAlunoPainel({
               avaliacoes.map((a, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-white">{a.tipo === "PROVA" ? "Prova final" : "Simulado"}</p>
+                    <p className="text-xs font-bold text-white">{a.titulo ?? (a.tipo === "PROVA" ? "Prova final" : "Simulado")}</p>
                     <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-iw-blue/20 text-iw-navy">
                       {a.status}
                     </span>

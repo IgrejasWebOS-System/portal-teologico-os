@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import SeletorAno from "@/components/admin/dashboard/SeletorAno";
 import {
   LayoutDashboard,
   Users,
@@ -9,7 +11,6 @@ import {
   Banknote,
   ShoppingBag,
   GraduationCap,
-  BarChart3,
   PieChart,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
@@ -17,9 +18,8 @@ import { checkIsStaff } from "@/utils/staff";
 import { checkIsSecretario } from "@/utils/secretaria";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
-import MonthlyBarChart from "@/components/admin/dashboard/MonthlyBarChart";
 import BreakdownBars from "@/components/admin/dashboard/BreakdownBars";
-import { contarPorMes, somarPorMes } from "@/utils/dashboard/agrupar-por-mes";
+import { GraficoMatriculas, GraficoReceita } from "@/components/admin/dashboard/GraficosPorPeriodo";
 import {
   montarRelatorioGlobal,
   type AlunoInfo,
@@ -56,7 +56,12 @@ const STATUS_CONTA_COR: Record<string, string> = {
   CANCELADO: "bg-iw-muted",
 };
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ano?: string }>;
+}) {
+  const { ano: anoParam } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -85,14 +90,31 @@ export default async function AdminDashboardPage() {
   }
 
   const agora = new Date();
-  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
-  const seiMesesAtras = new Date(agora.getFullYear(), agora.getMonth() - 5, 1).toISOString();
+  const anoAtual = agora.getFullYear();
+  // 10/10/2026, pedido do Joaquim: caixa seletora ANO — todo o Dashboard
+  // passa a refletir o ano escolhido (?ano=). No ano corrente os KPIs
+  // "(mês)" continuam mensais; em anos passados viram totais do ano.
+  const anoParsed = Number(anoParam);
+  const anoSel = Number.isInteger(anoParsed) && anoParsed >= 2020 && anoParsed <= anoAtual + 1 ? anoParsed : anoAtual;
+  const ehAnoAtual = anoSel === anoAtual;
+  const anosDisponiveis = Array.from({ length: anoAtual + 1 - 2024 + 1 }, (_, i) => anoAtual + 1 - i);
+
+  const inicioAno = new Date(anoSel, 0, 1).toISOString();
+  const fimAno = new Date(anoSel + 1, 0, 1).toISOString();
+  const inicioAnoData = `${anoSel}-01-01`;
+  const fimAnoData = `${anoSel + 1}-01-01`;
+  // Período dos KPIs "do mês/ano".
+  const inicioMes = ehAnoAtual ? new Date(anoAtual, agora.getMonth(), 1).toISOString() : inicioAno;
+  const fimPeriodo = ehAnoAtual ? new Date(anoAtual, agora.getMonth() + 1, 1).toISOString() : fimAno;
+  const sufixoPeriodo = ehAnoAtual ? "mês" : "ano";
+  // Data de referência dos gráficos: hoje no ano corrente; 31/12 em anos passados.
+  const referenciaIso = ehAnoAtual ? agora.toISOString() : new Date(anoSel, 11, 31, 12).toISOString();
   const hoje = agora.toISOString().slice(0, 10);
 
   // ---------- KPIs ----------
   const [
     { count: alunosAtivos },
-    { count: matriculasEmAndamento },
+    { count: totalTurmas },
     { count: novasMatriculasMes },
     { data: contasPagasMes },
     { data: contasAbertas },
@@ -101,20 +123,42 @@ export default async function AdminDashboardPage() {
     { data: caixaHoje },
   ] = await Promise.all([
     supabase.from("ead_alunos").select("id", { count: "exact", head: true }).eq("status", "ATIVO"),
-    supabase.from("ead_matriculas").select("id", { count: "exact", head: true }).eq("status", "EM_ANDAMENTO"),
-    supabase.from("ead_matriculas").select("id", { count: "exact", head: true }).gte("created_at", inicioMes),
+    // Turmas (course_editions) do ano corrente — a tabela guarda edições antigas.
+    supabase.from("course_editions").select("id", { count: "exact", head: true }).eq("ano", anoSel),
+    supabase
+      .from("ead_matriculas")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", inicioMes)
+      .lt("created_at", fimPeriodo),
     supabase
       .from("fin_contas_receber")
       .select("valor_liquido_centavos, valor_bruto_centavos")
       .eq("status", "PAGO")
-      .gte("pago_em", inicioMes),
-    supabase.from("fin_contas_receber").select("valor_bruto_centavos").in("status", ["PENDENTE", "ATRASADO"]),
-    supabase.from("fin_contas_pagar").select("valor_centavos").in("status", ["PENDENTE", "ATRASADO"]),
+      .gte("pago_em", inicioMes)
+      .lt("pago_em", fimPeriodo),
+    // Em aberto: ano corrente = tudo em aberto hoje; ano passado = vencimentos daquele ano.
+    ehAnoAtual
+      ? supabase.from("fin_contas_receber").select("valor_bruto_centavos").in("status", ["PENDENTE", "ATRASADO"])
+      : supabase
+          .from("fin_contas_receber")
+          .select("valor_bruto_centavos")
+          .in("status", ["PENDENTE", "ATRASADO"])
+          .gte("data_vencimento", inicioAnoData)
+          .lt("data_vencimento", fimAnoData),
+    ehAnoAtual
+      ? supabase.from("fin_contas_pagar").select("valor_centavos").in("status", ["PENDENTE", "ATRASADO"])
+      : supabase
+          .from("fin_contas_pagar")
+          .select("valor_centavos")
+          .in("status", ["PENDENTE", "ATRASADO"])
+          .gte("data_vencimento", inicioAnoData)
+          .lt("data_vencimento", fimAnoData),
     supabase
       .from("orders")
       .select("total_centavos")
       .eq("status", "PAGO")
-      .gte("paid_at", inicioMes),
+      .gte("paid_at", inicioMes)
+      .lt("paid_at", fimPeriodo),
     supabase
       .from("fin_caixa_diario")
       .select("id, status, saldo_inicial_centavos, saldo_final_centavos")
@@ -144,27 +188,39 @@ export default async function AdminDashboardPage() {
 
   // ---------- Gráficos ----------
   const [{ data: matriculas6m }, { data: contasReceber6m }, { data: matriculasTodas }] = await Promise.all([
-    supabase.from("ead_matriculas").select("created_at").gte("created_at", seiMesesAtras),
+    // Matrículas desde 1º/jan: a semanal/quinzenal pode cruzar a virada do mês.
+    supabase
+      .from("ead_matriculas")
+      .select("created_at, aluno_id")
+      .gte("created_at", inicioAno)
+      .lt("created_at", fimAno)
+      .limit(5000),
     supabase
       .from("fin_contas_receber")
       .select("pago_em, valor_liquido_centavos, valor_bruto_centavos")
       .eq("status", "PAGO")
-      .gte("pago_em", seiMesesAtras),
-    supabase.from("ead_matriculas").select("curso_nome_snapshot, origem"),
+      .gte("pago_em", inicioAno)
+      .lt("pago_em", fimAno),
+    supabase
+      .from("ead_matriculas")
+      .select("curso_nome_snapshot, origem")
+      .gte("created_at", inicioAno)
+      .lt("created_at", fimAno),
   ]);
 
-  const matriculasPorMes = contarPorMes(
-    (matriculas6m ?? []).map((m) => m.created_at),
-    6
-  );
+  // Ano passado: "alunos" = alunos com matrícula naquele ano (os "ativos" são de hoje).
+  const alunosNoAno = new Set((matriculas6m ?? []).map((m) => m.aluno_id as string).filter(Boolean)).size;
+  const alunosKpi = ehAnoAtual ? alunosAtivos ?? 0 : alunosNoAno;
 
-  const receitaPorMes = somarPorMes(
-    (contasReceber6m ?? []).map((c) => ({
-      data: c.pago_em,
+  // Só as datas/valores — o agrupamento por período (semanal, trimestre...)
+  // é feito no componente client GraficosPorPeriodo.
+  const datasMatriculas = (matriculas6m ?? []).map((m) => m.created_at as string).filter(Boolean);
+  const itensReceita = (contasReceber6m ?? [])
+    .filter((c) => c.pago_em)
+    .map((c) => ({
+      data: c.pago_em as string,
       valor: c.valor_liquido_centavos ?? c.valor_bruto_centavos ?? 0,
-    })),
-    6
-  );
+    }));
 
   const cursoContagem = new Map<string, number>();
   const origemContagem = new Map<string, number>();
@@ -188,7 +244,7 @@ export default async function AdminDashboardPage() {
     { data: contasReceberTodas },
   ] = await Promise.all([
     supabase.from("ead_alunos").select("id, nome_completo, sector_id, church_id, sectors(name), churches(name, is_sede)"),
-    supabase.from("ead_matriculas").select("id, aluno_id, status, curso_nome_snapshot, course_edition_id"),
+    supabase.from("ead_matriculas").select("id, aluno_id, status, curso_nome_snapshot, course_edition_id, created_at"),
     supabase.from("fin_contas_receber").select("origem_id, valor_bruto_centavos, status"),
   ]);
 
@@ -210,22 +266,31 @@ export default async function AdminDashboardPage() {
     new Set((matriculasSetor ?? []).map((m) => m.course_edition_id).filter((x): x is string => !!x))
   );
   const { data: edicoesUsadas } = edicaoIds.length
-    ? await supabase.from("course_editions").select("id, nome").in("id", edicaoIds)
-    : { data: [] as { id: string; nome: string | null }[] };
+    ? await supabase.from("course_editions").select("id, nome, ano").in("id", edicaoIds)
+    : { data: [] as { id: string; nome: string | null; ano: number | null }[] };
   const nomeTurmaPorEdicao = new Map<string, string>(
     (edicoesUsadas ?? []).map((e) => [e.id as string, (e.nome as string | null) ?? "Turma sem nome"])
+  );
+  const anoPorEdicao = new Map<string, number | null>(
+    (edicoesUsadas ?? []).map((e) => [e.id as string, (e.ano as number | null) ?? null])
+  );
+  // Relatório do ANO selecionado: matrícula entra pela turma (course_editions.ano);
+  // sem turma, pelo ano em que foi criada.
+  const matriculasDoAno = (matriculasSetor ?? []).filter((m) =>
+    m.course_edition_id
+      ? anoPorEdicao.get(m.course_edition_id) === anoSel
+      : new Date(m.created_at as string).getFullYear() === anoSel
   );
 
   // Turmas do ano corrente que ainda não têm nenhum aluno ativo: entram no
   // relatório com zeros, para o Dashboard listar as mesmas regionais,
   // setores e igrejas da tela de Turmas (08/10/2026, pedido do Joaquim).
-  const anoRelatorio = new Date().getFullYear();
   const { data: edicoesAno } = await supabase
     .from("course_editions")
     .select("id, nome, unit_id")
-    .eq("ano", anoRelatorio);
+    .eq("ano", anoSel);
   const edicoesComAluno = new Set(
-    (matriculasSetor ?? []).filter((m) => m.status !== "CANCELADO" && m.course_edition_id).map((m) => m.course_edition_id as string)
+    matriculasDoAno.filter((m) => m.status !== "CANCELADO" && m.course_edition_id).map((m) => m.course_edition_id as string)
   );
   const unidadeIds = Array.from(new Set((edicoesAno ?? []).map((e) => e.unit_id).filter((x): x is string => !!x)));
   const { data: unidadesAno } = unidadeIds.length
@@ -261,7 +326,7 @@ export default async function AdminDashboardPage() {
   }
 
   const relatorioGlobal = montarRelatorioGlobal({
-    matriculas: (matriculasSetor ?? []) as MatriculaInfo[],
+    matriculas: matriculasDoAno as MatriculaInfo[],
     alunos: alunoInfo,
     financeiroPorMatricula,
     nomeTurmaPorEdicao,
@@ -338,7 +403,13 @@ export default async function AdminDashboardPage() {
     };
   });
 
-  const { data: contasReceberStatus } = await supabase.from("fin_contas_receber").select("status, valor_bruto_centavos");
+  const { data: contasReceberStatus } = ehAnoAtual
+    ? await supabase.from("fin_contas_receber").select("status, valor_bruto_centavos")
+    : await supabase
+        .from("fin_contas_receber")
+        .select("status, valor_bruto_centavos")
+        .gte("data_vencimento", inicioAnoData)
+        .lt("data_vencimento", fimAnoData);
   const statusContagem = new Map<string, number>();
   for (const c of contasReceberStatus ?? []) {
     statusContagem.set(c.status, (statusContagem.get(c.status) ?? 0) + c.valor_bruto_centavos);
@@ -372,28 +443,30 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={Users}
-          label="Alunos ativos"
-          value={String(alunosAtivos ?? 0)}
+          label={ehAnoAtual ? "Alunos ativos" : `Alunos matriculados (${anoSel})`}
+          value={String(alunosKpi)}
           color="text-iw-navy"
           bg="bg-iw-navy/10"
         />
         <KpiCard
           icon={UserCheck}
-          label="Matrículas em andamento"
-          value={String(matriculasEmAndamento ?? 0)}
+          label="Total de turmas"
+          value={String(totalTurmas ?? 0)}
+          sublabel={`em ${anoSel}`}
+          acao={<SeletorAno anoSelecionado={anoSel} anos={anosDisponiveis} />}
           color="text-iw-navy"
           bg="bg-iw-blue/10"
         />
         <KpiCard
           icon={GraduationCap}
-          label="Novas matrículas (mês)"
+          label={`Novas matrículas (${sufixoPeriodo})`}
           value={String(novasMatriculasMes ?? 0)}
           color="text-iw-gold"
           bg="bg-iw-gold/10"
         />
         <KpiCard
           icon={Wallet}
-          label="Receita confirmada (mês)"
+          label={`Receita confirmada (${sufixoPeriodo})`}
           value={fmt(receitaMes)}
           color="text-iw-success"
           bg="bg-iw-success/10"
@@ -414,7 +487,7 @@ export default async function AdminDashboardPage() {
         />
         <KpiCard
           icon={ShoppingBag}
-          label="Vendas da loja (mês)"
+          label={`Vendas da loja (${sufixoPeriodo})`}
           value={fmt(totalVendasLoja)}
           sublabel={`${qtdVendasLoja} pedido${qtdVendasLoja === 1 ? "" : "s"}`}
           color="text-iw-gold"
@@ -432,21 +505,8 @@ export default async function AdminDashboardPage() {
 
       {/* Gráficos de tendência */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-iw-navy" />
-            <h2 className="font-bold text-iw-navy text-sm">Matrículas por mês (últimos 6 meses)</h2>
-          </div>
-          <MonthlyBarChart data={matriculasPorMes} color="bg-iw-blue" />
-        </div>
-
-        <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-iw-success" />
-            <h2 className="font-bold text-iw-navy text-sm">Receita líquida por mês (últimos 6 meses)</h2>
-          </div>
-          <MonthlyBarChart data={receitaPorMes} color="bg-iw-success" formatValue={fmt} />
-        </div>
+        <GraficoMatriculas key={`m-${anoSel}`} datas={datasMatriculas} referencia={referenciaIso} />
+        <GraficoReceita key={`r-${anoSel}`} itens={itensReceita} ano={anoSel} referencia={referenciaIso} />
       </div>
 
       {/* Quebras */}
@@ -485,6 +545,7 @@ function KpiCard({
   label,
   value,
   sublabel,
+  acao,
   color,
   bg,
 }: {
@@ -492,13 +553,17 @@ function KpiCard({
   label: string;
   value: string;
   sublabel?: string;
+  acao?: ReactNode;
   color: string;
   bg: string;
 }) {
   return (
     <div className="bg-iw-surface border border-iw-border rounded-2xl p-5">
-      <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mb-3`}>
-        <Icon className={`w-4 h-4 ${color}`} />
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center`}>
+          <Icon className={`w-4 h-4 ${color}`} />
+        </div>
+        {acao}
       </div>
       <p className="text-xs font-bold text-iw-muted uppercase tracking-wider mb-1">{label}</p>
       <p className={`text-xl font-black ${color}`}>{value}</p>
