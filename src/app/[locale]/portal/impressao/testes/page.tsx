@@ -4,7 +4,8 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
 import ImprimirSecaoBotao from "@/components/impressao/ImprimirSecaoBotao";
-import { carregarProvasPublicasDoAluno } from "@/utils/provasPublicas/provasDoAluno";
+import { carregarProvasPublicasDoAluno, ehProvaFinal } from "@/utils/provasPublicas/provasDoAluno";
+import ProvasLinkDoAluno from "@/components/provas/ProvasLinkDoAluno";
 
 export const metadata = { title: "Testes" };
 
@@ -68,7 +69,9 @@ export default async function TestesImpressaoPage({ searchParams }: PageProps) {
   // de impressão que imprime só aquele teste, em sequência (Teste 1,
   // depois Teste 2, etc.), em vez de uma tabela única com tudo junto.
   // Testes feitos pelo link público (/prova-publica/..., por CPF).
-  const testesPublicos = await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf });
+  const testesPublicos = (
+    await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf }, { comQuestoes: true })
+  ).filter((t) => !ehProvaFinal(t.titulo));
 
   const testesNumeros = Array.from(new Set(linhas.map((l) => l.numeroTeste).filter((n): n is number => n != null))).sort(
     (a, b) => a - b
@@ -112,30 +115,7 @@ export default async function TestesImpressaoPage({ searchParams }: PageProps) {
           <h2 className="text-base font-black text-iw-navy mb-3 pb-2 border-b-2 border-iw-navy">
             Testes por matéria (link)
           </h2>
-          <div className="space-y-3">
-            {testesPublicos.map((t) => (
-              <div
-                key={t.provaId}
-                className="border border-iw-border rounded-xl p-4 flex items-center justify-between gap-4 break-inside-avoid"
-              >
-                <div>
-                  <p className="font-bold text-iw-navy text-sm">{t.titulo}</p>
-                  <p className="text-xs text-iw-muted mt-0.5">
-                    {t.materia} — enviado em {fmtData(t.enviadoEm)}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-lg font-black text-iw-navy">{t.nota.toFixed(1)}</p>
-                  <p className="text-xs text-iw-muted">
-                    {t.acertos}/{t.total} acertos
-                  </p>
-                  <p className={`text-xs font-bold ${t.aprovado ? "text-iw-success" : "text-iw-error"}`}>
-                    {t.aprovado ? "Aprovado" : "Não aprovado"}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ProvasLinkDoAluno alunoNome={aluno.nome_completo} alunoCpf={aluno.cpf ?? ""} itens={testesPublicos} />
         </div>
       )}
 

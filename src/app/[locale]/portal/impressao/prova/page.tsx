@@ -4,6 +4,8 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { resolverAlunoParaImpressao } from "@/utils/aluno/matriculaAtiva";
 import ImpressaoShell from "@/components/impressao/ImpressaoShell";
 import ImprimirSecaoBotao from "@/components/impressao/ImprimirSecaoBotao";
+import { carregarProvasPublicasDoAluno, ehProvaFinal } from "@/utils/provasPublicas/provasDoAluno";
+import ProvasLinkDoAluno from "@/components/provas/ProvasLinkDoAluno";
 
 export const metadata = { title: "Prova" };
 
@@ -36,6 +38,12 @@ export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
     aprovado: boolean | null;
     finalizadaEm: string | null;
   }[] = [];
+
+  // Provas finais feitas pelo link público (/prova-publica/..., por CPF): mesmo
+  // Visualizar/Imprimir da tela do professor.
+  const provasPublicas = (
+    await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf }, { comQuestoes: true })
+  ).filter((t) => ehProvaFinal(t.titulo));
 
   if (matricula) {
     const { data: avaliacoes } = await admin
@@ -87,6 +95,13 @@ export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
         {aluno.nome_completo} — {matricula?.curso_nome_snapshot ?? "—"}
       </p>
 
+      {provasPublicas.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-base font-black text-iw-navy mb-3 pb-2 border-b-2 border-iw-navy">Prova (link)</h2>
+          <ProvasLinkDoAluno alunoNome={aluno.nome_completo} alunoCpf={aluno.cpf ?? ""} itens={provasPublicas} />
+        </div>
+      )}
+
       {provas.length > 0 && (
         <p className="text-xs text-iw-muted/80 bg-iw-bg border border-iw-border rounded-lg px-3 py-2 mb-4 print:hidden">
           O botão <strong>&ldquo;Imprimir / Salvar PDF&rdquo;</strong> no topo imprime todas as provas, em páginas
@@ -95,7 +110,9 @@ export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
       )}
 
       {provas.length === 0 ? (
-        <p className="text-sm text-iw-muted">Nenhuma prova realizada ainda.</p>
+        provasPublicas.length === 0 ? (
+          <p className="text-sm text-iw-muted">Nenhuma prova realizada ainda.</p>
+        ) : null
       ) : (
         <div className="space-y-3">
           {provas.map((p, i) => (
