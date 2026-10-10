@@ -31,6 +31,7 @@ export async function carregarDadosTestesProvas(
     course_edition_id: string | null;
     turma_nome: string | null;
     curso_nome?: string | null;
+    professor_id?: string | null;
   }[]
 ): Promise<DadosTestesProvas> {
   const alunoIds = alunosBase.map((a) => a.id);
@@ -136,9 +137,24 @@ export async function carregarDadosTestesProvas(
     cursosPorAluno.set(m.aluno_id, set);
   }
 
+  // Nome do professor da matrícula (para o cabeçalho da prova impressa).
+  const professorIds = Array.from(new Set(matriculas.map((m) => m.professor_id).filter((x): x is string => !!x)));
+  const { data: professoresRaw } = professorIds.length
+    ? await admin.from("professores").select("id, nome_completo").in("id", professorIds)
+    : { data: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nomeProfessor = new Map<string, string>(((professoresRaw ?? []) as any[]).map((p) => [p.id, p.nome_completo]));
+  const professorPorAluno = new Map<string, string>();
+  for (const m of matriculas) {
+    if (m.professor_id && !professorPorAluno.has(m.aluno_id)) {
+      professorPorAluno.set(m.aluno_id, nomeProfessor.get(m.professor_id) ?? "");
+    }
+  }
+
   const alunos: AlunoItem[] = alunosBase
     .map((a) => ({
       id: a.id,
+      professorNome: professorPorAluno.get(a.id) ?? "",
       nome: a.nome_completo,
       cpf: a.cpf ?? "",
       matricula: a.matricula ?? "",

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Printer } from "lucide-react";
 import { BOTAO } from "@/components/provas/TestesProvasPainel";
-import { imprimirProva, fmtDataHora } from "@/components/provas/imprimirProva";
+import { imprimirProva, fmtDataHora, COR_ACERTOU, COR_ERROU } from "@/components/provas/imprimirProva";
 import type { ProvaPublicaDoAluno } from "@/utils/provasPublicas/provasDoAluno";
 
 // ============================================================
@@ -14,11 +14,15 @@ import type { ProvaPublicaDoAluno } from "@/utils/provasPublicas/provasDoAluno";
 
 export default function ProvasLinkDoAluno({
   alunoNome,
-  alunoCpf,
+  matricula,
+  curso,
+  professorNome,
   itens,
 }: {
   alunoNome: string;
-  alunoCpf: string;
+  matricula: string;
+  curso?: string;
+  professorNome?: string;
   itens: ProvaPublicaDoAluno[];
 }) {
   const [aberta, setAberta] = useState<string | null>(null);
@@ -56,7 +60,9 @@ export default function ProvasLinkDoAluno({
               onClick={() =>
                 imprimirProva({
                   alunoNome,
-                  alunoCpf,
+                  matricula,
+                  curso,
+                  professorNome,
                   titulo: r.titulo,
                   materia: r.materia,
                   enviadoEm: r.enviadoEm,
@@ -79,19 +85,13 @@ export default function ProvasLinkDoAluno({
                 const marcada = r.marcadas[q.ordem] || "em branco";
                 const ok = marcada === q.respostaCorreta;
                 return (
-                  <li
-                    key={q.ordem}
-                    className={`text-xs text-black rounded-lg p-2.5 border ${
-                      ok ? "border-iw-success/40 bg-iw-success-bg/50" : "border-iw-error/40 bg-iw-error-bg/50"
-                    }`}
-                  >
-                    <p className="font-semibold">
-                      {q.ordem}. {q.enunciado}
+                  <li key={q.ordem} className="text-[11pt] text-[#000000] rounded-lg p-2.5 border border-black/15">
+                    <p>
+                      <b>{q.ordem}.</b> {q.enunciado} (Marcada: <b>{marcada}</b> &nbsp;Correta: <b>{q.respostaCorreta}</b>{" "}
+                      &nbsp;
+                      <b style={{ color: ok ? COR_ACERTOU : COR_ERROU }}>{ok ? "ACERTOU" : "ERROU"}</b>)
                     </p>
                     {q.opcoes && <p className="mt-0.5">{q.opcoes.join("  |  ")}</p>}
-                    <p className="mt-1">
-                      Marcada: <b>{marcada}</b> · Correta: <b>{q.respostaCorreta}</b> · <b>{ok ? "Acertou" : "Errou"}</b>
-                    </p>
                   </li>
                 );
               })}

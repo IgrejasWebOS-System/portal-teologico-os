@@ -69,6 +69,15 @@ export default async function TestesImpressaoPage({ searchParams }: PageProps) {
   // de impressão que imprime só aquele teste, em sequência (Teste 1,
   // depois Teste 2, etc.), em vez de uma tabela única com tudo junto.
   // Testes feitos pelo link público (/prova-publica/..., por CPF).
+  let professorNome = "";
+  if (matricula?.professor_id) {
+    const { data: prof } = await admin
+      .from("professores")
+      .select("nome_completo")
+      .eq("id", matricula.professor_id)
+      .maybeSingle();
+    professorNome = (prof?.nome_completo as string | undefined) ?? "";
+  }
   const testesPublicos = (
     await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf }, { comQuestoes: true })
   ).filter((t) => !ehProvaFinal(t.titulo));
@@ -115,7 +124,13 @@ export default async function TestesImpressaoPage({ searchParams }: PageProps) {
           <h2 className="text-base font-black text-iw-navy mb-3 pb-2 border-b-2 border-iw-navy">
             Testes por matéria (link)
           </h2>
-          <ProvasLinkDoAluno alunoNome={aluno.nome_completo} alunoCpf={aluno.cpf ?? ""} itens={testesPublicos} />
+          <ProvasLinkDoAluno
+            alunoNome={aluno.nome_completo}
+            matricula={matricula?.matricula ?? ""}
+            curso={matricula?.curso_nome_snapshot}
+            professorNome={professorNome}
+            itens={testesPublicos}
+          />
         </div>
       )}
 

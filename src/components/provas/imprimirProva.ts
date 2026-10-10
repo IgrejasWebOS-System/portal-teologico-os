@@ -35,9 +35,17 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Cor do veredito (10/10/2026, pedido do Joaquim): ACERTOU verde, ERROU
+// vermelho, ambos em negrito; o resto do texto é preto (#000000).
+export const COR_ACERTOU = "#008000";
+export const COR_ERROU = "#D00000";
+
 export interface DadosImpressaoProva {
   alunoNome: string;
-  alunoCpf: string;
+  // Dados da matrícula (substituem o CPF no cabeçalho).
+  matricula: string;
+  curso?: string;
+  professorNome?: string;
   titulo: string;
   materia: string;
   enviadoEm: string;
@@ -55,10 +63,13 @@ export function imprimirProva(d: DadosImpressaoProva) {
       const marcada = d.marcadas[q.ordem] || "";
       const ok = marcada === q.respostaCorreta;
       const opcoes = q.opcoes ? `<div class="op">${q.opcoes.map(escapeHtml).join(" &nbsp;|&nbsp; ")}</div>` : "";
-      return `<div class="q"><b>${q.ordem}.</b> ${escapeHtml(q.enunciado)}${opcoes}
-          <div>Marcada: <b>${marcada ? escapeHtml(marcada) : "em branco"}</b> &nbsp; Correta: <b>${escapeHtml(q.respostaCorreta)}</b> &nbsp; <b>${ok ? "ACERTOU" : "ERROU"}</b></div></div>`;
+      // Resultado na MESMA linha, logo após o enunciado.
+      return `<div class="q"><b>${q.ordem}.</b> ${escapeHtml(q.enunciado)}
+          (Marcada: <b>${marcada ? escapeHtml(marcada) : "em branco"}</b> &nbsp; Correta: <b>${escapeHtml(q.respostaCorreta)}</b> &nbsp; <b style="color:${ok ? COR_ACERTOU : COR_ERROU}">${ok ? "ACERTOU" : "ERROU"}</b>)${opcoes}</div>`;
     })
     .join("");
+  const dadosMatricula = [`Matrícula: ${d.matricula || "—"}`, d.curso].filter(Boolean).join(" — ");
+  const professor = d.professorNome ? ` — Professor: <b>${escapeHtml(d.professorNome)}</b>` : "";
   const logo = `${window.location.origin}/branding/logos/logo-colorida.png`;
   const w = window.open("", "_blank");
   if (!w) return;
@@ -66,7 +77,8 @@ export function imprimirProva(d: DadosImpressaoProva) {
       <style>
         @page{size:A4;margin:0}
         *{box-sizing:border-box}
-        body{margin:0;font-family:Arial,sans-serif;font-size:12px;color:#000}
+        body{margin:0;font-family:Arial,sans-serif;font-size:12px;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .linha span:last-child{text-align:right}
         table.wrap{width:100%;border-collapse:collapse}
         .sp-top{height:12mm}.sp-bot{height:26mm}
         .conteudo{padding:0 14mm}
@@ -76,7 +88,7 @@ export function imprimirProva(d: DadosImpressaoProva) {
         .linha{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
         .linha+.linha{margin-top:4px}
         .titulo{font-size:15px;font-weight:bold}
-        .q{border-bottom:1px solid #ccc;padding:7px 0;break-inside:avoid}
+        .q{border-bottom:1px solid #ccc;padding:7px 0;break-inside:avoid;font-size:11pt;color:#000}
         .op{margin:3px 0}
         .rodape{position:fixed;left:0;right:0;bottom:0;padding:6px 14mm 8mm;border-top:1px solid #000;text-align:center;font-size:10px;background:#fff}
       </style></head><body>
@@ -87,8 +99,8 @@ export function imprimirProva(d: DadosImpressaoProva) {
           <div class="cab">
             <img src="${logo}" alt="CETADP" />
             <div class="info">
-              <div class="linha"><span class="titulo">${escapeHtml(d.titulo)}</span><span>Aluno: <b>${escapeHtml(d.alunoNome)}</b> — CPF ${escapeHtml(fmtCpf(d.alunoCpf))}</span></div>
-              <div class="linha"><span>${escapeHtml(d.materia)}</span><span>Enviada em ${escapeHtml(fmtDataHora(d.enviadoEm))} — ${d.acertos}/${d.total} acertos — nota ${d.nota.toFixed(1)} — <b>${d.aprovado ? "APROVADO" : "REPROVADO"}</b></span></div>
+              <div class="linha"><span class="titulo">${escapeHtml(d.titulo)}</span><span>Aluno: <b>${escapeHtml(d.alunoNome)}</b> — ${escapeHtml(dadosMatricula)}</span></div>
+              <div class="linha"><span>${escapeHtml(d.materia)}</span><span>Enviada em ${escapeHtml(fmtDataHora(d.enviadoEm))} — ${d.acertos}/${d.total} acertos — nota ${d.nota.toFixed(1)} — <b>${d.aprovado ? "APROVADO" : "REPROVADO"}</b>${professor}</span></div>
             </div>
           </div>
           ${corpo}

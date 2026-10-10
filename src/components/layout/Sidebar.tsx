@@ -265,14 +265,28 @@ export default function Sidebar({
       )}
     >
       {/* Logo / Brand */}
-      <div className={cn("flex items-center gap-3 px-6 py-5 border-b border-white/10", menuColapsado && "md:justify-center md:px-0")}>
-        <Logo size="sm" variant="light" />
-        <div className={cn("min-w-0", menuColapsado && "md:hidden")}>
-          <p className="text-white font-bold text-sm leading-tight truncate">
-            Portal Teológico
-          </p>
-          <p className="text-iw-sky/60 text-xs truncate">CETADP</p>
+      <div className="border-b border-white/10">
+        <div className={cn("flex items-center gap-3 px-6 py-5", menuColapsado && "md:justify-center md:px-0")}>
+          <Logo size="sm" variant="light" />
+          <div className={cn("min-w-0", menuColapsado && "md:hidden")}>
+            <p className="text-white font-bold text-sm leading-tight truncate">
+              Portal Teológico
+            </p>
+            <p className="text-iw-sky/60 text-xs truncate">CETADP</p>
+          </div>
         </div>
+
+        {/* 10/10/2026, pedido do Joaquim: foto do aluno centralizada, uma linha
+            abaixo do logo e uma linha acima do traço que separa o cabeçalho do
+            menu. 50x50, redonda, mesma borda laranja da foto do professor. */}
+        {isAlunoOficial && alunoPainel?.aluno.fotoUrl && (
+          <div className={cn("flex justify-center pb-5", menuColapsado && "md:hidden")}>
+            <div className="w-[50px] h-[50px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={alunoPainel.aluno.fotoUrl} alt="Sua foto" className="w-full h-full object-cover" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
