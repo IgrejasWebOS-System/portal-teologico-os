@@ -29,16 +29,26 @@ export default function MonthlyBarChart({
       {data.map((d) => {
         const alturaPct = d.value === 0 ? 2 : Math.max(4, Math.round((d.value / max) * 100));
         return (
-          <div key={d.label} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group">
-            <span className={`${compacto ? "text-[9px]" : "text-[11px]"} font-bold text-iw-navy opacity-0 group-hover:opacity-100 transition-opacity`}>
-              {fmt(d.value)}
-            </span>
+          // min-w-0: a coluna nunca cresce por causa do texto (antes o valor "R$ ..."
+          // escondido alargava as colunas e o gráfico anual estourava o card).
+          <div key={d.label} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full gap-1.5 group">
             <div
-              className={`w-full ${compacto ? "max-w-[14px]" : "max-w-[36px]"} rounded-t-md ${color} transition-all`}
+              className={`relative w-full ${compacto ? "max-w-[14px]" : "max-w-[36px]"} rounded-t-md ${color} transition-all`}
               style={{ height: `${alturaPct}%` }}
               title={`${d.label}: ${fmt(d.value)}`}
-            />
-            <span className={`${compacto ? "text-[9px]" : "text-[11px]"} text-iw-muted font-medium`}>{d.label}</span>
+            >
+              {/* Valor aparece ao passar o mouse, flutuando sobre a barra (sem ocupar largura). */}
+              <span
+                className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1 whitespace-nowrap pointer-events-none ${
+                  compacto ? "text-[12px]" : "text-[14px]"
+                } font-bold text-iw-navy opacity-0 group-hover:opacity-100 transition-opacity`}
+              >
+                {fmt(d.value)}
+              </span>
+            </div>
+            <span className={`${compacto ? "text-[12px]" : "text-[14px]"} text-iw-muted font-medium max-w-full truncate`}>
+              {d.label}
+            </span>
           </div>
         );
       })}

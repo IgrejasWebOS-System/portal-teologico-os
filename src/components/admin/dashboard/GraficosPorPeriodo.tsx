@@ -70,7 +70,7 @@ export function GraficoMatriculas({ datas, referencia }: { datas: string[]; refe
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <BarChart3 className="w-4 h-4 text-iw-navy shrink-0" />
-          <h2 className="font-bold text-iw-navy text-sm truncate">{titulo}</h2>
+          <h2 className="font-bold text-iw-navy text-[12.5pt] truncate">{titulo}</h2>
         </div>
         <select
           aria-label="Período das matrículas"
@@ -136,6 +136,15 @@ export function GraficoReceita({
       fim = inicio + 6;
       rotulo = `${s}º semestre de ${ano}`;
     }
+    // ANUAL: 4 barras (uma por trimestre) em vez de 12 meses — cabe no card e
+    // acompanha as opções 1º–4º trimestre (10/10/2026, pedido do Joaquim).
+    if (periodo === "ANUAL") {
+      const trimestres = [0, 1, 2, 3].map((t) => ({
+        label: `${t + 1}º trimestre`,
+        value: porMes.slice(t * 3, t * 3 + 3).reduce((s, v) => s + v, 0),
+      }));
+      return { dados: trimestres, titulo: `Receita líquida por trimestre (${rotulo})` };
+    }
     const lista = porMes.slice(inicio, fim).map((value, i) => ({ label: MESES[inicio + i], value }));
     return { dados: lista, titulo: `Receita líquida por mês (${rotulo})` };
   }, [itens, ano, periodo, referencia]);
@@ -145,7 +154,7 @@ export function GraficoReceita({
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <BarChart3 className="w-4 h-4 text-iw-success shrink-0" />
-          <h2 className="font-bold text-iw-navy text-sm truncate">{titulo}</h2>
+          <h2 className="font-bold text-iw-navy text-[12.5pt] truncate">{titulo}</h2>
         </div>
         <select
           aria-label="Período da receita"
