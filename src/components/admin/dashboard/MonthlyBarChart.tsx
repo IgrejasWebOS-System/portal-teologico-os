@@ -40,13 +40,13 @@ export default function MonthlyBarChart({
               {/* Valor aparece ao passar o mouse, flutuando sobre a barra (sem ocupar largura). */}
               <span
                 className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1 whitespace-nowrap pointer-events-none ${
-                  compacto ? "text-[9px]" : "text-[11px]"
+                  compacto ? "text-[12px]" : "text-[14px]"
                 } font-bold text-iw-navy opacity-0 group-hover:opacity-100 transition-opacity`}
               >
                 {fmt(d.value)}
               </span>
             </div>
-            <span className={`${compacto ? "text-[9px]" : "text-[11px]"} text-iw-muted font-medium max-w-full truncate`}>
+            <span className={`${compacto ? "text-[12px]" : "text-[14px]"} text-iw-muted font-medium max-w-full truncate`}>
               {d.label}
             </span>
           </div>

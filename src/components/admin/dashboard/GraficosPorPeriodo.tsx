@@ -70,7 +70,7 @@ export function GraficoMatriculas({ datas, referencia }: { datas: string[]; refe
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <BarChart3 className="w-4 h-4 text-iw-navy shrink-0" />
-          <h2 className="font-bold text-iw-navy text-sm truncate">{titulo}</h2>
+          <h2 className="font-bold text-iw-navy text-[12.5pt] truncate">{titulo}</h2>
         </div>
         <select
           aria-label="Período das matrículas"
@@ -154,7 +154,7 @@ export function GraficoReceita({
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <BarChart3 className="w-4 h-4 text-iw-success shrink-0" />
-          <h2 className="font-bold text-iw-navy text-sm truncate">{titulo}</h2>
+          <h2 className="font-bold text-iw-navy text-[12.5pt] truncate">{titulo}</h2>
         </div>
         <select
           aria-label="Período da receita"
