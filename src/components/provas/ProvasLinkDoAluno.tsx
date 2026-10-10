@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Eye, EyeOff, Printer } from "lucide-react";
-import { BOTAO } from "@/components/provas/TestesProvasPainel";
+import { BOTAO, BADGE } from "@/components/provas/TestesProvasPainel";
 import { imprimirProva, fmtDataHora, COR_ACERTOU, COR_ERROU } from "@/components/provas/imprimirProva";
 import type { ProvaPublicaDoAluno } from "@/utils/provasPublicas/provasDoAluno";
 
@@ -31,25 +31,20 @@ export default function ProvasLinkDoAluno({
     <div className="space-y-3 text-black">
       {itens.map((r) => (
         <div key={r.provaId} className="border border-black/15 rounded-xl p-3 space-y-2 bg-white break-inside-avoid">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div>
-              <p className="text-sm font-bold text-black">{r.titulo}</p>
-              <p className="text-xs text-black">{r.materia}</p>
-            </div>
-            <span
-              className={`text-[11px] font-bold uppercase px-2 py-1 rounded-full text-black ${
-                r.aprovado ? "bg-iw-success-bg" : "bg-iw-error-bg"
-              }`}
-            >
-              {r.aprovado ? "Aprovado" : "Reprovado"}
+          {/* Tudo na mesma linha: Título - Matéria - acertos · nota · enviada em */}
+          <p className="text-[#000000]">
+            <span className="text-[12.5pt] font-bold">
+              {r.titulo} - {r.materia}
             </span>
-          </div>
-
-          <p className="text-xs text-black">
-            {r.acertos}/{r.total} acertos · nota {r.nota.toFixed(1)} · enviada em {fmtDataHora(r.enviadoEm)}
+            <span className="text-[11pt]">
+              {" "}
+              - {r.acertos}/{r.total} acertos{" "}
+              <span className="font-black bg-[#FFE08A] rounded px-1">· nota {r.nota.toFixed(1)} ·</span> enviada em{" "}
+              {fmtDataHora(r.enviadoEm)}
+            </span>
           </p>
 
-          <div className="flex gap-2 flex-wrap print:hidden">
+          <div className="flex gap-2 flex-wrap items-center print:hidden">
             <button type="button" className={BOTAO} onClick={() => setAberta(aberta === r.provaId ? null : r.provaId)}>
               {aberta === r.provaId ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               {aberta === r.provaId ? "Ocultar" : "Visualizar"}
@@ -77,6 +72,9 @@ export default function ProvasLinkDoAluno({
             >
               <Printer className="w-3.5 h-3.5" /> Imprimir
             </button>
+            <span className={`${BADGE} ${r.aprovado ? "bg-iw-success-bg" : "bg-iw-error-bg"}`}>
+              {r.aprovado ? "Aprovado" : "Reprovado"}
+            </span>
           </div>
 
           {aberta === r.provaId && (

@@ -92,7 +92,7 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       .order("data_vencimento", { ascending: true }),
     supabase
       .from("avaliacoes")
-      .select("tipo, status, nota, aprovado, num_questoes, acertos, finalizada_em")
+      .select("tipo, status, nota, aprovado, num_questoes, acertos, finalizada_em, lesson_id")
       .in("matricula_id", matriculaIds)
       .order("iniciada_em", { ascending: false }),
   ]);
@@ -138,6 +138,7 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
         numQuestoes: p.total,
         acertos: p.acertos,
         finalizadaEm: p.enviadoEm,
+        contaNaMedia: true,
       })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(avaliacoesRaw ?? []).map((a: any) => ({
@@ -148,6 +149,13 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
         numQuestoes: a.num_questoes,
         acertos: a.acertos,
         finalizadaEm: a.finalizada_em,
+        // Mesma regra da média do Certificado (mediaCertificado.ts): só
+        // Teste/Prova por matéria finalizados; Simulado não conta.
+        contaNaMedia:
+          (a.tipo === "TESTE_LICAO" || a.tipo === "PROVA") &&
+          a.lesson_id != null &&
+          a.status === "FINALIZADA" &&
+          a.nota != null,
       })),
     ],
   };
