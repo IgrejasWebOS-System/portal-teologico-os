@@ -31,6 +31,7 @@ import {
 import { signOutAction, signOutGlobalAction } from "@/app/actions";
 import { cn } from "@/utils/cn";
 import Logo from "@/components/Logo";
+import FotoAlunoMenu from "@/components/aluno/FotoAlunoMenu";
 import AreaDoAlunoPainel, {
   type AlunoResumo,
   type MatriculaResumo,
@@ -278,13 +279,12 @@ export default function Sidebar({
 
         {/* 10/10/2026, pedido do Joaquim: foto do aluno centralizada, uma linha
             abaixo do logo e uma linha acima do traço que separa o cabeçalho do
-            menu. 50x50, redonda, mesma borda laranja da foto do professor. */}
-        {isAlunoOficial && alunoPainel?.aluno.fotoUrl && (
+            menu. 53x53, redonda, mesma borda laranja da foto do professor.
+            Também permite ADICIONAR/TROCAR a foto (grava em
+            ead_alunos.foto_url, o mesmo campo da Ficha e do cadastro). */}
+        {isAlunoOficial && alunoPainel && (
           <div className={cn("flex justify-center pb-5", menuColapsado && "md:hidden")}>
-            <div className="w-[53px] h-[53px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={alunoPainel.aluno.fotoUrl} alt="Sua foto" className="w-full h-full object-cover" />
-            </div>
+            <FotoAlunoMenu fotoUrl={alunoPainel.aluno.fotoUrl ?? null} />
           </div>
         )}
       </div>
