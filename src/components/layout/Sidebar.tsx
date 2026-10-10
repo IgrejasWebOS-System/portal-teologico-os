@@ -281,7 +281,7 @@ export default function Sidebar({
             menu. 50x50, redonda, mesma borda laranja da foto do professor. */}
         {isAlunoOficial && alunoPainel?.aluno.fotoUrl && (
           <div className={cn("flex justify-center pb-5", menuColapsado && "md:hidden")}>
-            <div className="w-[50px] h-[50px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
+            <div className="w-[53px] h-[53px] rounded-full overflow-hidden border-[1.5px] border-[#E88D0C]/60 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={alunoPainel.aluno.fotoUrl} alt="Sua foto" className="w-full h-full object-cover" />
             </div>
