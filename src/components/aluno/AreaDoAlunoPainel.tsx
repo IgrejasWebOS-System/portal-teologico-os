@@ -44,6 +44,8 @@ export interface AlunoResumo {
   telefone: string | null;
   campoMinisterioNome: string | null;
   status: string;
+  // Foto do aluno (ead_alunos.foto_url) — mostrada no cabeçalho do menu lateral.
+  fotoUrl?: string | null;
 }
 
 export interface MatriculaResumo {

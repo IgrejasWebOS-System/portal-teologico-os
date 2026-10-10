@@ -41,6 +41,15 @@ export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
 
   // Provas finais feitas pelo link público (/prova-publica/..., por CPF): mesmo
   // Visualizar/Imprimir da tela do professor.
+  let professorNome = "";
+  if (matricula?.professor_id) {
+    const { data: prof } = await admin
+      .from("professores")
+      .select("nome_completo")
+      .eq("id", matricula.professor_id)
+      .maybeSingle();
+    professorNome = (prof?.nome_completo as string | undefined) ?? "";
+  }
   const provasPublicas = (
     await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf }, { comQuestoes: true })
   ).filter((t) => ehProvaFinal(t.titulo));
@@ -98,7 +107,13 @@ export default async function ProvaImpressaoPage({ searchParams }: PageProps) {
       {provasPublicas.length > 0 && (
         <div className="mb-6">
           <h2 className="text-base font-black text-iw-navy mb-3 pb-2 border-b-2 border-iw-navy">Prova (link)</h2>
-          <ProvasLinkDoAluno alunoNome={aluno.nome_completo} alunoCpf={aluno.cpf ?? ""} itens={provasPublicas} />
+          <ProvasLinkDoAluno
+            alunoNome={aluno.nome_completo}
+            matricula={matricula?.matricula ?? ""}
+            curso={matricula?.curso_nome_snapshot}
+            professorNome={professorNome}
+            itens={provasPublicas}
+          />
         </div>
       )}
 

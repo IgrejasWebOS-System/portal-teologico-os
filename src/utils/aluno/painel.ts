@@ -33,7 +33,7 @@ export async function carregarAlunoPainelData(
 ): Promise<AlunoPainelData | null> {
   const { data: aluno } = await supabase
     .from("ead_alunos")
-    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status, foto_url")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -56,7 +56,7 @@ export async function carregarAlunoPainelDataPorAlunoId(
 ): Promise<AlunoPainelData | null> {
   const { data: aluno } = await supabase
     .from("ead_alunos")
-    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status")
+    .select("id, nome_completo, cpf, email, telefone, campo_ministerio_nome, status, foto_url")
     .eq("id", alunoId)
     .maybeSingle();
 
@@ -108,6 +108,7 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       telefone: aluno.telefone,
       campoMinisterioNome: aluno.campo_ministerio_nome,
       status: aluno.status,
+      fotoUrl: aluno.foto_url ?? null,
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     matriculas: (matriculasRaw ?? []).map((m: any) => ({

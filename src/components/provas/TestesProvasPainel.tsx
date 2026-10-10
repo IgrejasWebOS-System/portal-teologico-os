@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Copy, Check, Search, Printer, Eye, EyeOff, MessageCircle, ChevronRight } from "lucide-react";
-import { imprimirProva, soDigitos, fmtCpf, fmtDataHora } from "@/components/provas/imprimirProva";
+import { imprimirProva, soDigitos, fmtCpf, fmtDataHora, COR_ACERTOU, COR_ERROU } from "@/components/provas/imprimirProva";
 
 // ============================================================
 // "Testes e Provas" — tela do professor e da secretaria (09/10/2026,
@@ -43,6 +43,8 @@ export interface AlunoItem {
   matricula: string;
   cursos: string[];
   turmas: { id: string; nome: string }[];
+  // Professor vinculado à matrícula (nome), "" se não houver.
+  professorNome: string;
 }
 
 export interface ResultadoItem {
@@ -132,7 +134,9 @@ export default function TestesProvasPainel({
   function imprimir(a: AlunoItem, p: ProvaItem, r: ResultadoItem) {
     imprimirProva({
       alunoNome: a.nome,
-      alunoCpf: a.cpf,
+      matricula: a.matricula,
+      curso: a.cursos.join(", "),
+      professorNome: a.professorNome,
       titulo: p.titulo,
       materia: p.materia,
       enviadoEm: r.enviadoEm,
@@ -271,7 +275,10 @@ export default function TestesProvasPainel({
 
                   {aberto && (
                     <div className="px-4 pb-4 pt-1 space-y-3 bg-white">
-                      <p className="text-xs text-black">CPF {fmtCpf(a.cpf) || "—"}</p>
+                      <p className="text-xs text-black">
+                        Matrícula {a.matricula || "—"}
+                        {a.professorNome ? ` · Professor ${a.professorNome}` : ""}
+                      </p>
                       {provas.length === 0 && <p className="text-sm text-black">Nenhuma prova cadastrada.</p>}
                       {provas.map((p) => {
                         const r = resultados.find((x) => x.alunoId === a.id && x.provaId === p.id) ?? null;
@@ -321,20 +328,17 @@ export default function TestesProvasPainel({
                                       return (
                                         <li
                                           key={q.ordem}
-                                          className={`text-xs text-black rounded-lg p-2.5 border ${
-                                            ok
-                                              ? "border-iw-success/40 bg-iw-success-bg/50"
-                                              : "border-iw-error/40 bg-iw-error-bg/50"
-                                          }`}
+                                          className="text-[11pt] text-[#000000] rounded-lg p-2.5 border border-black/15"
                                         >
-                                          <p className="font-semibold">
-                                            {q.ordem}. {q.enunciado}
+                                          <p>
+                                            <b>{q.ordem}.</b> {q.enunciado} (Marcada: <b>{marcada}</b>{" "}
+                                            &nbsp;Correta: <b>{q.respostaCorreta}</b> &nbsp;
+                                            <b style={{ color: ok ? COR_ACERTOU : COR_ERROU }}>
+                                              {ok ? "ACERTOU" : "ERROU"}
+                                            </b>
+                                            )
                                           </p>
                                           {q.opcoes && <p className="mt-0.5">{q.opcoes.join("  |  ")}</p>}
-                                          <p className="mt-1">
-                                            Marcada: <b>{marcada}</b> · Correta: <b>{q.respostaCorreta}</b> ·{" "}
-                                            <b>{ok ? "Acertou" : "Errou"}</b>
-                                          </p>
                                         </li>
                                       );
                                     })}
