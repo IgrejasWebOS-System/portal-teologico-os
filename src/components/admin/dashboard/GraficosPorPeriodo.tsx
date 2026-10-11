@@ -147,7 +147,11 @@ export function GraficoReceita({ itens, ano }: { itens: { data: string; valor: n
       return { dados: semestres, titulo: `Receita líquida por semestre (${rotulo})` };
     }
     if (periodo === "ANUAL_ANUAL") {
-      return { dados: [{ label: `Ano ${ano}`, value: soma(0, 12) }], titulo: `Receita líquida do ano (${rotulo})` };
+      // Ano inteiro mês a mês: Janeiro a Dezembro (12 barras).
+      return {
+        dados: porMes.map((value, i) => ({ label: MESES[i], value })),
+        titulo: `Receita líquida por mês (${rotulo})`,
+      };
     }
     const lista = porMes.slice(inicio, fim).map((value, i) => ({ label: MESES[inicio + i], value }));
     return { dados: lista, titulo: `Receita líquida por mês (${rotulo})` };
@@ -173,7 +177,7 @@ export function GraficoReceita({ itens, ano }: { itens: { data: string; valor: n
           ))}
         </select>
       </div>
-      <MonthlyBarChart data={dados} color="bg-iw-success" formatValue={fmtBRL} />
+      <MonthlyBarChart data={dados} color="bg-iw-success" formatValue={fmtBRL} compacto={dados.length > 8} />
     </div>
   );
 }
