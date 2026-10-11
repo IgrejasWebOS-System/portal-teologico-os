@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Copy, Check, Search, Printer, Eye, EyeOff, MessageCircle, ChevronRight } from "lucide-react";
+import { MEDIA_MINIMA_CERTIFICADO } from "@/utils/avaliacoes/mediaCertificado";
 import { imprimirProva, soDigitos, fmtCpf, fmtDataHora, COR_ACERTOU, COR_ERROU } from "@/components/provas/imprimirProva";
 
 // ============================================================
@@ -45,7 +46,12 @@ export interface AlunoItem {
   turmas: { id: string; nome: string }[];
   // Professor vinculado à matrícula (nome), "" se não houver.
   professorNome: string;
+  // Média atual (testes/provas que contam), null se ainda sem notas.
+  media: number | null;
 }
+
+// Mesma fonte dos títulos ("Links das provas"): h1–h6 em globals.css.
+const FONTE_TITULO = "var(--font-merriweather), 'Cinzel', Georgia, serif";
 
 export interface ResultadoItem {
   alunoId: string;
@@ -174,7 +180,7 @@ export default function TestesProvasPainel({
               <summary className="flex items-center gap-3 px-5 py-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden bg-iw-bg">
                 <ChevronRight className="w-4 h-4 text-black transition-transform group-open:rotate-90" />
                 <span className="text-sm font-black text-black uppercase flex-1">{materia}</span>
-                <span className="text-xs font-semibold text-black">
+                <span className="text-sm font-black text-black" style={{ fontFamily: FONTE_TITULO }}>
                   {lista.length} teste{lista.length === 1 ? "" : "s"}
                 </span>
                 <button
@@ -269,12 +275,23 @@ export default function TestesProvasPainel({
                       setAlunoAberto(aberto ? null : a.id);
                       setProvaAberta(null);
                     }}
-                    className="w-full grid grid-cols-[24px_1.4fr_1fr_1.4fr] items-center gap-3 px-4 py-3 text-left hover:bg-black/5 transition-colors"
+                    className="w-full grid grid-cols-[24px_1.4fr_1fr_1.4fr_auto] items-center gap-3 px-4 py-3 text-left hover:bg-black/5 transition-colors"
                   >
                     <ChevronRight className={`w-4 h-4 text-black transition-transform ${aberto ? "rotate-90" : ""}`} />
                     <span className="text-sm font-bold text-black">{a.nome}</span>
                     <span className="text-sm text-black">{a.matricula || fmtCpf(a.cpf) || "—"}</span>
                     <span className="text-sm text-black">{a.cursos.join(", ") || "—"}</span>
+                    {/* Média atual no fim da linha: "6,50 - APROVADO" (mín. 6,1). */}
+                    <span className="text-sm font-black text-black whitespace-nowrap" style={{ fontFamily: FONTE_TITULO }}>
+                      {a.media != null && (
+                        <>
+                          {a.media.toFixed(2).replace(".", ",")} -{" "}
+                          <span style={{ color: a.media >= MEDIA_MINIMA_CERTIFICADO ? COR_ACERTOU : COR_ERROU }}>
+                            {a.media >= MEDIA_MINIMA_CERTIFICADO ? "APROVADO" : "REPROVADO"}
+                          </span>
+                        </>
+                      )}
+                    </span>
                   </button>
 
                   {aberto && (

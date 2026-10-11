@@ -6,6 +6,7 @@ import { checkIsProfessor } from "@/utils/professor";
 import { professorAtualizarPerfilAction } from "../actions";
 import ConfiguracoesPainel from "./ConfiguracoesPainel";
 import TrocarSenhaCard from "./TrocarSenhaCard";
+import ProfessorFichaCard from "./ProfessorFichaCard";
 
 export const metadata = { title: "Configurações — Área do Professor" };
 
@@ -68,6 +69,16 @@ export default async function ConfiguracoesDoProfessorPage({
         </div>
       )}
 
+      {/* Card com foto + dados básicos; clicar abre a ficha completa. */}
+      <ProfessorFichaCard
+        fotoUrl={professor.foto_url ?? null}
+        nome={professor.nome_completo}
+        cargo={professor.cargo ?? null}
+        setor={(setores ?? []).find((s) => s.id === professor.sector_id)?.name ?? null}
+        igreja={(churches ?? []).find((c) => c.id === professor.church_id)?.name ?? null}
+        telefone={professor.telefone ?? null}
+        email={professor.email ?? null}
+      >
       <ConfiguracoesPainel
         nomeInicial={professor.nome_completo}
         email={professor.email}
@@ -109,6 +120,7 @@ export default async function ConfiguracoesDoProfessorPage({
         escolaridades={escolaridadesOpts ?? []}
         profissoes={profissoesOpts ?? []}
       />
+      </ProfessorFichaCard>
 
       <TrocarSenhaCard />
     </div>

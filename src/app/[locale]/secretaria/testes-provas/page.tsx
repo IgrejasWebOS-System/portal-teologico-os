@@ -36,7 +36,7 @@ export default async function TestesProvasSecretariaPage() {
   const { data: matriculasRaw } = alunoIds.length
     ? await supabase
         .from("ead_matriculas")
-        .select("aluno_id, professor_id, course_edition_id, curso_nome_snapshot, course_editions(nome)")
+        .select("id, aluno_id, professor_id, course_edition_id, curso_nome_snapshot, course_editions(nome)")
         .in("aluno_id", alunoIds)
     : { data: [] };
 
@@ -44,6 +44,7 @@ export default async function TestesProvasSecretariaPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ce = (Array.isArray(m.course_editions) ? m.course_editions[0] : m.course_editions) as any;
     return {
+      matricula_id: m.id as string,
       aluno_id: m.aluno_id,
       professor_id: (m.professor_id as string | null) ?? null,
       course_edition_id: m.course_edition_id,

@@ -32,6 +32,8 @@ export async function carregarDadosTestesProvas(
     turma_nome: string | null;
     curso_nome?: string | null;
     professor_id?: string | null;
+    // Para a Média atual do aluno (mesma regra do menu lateral dele).
+    matricula_id?: string | null;
   }[]
 ): Promise<DadosTestesProvas> {
   const alunoIds = alunosBase.map((a) => a.id);
@@ -151,9 +153,43 @@ export async function carregarDadosTestesProvas(
     }
   }
 
+  // Média atual por aluno (10/10/2026): mesma conta do menu lateral do aluno —
+  // notas dos testes/provas feitos pelo link + Teste/Prova por matéria
+  // finalizados em `avaliacoes` (Simulado não conta).
+  const notasPorAluno = new Map<string, number[]>();
+  for (const r of resultados) {
+    const lista = notasPorAluno.get(r.alunoId) ?? [];
+    lista.push(r.nota);
+    notasPorAluno.set(r.alunoId, lista);
+  }
+  const alunoPorMatricula = new Map<string, string>();
+  for (const m of matriculas) if (m.matricula_id) alunoPorMatricula.set(m.matricula_id, m.aluno_id);
+  if (alunoPorMatricula.size) {
+    const { data: avaliacoesRaw } = await admin
+      .from("avaliacoes")
+      .select("matricula_id, tipo, status, nota, lesson_id")
+      .in("matricula_id", Array.from(alunoPorMatricula.keys()))
+      .in("tipo", ["TESTE_LICAO", "PROVA"])
+      .eq("status", "FINALIZADA")
+      .not("lesson_id", "is", null)
+      .not("nota", "is", null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const av of (avaliacoesRaw ?? []) as any[]) {
+      const alunoId = alunoPorMatricula.get(av.matricula_id);
+      if (!alunoId) continue;
+      const lista = notasPorAluno.get(alunoId) ?? [];
+      lista.push(Number(av.nota));
+      notasPorAluno.set(alunoId, lista);
+    }
+  }
+
   const alunos: AlunoItem[] = alunosBase
     .map((a) => ({
       id: a.id,
+      media: (() => {
+        const notas = notasPorAluno.get(a.id) ?? [];
+        return notas.length ? Number((notas.reduce((s, n) => s + n, 0) / notas.length).toFixed(2)) : null;
+      })(),
       professorNome: professorPorAluno.get(a.id) ?? "",
       nome: a.nome_completo,
       cpf: a.cpf ?? "",
