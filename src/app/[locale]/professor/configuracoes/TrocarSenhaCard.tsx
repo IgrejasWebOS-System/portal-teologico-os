@@ -62,15 +62,18 @@ export default function TrocarSenhaCard() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5 max-w-2xl space-y-4 mt-6"
+      className="bg-iw-surface border border-iw-border rounded-2xl shadow-sm p-5 w-full space-y-2 mt-6"
     >
-      <div className="flex items-center gap-2">
+      {/* 10/10/2026, pedido do Joaquim: tudo numa única linha (título, os dois
+          campos e o botão) em telas médias/grandes; empilha no celular. */}
+      <div className="flex flex-col md:flex-row md:items-end gap-3">
+      <div className="flex items-center gap-2 shrink-0 md:pb-3">
         <KeyRound className="w-4 h-4 text-iw-gold" />
-        <h2 className="text-sm font-black text-black">Trocar senha</h2>
+        <h2 className="text-sm font-black text-black whitespace-nowrap">Trocar senha</h2>
       </div>
 
-      <div className="grid grid-cols-12 gap-3">
-        <div className={`${boxCls} col-span-12 md:col-span-6 flex items-end gap-2`}>
+      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={`${boxCls} flex items-end gap-2`}>
           <div className="flex-1 min-w-0">
             <label className={boxLabelCls}>Nova senha</label>
             <input
@@ -91,7 +94,7 @@ export default function TrocarSenhaCard() {
             {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
-        <div className={`${boxCls} col-span-12 md:col-span-6 flex items-end gap-2`}>
+        <div className={`${boxCls} flex items-end gap-2`}>
           <div className="flex-1 min-w-0">
             <label className={boxLabelCls}>Confirmar nova senha</label>
             <input
@@ -114,6 +117,15 @@ export default function TrocarSenhaCard() {
         </div>
       </div>
 
+      <button
+        type="submit"
+        disabled={isPending}
+        className="flex items-center justify-center gap-2 shrink-0 whitespace-nowrap bg-iw-navy hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-5 py-3 rounded-xl transition-opacity"
+      >
+        <KeyRound className="w-4 h-4" /> {isPending ? "Salvando..." : "Salvar nova senha"}
+      </button>
+      </div>
+
       <p className="text-[11px] text-black/60">{REGRA_SENHA_TEXTO}</p>
 
       {erro && <p className="text-xs text-iw-error">{erro}</p>}
@@ -122,14 +134,6 @@ export default function TrocarSenhaCard() {
           <CheckCircle2 className="w-3.5 h-3.5" /> Senha alterada com sucesso.
         </p>
       )}
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="flex items-center gap-2 bg-iw-navy hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-opacity"
-      >
-        <KeyRound className="w-4 h-4" /> {isPending ? "Salvando..." : "Salvar nova senha"}
-      </button>
     </form>
   );
 }

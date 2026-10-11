@@ -506,7 +506,7 @@ export default async function AdminDashboardPage({
       {/* Gráficos de tendência */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GraficoMatriculas key={`m-${anoSel}`} datas={datasMatriculas} referencia={referenciaIso} />
-        <GraficoReceita key={`r-${anoSel}`} itens={itensReceita} ano={anoSel} referencia={referenciaIso} />
+        <GraficoReceita key={`r-${anoSel}`} itens={itensReceita} ano={anoSel} />
       </div>
 
       {/* Quebras */}
