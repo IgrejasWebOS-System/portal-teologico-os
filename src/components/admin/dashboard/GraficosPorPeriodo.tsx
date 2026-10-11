@@ -91,27 +91,28 @@ export function GraficoMatriculas({ datas, referencia }: { datas: string[]; refe
 // ---------------------------------------------------------------
 // Receita líquida
 // ---------------------------------------------------------------
-type PeriodoReceita = "T1" | "T2" | "T3" | "T4" | "SEMESTRAL" | "ANUAL";
+// 10/10/2026, pedido do Joaquim: 1º–4º trimestre e 1º/2º semestre mostram os
+// MESES do período; ANUAL/… agrupa o ano inteiro em trimestres, semestres ou
+// um total único.
+type PeriodoReceita =
+  | "T1" | "T2" | "T3" | "T4"
+  | "S1" | "S2"
+  | "ANUAL_TRIMESTRE" | "ANUAL_SEMESTRE" | "ANUAL_ANUAL";
 
 const PERIODOS_RECEITA: { value: PeriodoReceita; label: string }[] = [
   { value: "T1", label: "1º TRIMESTRE" },
   { value: "T2", label: "2º TRIMESTRE" },
   { value: "T3", label: "3º TRIMESTRE" },
   { value: "T4", label: "4º TRIMESTRE" },
-  { value: "SEMESTRAL", label: "SEMESTRAL" },
-  { value: "ANUAL", label: "ANUAL" },
+  { value: "S1", label: "1º SEMESTRE" },
+  { value: "S2", label: "2º SEMESTRE" },
+  { value: "ANUAL_TRIMESTRE", label: "ANUAL / TRIMESTRE" },
+  { value: "ANUAL_SEMESTRE", label: "ANUAL / SEMESTRE" },
+  { value: "ANUAL_ANUAL", label: "ANUAL / ANUAL" },
 ];
 
-export function GraficoReceita({
-  itens,
-  ano,
-  referencia,
-}: {
-  itens: { data: string; valor: number }[];
-  ano: number;
-  referencia: string;
-}) {
-  const [periodo, setPeriodo] = useState<PeriodoReceita>("ANUAL");
+export function GraficoReceita({ itens, ano }: { itens: { data: string; valor: number }[]; ano: number }) {
+  const [periodo, setPeriodo] = useState<PeriodoReceita>("ANUAL_TRIMESTRE");
 
   const { dados, titulo } = useMemo(() => {
     const porMes = Array.from({ length: 12 }, () => 0);
@@ -129,25 +130,28 @@ export function GraficoReceita({
       inicio = (n - 1) * 3;
       fim = inicio + 3;
       rotulo = `${n}º trimestre de ${ano}`;
-    } else if (periodo === "SEMESTRAL") {
-      // semestre corrente (Jan–Jun ou Jul–Dez)
-      const s = new Date(referencia).getMonth() < 6 ? 1 : 2;
+    } else if (periodo === "S1" || periodo === "S2") {
+      // 1º semestre = 6 primeiros meses (Jan–Jun); 2º = 6 últimos (Jul–Dez)
+      const s = periodo === "S1" ? 1 : 2;
       inicio = (s - 1) * 6;
       fim = inicio + 6;
       rotulo = `${s}º semestre de ${ano}`;
     }
-    // ANUAL: 4 barras (uma por trimestre) em vez de 12 meses — cabe no card e
-    // acompanha as opções 1º–4º trimestre (10/10/2026, pedido do Joaquim).
-    if (periodo === "ANUAL") {
-      const trimestres = [0, 1, 2, 3].map((t) => ({
-        label: `${t + 1}º trimestre`,
-        value: porMes.slice(t * 3, t * 3 + 3).reduce((s, v) => s + v, 0),
-      }));
+    const soma = (a: number, b: number) => porMes.slice(a, b).reduce((s, v) => s + v, 0);
+    if (periodo === "ANUAL_TRIMESTRE") {
+      const trimestres = [0, 1, 2, 3].map((t) => ({ label: `${t + 1}º trimestre`, value: soma(t * 3, t * 3 + 3) }));
       return { dados: trimestres, titulo: `Receita líquida por trimestre (${rotulo})` };
+    }
+    if (periodo === "ANUAL_SEMESTRE") {
+      const semestres = [0, 1].map((s) => ({ label: `${s + 1}º semestre`, value: soma(s * 6, s * 6 + 6) }));
+      return { dados: semestres, titulo: `Receita líquida por semestre (${rotulo})` };
+    }
+    if (periodo === "ANUAL_ANUAL") {
+      return { dados: [{ label: `Ano ${ano}`, value: soma(0, 12) }], titulo: `Receita líquida do ano (${rotulo})` };
     }
     const lista = porMes.slice(inicio, fim).map((value, i) => ({ label: MESES[inicio + i], value }));
     return { dados: lista, titulo: `Receita líquida por mês (${rotulo})` };
-  }, [itens, ano, periodo, referencia]);
+  }, [itens, ano, periodo]);
 
   return (
     <div className="bg-iw-surface border border-iw-border rounded-2xl p-6">
