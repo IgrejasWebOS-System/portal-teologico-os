@@ -395,23 +395,12 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   // gate /completar-cadastro -- o link do e-mail é só pra ele criar a
   // própria senha e cair direto na área dele (definirSenhaAction →
   // resolverDestinoPosLogin). Mesmo redirectTo de matricularDiretoAction.
-  if (!aluno!.user_id) {
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: nome_completo },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
-    });
-
-    if (inviteError) {
-      console.error("[professor/actions] convite aluno", inviteError);
-      erro("Aluno cadastrado, mas houve erro ao enviar o convite de acesso: " + inviteError.message, voltarEmErro);
-    }
-
-    if (invited?.user?.id) {
-      await admin.from("ead_alunos").update({ user_id: invited.user.id }).eq("id", aluno!.id);
-      aluno = { ...aluno!, user_id: invited.user.id };
-    }
-  }
-
+  // 14/10/2026, BUG achado pelo Joaquim (alunos Mario Olindo Gazarola e
+  // Silvani Maria de Jesus Filho ficaram só com o cadastro, SEM matrícula):
+  // o convite era enviado ANTES da matrícula e, se falhava (e-mail já usado
+  // por outro aluno, ou digitado errado), a ação abortava no meio e deixava
+  // o aluno órfão. Agora a matrícula é criada SEMPRE primeiro; a falha do
+  // convite vira só um aviso na mensagem final.
   const { data: matricula, error: erroMatricula } = await admin
     .from("ead_matriculas")
     .insert({
@@ -435,6 +424,27 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   if (erroMatricula || !matricula) {
     console.error("[professor/actions] criar matrícula", erroMatricula);
     erro("Erro ao criar matrícula.", voltarEmErro);
+  }
+
+  // Convite de acesso (MUITO IMPORTANTE, pedido do Joaquim 20/09/2026):
+  // como esta matrícula é MATRICULA_DIRETA, o aluno NUNCA passa pelo
+  // gate /completar-cadastro -- o link do e-mail é só pra ele criar a
+  // própria senha e cair direto na área dele (definirSenhaAction →
+  // resolverDestinoPosLogin). Mesmo redirectTo de matricularDiretoAction.
+  let avisoConvite: string | null = null;
+  if (!aluno!.user_id) {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: nome_completo },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
+    });
+
+    if (inviteError) {
+      console.error("[professor/actions] convite aluno", inviteError);
+      avisoConvite = inviteError.message;
+    } else if (invited?.user?.id) {
+      await admin.from("ead_alunos").update({ user_id: invited.user.id }).eq("id", aluno!.id);
+      aluno = { ...aluno!, user_id: invited.user.id };
+    }
   }
 
   // Também garante a matrícula em "enrollments" (sistema genérico de aulas,
@@ -668,7 +678,11 @@ export async function professorCriarMatriculaAction(formData: FormData) {
   // Alunos agora, não mais no Dashboard — redirect ajustado junto.
   redirect(
     "/professor/alunos?msg=" +
-      encodeURIComponent(`${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`) +
+      encodeURIComponent(
+        avisoConvite
+          ? `${nome_completo} matriculado(a) com sucesso, MAS o e-mail de acesso não foi enviado (${avisoConvite}). Corrija o e-mail do aluno ou copie o link de acesso abaixo.`
+          : `${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`
+      ) +
       "&novoAlunoId=" + encodeURIComponent(aluno!.id) +
       "&novoAlunoNome=" + encodeURIComponent(nome_completo)
   );

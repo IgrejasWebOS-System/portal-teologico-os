@@ -94,6 +94,13 @@ export default async function AlunoDetalhePage({ params }: PageProps) {
         </div>
       </div>
 
+      {listaMatriculas.length === 0 && (
+        <div className="bg-iw-warning-bg border border-iw-warning rounded-2xl px-5 py-4 text-sm text-iw-warning font-medium">
+          Este aluno tem cadastro, mas está SEM matrícula (sem curso, turma, professor e financeiro) — por isso não há
+          botão de edição. Avise o suporte para vincular a matrícula à turma correta.
+        </div>
+      )}
+
       {!painel ? (
         <div className="bg-iw-surface rounded-2xl border border-iw-gold px-5 py-14 text-center">
           <BookUser className="w-10 h-10 text-iw-muted/30 mx-auto mb-3" />

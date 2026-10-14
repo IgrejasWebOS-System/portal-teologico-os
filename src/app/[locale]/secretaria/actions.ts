@@ -254,23 +254,15 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
     aluno = novoAluno;
   }
 
-  if (!aluno!.user_id) {
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: nome_completo },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
-    });
-
-    if (inviteError) {
-      console.error("[secretaria/actions] convite aluno", inviteError);
-      erro("Aluno cadastrado, mas houve erro ao enviar o convite de acesso: " + inviteError.message, voltarEmErro);
-    }
-
-    if (invited?.user?.id) {
-      await admin.from("ead_alunos").update({ user_id: invited.user.id }).eq("id", aluno!.id);
-      aluno = { ...aluno!, user_id: invited.user.id };
-    }
-  }
-
+  // 14/10/2026, BUG achado pelo Joaquim (alunos Mario Olindo Gazarola e
+  // Silvani Maria de Jesus Filho ficaram só com o cadastro, SEM matrícula —
+  // sem curso/turma/professor/financeiro e sem botão de editar): o convite
+  // de acesso era enviado ANTES de criar a matrícula e, quando falhava
+  // (e-mail já usado por outro aluno da mesma família, ou e-mail digitado
+  // errado como "...@gmal"), a ação abortava no meio e deixava o aluno
+  // órfão. Agora a matrícula é criada SEMPRE primeiro; o convite vem depois
+  // e a falha dele vira só um aviso (o link de senha pode ser copiado/
+  // reenviado depois, ou o e-mail corrigido na ficha).
   const { data: matricula, error: erroMatricula } = await admin
     .from("ead_matriculas")
     .insert({
@@ -290,6 +282,22 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
   if (erroMatricula || !matricula) {
     console.error("[secretaria/actions] criar matrícula", erroMatricula);
     erro("Erro ao criar matrícula.", voltarEmErro);
+  }
+
+  let avisoConvite: string | null = null;
+  if (!aluno!.user_id) {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: nome_completo },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
+    });
+
+    if (inviteError) {
+      console.error("[secretaria/actions] convite aluno", inviteError);
+      avisoConvite = inviteError.message;
+    } else if (invited?.user?.id) {
+      await admin.from("ead_alunos").update({ user_id: invited.user.id }).eq("id", aluno!.id);
+      aluno = { ...aluno!, user_id: invited.user.id };
+    }
   }
 
   if (aluno!.user_id) {
@@ -488,7 +496,11 @@ export async function secretariaCriarMatriculaAction(formData: FormData) {
 
   redirect(
     "/secretaria/alunos?msg=" +
-      encodeURIComponent(`${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`) +
+      encodeURIComponent(
+        avisoConvite
+          ? `${nome_completo} matriculado(a) com sucesso, MAS o e-mail de acesso não foi enviado (${avisoConvite}). Corrija o e-mail do aluno ou copie o link de acesso abaixo.`
+          : `${nome_completo} matriculado(a) com sucesso. Um e-mail de acesso foi enviado.`
+      ) +
       "&novoAlunoId=" + encodeURIComponent(aluno!.id) +
       "&novoAlunoNome=" + encodeURIComponent(nome_completo)
   );
