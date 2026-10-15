@@ -141,6 +141,34 @@ export default function TestesProvasPainel({
     });
   }, [alunos, busca, turmaFiltro]);
 
+  // 15/10/2026, pedido do Joaquim: mesmo critério da tela "Meus Alunos" —
+  // lista recolhida só com o NOME DE CADA TURMA; clicar abre os alunos. Com
+  // busca/filtro ativo as turmas abrem sozinhas. Cada aluno entra numa única
+  // turma (a filtrada, ou a primeira); sem turma cai em "Sem turma vinculada".
+  const temFiltroAtivo = busca.trim() !== "" || turmaFiltro !== "";
+  const [turmasAbertas, setTurmasAbertas] = useState<Set<string>>(new Set());
+
+  function toggleTurma(id: string) {
+    setTurmasAbertas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const gruposPorTurma = useMemo(() => {
+    const mapa = new Map<string, { id: string; nome: string; alunos: AlunoItem[] }>();
+    for (const a of alunosFiltrados.slice(0, 300)) {
+      const t = (turmaFiltro ? a.turmas.find((x) => x.id === turmaFiltro) : a.turmas[0]) ?? null;
+      const id = t?.id ?? "__sem_turma__";
+      const nome = t?.nome ?? "Sem turma vinculada";
+      if (!mapa.has(id)) mapa.set(id, { id, nome, alunos: [] });
+      mapa.get(id)!.alunos.push(a);
+    }
+    return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [alunosFiltrados, turmaFiltro]);
+
   function imprimir(a: AlunoItem, p: ProvaItem, r: ResultadoItem) {
     imprimirProva({
       alunoNome: a.nome,
@@ -265,7 +293,24 @@ export default function TestesProvasPainel({
           <p className="text-sm text-black">Nenhum aluno encontrado.</p>
         ) : (
           <div className="bg-iw-surface rounded-2xl border border-iw-border overflow-hidden shadow-sm">
-            {alunosFiltrados.slice(0, 300).map((a) => {
+            {gruposPorTurma.map((g) => {
+              const turmaAberta = temFiltroAtivo || turmasAbertas.has(g.id);
+              return (
+              <div key={g.id} className="border-b border-iw-border last:border-0">
+                <button
+                  type="button"
+                  onClick={() => toggleTurma(g.id)}
+                  className="w-full flex items-center gap-2 px-4 py-3.5 text-left bg-iw-bg hover:bg-iw-gold/10 transition-colors"
+                >
+                  <ChevronRight className={`w-4 h-4 text-black shrink-0 transition-transform ${turmaAberta ? "rotate-90" : ""}`} />
+                  <span className="text-[12.5pt] font-black text-black uppercase tracking-wide" style={{ fontFamily: FONTE_TITULO }}>
+                    {g.nome}
+                  </span>
+                  <span className="text-[11pt] font-semibold text-black">
+                    ({g.alunos.length} aluno{g.alunos.length === 1 ? "" : "s"})
+                  </span>
+                </button>
+              {turmaAberta && g.alunos.map((a) => {
               const aberto = alunoAberto === a.id;
               return (
                 <div key={a.id} className="border-b border-iw-border/60 last:border-0">
@@ -384,6 +429,9 @@ export default function TestesProvasPainel({
                     </div>
                   )}
                 </div>
+              );
+            })}
+              </div>
               );
             })}
           </div>

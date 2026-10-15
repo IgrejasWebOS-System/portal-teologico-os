@@ -366,11 +366,11 @@ export default function ProfessorPainel({
                     onClick={() => toggleTurma(grupo.label)}
                     className="bg-iw-bg border-b border-iw-border cursor-pointer hover:bg-iw-gold/10 transition-colors"
                   >
-                    <td colSpan={5} className="px-4 py-3.5 text-sm font-black text-iw-navy uppercase tracking-wide">
+                    <td colSpan={5} className="px-4 py-3.5 text-[12.5pt] font-black text-iw-navy uppercase tracking-wide">
                       <span className="inline-flex items-center gap-2">
                         {turmaAberta ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
                         {grupo.label}
-                        <span className="font-semibold text-iw-muted normal-case text-xs">
+                        <span className="font-semibold text-iw-muted normal-case text-[11pt]">
                           ({grupo.linhas.length} aluno{grupo.linhas.length === 1 ? "" : "s"})
                         </span>
                       </span>
@@ -614,7 +614,7 @@ export default function ProfessorPainel({
                 );
               })}
               <tr className="bg-iw-navy/5 border-t-2 border-iw-navy">
-                <td colSpan={5} className="px-4 py-3 text-xs font-black text-iw-navy uppercase tracking-wide">
+                <td colSpan={5} className="px-4 py-3 text-[11pt] font-black text-iw-navy uppercase tracking-wide">
                   Total geral — {linhasFiltradas.length} aluno{linhasFiltradas.length === 1 ? "" : "s"}
                 </td>
               </tr>
