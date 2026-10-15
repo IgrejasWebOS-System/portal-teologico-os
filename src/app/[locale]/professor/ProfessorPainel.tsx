@@ -281,6 +281,21 @@ export default function ProfessorPainel({
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [linhasFiltradas, turmaLabelPorId]);
 
+  // 15/10/2026, pedido do Joaquim (tela congestionada): a lista abre só com
+  // o NOME DE CADA TURMA em evidência; clicar na turma abre/fecha os alunos.
+  // Com busca/filtro ativo, todas as turmas abrem sozinhas pra o resultado
+  // não ficar escondido.
+  const [turmasAbertas, setTurmasAbertas] = useState<Set<string>>(new Set());
+
+  function toggleTurma(label: string) {
+    setTurmasAbertas((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
   function toggleExpandido(id: string) {
     setExpandidos((prev) => {
       const next = new Set(prev);
@@ -343,17 +358,25 @@ export default function ProfessorPainel({
               </tr>
             </thead>
             <tbody>
-              {gruposPorTurma.map((grupo) => (
+              {gruposPorTurma.map((grupo) => {
+                const turmaAberta = temFiltroAtivo || turmasAbertas.has(grupo.label);
+                return (
                 <Fragment key={grupo.label}>
-                  <tr className="bg-iw-bg border-b border-iw-border">
-                    <td colSpan={5} className="px-4 py-2 text-xs font-black text-iw-navy uppercase tracking-wide">
-                      {grupo.label}{" "}
-                      <span className="font-semibold text-iw-muted normal-case">
-                        ({grupo.linhas.length} aluno{grupo.linhas.length === 1 ? "" : "s"})
+                  <tr
+                    onClick={() => toggleTurma(grupo.label)}
+                    className="bg-iw-bg border-b border-iw-border cursor-pointer hover:bg-iw-gold/10 transition-colors"
+                  >
+                    <td colSpan={5} className="px-4 py-3.5 text-sm font-black text-iw-navy uppercase tracking-wide">
+                      <span className="inline-flex items-center gap-2">
+                        {turmaAberta ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                        {grupo.label}
+                        <span className="font-semibold text-iw-muted normal-case text-xs">
+                          ({grupo.linhas.length} aluno{grupo.linhas.length === 1 ? "" : "s"})
+                        </span>
                       </span>
                     </td>
                   </tr>
-                  {grupo.linhas.map((l) => {
+                  {turmaAberta && grupo.linhas.map((l) => {
                     const aberto = expandidos.has(l.matriculaId);
                     return (
                       <Fragment key={l.matriculaId}>
@@ -588,7 +611,8 @@ export default function ProfessorPainel({
                     );
                   })}
                 </Fragment>
-              ))}
+                );
+              })}
               <tr className="bg-iw-navy/5 border-t-2 border-iw-navy">
                 <td colSpan={5} className="px-4 py-3 text-xs font-black text-iw-navy uppercase tracking-wide">
                   Total geral — {linhasFiltradas.length} aluno{linhasFiltradas.length === 1 ? "" : "s"}
