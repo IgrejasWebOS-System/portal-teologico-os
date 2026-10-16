@@ -10,7 +10,7 @@
 // ============================================================
 
 import { useMemo, useState } from "react";
-import { Boxes, Plus, Trash2, PackagePlus } from "lucide-react";
+import { Boxes, Plus, Trash2, PackagePlus, ChevronRight } from "lucide-react";
 import {
   criarMaterialDidaticoAction,
   darEntradaEstoqueAction,
@@ -71,29 +71,48 @@ export default function EstoqueMateriaisPainel({
 }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [cursoSelecionado, setCursoSelecionado] = useState("");
+  // 15/10/2026, pedido do Joaquim: card recolhido por padrão (resumo na linha
+  // do título); clicar abre/fecha. "Novo material" abre o card e o formulário.
+  const [aberto, setAberto] = useState(false);
 
   const licoesDoCurso = useMemo(
     () => licoes.filter((l) => l.course_id === cursoSelecionado),
     [licoes, cursoSelecionado]
   );
 
+  const aImprimir = materiais.filter((m) => m.imprimir > 0).length;
+  const resumo =
+    materiais.length === 0
+      ? "nenhum material cadastrado"
+      : `${materiais.length} material(is)${aImprimir > 0 ? ` · ${aImprimir} para imprimir` : ""}`;
+
   return (
     <div className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Boxes className="w-4 h-4 text-iw-gold" />
-          <h2 className="font-bold text-iw-navy text-sm">Estoque de material didático</h2>
-        </div>
         <button
           type="button"
-          onClick={() => setMostrarForm((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-bold text-iw-blue hover:text-iw-navy"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          className="flex items-center gap-2 text-left"
+        >
+          <ChevronRight className={`w-4 h-4 text-iw-navy shrink-0 transition-transform ${aberto ? "rotate-90" : ""}`} />
+          <Boxes className="w-4 h-4 text-iw-gold" />
+          <h2 className="font-bold text-iw-navy text-sm">Estoque de material didático</h2>
+          <span className="text-xs font-semibold text-iw-navy/70">({resumo})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAberto(true);
+            setMostrarForm((v) => (aberto ? !v : true));
+          }}
+          className="flex items-center gap-1.5 text-xs font-bold text-white bg-iw-navy hover:opacity-90 border border-iw-gold rounded-lg px-3 py-1.5"
         >
           <Plus className="w-3.5 h-3.5" /> Novo material
         </button>
       </div>
 
-      {mostrarForm && (
+      {aberto && mostrarForm && (
         <form
           action={async (formData: FormData) => {
             await criarMaterialDidaticoAction(formData);
@@ -128,9 +147,18 @@ export default function EstoqueMateriaisPainel({
         </form>
       )}
 
-      {materiais.length === 0 ? (
-        <p className="text-xs text-iw-muted">Nenhum material cadastrado ainda.</p>
-      ) : (
+      {aberto && materiais.length === 0 && (
+        <div className="text-xs text-iw-navy space-y-1">
+          <p className="font-semibold">Nenhum material cadastrado ainda.</p>
+          <p className="text-iw-muted">
+            Como funciona: 1) clique em &ldquo;Novo material&rdquo; e cadastre a apostila (livro ou prova) de uma aula;
+            2) o professor pede o material para a turma dele; 3) abaixo, em &ldquo;Pedidos de material&rdquo;, você
+            junta os pedidos e marca &ldquo;Recebido&rdquo; quando a gráfica entregar — o estoque aumenta sozinho.
+          </p>
+        </div>
+      )}
+
+      {aberto && materiais.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>

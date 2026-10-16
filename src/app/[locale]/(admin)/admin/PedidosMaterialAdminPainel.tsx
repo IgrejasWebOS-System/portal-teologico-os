@@ -96,37 +96,53 @@ function LinhaPedido({ pedido }: { pedido: PedidoMaterialRow }) {
 
 export default function PedidosMaterialAdminPainel({ pedidos }: { pedidos: PedidoMaterialRow[] }) {
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
+  // 15/10/2026, pedido do Joaquim: card recolhido por padrão, com resumo na
+  // linha do título; clicar abre/fecha. "Mostrar cancelados" só aparece se
+  // existir algum pedido cancelado.
+  const [aberto, setAberto] = useState(false);
 
   const visiveis = pedidos.filter((p) => mostrarCancelados || p.status !== "CANCELADO");
   const totalPendente = pedidos.filter((p) => p.status === "SOLICITADO" || p.status === "ENVIADO_GRAFICA").length;
+  const totalCancelados = pedidos.filter((p) => p.status === "CANCELADO").length;
+  const resumo =
+    pedidos.length === 0
+      ? "nenhum pedido"
+      : `${pedidos.length} pedido(s)${totalPendente > 0 ? ` · ${totalPendente} pendente(s)` : ""}`;
 
   return (
     <div className="bg-iw-surface border border-iw-border rounded-2xl p-6 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <PackageSearch className="w-4 h-4 text-iw-gold" />
-          <h2 className="font-bold text-iw-navy text-sm">Pedidos de material — visão consolidada</h2>
-          {totalPendente > 0 && (
-            <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              {totalPendente} pendente(s)
-            </span>
-          )}
-        </div>
         <button
           type="button"
-          onClick={() => setMostrarCancelados((v) => !v)}
-          className="text-xs font-bold text-iw-muted hover:text-iw-navy inline-flex items-center gap-1"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          className="flex items-center gap-2 text-left"
         >
-          {mostrarCancelados ? "Ocultar" : "Mostrar"} cancelados <ChevronRight className="w-3 h-3" />
+          <ChevronRight className={`w-4 h-4 text-iw-navy shrink-0 transition-transform ${aberto ? "rotate-90" : ""}`} />
+          <PackageSearch className="w-4 h-4 text-iw-gold" />
+          <h2 className="font-bold text-iw-navy text-sm">Pedidos de material — visão consolidada</h2>
+          <span className="text-xs font-semibold text-iw-navy/70">({resumo})</span>
         </button>
+        {aberto && totalCancelados > 0 && (
+          <button
+            type="button"
+            onClick={() => setMostrarCancelados((v) => !v)}
+            className="text-xs font-bold text-iw-navy hover:opacity-70 inline-flex items-center gap-1"
+          >
+            {mostrarCancelados ? "Ocultar" : "Mostrar"} cancelados ({totalCancelados})
+          </button>
+        )}
       </div>
 
-      {visiveis.length === 0 ? (
-        <p className="text-xs text-iw-muted">
-          Nenhum pedido de material registrado ainda — eles aparecem aqui assim que um professor pedir material pra
-          próxima aula da turma dele.
+      {aberto && visiveis.length === 0 && (
+        <p className="text-xs text-iw-navy">
+          Nenhum pedido de material registrado ainda. O professor faz o pedido na tela &ldquo;Turmas&rdquo; (para a
+          próxima aula da turma dele) e ele aparece aqui; você junta os pedidos, envia para a gráfica e marca
+          &ldquo;Recebido&rdquo; quando chegar.
         </p>
-      ) : (
+      )}
+
+      {aberto && visiveis.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
