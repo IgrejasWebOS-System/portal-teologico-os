@@ -9,6 +9,7 @@ import {
   recalcularCalendarioTurmaAction,
 } from "../../actions";
 import TurmasFiltros, { type UnitLite } from "./TurmasFiltros";
+import TurmasBusca from "./TurmasBusca";
 import NovaTurmaForm from "./NovaTurmaForm";
 
 type Row = {
@@ -50,7 +51,14 @@ interface PageProps {
     msg?: string;
     error?: string;
     ano?: string;
+    q?: string;
+    setor?: string;
   }>;
+}
+
+// Compara sem acento/maiúscula (busca de turma).
+function norm(s: string) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 // Uma turma (linha), com o painel de edição + calendário de aulas que
@@ -229,7 +237,9 @@ function TurmaRow({
 }
 
 export default async function TurmasPage({ searchParams }: PageProps) {
-  const { msg, error, ano: anoParam } = await searchParams;
+  const { msg, error, ano: anoParam, q: qParam, setor: setorParam } = await searchParams;
+  const q = (qParam ?? "").trim();
+  const setorFiltro = setorParam ?? "";
   // 08/10/2026, pedido do Joaquim: ao abrir a tela já vem o ANO CORRENTE
   // (2026) selecionado e as turmas daquele ano visíveis. Só quando a URL
   // traz `?ano=` explícito (inclusive vazio, "Selecione...") é que se
@@ -344,6 +354,24 @@ export default async function TurmasPage({ searchParams }: PageProps) {
       .order("nome");
     rows = (turmasRaw ?? []) as unknown as Row[];
 
+    // 15/10/2026, pedido do Joaquim: busca por nome da turma + filtro de
+    // Setor/Regional (igual a Professores/Alunos). Aplicado no servidor.
+    if (q || setorFiltro) {
+      const termo = norm(q);
+      rows = rows.filter((r) => {
+        const info = r.unit_id ? unitInfo.get(r.unit_id) : undefined;
+        if (setorFiltro === "SEDE" && info?.categoria !== "SEDE") return false;
+        if (setorFiltro && setorFiltro !== "SEDE" && info?.setorId !== setorFiltro) return false;
+        if (!termo) return true;
+        return (
+          norm(r.nome).includes(termo) ||
+          norm(r.classe ?? "").includes(termo) ||
+          norm(r.units?.name ?? "").includes(termo) ||
+          norm(r.courses?.title ?? "").includes(termo)
+        );
+      });
+    }
+
     if (rows.length > 0) {
       const { data: scheduleRaw } = await supabase
         .from("course_edition_lesson_schedule")
@@ -401,11 +429,21 @@ export default async function TurmasPage({ searchParams }: PageProps) {
       .map(([key, rs]) => ({ key, nome: nomes.get(key) ?? "Sem setor definido", total: rs.length, igrejas: agruparPorIgreja(rs) }))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
+  // Com busca/filtro ativo, o total de cada categoria passa a ser o do
+  // resultado (não o do ano inteiro), senão o número não bateria com a lista.
+  const filtroAtivo = !!ano && (!!q || !!setorFiltro);
+  const somaMap = (m: Map<string, Row[]>) => Array.from(m.values()).reduce((acc, rs) => acc + rs.length, 0);
   const categorias = [
-    { chave: "SEDE", nome: "SEDE", total: totalSede, subgrupos: null as SubGrupo[] | null, igrejas: agruparPorIgreja(sedeRows) as Igreja[] | null },
-    { chave: "SETOR", nome: "SETOR", total: totalSetor, subgrupos: montarSubgrupos(setorRowsMap, setorNomes), igrejas: null },
-    { chave: "REGIONAL", nome: "REGIONAL", total: totalRegional, subgrupos: montarSubgrupos(regionalRowsMap, regionalNomes), igrejas: null },
+    { chave: "SEDE", nome: "SEDE", total: filtroAtivo ? sedeRows.length : totalSede, subgrupos: null as SubGrupo[] | null, igrejas: agruparPorIgreja(sedeRows) as Igreja[] | null },
+    { chave: "SETOR", nome: "SETOR", total: filtroAtivo ? somaMap(setorRowsMap) : totalSetor, subgrupos: montarSubgrupos(setorRowsMap, setorNomes), igrejas: null },
+    { chave: "REGIONAL", nome: "REGIONAL", total: filtroAtivo ? somaMap(regionalRowsMap) : totalRegional, subgrupos: montarSubgrupos(regionalRowsMap, regionalNomes), igrejas: null },
   ] as const;
+
+  const setoresOpcoes = units
+    .filter((u) => u.type === "SETOR")
+    .map((u) => ({ id: u.id, name: u.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const modoBusca = !!ano && q.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -501,6 +539,21 @@ export default async function TurmasPage({ searchParams }: PageProps) {
         igrejaId=""
       />
 
+      <TurmasBusca ano={ano} q={q} setor={setorFiltro} setores={setoresOpcoes} />
+
+      {modoBusca ? (
+        <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
+          {rows.length === 0 ? (
+            <div className="px-5 py-8 text-center text-iw-muted text-sm">Nenhuma turma encontrada com esse filtro.</div>
+          ) : (
+            <div className="divide-y divide-iw-border">
+              {rows.map((r) => (
+                <TurmaRow key={r.id} r={r} ano={ano} calendario={calendarioPorTurma.get(r.id) ?? []} cursos={cursos ?? []} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="space-y-3">
         {categorias.map((cat) => (
           <details key={cat.chave} className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm group">
@@ -582,6 +635,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
           </details>
         ))}
       </div>
+      )}
     </div>
   );
 }
