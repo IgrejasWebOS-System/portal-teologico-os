@@ -18,19 +18,23 @@ export type SetorOpcao = { id: string; name: string };
 
 interface Props {
   ano: string;
+  anos: number[];
   q: string;
   setor: string;
   setores: SetorOpcao[];
 }
 
-export default function TurmasBusca({ ano, q, setor, setores }: Props) {
+// 16/10/2026, pedido do Joaquim: filtro de Ano na mesma linha da busca (igual
+// ao de Alunos e Professores), pra poder ver as turmas migradas do sistema
+// antigo (2022 em diante) sem subir até o cartão do Ano.
+export default function TurmasBusca({ ano, anos, q, setor, setores }: Props) {
   const router = useRouter();
   const [busca, setBusca] = useState(q);
   const primeiraRender = useRef(true);
 
-  function navegar(novaBusca: string, novoSetor: string) {
+  function navegar(novaBusca: string, novoSetor: string, novoAno: string = ano) {
     const qs = new URLSearchParams();
-    qs.set("ano", ano);
+    qs.set("ano", novoAno);
     if (novaBusca.trim()) qs.set("q", novaBusca.trim());
     if (novoSetor) qs.set("setor", novoSetor);
     router.replace(`/dashboard/configuracoes/persona/turmas?${qs.toString()}`);
@@ -51,8 +55,21 @@ export default function TurmasBusca({ ano, q, setor, setores }: Props) {
 
   return (
     <div className="flex flex-col sm:flex-row gap-3">
+      <select
+        value={ano}
+        onChange={(e) => navegar(busca, setor, e.target.value)}
+        aria-label="Ano"
+        className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-36"
+      >
+        <option value="">Selecione o ano</option>
+        {anos.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
       <div
-        className={`flex-1 flex items-center gap-2 bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5 ${
+        className={`flex-1 flex items-center gap-2 bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 ${
           semAno ? "opacity-60" : ""
         }`}
       >
@@ -69,7 +86,7 @@ export default function TurmasBusca({ ano, q, setor, setores }: Props) {
         value={setor}
         disabled={semAno}
         onChange={(e) => navegar(busca, e.target.value)}
-        className="bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64 disabled:opacity-60"
+        className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64 disabled:opacity-60"
       >
         <option value="">Todos os setores/regionais</option>
         <option value="SEDE">SEDE</option>

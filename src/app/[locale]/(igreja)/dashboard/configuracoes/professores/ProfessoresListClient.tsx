@@ -22,6 +22,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Pencil, Trash2, Search, LogIn, Loader2, ChevronRight } from "lucide-react";
 import { deleteProfessorFormAction, acessarPortalProfessorAction } from "../actions";
+import { CartaoTotais, contarComposicao } from "@/components/layout/TotaisComposicao";
 
 type Row = {
   id: string;
@@ -33,6 +34,7 @@ type Row = {
   sector_id: string | null;
   sectors: { name: string; categoria: string | null } | null;
   churches: { name: string; is_sede: boolean | null } | null;
+  anos: number[];
 };
 
 interface SetorItem {
@@ -124,6 +126,7 @@ export default function ProfessoresListClient({
 }) {
   const [busca, setBusca] = useState("");
   const [setorFiltro, setSetorFiltro] = useState("");
+  const [anoFiltro, setAnoFiltro] = useState("");
   const [acessandoId, setAcessandoId] = useState<string | null>(null);
   const [erroAcesso, setErroAcesso] = useState<string | null>(null);
 
@@ -147,13 +150,21 @@ export default function ProfessoresListClient({
     }
   }
 
+  const anosDisponiveis = useMemo(
+    () => Array.from(new Set(rows.flatMap((r) => r.anos))).sort((a, b) => b - a),
+    [rows]
+  );
+
   const rowsFiltradas = useMemo(() => {
     return rows.filter((r) => {
       if (setorFiltro === "SEDE" && !r.churches?.is_sede) return false;
       if (setorFiltro && setorFiltro !== "SEDE" && r.sector_id !== setorFiltro) return false;
+      if (anoFiltro && !r.anos.includes(Number(anoFiltro))) return false;
       return true;
     });
-  }, [rows, setorFiltro]);
+  }, [rows, setorFiltro, anoFiltro]);
+
+  const totaisFiltro = useMemo(() => contarComposicao(rowsFiltradas), [rowsFiltradas]);
 
   const buscaLower = busca.trim().toLowerCase();
   const modoBusca = buscaLower.length > 0;
@@ -207,7 +218,18 @@ export default function ProfessoresListClient({
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5">
+        <select
+          value={anoFiltro}
+          onChange={(e) => setAnoFiltro(e.target.value)}
+          aria-label="Ano"
+          className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-36"
+        >
+          <option value="">Todos os anos</option>
+          {anosDisponiveis.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+        <div className="flex-1 flex items-center gap-2 bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5">
           <Search className="w-4 h-4 text-iw-muted shrink-0" />
           <input
             value={busca}
@@ -219,7 +241,7 @@ export default function ProfessoresListClient({
         <select
           value={setorFiltro}
           onChange={(e) => setSetorFiltro(e.target.value)}
-          className="bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64"
+          className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64"
         >
           <option value="">Todos os setores/regionais</option>
           <option value="SEDE">SEDE</option>
@@ -228,6 +250,15 @@ export default function ProfessoresListClient({
           ))}
         </select>
       </div>
+
+      {/* 16/10/2026: cartão de totais do filtro atual (ano + setor), igual ao de Turmas. */}
+      <CartaoTotais
+        rotuloTotal="Total de professores"
+        total={totaisFiltro.total}
+        sede={totaisFiltro.sede}
+        setor={totaisFiltro.setor}
+        regional={totaisFiltro.regional}
+      />
 
       {erroAcesso && (
         <div className="px-4 py-3 rounded-lg bg-iw-error-bg border border-iw-error text-iw-error text-sm font-medium">

@@ -52,7 +52,7 @@ export default function NovaTurmaForm({ cursos, units, addTurmaConfigAction, ano
     : [];
 
   return (
-    <details className="bg-iw-surface border border-iw-border rounded-2xl p-5 group">
+    <details className="bg-iw-surface border border-iw-gold rounded-2xl p-5 group">
       <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-bold text-iw-navy uppercase tracking-wider">
         <Plus className="w-4 h-4 text-iw-gold" />
         Nova Turma

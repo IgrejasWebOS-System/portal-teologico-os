@@ -8,7 +8,7 @@ import {
   atualizarCalendarioAulaAction,
   recalcularCalendarioTurmaAction,
 } from "../../actions";
-import TurmasFiltros, { type UnitLite } from "./TurmasFiltros";
+import TurmasFiltros, { TotaisTurmas, type UnitLite } from "./TurmasFiltros";
 import TurmasBusca from "./TurmasBusca";
 import NovaTurmaForm from "./NovaTurmaForm";
 
@@ -32,8 +32,9 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 // Anos com turma gerada em lote (14/09/2026) — ajustar aqui quando
-// um novo ano for aberto pra matrícula.
-const ANOS_DISPONIVEIS = [2026, 2027];
+// um novo ano for aberto pra matrícula. 2022–2025 são o histórico do sistema
+// antigo (migração, 16/10/2026); do mais novo pro mais antigo.
+const ANOS_DISPONIVEIS = [2027, 2026, 2025, 2024, 2023, 2022];
 
 type AulaCalendario = {
   lesson_id: string;
@@ -455,58 +456,12 @@ export default async function TurmasPage({ searchParams }: PageProps) {
         backLabel="Voltar para Persona"
         backNovoPadrao
         extra={
-          <p className="text-black text-sm">
-            Total Turmas{" "}
-            <span
-              className="text-[22px] font-black text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              {totalGlobalGeral}
-            </span>
-            , composição{" "}
-            <span
-              className="text-[20px] font-black uppercase text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              SEDE
-            </span>
-            :{" "}
-            <span
-              className="text-[22px] font-black text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              {totalGlobalSede}
-            </span>
-            ,{" "}
-            <span
-              className="text-[20px] font-black uppercase text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              SETOR
-            </span>
-            :{" "}
-            <span
-              className="text-[22px] font-black text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              {totalGlobalSetor}
-            </span>{" "}
-            e{" "}
-            <span
-              className="text-[20px] font-black uppercase text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              REGIONAL
-            </span>
-            :{" "}
-            <span
-              className="text-[22px] font-black text-black"
-              style={{ fontFamily: "var(--font-merriweather), 'Cinzel', Georgia, serif" }}
-            >
-              {totalGlobalRegional}
-            </span>
-            .
-          </p>
+          <TotaisTurmas
+            total={totalGlobalGeral}
+            sede={totalGlobalSede}
+            setor={totalGlobalSetor}
+            regional={totalGlobalRegional}
+          />
         }
       />
 
@@ -521,25 +476,15 @@ export default async function TurmasPage({ searchParams }: PageProps) {
         </div>
       )}
 
+      <TurmasBusca ano={ano} anos={ANOS_DISPONIVEIS} q={q} setor={setorFiltro} setores={setoresOpcoes} />
+
       <TurmasFiltros
-        anos={ANOS_DISPONIVEIS}
         anoAtual={ano}
         totalGeral={totalGeral}
         totalSede={totalSede}
         totalSetor={totalSetor}
         totalRegional={totalRegional}
       />
-
-      <NovaTurmaForm
-        cursos={cursos ?? []}
-        units={units}
-        addTurmaConfigAction={addTurmaConfigAction}
-        ano={ano}
-        setorId=""
-        igrejaId=""
-      />
-
-      <TurmasBusca ano={ano} q={q} setor={setorFiltro} setores={setoresOpcoes} />
 
       {modoBusca ? (
         <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
@@ -570,7 +515,7 @@ export default async function TurmasPage({ searchParams }: PageProps) {
 
             {!ano ? (
               <div className="px-5 py-8 text-center text-iw-muted text-sm">
-                Selecione o Ano acima para ver a lista de turmas desta categoria.
+                Selecione o Ano na linha de busca para ver a lista de turmas desta categoria.
               </div>
             ) : cat.igrejas !== null ? (
               cat.igrejas.length === 0 ? (
@@ -636,6 +581,16 @@ export default async function TurmasPage({ searchParams }: PageProps) {
         ))}
       </div>
       )}
+
+      {/* 16/10/2026, pedido do Joaquim: "Nova turma" no fim da tela, abaixo de REGIONAL. */}
+      <NovaTurmaForm
+        cursos={cursos ?? []}
+        units={units}
+        addTurmaConfigAction={addTurmaConfigAction}
+        ano={ano}
+        setorId=""
+        igrejaId=""
+      />
     </div>
   );
 }

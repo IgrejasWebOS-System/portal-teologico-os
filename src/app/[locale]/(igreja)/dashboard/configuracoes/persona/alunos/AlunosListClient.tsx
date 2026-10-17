@@ -12,7 +12,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Search, ChevronRight } from "lucide-react";
+import { CartaoTotais, contarComposicao } from "@/components/layout/TotaisComposicao";
 
 type Row = {
   id: string;
@@ -80,9 +82,27 @@ function agruparPorIgreja(rows: Row[]): Igreja[] {
   return Array.from(map.values());
 }
 
-export default function AlunosListClient({ rows, setores }: { rows: Row[]; setores: SetorItem[] }) {
+export default function AlunosListClient({
+  rows,
+  setores,
+  anos,
+  ano,
+}: {
+  rows: Row[];
+  setores: SetorItem[];
+  anos: number[];
+  ano: string;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [busca, setBusca] = useState("");
   const [setorFiltro, setSetorFiltro] = useState("");
+
+  // 16/10/2026: o Ano é filtrado no servidor (a lista passa de 1000 alunos
+  // com o histórico migrado), então trocar o ano navega via ?ano=.
+  function trocarAno(novoAno: string) {
+    router.replace(`${pathname}?ano=${encodeURIComponent(novoAno)}`);
+  }
 
   const rowsFiltradas = useMemo(() => {
     return rows.filter((r) => {
@@ -91,6 +111,8 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
       return true;
     });
   }, [rows, setorFiltro]);
+
+  const totaisFiltro = useMemo(() => contarComposicao(rowsFiltradas), [rowsFiltradas]);
 
   const buscaLower = busca.trim().toLowerCase();
   const modoBusca = buscaLower.length > 0;
@@ -141,7 +163,18 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
   return (
     <>
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5">
+        <select
+          value={ano}
+          onChange={(e) => trocarAno(e.target.value)}
+          aria-label="Ano"
+          className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-36"
+        >
+          <option value="">Todos os anos</option>
+          {anos.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+        <div className="flex-1 flex items-center gap-2 bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5">
           <Search className="w-4 h-4 text-iw-muted shrink-0" />
           <input
             value={busca}
@@ -153,7 +186,7 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
         <select
           value={setorFiltro}
           onChange={(e) => setSetorFiltro(e.target.value)}
-          className="bg-iw-surface border border-iw-navy rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64"
+          className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-64"
         >
           <option value="">Todos os setores/regionais</option>
           <option value="SEDE">SEDE</option>
@@ -162,6 +195,15 @@ export default function AlunosListClient({ rows, setores }: { rows: Row[]; setor
           ))}
         </select>
       </div>
+
+      {/* 16/10/2026: cartão de totais do filtro atual (ano + setor), igual ao de Turmas. */}
+      <CartaoTotais
+        rotuloTotal="Total de alunos"
+        total={totaisFiltro.total}
+        sede={totaisFiltro.sede}
+        setor={totaisFiltro.setor}
+        regional={totaisFiltro.regional}
+      />
 
       {modoBusca ? (
         <div className="bg-iw-surface rounded-2xl border border-iw-gold overflow-hidden shadow-sm">
