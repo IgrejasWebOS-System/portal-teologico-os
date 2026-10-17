@@ -293,6 +293,14 @@ export default async function TurmasPage({ searchParams }: PageProps) {
       if (categoria === "REGIONAL") regionalIgrejaIds.push(u.id);
       else setorIgrejaIds.push(u.id);
       unitInfo.set(u.id, { categoria, setorId: setor?.id ?? null, setorNome: setor?.name ?? null, igrejaNome: u.name });
+    } else if (u.type === "SETOR") {
+      // 17/10/2026: turma ligada direto ao SETOR/REGIONAL (sem igreja definida),
+      // como as turmas migradas do sistema antigo cuja igreja não foi identificada.
+      // Antes ficavam fora da contagem e da lista (o total do ano não batia).
+      const categoria = categoriaDoSetor(u);
+      if (categoria === "REGIONAL") regionalIgrejaIds.push(u.id);
+      else setorIgrejaIds.push(u.id);
+      unitInfo.set(u.id, { categoria, setorId: u.id, setorNome: u.name, igrejaNome: "Sem igreja definida" });
     }
   }
 
