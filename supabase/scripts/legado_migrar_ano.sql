@@ -28,6 +28,10 @@
 --     Alias de grafia: BORGUESI -> BORGHESI.
 --     Aluno e turma recebem unit_id (IGREJA), church_id e sector_id (estrutura antiga usada
 --     pelas telas de Alunos/Professores).
+--   * 2025 (decisao Joaquim 17/10/2026): Ativo(1) e Concluido(4) -> APROVADO mesmo sem nota;
+--     Cancelado(2)/Transferido(3)/Desistencia(5) -> CANCELADO. Como a duplicidade considera 2025 como
+--     o ano mais recente, matriculas APROVADAS de 2022-2024 ja gravadas que tenham outra APROVADA mais
+--     recente no mesmo curso sao rebaixadas para CANCELADO ("duplicidade legado") ANTES de checar o portal.
 --   * Notas/frequencia NAO entram nas tabelas vivas (ficam arquivadas em legado_*).
 --   * Tudo que e criado e registrado em legado_mig_* (auditoria + reversao).
 -- ============================================================
@@ -69,7 +73,7 @@ declare
   v_medio   uuid;
   n_alunos_novos int; n_alunos_exist int; n_editions int; n_matr int;
   n_aprov int; n_canc int; n_dup_leg int; n_dup_portal int;
-  n_turmas int; n_turmas_igreja int;
+  n_turmas int; n_turmas_igreja int; n_rebaixadas int := 0;
   v_msg text;
 begin
   select id into v_basico from public.courses
@@ -93,9 +97,10 @@ begin
     from public.legado_matriculas m
     join public.legado_turmas t on t.codigo = m.cod_turma
     left join public.legado_mapa_unidades mu on mu.cod_legado = t.cod_unidade
-    where t.ano_letivo in ('2022','2023','2024')
+    where t.ano_letivo in ('2022','2023','2024','2025')
   ), st as (
     select *, case when situacao = '4' then 'APROVADO'
+                   when ano_letivo = '2025' and situacao = '1' then 'APROVADO'
                    when situacao = '1' and tem_nota then 'APROVADO'
                    else 'CANCELADO' end as status_regra
     from base
@@ -270,6 +275,28 @@ begin
   where ce.nome ~ ' \(LEG-\d+\)$'
   on conflict (cod_turma_legado) do nothing;
 
+  -- 4b) O trigger de matricula unica fica desligado daqui ate o fim (ver passo 6).
+  alter table public.ead_matriculas disable trigger trg_ead_matriculas_unica;
+
+  -- 4c) Matriculas APROVADAS de outros anos ja gravadas que perderam para uma APROVADA mais recente
+  --     no mesmo curso (so acontece quando o ano em curso e mais novo que elas) viram CANCELADO.
+  --     Tem que vir ANTES do passo 5, senao elas contariam como "aprovada no portal".
+  with dem as (
+    select l.ead_matricula_id, l.cod_matricula_legado
+    from public.legado_mig_matriculas l
+    join pm on pm.codigo = l.cod_matricula_legado
+    where l.status_final = 'APROVADO' and pm.dup_legado
+  ), upd as (
+    update public.ead_matriculas m set status = 'CANCELADO', data_conclusao = null
+    from dem where m.id = dem.ead_matricula_id
+    returning m.id
+  )
+  update public.legado_mig_matriculas l
+     set status_final = 'CANCELADO',
+         observacao = 'duplicidade legado: existe matricula APROVADA mais recente no mesmo curso (rebaixada na migracao de ' || v_ano || ')'
+    from dem where l.cod_matricula_legado = dem.cod_matricula_legado;
+  get diagnostics n_rebaixadas = row_count;
+
   -- 5) Duplicidade com o portal: rebaixar para CANCELADO
   update esc e set dup_portal = true, status_final = 'CANCELADO'
   from pa_map m
@@ -284,8 +311,6 @@ begin
   -- uma matricula CANCELADA se o aluno ja tem EM_ANDAMENTO/APROVADA no mesmo curso. A unicidade
   -- de APROVADA/EM_ANDAMENTO e garantida por este script (regras de duplicidade acima), entao o
   -- trigger fica desligado SO dentro desta transacao e e religado antes do fim (rollback tambem religa).
-  alter table public.ead_matriculas disable trigger trg_ead_matriculas_unica;
-
   with ins as (
     insert into public.ead_matriculas
       (aluno_id, course_id, curso_nome_snapshot, matricula, status, origem,
@@ -311,6 +336,7 @@ begin
     (cod_matricula_legado, ead_matricula_id, ead_aluno_id, numero_matricula, ano, status_final, regra, observacao)
   select e.codigo, i.id, m.aluno_id, i.matricula, e.ano_letivo, i.status,
          case when e.status_regra = 'APROVADO' and e.situacao = '4' then 'Concluido->APROVADO'
+              when e.status_regra = 'APROVADO' and e.ano_letivo = '2025' and not e.tem_nota then 'Ativo 2025 (criterio Joaquim)->APROVADO'
               when e.status_regra = 'APROVADO' then 'Ativo com nota->APROVADO'
               else 'Situacao ' || e.situacao || '->CANCELADO' end,
          case when e.dup_legado then 'duplicidade legado: existe matricula APROVADA mais recente no mesmo curso'
@@ -336,8 +362,8 @@ begin
     into n_aprov, n_canc, n_dup_leg, n_dup_portal
   from esc;
 
-  v_msg := format('ano=%s alunos_novos=%s alunos_ja_no_portal=%s turmas=%s turmas_com_igreja=%s editions=%s matriculas=%s aprovadas=%s canceladas=%s dup_legado=%s dup_portal=%s',
-                  v_ano, n_alunos_novos, n_alunos_exist, n_turmas, n_turmas_igreja, n_editions, n_matr, n_aprov, n_canc, n_dup_leg, n_dup_portal);
+  v_msg := format('ano=%s alunos_novos=%s alunos_ja_no_portal=%s turmas=%s turmas_com_igreja=%s editions=%s matriculas=%s aprovadas=%s canceladas=%s dup_legado=%s dup_portal=%s anteriores_rebaixadas=%s',
+                  v_ano, n_alunos_novos, n_alunos_exist, n_turmas, n_turmas_igreja, n_editions, n_matr, n_aprov, n_canc, n_dup_leg, n_dup_portal, n_rebaixadas);
 
   if not v_commit then
     raise exception 'DRY-RUN (nada gravado): %', v_msg;

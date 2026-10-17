@@ -17,10 +17,18 @@ import fs from "node:fs";
 import path from "node:path";
 
 const STAGING_REF = "cjxdroyyplpknygtcdgr";
+const PROD_REF = "toduvwtzklntyptcodkf";
 const CSV_DIR = process.env.LEGADO_CSV_DIR || "C:\\Projetos\\portal-teologico-os-documentos\\SistemaAntigo";
-const ENV_FILE = path.resolve(".env.local");
+// 17/10/2026: alvo PRODUCAO so com --alvo=producao + --confirmo-producao e a chave num
+// arquivo proprio (.env.producao.local, ignorado pelo git). Sem a flag, continua staging-only.
+const ALVO_PROD = process.argv.includes("--alvo=producao");
+const ENV_FILE = path.resolve(ALVO_PROD ? ".env.producao.local" : ".env.local");
 const APPLY = process.argv.includes("--apply");
 const ONLY = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+if (ALVO_PROD && APPLY && !process.argv.includes("--confirmo-producao")) {
+  console.error("ERRO: para gravar em PRODUCAO use --alvo=producao --apply --confirmo-producao (so apos backup).");
+  process.exit(1);
+}
 const BATCH = 1000;
 
 // ---------- env ----------
@@ -33,20 +41,22 @@ function lerEnv(file) {
   return out;
 }
 if (!fs.existsSync(ENV_FILE)) {
-  console.error("ERRO: .env.local nao encontrado em " + ENV_FILE + ". Rode a partir da pasta portal-teologico-os-staging.");
+  console.error("ERRO: " + ENV_FILE + " nao encontrado. Rode a partir da pasta portal-teologico-os-staging.");
   process.exit(1);
 }
 const env = lerEnv(ENV_FILE);
 const URL_BASE = (env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const KEY = env.SUPABASE_SERVICE_ROLE_KEY || "";
-if (!URL_BASE.includes(STAGING_REF)) {
-  console.error("ERRO DE SEGURANCA: a URL do .env.local (" + URL_BASE + ") NAO e o staging. Abortando sem fazer nada.");
+const REF_ESPERADO = ALVO_PROD ? PROD_REF : STAGING_REF;
+if (!URL_BASE.includes(REF_ESPERADO)) {
+  console.error("ERRO DE SEGURANCA: a URL de " + path.basename(ENV_FILE) + " (" + URL_BASE + ") NAO e o alvo esperado (" + REF_ESPERADO + "). Abortando sem fazer nada.");
   process.exit(1);
 }
 if (!KEY) {
-  console.error("ERRO: SUPABASE_SERVICE_ROLE_KEY ausente no .env.local do staging.");
+  console.error("ERRO: SUPABASE_SERVICE_ROLE_KEY ausente em " + path.basename(ENV_FILE) + ".");
   process.exit(1);
 }
+console.log("ALVO: " + (ALVO_PROD ? "PRODUCAO" : "STAGING") + " (" + URL_BASE + ")");
 
 // ---------- CSV ----------
 function parseCsv(texto) {
@@ -146,4 +156,4 @@ for (const n of nomes) {
   }
   console.log(`\n  ${n}: OK`);
 }
-console.log(APPLY ? "FINALIZADO (gravado no STAGING)." : "DRY-RUN: nada foi gravado. Use --apply para gravar.");
+console.log(APPLY ? "FINALIZADO (gravado no " + (ALVO_PROD ? "PRODUCAO" : "STAGING") + ")." :"DRY-RUN: nada foi gravado. Use --apply para gravar.");
