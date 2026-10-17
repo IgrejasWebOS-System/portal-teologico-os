@@ -97,7 +97,9 @@ export default async function AdminDashboardPage({
   const anoParsed = Number(anoParam);
   const anoSel = Number.isInteger(anoParsed) && anoParsed >= 2020 && anoParsed <= anoAtual + 1 ? anoParsed : anoAtual;
   const ehAnoAtual = anoSel === anoAtual;
-  const anosDisponiveis = Array.from({ length: anoAtual + 1 - 2024 + 1 }, (_, i) => anoAtual + 1 - i);
+  // 16/10/2026: a lista vai até 2022 (primeiro ano do sistema antigo, migrado como histórico).
+  const ANO_INICIAL = 2022;
+  const anosDisponiveis = Array.from({ length: anoAtual + 1 - ANO_INICIAL + 1 }, (_, i) => anoAtual + 1 - i);
 
   const inicioAno = new Date(anoSel, 0, 1).toISOString();
   const fimAno = new Date(anoSel + 1, 0, 1).toISOString();
