@@ -69,6 +69,13 @@ export default function AuthCallbackPage() {
       router.replace(pendente.next);
       return;
     }
+    // O link só vale uma vez. Se a validação anterior já abriu a sessão (clique duplo,
+    // segunda aba), segue em frente em vez de mostrar "link inválido".
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      router.replace(pendente.next);
+      return;
+    }
     router.replace("/login?error=" + encodeURIComponent(ERRO_LINK_INVALIDO));
   }
 

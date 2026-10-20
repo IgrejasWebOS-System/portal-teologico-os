@@ -69,6 +69,7 @@ export async function presencaSalvarChamadaAction(formData: FormData) {
     atorUserId: ctx.userId,
     professorId: ctx.professorId,
     papel: ctx.papel,
+    turmasPermitidas: turmas.map((t) => t.id),
   });
   volta(qs, r.ok ? "msg" : "error", r.mensagem);
 }
