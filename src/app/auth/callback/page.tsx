@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
@@ -46,9 +46,31 @@ import { createClient } from "@/utils/supabase/client";
 const ERRO_LINK_INVALIDO =
   "Link de acesso inválido ou expirado. Peça um novo convite à secretaria do CETADP.";
 
+type TipoOtp = "invite" | "recovery" | "email" | "email_change" | "signup";
+
+// 20/10/2026: filtros de e-mail (Gmail etc.) abrem o link antes da pessoa e
+// consumiam o token ("link expirado", ~69 casos em 24 h). Com token_hash no
+// endereço, a página NÃO valida sozinha: mostra o botão "Continuar" e só
+// consome o token quando a pessoa clica (robôs não clicam).
+// Requer os modelos de e-mail com {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=...
+// (ver docs/EMAIL_TEMPLATES_SUPABASE.md).
 export default function AuthCallbackPage() {
   const router = useRouter();
   const jaProcessou = useRef(false);
+  const [pendente, setPendente] = useState<{ tokenHash: string; type: TipoOtp; next: string } | null>(null);
+  const [validando, setValidando] = useState(false);
+
+  async function continuar() {
+    if (!pendente || validando) return;
+    setValidando(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({ token_hash: pendente.tokenHash, type: pendente.type });
+    if (!error) {
+      router.replace(pendente.next);
+      return;
+    }
+    router.replace("/login?error=" + encodeURIComponent(ERRO_LINK_INVALIDO));
+  }
 
   useEffect(() => {
     if (jaProcessou.current) return;
@@ -66,23 +88,11 @@ export default function AuthCallbackPage() {
 
       const supabase = createClient();
 
-      // Caminho novo (preferido) — link de e-mail com token_hash+type,
-      // sem depender de code_verifier salvo em cookie. Ver comentário
-      // acima (bug #2).
+      // Caminho preferido: link com token_hash+type (sem cookie de code_verifier,
+      // ver comentário acima, bug #2). Espera o clique em "Continuar".
       if (tokenHash && type) {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: type as
-            | "invite"
-            | "recovery"
-            | "email"
-            | "email_change"
-            | "signup",
-        });
-        if (!error) {
-          router.replace(next);
-          return;
-        }
+        setPendente({ tokenHash, type: type as TipoOtp, next });
+        return;
       } else if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
@@ -105,6 +115,30 @@ export default function AuthCallbackPage() {
 
     processar();
   }, [router]);
+
+  if (pendente) {
+    const recuperacao = pendente.type === "recovery";
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center space-y-4">
+          <h1 className="text-xl font-black text-white">Portal CETADP</h1>
+          <p className="text-sm text-iw-sky/80">
+            {recuperacao
+              ? "Clique em Continuar para criar uma nova senha de acesso."
+              : "Clique em Continuar para ativar seu acesso e criar sua senha."}
+          </p>
+          <button
+            type="button"
+            onClick={continuar}
+            disabled={validando}
+            className="w-full bg-iw-gold text-black font-bold rounded-xl px-4 py-3 text-sm disabled:opacity-60"
+          >
+            {validando ? "Confirmando..." : "Continuar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">

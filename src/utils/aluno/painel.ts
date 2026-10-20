@@ -97,6 +97,24 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       .order("iniciada_em", { ascending: false }),
   ]);
 
+  // Frequência por matrícula (controle de presença, migration 140).
+  const frequencias = new Map<string, NonNullable<MatriculaResumo["frequencia"]>>();
+  await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (matriculasRaw ?? []).map(async (m: any) => {
+      const { data: f } = await admin.rpc("presenca_frequencia_matricula", { p_matricula: m.id });
+      if (f && f.aplicavel !== false && Number(f.base) > 0 && f.frequencia != null) {
+        frequencias.set(m.id, {
+          presentes: Number(f.presentes ?? 0),
+          base: Number(f.base),
+          percentual: Number(f.frequencia),
+          minima: Number(f.minima ?? 75),
+          liberada: !!f.liberada,
+        });
+      }
+    })
+  );
+
   // Provas feitas pelo link público (CPF) também aparecem em "Provas e Testes".
   const provasPublicas = await carregarProvasPublicasDoAluno(admin, { id: aluno.id, cpf: aluno.cpf });
 
@@ -117,6 +135,7 @@ async function montarAlunoPainelData(supabase: any, aluno: any): Promise<AlunoPa
       matricula: m.matricula,
       status: m.status,
       dataMatricula: m.data_matricula,
+      frequencia: frequencias.get(m.id) ?? null,
     })),
     parcelas: (parcelasRaw ?? []).map((p) => ({
       id: p.id,

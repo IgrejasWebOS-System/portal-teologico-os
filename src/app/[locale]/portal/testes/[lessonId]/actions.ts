@@ -150,6 +150,10 @@ export async function iniciarTesteLicaoAction(formData: FormData) {
     .select("id")
     .single();
 
+  if (error?.message?.includes("PROVA_BLOQUEADA_FREQUENCIA")) {
+    // 17/10/2026 (migration 140): trigger do banco barra a prova por frequência baixa.
+    fail(lessonId, "Prova bloqueada: " + error.message.replace(/^.*PROVA_BLOQUEADA_FREQUENCIA:\s*/, "") + " Procure a secretaria para regularizar.");
+  }
   if (error || !avaliacao) {
     fail(lessonId, "Erro ao iniciar avaliação: " + (error?.message ?? "desconhecido"));
   }
