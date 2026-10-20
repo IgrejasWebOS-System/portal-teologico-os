@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle2, ClipboardCheck, Lock } from "lucide-react"
 import { createAdminClient } from "@/utils/supabase/admin";
 import type { ContextoPresenca, TurmaPresenca } from "@/utils/presenca-contexto";
 import SeletorTurma from "./SeletorTurma";
+import SeletorAula, { type AulaOpcao } from "./SeletorAula";
+import ListaPresenca, { type AlunoLista } from "./ListaPresenca";
 import {
   presencaLiberarProvaAction,
   presencaSalvarChamadaAction,
@@ -50,7 +52,7 @@ const card = "bg-white border border-iw-border rounded-xl p-4 mb-4";
 export default async function PresencaPainel({ ctx, turmas, basePath, sp }: PresencaPainelProps) {
   const admin = createAdminClient();
   const hoje = hojeBR();
-  const aba = sp.aba === "chamada" || sp.aba === "historico" ? sp.aba : "frequencia";
+  const aba = sp.aba === "chamada" || sp.aba === "historico" ? sp.aba : sp.aula && sp.turma ? "chamada" : "frequencia";
   // Professor com uma turma só: já entra nela, sem precisar escolher.
   const turmaSel =
     turmas.find((t) => t.id === sp.turma) ?? (ctx.modo === "professor" && turmas.length === 1 ? turmas[0] : null);
@@ -66,6 +68,22 @@ export default async function PresencaPainel({ ctx, turmas, basePath, sp }: Pres
   const bloqueio = !!cfg?.bloqueio_prova_ativo;
   const perms = (cfg?.permissoes ?? {}) as Perms;
   const permite = (acao: string) => !!perms[ctx.papel]?.[acao];
+
+  // Aulas dos cursos das turmas do escopo (passo 1 do fluxo "por aula").
+  const cursoIds = [...new Set(turmas.map((t) => t.cursoId))];
+  const { data: lic } = cursoIds.length
+    ? await admin.from("lessons").select("id, title, course_id, order_index").in("course_id", cursoIds).order("order_index")
+    : { data: [] as { id: string; title: string; course_id: string; order_index: number | null }[] };
+  const nomeCurso = new Map(turmas.map((t) => [t.cursoId, t.curso]));
+  const aulasOpcoes: AulaOpcao[] = (lic ?? []).map((l) => ({
+    id: l.id as string,
+    titulo: l.title as string,
+    cursoId: l.course_id as string,
+    curso: nomeCurso.get(l.course_id as string) ?? "Curso",
+  }));
+  const limitaProf = ctx.papel === "PROFESSOR" && !permite("corrigir_fora_prazo");
+  const dataMinSel = limitaProf && somaDias(hoje, -prazo) > inicio ? somaDias(hoje, -prazo) : inicio;
+  const dataEscolhida = sp.data && /^\d{4}-\d{2}-\d{2}$/.test(sp.data) ? sp.data : hoje;
 
   const qsTurma = turmaSel ? `&turma=${turmaSel.id}` : "";
   const hidden = (extra: Record<string, string> = {}) => (
@@ -162,7 +180,22 @@ export default async function PresencaPainel({ ctx, turmas, basePath, sp }: Pres
         )}
       </div>
 
-      {/* ---------- Turma ---------- */}
+      {/* ---------- Presença por aula: aula -> data -> turma ---------- */}
+      {turmas.length > 0 && (
+        <SeletorAula
+          key={`${sp.aula ?? ""}|${sp.turma ?? ""}`}
+          aulas={aulasOpcoes}
+          turmas={turmas}
+          basePath={basePath}
+          aulaId={sp.aula ?? ""}
+          turmaId={sp.turma ?? ""}
+          data={dataEscolhida}
+          hoje={hoje}
+          dataMin={dataMinSel}
+        />
+      )}
+
+      {/* ---------- Turma (frequência e histórico) ---------- */}
       {turmas.length === 0 ? (
         <p className="text-sm text-iw-navy/70">Nenhuma turma nova no seu escopo.</p>
       ) : (
@@ -193,7 +226,7 @@ export default async function PresencaPainel({ ctx, turmas, basePath, sp }: Pres
 
           {aba === "frequencia" && <AbaFrequencia ctx={ctx} turma={turmaSel} minima={minima} pode={permite("liberar_prova")} hidden={hidden} />}
           {aba === "chamada" && (
-            <AbaChamada ctx={ctx} turma={turmaSel} sp={sp} hoje={hoje} inicio={inicio} prazo={prazo} basePath={basePath}
+            <AbaChamada ctx={ctx} turma={turmaSel} turmas={turmas} sp={sp} hoje={hoje} inicio={inicio} prazo={prazo} basePath={basePath}
               foraPrazo={permite("corrigir_fora_prazo")} justifica={permite("justificar")} hidden={hidden} />
           )}
           {aba === "historico" && <AbaHistorico turma={turmaSel} />}
@@ -280,32 +313,24 @@ async function AbaFrequencia({ turma, minima, pode, hidden }: {
 }
 
 // ---------------------------------------------------------------
-async function AbaChamada({ ctx, turma, sp, hoje, inicio, prazo, basePath, foraPrazo, justifica, hidden }: {
-  ctx: ContextoPresenca; turma: TurmaPresenca; sp: PresencaPainelProps["sp"]; hoje: string; inicio: string; prazo: number;
+async function AbaChamada({ ctx, turma, turmas, sp, hoje, inicio, prazo, basePath, foraPrazo, justifica, hidden }: {
+  ctx: ContextoPresenca; turma: TurmaPresenca; turmas: TurmaPresenca[]; sp: PresencaPainelProps["sp"]; hoje: string; inicio: string; prazo: number;
   basePath: string; foraPrazo: boolean; justifica: boolean; hidden: (extra?: Record<string, string>) => React.ReactNode;
 }) {
   const admin = createAdminClient();
-  const { data: sched } = await admin
-    .from("course_edition_lesson_schedule")
-    .select("lesson_id, ordem, lessons(title)")
-    .eq("course_edition_id", turma.id)
-    .order("ordem");
-  let aulas = (sched ?? []).map((s) => ({
-    id: s.lesson_id as string,
-    titulo: ((Array.isArray(s.lessons) ? s.lessons[0] : s.lessons) as { title: string } | null)?.title ?? `Aula ${s.ordem}`,
-  }));
-  if (aulas.length === 0) {
-    const { data: ed } = await admin.from("course_editions").select("course_id").eq("id", turma.id).maybeSingle();
-    const { data: ls } = await admin.from("lessons").select("id, title").eq("course_id", ed?.course_id).order("order_index");
-    aulas = (ls ?? []).map((l) => ({ id: l.id as string, titulo: l.title as string }));
+  // A aula vem do formulário "Registrar presença de uma aula" (aula -> data -> turma).
+  let aulaSel: { id: string; titulo: string } | null = null;
+  if (sp.aula) {
+    const { data: l } = await admin.from("lessons").select("id, title, course_id").eq("id", sp.aula).maybeSingle();
+    if (l && l.course_id === turma.cursoId) aulaSel = { id: l.id as string, titulo: l.title as string };
   }
-  const aulaSel = aulas.find((a) => a.id === sp.aula) ?? null;
   const dataSel = sp.data && /^\d{4}-\d{2}-\d{2}$/.test(sp.data) ? sp.data : hoje;
   const limitaProfessor = ctx.papel === "PROFESSOR" && !foraPrazo;
   const dataMin = limitaProfessor && somaDias(hoje, -prazo) > inicio ? somaDias(hoje, -prazo) : inicio;
   const dataValida = dataSel <= hoje && dataSel >= dataMin;
 
-  let alunos: { id: string; nome: string; situacao: string | null }[] = [];
+  let alunos: AlunoLista[] = [];
+  let candidatos: AlunoLista[] = [];
   let status: "NOVA" | "ABERTA" | "FECHADA" = "NOVA";
   let podeCorrigir = true;
   if (aulaSel && dataValida) {
@@ -323,18 +348,70 @@ async function AbaChamada({ ctx, turma, sp, hoje, inicio, prazo, basePath, foraP
         podeCorrigir = hoje <= somaDias(dia, prazo);
       }
     }
-    const [{ data: mats }, { data: pres }] = await Promise.all([
-      admin.from("ead_matriculas").select("id, ead_alunos(nome_completo)").eq("course_edition_id", turma.id).eq("status", "EM_ANDAMENTO"),
+    const nomeDe = (v: unknown) =>
+      ((Array.isArray(v) ? v[0] : v) as { nome_completo: string } | null)?.nome_completo ?? "—";
+    const [{ data: mats }, { data: pres }, { data: encsAula }] = await Promise.all([
+      admin.from("ead_matriculas").select("id, aluno_id, ead_alunos(nome_completo)").eq("course_edition_id", turma.id).eq("status", "EM_ANDAMENTO"),
       enc ? admin.from("aula_presencas").select("matricula_id, situacao").eq("encontro_id", enc.id) : Promise.resolve({ data: [] as { matricula_id: string; situacao: string }[] }),
+      // Esta mesma aula já aplicada (fechada) em outras datas/turmas do curso.
+      admin.from("aula_encontros").select("id, data").eq("lesson_id", aulaSel.id).eq("status", "FECHADA"),
     ]);
     const sit = new Map((pres ?? []).map((p) => [p.matricula_id as string, p.situacao as string]));
-    alunos = (mats ?? [])
-      .map((m) => ({
-        id: m.id as string,
-        nome: ((Array.isArray(m.ead_alunos) ? m.ead_alunos[0] : m.ead_alunos) as { nome_completo: string } | null)?.nome_completo ?? "—",
-        situacao: sit.get(m.id as string) ?? null,
-      }))
+
+    // Quem já assistiu esta aula em outra data/turma: aluno_id -> data mais recente (dd/mm).
+    const dataDoEncontro = new Map((encsAula ?? []).filter((x) => x.id !== enc?.id).map((x) => [x.id as string, x.data as string]));
+    const jaAssistiu = new Map<string, string>();
+    if (dataDoEncontro.size > 0) {
+      const { data: pOut } = await admin
+        .from("aula_presencas")
+        .select("encontro_id, matricula_id")
+        .in("encontro_id", [...dataDoEncontro.keys()])
+        .in("situacao", ["PRESENTE", "JUSTIFICADA"]);
+      const matOut = [...new Set((pOut ?? []).map((p) => p.matricula_id as string))];
+      const { data: mOut } = matOut.length ? await admin.from("ead_matriculas").select("id, aluno_id").in("id", matOut) : { data: [] };
+      const alunoDaMat = new Map((mOut ?? []).map((m) => [m.id as string, m.aluno_id as string]));
+      for (const p of pOut ?? []) {
+        const al = alunoDaMat.get(p.matricula_id as string);
+        const d = dataDoEncontro.get(p.encontro_id as string);
+        if (al && d && (jaAssistiu.get(al) ?? "") < d) jaAssistiu.set(al, d);
+      }
+    }
+    const curta = (iso: string) => iso.split("-").reverse().slice(0, 2).join("/");
+
+    const idsTurma = new Set((mats ?? []).map((m) => m.id as string));
+    alunos = (mats ?? []).map((m) => ({
+      id: m.id as string,
+      nome: nomeDe(m.ead_alunos),
+      situacao: sit.get(m.id as string) ?? null,
+      jaAssistiu: jaAssistiu.has(m.aluno_id as string) ? curta(jaAssistiu.get(m.aluno_id as string)!) : null,
+    }));
+
+    // Alunos de outras turmas do mesmo curso: os que já estão nesta chamada + opções para adicionar.
+    const outrasTurmas = turmas.filter((t) => t.cursoId === turma.cursoId && t.id !== turma.id);
+    const nomeTurmaDe = new Map(outrasTurmas.map((t) => [t.id, `${t.nucleo} — ${t.titulo}`]));
+    const visitantesIds = [...sit.keys()].filter((id) => !idsTurma.has(id));
+    const [{ data: mVis }, { data: mCand }] = await Promise.all([
+      visitantesIds.length
+        ? admin.from("ead_matriculas").select("id, aluno_id, course_edition_id, ead_alunos(nome_completo)").in("id", visitantesIds)
+        : Promise.resolve({ data: [] as { id: string; aluno_id: string; course_edition_id: string; ead_alunos: unknown }[] }),
+      outrasTurmas.length
+        ? admin.from("ead_matriculas").select("id, aluno_id, course_edition_id, ead_alunos(nome_completo)")
+            .in("course_edition_id", outrasTurmas.map((t) => t.id)).eq("status", "EM_ANDAMENTO").limit(500)
+        : Promise.resolve({ data: [] as { id: string; aluno_id: string; course_edition_id: string; ead_alunos: unknown }[] }),
+    ]);
+    const deVisitante = (m: { id: string; aluno_id: string; course_edition_id: string; ead_alunos: unknown }, situacao: string | null): AlunoLista => ({
+      id: m.id,
+      nome: nomeDe(m.ead_alunos),
+      situacao,
+      turma: nomeTurmaDe.get(m.course_edition_id) ?? "outra turma",
+      jaAssistiu: jaAssistiu.has(m.aluno_id) ? curta(jaAssistiu.get(m.aluno_id)!) : null,
+    });
+    alunos.push(...(mVis ?? []).map((m) => deVisitante(m, sit.get(m.id) ?? null)));
+    candidatos = (mCand ?? [])
+      .filter((m) => !sit.has(m.id))
+      .map((m) => deVisitante(m, null))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+    alunos.sort((a, b) => Number(!!a.turma) - Number(!!b.turma) || a.nome.localeCompare(b.nome, "pt-BR"));
   }
   const fechada = status === "FECHADA";
   const travada = fechada && !podeCorrigir;
@@ -344,24 +421,11 @@ async function AbaChamada({ ctx, turma, sp, hoje, inicio, prazo, basePath, foraP
   return (
     <div>
       <ListaChamadas turmas={[turma]} basePath={basePath} titulo="Chamadas já feitas nesta turma" />
-      <form method="get" action={basePath} className="grid gap-3 sm:grid-cols-3 items-end bg-white border border-iw-border rounded-xl p-4 mb-4">
-        <input type="hidden" name="aba" value="chamada" />
-        <input type="hidden" name="turma" value={turma.id} />
-        <label className="text-xs font-bold text-iw-navy">
-          Matéria (aula)
-          <select name="aula" defaultValue={aulaSel?.id ?? ""} className={input}>
-            <option value="">Selecione…</option>
-            {aulas.map((a) => (
-              <option key={a.id} value={a.id}>{a.titulo}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-bold text-iw-navy">
-          Data
-          <input type="date" name="data" defaultValue={dataSel} min={dataMin} max={hoje} className={input} />
-        </label>
-        <button type="submit" className={`${btnPri} justify-self-start`}>Abrir lista</button>
-      </form>
+      {!aulaSel && (
+        <p className="text-sm text-iw-navy/70 mb-4">
+          Para registrar presença, use o formulário acima: escolha a aula, o dia e a turma.
+        </p>
+      )}
 
       {aulaSel && !dataValida && (
         <p className="text-sm text-iw-error">Data fora do permitido: de {fmt(dataMin)} até hoje ({fmt(hoje)}).</p>
@@ -388,25 +452,13 @@ async function AbaChamada({ ctx, turma, sp, hoje, inicio, prazo, basePath, foraP
             </p>
           )}
           {alunos.length > 0 && (
-            <ul className="divide-y divide-iw-border mb-4">
-              {alunos.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <label className="flex items-center gap-3 text-sm text-iw-navy cursor-pointer">
-                    <input type="checkbox" name="presente" value={a.id} defaultChecked={a.situacao === "PRESENTE"} disabled={travada} className="w-5 h-5" />
-                    {a.nome}
-                  </label>
-                  <span className="flex items-center gap-3 text-xs text-iw-navy/60">
-                    {justifica && (
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input type="checkbox" name="justificada" value={a.id} defaultChecked={a.situacao === "JUSTIFICADA"} disabled={travada} className="w-4 h-4" />
-                        justificada
-                      </label>
-                    )}
-                    {a.situacao ? NOME_SIT[a.situacao] : fechada ? "—" : "Sem marcação"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ListaPresenca
+              key={`${turma.id}|${aulaSel.id}|${dataSel}|${status}`}
+              alunos={alunos}
+              candidatos={candidatos}
+              disabled={travada}
+              justifica={justifica}
+            />
           )}
           {alunos.length > 0 && fechada && !travada && (
             <label className="block text-xs font-bold text-iw-navy mb-3">
@@ -423,8 +475,7 @@ async function AbaChamada({ ctx, turma, sp, hoje, inicio, prazo, basePath, foraP
                 </>
               ) : (
                 <>
-                  <button type="submit" name="acao" value="salvar" className={btnSec}>Salvar (manter aberta)</button>
-                  <button type="submit" name="acao" value="fechar" className={btnPri}>Fechar chamada (não marcados = falta)</button>
+                  <button type="submit" name="acao" value="fechar" className={btnPri}>Salvar presença</button>
                   <Link href={saidaHref} className={btnSec}>Sair sem salvar</Link>
                 </>
               )}

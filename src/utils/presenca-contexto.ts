@@ -27,6 +27,8 @@ export interface TurmaPresenca {
   tipo: "SEDE" | "SETOR" | "REGIONAL" | "OUTRO"; // para o filtro da tela
   grupo: string; // nome do Setor/Regional (ou da Sede)
   nucleo: string; // nome da igreja/núcleo
+  cursoId: string; // courses.id (as aulas pertencem ao curso)
+  curso: string; // título do curso
 }
 
 // Sede = unidade SEDE; Setor/Regional = pai do núcleo, pelo nome ("REGIONAL 003", "SETOR 001").
@@ -71,7 +73,7 @@ export async function turmasDoEscopo(
   admin: any,
   ctx: ContextoPresenca
 ): Promise<TurmaPresenca[]> {
-  const sel = "course_edition_id, course_editions(id, nome, classe, unit_id, courses(title))";
+  const sel = "course_edition_id, course_editions(id, nome, classe, unit_id, course_id, courses(title))";
   let linhas: unknown[] = [];
   if (ctx.modo === "professor") {
     const { data } = await admin.from("professor_turmas").select(sel).eq("professor_id", ctx.professorId);
@@ -84,7 +86,7 @@ export async function turmasDoEscopo(
     const { data } = await admin.from("professor_turmas").select(sel);
     linhas = data ?? [];
   }
-  type Ed = { id: string; nome: string; classe: string | null; unit_id: string | null; courses: { title: string } | { title: string }[] | null };
+  type Ed = { id: string; nome: string; classe: string | null; unit_id: string | null; course_id: string; courses: { title: string } | { title: string }[] | null };
   const eds: Ed[] = [];
   for (const l of linhas as { course_editions: unknown }[]) {
     const ed = (Array.isArray(l.course_editions) ? l.course_editions[0] : l.course_editions) as Ed | null;
@@ -119,6 +121,8 @@ export async function turmasDoEscopo(
       tipo: classificar(grupo, u?.type ?? null),
       grupo,
       nucleo: u?.name ?? "—",
+      cursoId: ed.course_id,
+      curso: c?.title ?? "Curso",
     });
   }
   return [...mapa.values()].sort((a, b) => a.grupo.localeCompare(b.grupo, "pt-BR", { numeric: true }) || a.titulo.localeCompare(b.titulo, "pt-BR"));

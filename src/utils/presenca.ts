@@ -21,6 +21,8 @@ export interface EntradaChamada {
   atorUserId: string;
   professorId: string | null; // professor responsável (ou quem lançou)
   papel: PapelPresenca;
+  // Turmas que o operador enxerga: aluno de OUTRA turma só entra se a turma dele estiver aqui.
+  turmasPermitidas: string[];
 }
 
 export interface ResultadoChamada {
@@ -87,6 +89,25 @@ export async function registrarChamada(db: any, e: EntradaChamada): Promise<Resu
     else if (justificadas.has(id)) alvo.set(id, "JUSTIFICADA");
     else if (fechada || atual.has(id)) alvo.set(id, "FALTA");
     else alvo.set(id, null);
+  }
+
+  // Aluno de outra turma do mesmo curso (visitante): a presença vale por aluno e aula.
+  // Só PRESENTE entra; se já estava registrado e foi desmarcado, vira FALTA (histórico).
+  const visitantes = [...new Set([...e.presentes, ...atual.keys()])].filter((id) => !idsTurma.has(id));
+  if (visitantes.length > 0) {
+    const { data: mv } = await db.from("ead_matriculas").select("id, course_edition_id").in("id", visitantes);
+    const permitidas = new Set(e.turmasPermitidas);
+    const validos = new Set<string>(
+      (mv ?? []).filter((m: { course_edition_id: string }) => permitidas.has(m.course_edition_id)).map((m: { id: string }) => m.id)
+    );
+    for (const id of visitantes) {
+      if (!validos.has(id)) {
+        if (e.presentes.has(id)) return { ok: false, mensagem: "Um dos alunos de outra turma não está no seu escopo." };
+        continue;
+      }
+      if (e.presentes.has(id)) alvo.set(id, "PRESENTE");
+      else if (atual.has(id)) alvo.set(id, "FALTA");
+    }
   }
 
   let alteracoes = 0;
