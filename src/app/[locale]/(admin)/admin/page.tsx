@@ -29,6 +29,7 @@ import {
 import RelatorioGlobalHierarquico from "./RelatorioGlobalHierarquico";
 import EstoqueMateriaisPainel from "./EstoqueMateriaisPainel";
 import PedidosMaterialAdminPainel from "./PedidosMaterialAdminPainel";
+import DashboardTodosAnos from "./DashboardTodosAnos";
 
 export const metadata = { title: "Dashboard — CETADP" };
 
@@ -100,6 +101,28 @@ export default async function AdminDashboardPage({
   // 16/10/2026: a lista vai até 2022 (primeiro ano do sistema antigo, migrado como histórico).
   const ANO_INICIAL = 2022;
   const anosDisponiveis = Array.from({ length: anoAtual + 1 - ANO_INICIAL + 1 }, (_, i) => anoAtual + 1 - i);
+
+  // 18/10/2026, pedido do Joaquim: seletor de ano no cabeçalho, com a opção
+  // "Todos" -> Dashboard com total geral e comparativo anual.
+  if (anoParam === "todos") {
+    return (
+      <div className="w-full space-y-6">
+        <PageHeader
+          icon={LayoutDashboard}
+          title="Dashboard"
+          description={
+            <>
+              Todos os anos: total geral e comparativo anual do CETADP.
+              <span className="ml-6">
+                <SeletorAno anoSelecionado="todos" anos={anosDisponiveis} />
+              </span>
+            </>
+          }
+        />
+        <DashboardTodosAnos supabase={supabase} anos={[...anosDisponiveis].filter((a) => a <= anoAtual).reverse()} />
+      </div>
+    );
+  }
 
   const inicioAno = new Date(anoSel, 0, 1).toISOString();
   const fimAno = new Date(anoSel + 1, 0, 1).toISOString();
@@ -427,7 +450,14 @@ export default async function AdminDashboardPage({
       <PageHeader
         icon={LayoutDashboard}
         title="Dashboard"
-        description="Visão geral administrativa, financeira e acadêmica do CETADP."
+        description={
+          <>
+            Visão geral administrativa, financeira e acadêmica do CETADP.
+            <span className="ml-6">
+              <SeletorAno anoSelecionado={anoSel} anos={anosDisponiveis} />
+            </span>
+          </>
+        }
       />
 
       {/* 30/09/2026, pedido do Joaquim: quadro de gerenciamento (relatório
@@ -455,7 +485,6 @@ export default async function AdminDashboardPage({
           label="Total de turmas"
           value={String(totalTurmas ?? 0)}
           sublabel={`em ${anoSel}`}
-          acao={<SeletorAno anoSelecionado={anoSel} anos={anosDisponiveis} />}
           color="text-iw-navy"
           bg="bg-iw-blue/10"
         />

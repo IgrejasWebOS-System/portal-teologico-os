@@ -164,6 +164,7 @@ const adminModules: SidebarModule[] = [
       { label: "FAQ", href: "/admin/faq", icon: HelpCircle },
       { label: "Saúde do sistema", href: "/admin/saude-sistema", icon: Activity },
       { label: "Auditoria", href: "/admin/auditoria", icon: ClipboardList },
+      { label: "Presença", href: "/admin/presenca", icon: ClipboardList },
     ],
   },
 ];
@@ -185,6 +186,8 @@ const professorModules: SidebarModule[] = [
   // botão "Nova Matrícula" que ficava dentro de Alunos saiu de lá.
   { label: "Matrícula", href: "/professor/matricula", icon: UserPlus, description: "Nova matrícula completa" },
   { label: "Alunos", href: "/professor/alunos", icon: Users, description: "Seus alunos e matrículas" },
+  // 17/10/2026: controle de presença (migration 140).
+  { label: "Presença", href: "/professor/presenca", icon: ClipboardList, description: "Chamada por turma e aula" },
   { label: "Financeiro", href: "/professor/financeiro", icon: Wallet, description: "Parcelas do seu núcleo" },
   { label: "Caixa", href: "/professor/caixa", icon: Banknote, description: "Despesas do seu núcleo" },
   { label: "Testes e Provas", href: "/professor/testes-provas", icon: ClipboardList, description: "Links e resultados das provas" },
@@ -210,6 +213,7 @@ const secretariaModules: SidebarModule[] = [
   { label: "Matrícula", href: "/secretaria/matricula", icon: UserPlus, description: "Nova matrícula completa" },
   { label: "Financeiro", href: "/secretaria/financeiro", icon: Wallet, description: "Parcelas dos seus núcleos" },
   { label: "Caixa", href: "/secretaria/caixa", icon: Banknote, description: "Entradas e saídas dos seus núcleos" },
+  { label: "Presença", href: "/secretaria/presenca", icon: ClipboardList, description: "Chamada e frequência dos núcleos" },
   { label: "Testes e Provas", href: "/secretaria/testes-provas", icon: ClipboardList, description: "Links e resultados das provas" },
   { label: "Configurações", href: "/secretaria/configuracoes", icon: Settings2, description: "Seus dados" },
 ];

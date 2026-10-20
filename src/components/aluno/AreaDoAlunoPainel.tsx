@@ -54,6 +54,8 @@ export interface MatriculaResumo {
   matricula: string;
   status: string;
   dataMatricula: string;
+  // Controle de presença (migration 140). null = turma sem controle ou sem chamadas ainda.
+  frequencia?: { presentes: number; base: number; percentual: number; minima: number; liberada: boolean } | null;
 }
 
 export interface ParcelaResumo {
@@ -285,6 +287,31 @@ export default function AreaDoAlunoPainel({
                   <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-iw-blue/20 text-iw-navy mt-1">
                     {m.status}
                   </span>
+                  {m.frequencia && (
+                    <div className="pt-2">
+                      <div className="flex items-baseline justify-between text-xs text-iw-sky/80">
+                        <span>Frequência</span>
+                        <span className="font-bold text-white">{Math.round(m.frequencia.percentual)}%</span>
+                      </div>
+                      <div className="relative h-2 rounded-full bg-white/10 my-1">
+                        <div
+                          className={`h-2 rounded-full ${m.frequencia.percentual >= m.frequencia.minima ? "bg-iw-success" : "bg-iw-error"}`}
+                          style={{ width: `${Math.min(100, Math.max(0, m.frequencia.percentual))}%` }}
+                        />
+                        <div className="absolute -top-0.5 h-3 w-0.5 bg-white" style={{ left: `${m.frequencia.minima}%` }} />
+                      </div>
+                      <p className="text-[11px] text-iw-sky/60">
+                        {m.frequencia.presentes} presença(s) em {m.frequencia.base} aula(s). Mínimo para a prova: {m.frequencia.minima}%.
+                      </p>
+                      {m.frequencia.percentual < m.frequencia.minima && (
+                        <p className="text-[11px] text-iw-error mt-1">
+                          {m.frequencia.liberada
+                            ? "Prova liberada pela secretaria."
+                            : "Frequência abaixo do mínimo. Procure a secretaria."}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))
             )}
