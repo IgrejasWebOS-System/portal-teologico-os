@@ -23,6 +23,7 @@ Pra saber **quando usar qual** ao testar Teste/Prova/Simulado, ver
 | Script | Pra que serve |
 |---|---|
 | `backup-manager-v2.ps1` | **05/10/2026.** Backup consolidado: código de produção + staging sem lixo (E: e OneDrive), `git bundle` + manifesto, e dump validado do banco de **produção** (em claro só no E:; na nuvem só criptografado com 7-Zip AES-256). Não faz commit/push. Só lista retenção, nunca apaga. Opções: `-DryRun`, `-PreMigration -Label pre-XXX`, `-SkipDb`, `-SkipCode`, `-SkipCloud`, `-Status` (idade do último dump). Cabeçalho do arquivo tem o passo a passo. |
+| `backup-storage.ps1` + `backup-storage.mjs` | **21/10/2026.** Backup dos arquivos do **Storage de produção** (buckets `avatars`, `matriculas-pdf`, `biblioteca-pdfs`; ~212 MB em 20/10/2026). Só leitura: baixa para `E:\bk-projetos\storage\AAAA-MM-DD_HHMM`, grava `MANIFEST.json` (SHA256) e confere o que foi gravado; cópia na nuvem só criptografada (7-Zip AES-256). Aborta se a URL não for a de produção. Precisa das variáveis de usuário `PORTAL_TEOLOGICO_PROD_SUPABASE_URL` e `PORTAL_TEOLOGICO_PROD_SERVICE_ROLE_KEY` (nunca no git). Opções: `-DryRun`, `-SkipCloud`. Não apaga nada. Uso semanal, não precisa rodar antes de cada migration. |
 
 Ver também `staging/governance/PERIGO-zerar-dados-producao.sql` — SQL solto (não é `.mjs`) pra colar no SQL Editor do Supabase e limpar financeiro/matrículas/alunos/professores em produção ou staging. Os dois "PERIGO-*" são pra uso excepcional e devem ser registrados em `staging/governance/ERROS-COMUNS-IA.md` depois de cada execução.
 
