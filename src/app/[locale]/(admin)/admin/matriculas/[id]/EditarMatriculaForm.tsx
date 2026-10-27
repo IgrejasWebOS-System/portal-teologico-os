@@ -11,6 +11,7 @@ import { maskRG } from "@/utils/maskRG";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   atualizarMatriculaAction, lancarPagamentoRetroativoAction, cancelarMatriculaAction, gerarParcelasMensalidadeAction,
+  pausarMatriculaAction, reativarMatriculaAction,
 } from "../actions";
 import { baixarParcelaAction, cancelarParcelaAction, reativarParcelaAction } from "../../financeiro/actions";
 import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
@@ -68,6 +69,10 @@ interface Matricula {
   status: string;
   course_edition_id: string | null;
   professor_id: string | null;
+  // PAUSAR CURSO (migration 143, 26/10/2026)
+  pausada_em?: string | null;
+  retorno_previsto?: string | null;
+  pausa_motivo?: string | null;
 }
 
 interface Pagamento {
@@ -107,7 +112,14 @@ const boxCls =
 const boxClsCompact =
   "border border-iw-navy rounded-lg px-2.5 pt-1 pb-1.5 bg-white focus-within:border-iw-gold focus-within:ring-2 focus-within:ring-iw-gold/40 focus-within:bg-iw-gold/[0.06] transition-colors";
 const boxLabelCls = "block text-[10px] font-extrabold text-iw-muted uppercase tracking-wider mb-0.5";
-const bareCls = "w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
+// yyyy-mm-dd -> dd/mm/aaaa (sem passar por Date, evita deslocar um dia por fuso)
+function fmtDataCurta(iso?: string | null): string {
+  if (!iso) return "—";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return a && m && d ? `${d}/${m}/${a}` : "—";
+}
+const pausaInputCls = "mt-1 w-full bg-white border border-iw-border rounded-lg px-3 py-2 text-sm text-iw-navy focus:outline-none focus:border-iw-gold";
+const bareCls ="w-full bg-transparent border-none p-0 text-sm text-iw-navy placeholder-iw-muted/70 focus:outline-none focus:ring-0";
 const bareSelectCls = `${bareCls} cursor-pointer`;
 
 function Field({
@@ -256,6 +268,8 @@ export default function EditarMatriculaForm({
   reativarParcelaAction: reativarParcelaActionProp,
   lancarPagamentoRetroativoAction: lancarPagamentoRetroativoActionProp,
   cancelarMatriculaAction: cancelarMatriculaActionProp,
+  pausarMatriculaAction: pausarMatriculaActionProp,
+  reativarMatriculaAction: reativarMatriculaActionProp,
   gerarParcelasMensalidadeAction: gerarParcelasMensalidadeActionProp,
   travarProfessorId,
   redirectToBaixa,
@@ -318,6 +332,8 @@ export default function EditarMatriculaForm({
   reativarParcelaAction?: (formData: FormData) => Promise<void> | void;
   lancarPagamentoRetroativoAction?: (formData: FormData) => Promise<void> | void;
   cancelarMatriculaAction?: (formData: FormData) => Promise<void> | void;
+  pausarMatriculaAction?: (formData: FormData) => Promise<void> | void;
+  reativarMatriculaAction?: (formData: FormData) => Promise<void> | void;
   gerarParcelasMensalidadeAction?: (formData: FormData) => Promise<void> | void;
   // Quando a tela é aberta pelo Professor: trava o campo Professor(a) no
   // próprio professor (não deixa reatribuir o aluno pra outro professor
@@ -338,6 +354,7 @@ export default function EditarMatriculaForm({
   const [copiado, setCopiado] = useState(false);
   const [mostrarPagamento, setMostrarPagamento] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+  const [mostrarPausa, setMostrarPausa] = useState(false);
   const [fotoUrl, setFotoUrl] = useState(aluno.foto_url ?? "");
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [naturalidadeCidade, setNaturalidadeCidade] = useState(aluno.naturalidade_cidade ?? "");
@@ -1068,6 +1085,62 @@ export default function EditarMatriculaForm({
           Não apaga o cadastro nem o histórico — só marca a matrícula como cancelada (fica registrada, pra
           auditoria/inventário).
         </p>
+        {/* PAUSAR CURSO (26/10/2026, pedido do Joaquim): o aluno fica ausente por um período, sem
+            cancelar. Sai da chamada; parcelas não mudam sozinhas (botão FINANCEIRO). */}
+        {matricula.status === "PAUSADA" && (
+          <div className="rounded-xl border border-iw-gold bg-iw-gold/10 p-4 space-y-2">
+            <p className="text-sm font-bold text-iw-navy">
+              Curso pausado desde {fmtDataCurta(matricula.pausada_em)}
+              {matricula.retorno_previsto ? `, retorno previsto em ${fmtDataCurta(matricula.retorno_previsto)}` : ""}.
+            </p>
+            {matricula.pausa_motivo && <p className="text-xs text-iw-muted">Motivo: {matricula.pausa_motivo}</p>}
+            <form action={reativarMatriculaActionProp ?? reativarMatriculaAction}>
+              <input type="hidden" name="matricula_id" value={matricula.id} />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 bg-black text-white border-[1.5px] border-[#CF8403] font-bold text-xs uppercase px-4 py-2.5 rounded-xl hover:opacity-80 transition-opacity"
+              >
+                Reativar curso
+              </button>
+            </form>
+          </div>
+        )}
+        {matricula.status === "EM_ANDAMENTO" && (
+          !mostrarPausa ? (
+            <button
+              type="button"
+              onClick={() => setMostrarPausa(true)}
+              className="inline-flex items-center gap-2 bg-black text-white border-[1.5px] border-[#CF8403] font-bold text-xs uppercase px-4 py-2.5 rounded-xl hover:opacity-80 transition-opacity"
+            >
+              Pausar curso
+            </button>
+          ) : (
+            <form action={pausarMatriculaActionProp ?? pausarMatriculaAction} className="rounded-xl border border-iw-border p-4 space-y-3">
+              <input type="hidden" name="matricula_id" value={matricula.id} />
+              <p className="text-xs text-iw-muted">
+                O aluno sai da chamada até ser reativado. Nada é apagado e as parcelas não mudam sozinhas.
+              </p>
+              <div className="grid grid-cols-12 gap-3">
+                <label className="col-span-12 md:col-span-4 text-xs font-bold text-iw-navy">
+                  Retorno previsto (opcional)
+                  <input type="date" name="retorno_previsto" min={new Date().toISOString().slice(0, 10)} className={pausaInputCls} />
+                </label>
+                <label className="col-span-12 md:col-span-8 text-xs font-bold text-iw-navy">
+                  Motivo da pausa (obrigatório)
+                  <input name="motivo" required minLength={5} placeholder="Ex.: viagem a trabalho por 2 meses" className={pausaInputCls} />
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="submit" className="bg-black text-white border-[1.5px] border-[#CF8403] font-bold text-xs uppercase px-4 py-2.5 rounded-xl hover:opacity-80">
+                  Confirmar pausa
+                </button>
+                <button type="button" onClick={() => setMostrarPausa(false)} className="text-xs font-bold text-iw-muted hover:text-iw-navy px-3 py-2">
+                  Voltar
+                </button>
+              </div>
+            </form>
+          )
+        )}
         {!confirmarCancelar ? (
           <button
             type="button"

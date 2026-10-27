@@ -31,6 +31,8 @@ import { dataFimPadrao } from "@/utils/turmas/periodo";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
 import { gerarParcelasContasReceber } from "@/utils/financeiro/gerar-parcelas";
+import { editarParcela, valorBRParaCentavos } from "@/utils/financeiro/editar-parcela";
+import { pausarMatricula, reativarMatricula } from "@/utils/matricula-pausa";
 import { gerarPdfMatricula } from "@/utils/pdf/matricula";
 import {
   lancarDespesaNucleo,
@@ -1674,4 +1676,82 @@ export async function professorCancelarMatriculaAction(formData: FormData) {
     entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: matriculaCancelada.aluno_id,
   });
   redirect("/professor/alunos?msg=" + encodeURIComponent("Matrícula cancelada."));
+}
+
+// ── AÇÃO 12: EDITAR PARCELA (data e valor) — botão FINANCEIRO (26/10/2026) ──
+// Na fase de implantação o professor dono do aluno edita inclusive parcela paga, sem motivo
+// obrigatório (decisão do Joaquim); tudo fica na auditoria com antes/depois. Nunca nas
+// parcelas do próprio professor (segregação de funções, assertMatriculaDoProfessor).
+export async function professorEditarParcelaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  const parcelaId = (formData.get("parcela_id") as string) || "";
+  const volta = `/professor/alunos/financeiro/${matriculaId}`;
+  if (!matriculaId || !alunoId || !parcelaId) erro("Dados incompletos.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+  if (matricula.aluno_id !== alunoId) erro("Matrícula inválida.", volta);
+
+  const r = await editarParcela(admin, {
+    parcelaId,
+    alunoId,
+    dataVencimento: (formData.get("data_vencimento") as string) || "",
+    valorCentavos: valorBRParaCentavos((formData.get("valor") as string) || ""),
+    dataPagamento: ((formData.get("data_pagamento") as string) || "") || null,
+  });
+  if (!r.ok) erro(r.mensagem, volta);
+
+  if (r.antes) {
+    await auditarProfessor(admin, professor.id, "EDITAR_PARCELA", {
+      entidade: "fin_contas_receber", entidadeId: parcelaId, alunoId,
+      detalhe: { matricula_id: matriculaId, antes: r.antes, depois: r.depois },
+    });
+  }
+  revalidatePath(volta);
+  revalidatePath("/professor/alunos");
+  revalidatePath("/professor/financeiro");
+  redirect(volta + "?msg=" + encodeURIComponent(r.mensagem));
+}
+
+// ── AÇÃO 13: PAUSAR CURSO (26/10/2026) ──────────────────────────────
+export async function professorPausarMatriculaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  if (!matriculaId) erro("Matrícula inválida.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+
+  const r = await pausarMatricula(admin, {
+    matriculaId,
+    retornoPrevisto: ((formData.get("retorno_previsto") as string) || "") || null,
+    motivo: (formData.get("motivo") as string) || "",
+  });
+  if (!r.ok) erroEdicaoAluno(matriculaId, r.mensagem);
+
+  await auditarProfessor(admin, professor.id, "PAUSAR_MATRICULA", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: matricula.aluno_id, detalhe: r.detalhe,
+  });
+  revalidatePath("/professor/alunos");
+  revalidatePath(`/professor/alunos/editar/${matriculaId}`);
+  redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent(r.mensagem));
+}
+
+// ── AÇÃO 14: REATIVAR CURSO PAUSADO (26/10/2026) ─────────────────────
+export async function professorReativarMatriculaAction(formData: FormData) {
+  const { professor, admin } = await requireProfessor();
+
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  if (!matriculaId) erro("Matrícula inválida.", "/professor/alunos");
+  const matricula = await assertMatriculaDoProfessor(admin, matriculaId, professor.id);
+
+  const r = await reativarMatricula(admin, matriculaId);
+  if (!r.ok) erroEdicaoAluno(matriculaId, r.mensagem);
+
+  await auditarProfessor(admin, professor.id, "REATIVAR_MATRICULA", {
+    entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: matricula.aluno_id, detalhe: r.detalhe,
+  });
+  revalidatePath("/professor/alunos");
+  revalidatePath(`/professor/alunos/editar/${matriculaId}`);
+  redirect(`/professor/alunos/editar/${matriculaId}?msg=` + encodeURIComponent(r.mensagem));
 }

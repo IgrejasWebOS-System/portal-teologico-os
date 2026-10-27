@@ -11,6 +11,8 @@ import {
   professorLancarPagamentoRetroativoAction,
   professorGerarParcelasMensalidadeAction,
   professorCancelarMatriculaAction,
+  professorPausarMatriculaAction,
+  professorReativarMatriculaAction,
 } from "../../../actions";
 
 export const metadata = { title: "Editar aluno — Área do Professor" };
@@ -131,6 +133,8 @@ export default async function EditarAlunoProfessorPage({ params, searchParams }:
       lancarPagamentoRetroativoAction={professorLancarPagamentoRetroativoAction}
       gerarParcelasMensalidadeAction={professorGerarParcelasMensalidadeAction}
       cancelarMatriculaAction={professorCancelarMatriculaAction}
+      pausarMatriculaAction={professorPausarMatriculaAction}
+      reativarMatriculaAction={professorReativarMatriculaAction}
       travarProfessorId={professor.id}
       professorNomeExibicao={professor.nome_completo}
       redirectToBaixa={`/professor/alunos/editar/${id}`}

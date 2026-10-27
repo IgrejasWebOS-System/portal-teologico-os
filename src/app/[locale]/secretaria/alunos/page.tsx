@@ -162,6 +162,15 @@ export default async function AlunosSecretariaPage({
                         ) : (
                           <span className="text-xs text-black">—</span>
                         )}
+                        {matriculaId && (
+                          <Link
+                            href={`/admin/matriculas/${matriculaId}/financeiro?voltarPara=/secretaria/alunos&voltarLabel=Alunos`}
+                            title="Editar datas e valores das parcelas deste aluno"
+                            className="inline-flex items-center text-xs font-bold uppercase bg-black text-white border-[1.5px] border-[#CF8403] rounded-lg px-3 py-1.5 hover:opacity-80 transition-opacity"
+                          >
+                            Financeiro
+                          </Link>
+                        )}
                         <ReenviarLinkButton
                           action={secretariaReenviarLinkAlunoAction}
                           campo="aluno_id"
