@@ -164,6 +164,29 @@ autenticado, rodar `gh auth setup-git` primeiro — isso reconfigura o Git
 pra usar a credencial do `gh` em vez de uma credencial do Windows
 Credential Manager desatualizada (causa raiz encontrada em 03/10/2026).
 
+## Ordem de entrega com migration em produção (24/10/2026)
+
+Quando o PR traz migration, o código novo chama funções/tabelas do banco que precisam já existir
+em produção. Por isso a ordem é fixa (aprendida na migration 142, quando o merge saiu antes da
+migration e produção ficou algumas horas com código novo e funções antigas):
+
+1. Migration aplicada e testada em staging; arquivo `.sql` e README de migrations no PR.
+2. `gh pr checks` com Vercel, Vercel Preview Comments e CI verdes.
+3. Backup de produção validado (`scripts/backup-manager-v2.ps1 -PreMigration -Label pre-ASSUNTO`,
+   esperar "CONCLUIDO SEM FALHAS").
+4. **"pode" do Joaquim** → migration aplicada em produção → conferência só de leitura
+   (objetos, RLS, permissões, dados intactos) relatada a ele.
+5. **"pode" do Joaquim** → merge (`gh pr merge N --repo IgrejasWebOS-System/portal-teologico-os --merge`).
+6. Conferir deploy de produção *Ready* e atualizar o README de migrations com o estado real.
+
+Cada "pode" vale só para a ação pedida. O roteiro completo (comandos, modelo de título e descrição
+do PR) está em `C:\Projetos\Igrejas-Docs\padrao-engenharia-ia\PROCESSO-ENTREGA-PR.md` e na skill
+`entrega-pr-cetadp`.
+
+Falha de deploy no Vercel (preview ou produção): ler o log real (`vercel inspect URL --logs --scope
+igrejasweboss-projects`) antes de concluir. Já houve erro de fonte `next/font/google` por cache de
+build inconsistente, resolvido com Redeploy sem "Use existing Build Cache".
+
 ## Proteção de branch (desde 04/09/2026)
 
 A branch `main` deste repositório tem "Require a pull request before
