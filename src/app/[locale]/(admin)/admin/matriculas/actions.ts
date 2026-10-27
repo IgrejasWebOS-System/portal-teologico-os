@@ -11,6 +11,9 @@ import { criarPreferenciaCheckout } from "@/utils/mercadopago/client";
 import { validarCPF, cpfVariantes } from "@/utils/cpf";
 import { gerarPdfMatricula, type DadosPagamentoPdf } from "@/utils/pdf/matricula";
 import { upsertProfissaoLivre } from "@/utils/profissoes";
+import { registrarAuditoria } from "@/utils/auditoria";
+import { editarParcela, valorBRParaCentavos } from "@/utils/financeiro/editar-parcela";
+import { pausarMatricula, reativarMatricula } from "@/utils/matricula-pausa";
 
 function centavosMatricula(valor: string): number {
   const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -1104,4 +1107,93 @@ export async function cancelarMatriculaAction(formData: FormData) {
 
   revalidatePath("/admin/matriculas");
   redirect("/admin/matriculas?msg=" + encodeURIComponent("Matrícula cancelada."));
+}
+
+// ============================================================
+// 26/10/2026, pedido do Joaquim: botão FINANCEIRO (editar data e valor das parcelas) e
+// PAUSAR CURSO. Secretaria e admin, sempre dentro do escopo do aluno (assertAlunoNoEscopo) e
+// com auditoria (papel SECRETARIA ou ADMIN_GLOBAL).
+// ============================================================
+async function contextoStaffAuditoria() {
+  const { supabase, userId } = await requireStaff();
+  const { data: perfil } = await supabase.from("profiles").select("system_role").eq("id", userId).maybeSingle();
+  const papel = perfil?.system_role === "GLOBAL_ADMIN" ? ("ADMIN_GLOBAL" as const) : ("SECRETARIA" as const);
+  return { userId, papel, admin: createAdminClient() };
+}
+
+async function matriculaNoEscopo(admin: ReturnType<typeof createAdminClient>, matriculaId: string) {
+  if (!matriculaId) fail("Matrícula inválida.");
+  const { data: m } = await admin.from("ead_matriculas").select("id, aluno_id, status").eq("id", matriculaId).maybeSingle();
+  if (!m) failEdicao(matriculaId, "Matrícula não encontrada.");
+  await assertAlunoNoEscopo(m.aluno_id, matriculaId);
+  return m;
+}
+
+export async function editarParcelaMatriculaAction(formData: FormData) {
+  const { userId, papel, admin } = await contextoStaffAuditoria();
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const alunoId = (formData.get("aluno_id") as string) || "";
+  const parcelaId = (formData.get("parcela_id") as string) || "";
+  const volta = `/admin/matriculas/${matriculaId}/financeiro`;
+  const m = await matriculaNoEscopo(admin, matriculaId);
+  if (m.aluno_id !== alunoId || !parcelaId) redirect(volta + "?error=" + encodeURIComponent("Dados inválidos."));
+
+  const r = await editarParcela(admin, {
+    parcelaId,
+    alunoId,
+    dataVencimento: (formData.get("data_vencimento") as string) || "",
+    valorCentavos: valorBRParaCentavos((formData.get("valor") as string) || ""),
+    dataPagamento: ((formData.get("data_pagamento") as string) || "") || null,
+  });
+  if (!r.ok) redirect(volta + "?error=" + encodeURIComponent(r.mensagem));
+
+  if (r.antes) {
+    await registrarAuditoria(admin, {
+      ator: { userId },
+      papel,
+      acao: "EDITAR_PARCELA",
+      entidade: "fin_contas_receber",
+      entidadeId: parcelaId,
+      alunoId,
+      detalhe: { matricula_id: matriculaId, antes: r.antes, depois: r.depois },
+    });
+  }
+  revalidatePath(volta);
+  revalidatePath("/admin/financeiro/contas-a-receber");
+  revalidatePath("/secretaria/financeiro");
+  redirect(volta + "?msg=" + encodeURIComponent(r.mensagem));
+}
+
+export async function pausarMatriculaAction(formData: FormData) {
+  const { userId, papel, admin } = await contextoStaffAuditoria();
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const m = await matriculaNoEscopo(admin, matriculaId);
+
+  const r = await pausarMatricula(admin, {
+    matriculaId,
+    retornoPrevisto: ((formData.get("retorno_previsto") as string) || "") || null,
+    motivo: (formData.get("motivo") as string) || "",
+  });
+  if (!r.ok) failEdicao(matriculaId, r.mensagem);
+
+  await registrarAuditoria(admin, {
+    ator: { userId }, papel, acao: "PAUSAR_MATRICULA", entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: m.aluno_id, detalhe: r.detalhe,
+  });
+  revalidatePath("/admin/matriculas");
+  redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent(r.mensagem));
+}
+
+export async function reativarMatriculaAction(formData: FormData) {
+  const { userId, papel, admin } = await contextoStaffAuditoria();
+  const matriculaId = (formData.get("matricula_id") as string) || "";
+  const m = await matriculaNoEscopo(admin, matriculaId);
+
+  const r = await reativarMatricula(admin, matriculaId);
+  if (!r.ok) failEdicao(matriculaId, r.mensagem);
+
+  await registrarAuditoria(admin, {
+    ator: { userId }, papel, acao: "REATIVAR_MATRICULA", entidade: "ead_matriculas", entidadeId: matriculaId, alunoId: m.aluno_id, detalhe: r.detalhe,
+  });
+  revalidatePath("/admin/matriculas");
+  redirect(`/admin/matriculas/${matriculaId}?msg=` + encodeURIComponent(r.mensagem));
 }

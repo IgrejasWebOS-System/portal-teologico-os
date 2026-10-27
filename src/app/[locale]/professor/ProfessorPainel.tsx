@@ -412,6 +412,16 @@ export default function ProfessorPainel({
                             title="Reenviar link de matrícula/acesso pro aluno"
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFFFFF] text-iw-navy border-[1.5px] border-[#CF8403] hover:bg-iw-gold/10 transition-colors shrink-0"
                           />
+                          {/* 26/10/2026, pedido do Joaquim: editar data e valor das parcelas
+                              (lançados errados). Caixa alta, borda dourada, fundo preto, texto branco. */}
+                          <Link
+                            href={`/professor/alunos/financeiro/${l.matriculaId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Editar datas e valores das parcelas deste aluno"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase bg-black text-white border-[1.5px] border-[#CF8403] hover:opacity-80 transition-opacity shrink-0"
+                          >
+                            Financeiro
+                          </Link>
                         </div>
                       </td>
                     </tr>
