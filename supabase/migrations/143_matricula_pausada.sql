@@ -24,6 +24,7 @@ alter table public.ead_matriculas
 create or replace function public.check_matricula_unica()
 returns trigger
 language plpgsql
+set search_path to 'public'
 as $function$
 begin
   if new.course_id is not null and exists (
