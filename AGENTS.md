@@ -320,6 +320,23 @@ staging, continuar cadastrando novas provas públicas manualmente via
 migration SQL (replicar o padrão de `123_...sql`/`127_...sql`), e não
 copiar esse código de importação pra produção.
 
+## Testes e provas do CETADP: qual módulo usar (02/11/2026)
+
+Provas impressas do CETADP (Teste 1 a 4/5 por matéria + gabarito) vão SEMPRE para o módulo de
+**provas públicas** (`provas_publicas*`, link `/prova-publica/<slug>` + CPF), cadastradas por
+migration SQL só de dados no padrão de `123`/`127`/`144`. Nunca em `avaliacoes_banco_questoes_licao`
+(sorteio, só Bibliologia/Homilética) e nunca criar tabela ou tela de calendário. Em
+`/professor/testes-provas` e `/secretaria/testes-provas` aparecem os cards Curso Básico e Curso Médio
+(curso vem de `provas_publicas.lesson_id` → `lessons` → `courses`, por isso `lesson_id` é
+obrigatório). Procedimento completo, com checagens dos PDFs e ordem de entrega:
+`docs/PROCEDIMENTO-PROVAS-PUBLICAS.md`. Ler antes de mexer em qualquer prova.
+
+**Não mexer no que já está validado:** Escatologia Bíblica (123) e Liderança Cristã (127) estão em
+produção com alunos que já responderam. Conteúdo novo só entra por migration nova e slugs novos;
+nunca editar/recarregar/apagar provas, questões, gabaritos, slugs ou `lesson_id` existentes, nem
+mudar o fluxo do aluno (`/prova-publica/<slug>`), sem pedido explícito e backup validado. Faltar uma
+matéria na tela do staging é falta de dado de teste (staging não tem as provas de produção), não bug.
+
 ## Outras regras fixas de comunicação
 
 - Nunca fabricar dado ou resultado — sempre verificar o estado real
