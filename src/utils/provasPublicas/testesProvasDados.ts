@@ -45,7 +45,7 @@ export async function carregarDadosTestesProvas(
   const [{ data: provasRaw }, { data: porVinculo }, { data: porCpf }] = await Promise.all([
     admin
       .from("provas_publicas")
-      .select("id, materia, titulo, slug, numero_teste")
+      .select("id, materia, titulo, slug, numero_teste, lesson_id")
       .eq("ativo", true)
       .order("materia")
       .order("numero_teste"),
@@ -63,6 +63,25 @@ export async function carregarDadosTestesProvas(
       : Promise.resolve({ data: [] }),
   ]);
 
+  // Curso de cada prova (cards CURSO BÁSICO / CURSO MÉDIO): provas_publicas.lesson_id -> lessons ->
+  // courses.title ("Curso Teológico Básico" / "...Médio"). Sem lesson_id ou sem curso reconhecível = null.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lessonIds = Array.from(new Set(((provasRaw ?? []) as any[]).map((p) => p.lesson_id).filter(Boolean)));
+  const cursoPorLesson = new Map<string, "BASICO" | "MEDIO">();
+  if (lessonIds.length) {
+    const { data: lessonsRaw } = await admin.from("lessons").select("id, courses(title)").in("id", lessonIds);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const l of (lessonsRaw ?? []) as any[]) {
+      const c = Array.isArray(l.courses) ? l.courses[0] : l.courses;
+      const titulo = String(c?.title ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      if (titulo.includes("basico")) cursoPorLesson.set(l.id, "BASICO");
+      else if (titulo.includes("medio")) cursoPorLesson.set(l.id, "MEDIO");
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const provas: ProvaItem[] = ((provasRaw ?? []) as any[]).map((p) => ({
     id: p.id,
@@ -70,6 +89,7 @@ export async function carregarDadosTestesProvas(
     titulo: p.titulo,
     slug: p.slug,
     numeroTeste: p.numero_teste,
+    curso: (p.lesson_id && cursoPorLesson.get(p.lesson_id)) || null,
   }));
 
   // CPF só-dígitos -> alunos (ead_alunos.cpf pode estar com ou sem máscara)

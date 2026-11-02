@@ -27,6 +27,8 @@ export interface ProvaItem {
   titulo: string;
   slug: string;
   numeroTeste: number;
+  // Curso da matéria (provas_publicas -> lessons -> courses); null se a matéria não estiver ligada a um curso.
+  curso: "BASICO" | "MEDIO" | null;
 }
 
 export interface QuestaoItem {
@@ -123,6 +125,26 @@ export default function TestesProvasPainel({
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
   }
 
+  // ── Cards CURSO BÁSICO / CURSO MÉDIO ──────────────────────
+  // Cada prova publicada traz o curso da sua matéria (ProvaItem.curso). Clicar no card mostra só as
+  // matérias publicadas daquele curso, com os mesmos botões de sempre. Matéria nova publicada entra
+  // sozinha no card certo; matéria sem curso (não deve ocorrer) aparece sempre, no fim.
+  const [cursoSel, setCursoSel] = useState<"BASICO" | "MEDIO" | null>(null);
+  const materiasPorCurso = useMemo(() => {
+    const r = { BASICO: [] as typeof materias, MEDIO: [] as typeof materias, OUTRAS: [] as typeof materias };
+    for (const m of materias) {
+      const c = m.lista[0]?.curso ?? null;
+      if (c === "BASICO") r.BASICO.push(m);
+      else if (c === "MEDIO") r.MEDIO.push(m);
+      else r.OUTRAS.push(m);
+    }
+    return r;
+  }, [materias]);
+  const temCursos = materiasPorCurso.BASICO.length + materiasPorCurso.MEDIO.length > 0;
+  const materiasVisiveis = temCursos
+    ? [...(cursoSel ? materiasPorCurso[cursoSel] : []), ...materiasPorCurso.OUTRAS]
+    : materias;
+
   // ── Parte B: alunos e resultados ───────────────────────────
   const turmas = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -195,9 +217,48 @@ export default function TestesProvasPainel({
           Copie o link e cole no grupo da turma, ou use &ldquo;Enviar por WhatsApp&rdquo; para escolher o grupo.
         </p>
 
+        {temCursos && (
+          <div className="grid grid-cols-2 gap-4">
+            {(
+              [
+                ["BASICO", "Curso Básico"],
+                ["MEDIO", "Curso Médio"],
+              ] as const
+            ).map(([chave, titulo]) => {
+              const n = materiasPorCurso[chave].length;
+              const ativo = cursoSel === chave;
+              return (
+                <button
+                  key={chave}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => setCursoSel(ativo ? null : chave)}
+                  className={`text-left rounded-2xl border border-iw-gold px-5 py-4 shadow-sm transition-colors ${
+                    ativo ? "bg-black text-white" : "bg-iw-surface text-black hover:bg-iw-gold/10"
+                  }`}
+                >
+                  <span className="block text-base font-black uppercase" style={{ fontFamily: FONTE_TITULO }}>
+                    {titulo}
+                  </span>
+                  <span className="block text-sm mt-1">
+                    {n} matéria{n === 1 ? "" : "s"} com provas
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {temCursos && !cursoSel && (
+          <p className="text-sm text-black">Clique em um card para ver as provas do curso.</p>
+        )}
+        {temCursos && cursoSel && materiasPorCurso[cursoSel].length === 0 && (
+          <p className="text-sm text-black">Nenhuma prova publicada neste curso ainda.</p>
+        )}
+
         {materias.length === 0 && <p className="text-sm text-black">Nenhuma prova cadastrada ainda.</p>}
 
-        {materias.map(({ materia, lista }) => {
+        {materiasVisiveis.map(({ materia, lista }) => {
           const todos = lista.map(linhaProva).join("\n\n");
           const chaveTodos = `todos-${materia}`;
           return (
