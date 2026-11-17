@@ -20,9 +20,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Pencil, Trash2, Search, LogIn, Loader2, ChevronRight } from "lucide-react";
-import { deleteProfessorFormAction, acessarPortalProfessorAction } from "../actions";
+import { Pencil, Search, LogIn, Loader2, ChevronRight, ArrowRightLeft, UserX, UserCheck } from "lucide-react";
+import { acessarPortalProfessorAction } from "../actions";
 import { CartaoTotais, contarComposicao } from "@/components/layout/TotaisComposicao";
+import { TransferirTurmaModal, AtivacaoProfessorModal, type ProfessorResumo } from "./GestaoProfessorModais";
 
 type Row = {
   id: string;
@@ -31,6 +32,7 @@ type Row = {
   telefone: string | null;
   veio_de_fora: boolean;
   matricula: string | null;
+  ativo: boolean;
   sector_id: string | null;
   sectors: { name: string; categoria: string | null } | null;
   churches: { name: string; is_sede: boolean | null } | null;
@@ -60,13 +62,22 @@ function LinhaProfessor({
   r,
   acessandoId,
   onAcessar,
+  onTransferir,
+  onAtivacao,
 }: {
   r: Row;
   acessandoId: string | null;
   onAcessar: (id: string) => void;
+  onTransferir: (r: Row) => void;
+  onAtivacao: (r: Row) => void;
 }) {
+  const inativo = r.ativo === false;
   return (
-    <li className={`grid ${COLS} items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4`}>
+    <li
+      className={`grid ${COLS} items-center px-5 py-3.5 hover:bg-iw-bg/50 transition-colors gap-4 ${
+        inativo ? "opacity-60" : ""
+      }`}
+    >
       <span className="text-sm font-semibold text-iw-navy truncate inline-flex items-center gap-1.5">
         {r.nome_completo}
         <span
@@ -76,6 +87,11 @@ function LinhaProfessor({
         >
           {r.veio_de_fora ? "De fora" : "Membro"}
         </span>
+        {inativo && (
+          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0 bg-iw-error-bg text-iw-error">
+            Inativo
+          </span>
+        )}
       </span>
       <span className="text-xs text-iw-muted truncate">
         {r.cargo ?? "—"}
@@ -107,11 +123,22 @@ function LinhaProfessor({
         >
           <Pencil className="w-3.5 h-3.5" />
         </Link>
-        <form action={deleteProfessorFormAction.bind(null, r.id)}>
-          <button type="submit" className="text-iw-muted hover:text-iw-error transition-colors" title="Remover">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => onTransferir(r)}
+          className="text-iw-muted hover:text-iw-navy transition-colors"
+          title="Transferir turma para outro professor"
+        >
+          <ArrowRightLeft className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onAtivacao(r)}
+          className={`text-iw-muted transition-colors ${inativo ? "hover:text-iw-navy" : "hover:text-iw-error"}`}
+          title={inativo ? "Reativar professor" : "Desativar professor (mantém o histórico)"}
+        >
+          {inativo ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+        </button>
       </div>
     </li>
   );
@@ -129,6 +156,10 @@ export default function ProfessoresListClient({
   const [anoFiltro, setAnoFiltro] = useState("");
   const [acessandoId, setAcessandoId] = useState<string | null>(null);
   const [erroAcesso, setErroAcesso] = useState<string | null>(null);
+  // 17/11/2026: padrão mostra só os ativos; desativados ficam no histórico.
+  const [statusFiltro, setStatusFiltro] = useState<"ATIVOS" | "INATIVOS" | "TODOS">("ATIVOS");
+  const [modalTransferir, setModalTransferir] = useState<Row | null>(null);
+  const [modalAtivacao, setModalAtivacao] = useState<Row | null>(null);
 
   // 30/09/2026, pedido do Joaquim: "entrar como o professor de verdade" —
   // gera um link de login real (mesmo mecanismo do convite) e abre numa
@@ -157,12 +188,22 @@ export default function ProfessoresListClient({
 
   const rowsFiltradas = useMemo(() => {
     return rows.filter((r) => {
+      if (statusFiltro === "ATIVOS" && r.ativo === false) return false;
+      if (statusFiltro === "INATIVOS" && r.ativo !== false) return false;
       if (setorFiltro === "SEDE" && !r.churches?.is_sede) return false;
       if (setorFiltro && setorFiltro !== "SEDE" && r.sector_id !== setorFiltro) return false;
       if (anoFiltro && !r.anos.includes(Number(anoFiltro))) return false;
       return true;
     });
-  }, [rows, setorFiltro, anoFiltro]);
+  }, [rows, setorFiltro, anoFiltro, statusFiltro]);
+
+  // Destinos possíveis numa transferência: todos; os desativados aparecem
+  // marcados e são reativados na própria transferência (com confirmação).
+  const destinosPossiveis: ProfessorResumo[] = useMemo(
+    () =>
+      rows.map((r) => ({ id: r.id, nome_completo: r.nome_completo, ativo: r.ativo !== false })),
+    [rows]
+  );
 
   const totaisFiltro = useMemo(() => contarComposicao(rowsFiltradas), [rowsFiltradas]);
 
@@ -229,6 +270,16 @@ export default function ProfessoresListClient({
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
+        <select
+          value={statusFiltro}
+          onChange={(e) => setStatusFiltro(e.target.value as "ATIVOS" | "INATIVOS" | "TODOS")}
+          aria-label="Situação"
+          className="bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5 text-sm text-black cursor-pointer sm:w-36"
+        >
+          <option value="ATIVOS">Ativos</option>
+          <option value="INATIVOS">Inativos</option>
+          <option value="TODOS">Todos</option>
+        </select>
         <div className="flex-1 flex items-center gap-2 bg-iw-surface border border-iw-gold rounded-xl px-3.5 py-2.5">
           <Search className="w-4 h-4 text-iw-muted shrink-0" />
           <input
@@ -276,7 +327,14 @@ export default function ProfessoresListClient({
           ) : (
             <ul className="divide-y divide-iw-border">
               {rowsBuscadas.map((r) => (
-                <LinhaProfessor key={r.id} r={r} acessandoId={acessandoId} onAcessar={handleAcessarPortal} />
+                <LinhaProfessor
+                  key={r.id}
+                  r={r}
+                  acessandoId={acessandoId}
+                  onAcessar={handleAcessarPortal}
+                  onTransferir={setModalTransferir}
+                  onAtivacao={setModalAtivacao}
+                />
               ))}
             </ul>
           )}
@@ -304,7 +362,14 @@ export default function ProfessoresListClient({
                     <CabecalhoColunas />
                     <ul className="divide-y divide-iw-border">
                       {cat.rows.map((r) => (
-                        <LinhaProfessor key={r.id} r={r} acessandoId={acessandoId} onAcessar={handleAcessarPortal} />
+                        <LinhaProfessor
+                  key={r.id}
+                  r={r}
+                  acessandoId={acessandoId}
+                  onAcessar={handleAcessarPortal}
+                  onTransferir={setModalTransferir}
+                  onAtivacao={setModalAtivacao}
+                />
                       ))}
                     </ul>
                   </>
@@ -327,7 +392,14 @@ export default function ProfessoresListClient({
                       <CabecalhoColunas />
                       <ul className="divide-y divide-iw-border bg-iw-bg/30">
                         {sub.rows.map((r) => (
-                          <LinhaProfessor key={r.id} r={r} acessandoId={acessandoId} onAcessar={handleAcessarPortal} />
+                          <LinhaProfessor
+                  key={r.id}
+                  r={r}
+                  acessandoId={acessandoId}
+                  onAcessar={handleAcessarPortal}
+                  onTransferir={setModalTransferir}
+                  onAtivacao={setModalAtivacao}
+                />
                         ))}
                       </ul>
                     </details>
@@ -337,6 +409,20 @@ export default function ProfessoresListClient({
             </details>
           ))}
         </div>
+      )}
+
+      {modalTransferir && (
+        <TransferirTurmaModal
+          professor={{ id: modalTransferir.id, nome_completo: modalTransferir.nome_completo, ativo: modalTransferir.ativo !== false }}
+          destinos={destinosPossiveis.filter((d) => d.id !== modalTransferir.id)}
+          onClose={() => setModalTransferir(null)}
+        />
+      )}
+      {modalAtivacao && (
+        <AtivacaoProfessorModal
+          professor={{ id: modalAtivacao.id, nome_completo: modalAtivacao.nome_completo, ativo: modalAtivacao.ativo !== false }}
+          onClose={() => setModalAtivacao(null)}
+        />
       )}
     </>
   );

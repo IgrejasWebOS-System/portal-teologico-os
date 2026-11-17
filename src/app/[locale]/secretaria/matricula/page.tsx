@@ -39,7 +39,7 @@ export default async function MatriculaSecretariaPage({
 
   const nucleos = await getNucleosDoEscopo(supabase);
 
-  let professoresQuery = supabase.from("professores").select("id, nome_completo, church_id, churches(name)");
+  let professoresQuery = supabase.from("professores").select("id, nome_completo, church_id, churches(name)").eq("ativo", true);
   if (nucleo) professoresQuery = professoresQuery.eq("church_id", nucleo);
   const { data: professoresRaw } = await professoresQuery;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

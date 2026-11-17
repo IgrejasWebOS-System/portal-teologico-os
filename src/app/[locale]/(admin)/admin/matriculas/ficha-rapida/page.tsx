@@ -37,7 +37,7 @@ export default async function FichaRapidaPage() {
     supabase.from("churches").select("id, name, sector_id").order("name"),
     supabase.from("sectors").select("id, name").order("name"),
     supabase.from("course_editions").select("id, nome, course_id").order("nome"),
-    supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+    supabase.from("professores").select("id, nome_completo, church_id").eq("ativo", true).order("nome_completo"),
     supabase.from("course_pricing").select("course_id, valor_matricula_centavos, valor_parcela_centavos, numero_parcelas"),
   ]);
 

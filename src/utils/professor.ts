@@ -71,6 +71,9 @@ export async function checkIsProfessor(
     .from("professores")
     .select(FICHA_COMPLETA_SELECT)
     .eq("user_id", userId)
+    // 17/11/2026 (migration 145): professor desativado perde o acesso a
+    // /professor, mas o cadastro e todo o histórico continuam no banco.
+    .eq("ativo", true)
     .maybeSingle();
 
   return data ?? null;
