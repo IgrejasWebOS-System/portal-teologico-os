@@ -12,6 +12,7 @@ type Row = {
   telefone: string | null;
   veio_de_fora: boolean;
   matricula: string | null;
+  ativo: boolean;
   sector_id: string | null;
   sectors: { name: string; categoria: string | null } | null;
   churches: { name: string; is_sede: boolean | null } | null;
@@ -25,7 +26,7 @@ export default async function ProfessoresPage() {
     supabase
       .from("professores")
       .select(
-        "id, nome_completo, cargo, telefone, veio_de_fora, matricula, sector_id, sectors(name, categoria), churches(name, is_sede)"
+        "id, nome_completo, cargo, telefone, veio_de_fora, matricula, ativo, sector_id, sectors(name, categoria), churches(name, is_sede)"
       )
       .order("nome_completo"),
     supabase.from("sectors").select("id, name").order("name"),
@@ -54,7 +55,10 @@ export default async function ProfessoresPage() {
   // total, mostrar o total quebrado por Sede/Setor/Regional.
   // 16/10/2026: o título mostra o total GERAL; o cartão abaixo da busca
   // (ProfessoresListClient) mostra o do filtro atual (ano/setor).
-  const totaisGerais = contarComposicao(rows);
+  // 17/11/2026: desativados não entram nos totais gerais (a lista tem filtro
+  // Ativos/Inativos/Todos, padrão Ativos).
+  const rowsAtivas = rows.filter((r) => r.ativo !== false);
+  const totaisGerais = contarComposicao(rowsAtivas);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -63,7 +67,7 @@ export default async function ProfessoresPage() {
         title="Professores"
         description={
           <>
-            (<span className="text-lg font-black text-black">{rows.length}</span>){" "}
+            (<span className="text-lg font-black text-black">{rowsAtivas.length}</span>){" "}
             <span style={{ color: "#000000" }}>
               Membros responsáveis por turmas, por setor e igreja
             </span>

@@ -50,7 +50,7 @@ export default async function NovaMatriculaPage({ searchParams }: PageProps) {
     // (14/09/2026). As turmas de cada igreja agora são buscadas sob
     // demanda (buscarTurmasPorUnidadeAction) assim que ela é selecionada.
     supabase.from("course_editions").select("id, nome, classe, course_id, unit_id, ano").is("unit_id", null).order("nome"),
-    supabase.from("professores").select("id, nome_completo, church_id").order("nome_completo"),
+    supabase.from("professores").select("id, nome_completo, church_id").eq("ativo", true).order("nome_completo"),
     supabase.from("course_pricing").select("course_id, valor_matricula_centavos, valor_parcela_centavos, numero_parcelas"),
     // Sede não é Setor nem Regional — fica acima desse nível na hierarquia
     // (churches.sector_id dela é nulo). Sem isso, ela some da caixa "Igreja
