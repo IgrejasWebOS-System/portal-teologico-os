@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { checkIsStaff } from "@/utils/staff";
+import { buscarTudo } from "@/utils/supabase/buscar-tudo";
 import { checkIsSecretario } from "@/utils/secretaria";
 import AcessoRestrito from "@/components/admin/AcessoRestrito";
 import PageHeader from "@/components/layout/PageHeader";
@@ -268,9 +269,36 @@ export default async function AdminDashboardPage({
     { data: matriculasSetor },
     { data: contasReceberTodas },
   ] = await Promise.all([
-    supabase.from("ead_alunos").select("id, nome_completo, sector_id, church_id, sectors(name), churches(name, is_sede)"),
-    supabase.from("ead_matriculas").select("id, aluno_id, status, curso_nome_snapshot, course_edition_id, created_at"),
-    supabase.from("fin_contas_receber").select("origem_id, valor_bruto_centavos, status"),
+    // O Supabase corta cada consulta em 1000 linhas: estas tres tabelas passam
+    // disso (matriculas ~4,8 mil, alunos ~3,5 mil), entao leem TUDO, em paginas.
+    buscarTudo<Record<string, unknown>>((de, ate) =>
+      supabase
+        .from("ead_alunos")
+        .select("id, nome_completo, sector_id, church_id, sectors(name), churches(name, is_sede)")
+        .order("id")
+        .range(de, ate)
+    ).then((data) => ({ data })),
+    buscarTudo<{
+      id: string;
+      aluno_id: string;
+      status: string | null;
+      curso_nome_snapshot: string | null;
+      course_edition_id: string | null;
+      created_at: string;
+    }>((de, ate) =>
+      supabase
+        .from("ead_matriculas")
+        .select("id, aluno_id, status, curso_nome_snapshot, course_edition_id, created_at")
+        .order("id")
+        .range(de, ate)
+    ).then((data) => ({ data })),
+    buscarTudo<{ origem_id: string; valor_bruto_centavos: number; status: string }>((de, ate) =>
+      supabase
+        .from("fin_contas_receber")
+        .select("origem_id, valor_bruto_centavos, status")
+        .order("id")
+        .range(de, ate)
+    ).then((data) => ({ data })),
   ]);
 
   const alunoInfo = new Map<string, AlunoInfo>(
