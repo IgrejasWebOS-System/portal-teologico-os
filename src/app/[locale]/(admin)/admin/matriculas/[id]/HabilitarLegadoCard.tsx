@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UserCheck } from "lucide-react";
+import { cn } from "@/utils/cn";
 import {
   habilitarAlunoLegadoAction,
   buscarHabilitacaoLegadoAction,
@@ -23,7 +24,15 @@ function dataBr(iso: string | null): string {
   return d && m && a ? `${d}/${m}/${a}` : iso;
 }
 
-export default function HabilitarLegadoCard({ alunoId, ativo }: { alunoId: string; ativo: boolean }) {
+export default function HabilitarLegadoCard({
+  alunoId,
+  ativo,
+  className,
+}: {
+  alunoId: string;
+  ativo: boolean;
+  className?: string;
+}) {
   const router = useRouter();
   const [curso, setCurso] = useState<"" | "BASICO" | "MEDIO">("");
   const [data, setData] = useState("");
@@ -67,7 +76,7 @@ export default function HabilitarLegadoCard({ alunoId, ativo }: { alunoId: strin
     if (!info) return null;
     const quando = new Date(info.quando).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
     return (
-      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
+      <div className={cn("bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3", className)}>
         <div className="flex items-center gap-2">
           <UserCheck className="w-5 h-5 text-iw-success" />
           <h2 className="text-sm font-black uppercase tracking-wider text-black">Aluno habilitado</h2>
@@ -103,7 +112,7 @@ export default function HabilitarLegadoCard({ alunoId, ativo }: { alunoId: strin
   }
 
   return (
-    <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3">
+    <div className={cn("bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3", className)}>
       <div className="flex items-center gap-2">
         <UserCheck className="w-5 h-5 text-iw-gold" />
         <h2 className="text-sm font-black uppercase tracking-wider text-black">Habilitar aluno</h2>
