@@ -18,6 +18,7 @@ import { resolverCampoPadraoId } from "@/utils/campos/campoPadrao";
 import { BuscaOuCriarInput, SeletorBuscaDropdown } from "@/components/forms/BuscaOuCriarInput";
 import { useCatalogoCidades } from "@/utils/useCatalogoCidades";
 import HabilitarLegadoCard from "./HabilitarLegadoCard";
+import TransferirAlunoCard from "./TransferirAlunoCard";
 
 type CampoMinisterio = { id: string; nome: string; tipo: string };
 type SelectItem = { id: string; name: string };
@@ -1078,15 +1079,22 @@ export default function EditarMatriculaForm({
       </div>
       )}
 
-      {/* ── Habilitar aluno do legado (03/11/2026) + Cancelar matrícula, lado a lado.
-          "Habilitar" só aparece quando o aluno não está ATIVO; sem ele, "Cancelar" ocupa a linha toda. ── */}
+      {/* ── Layout dos 3 cartões (17/11/2026, pedido do Joaquim): coluna esquerda com
+          "Aluno habilitado" e "Cancelar matrícula" (mesma altura padrão, como se o primeiro já
+          estivesse preenchido); coluna direita com "Transferir aluno", que tem a altura da soma
+          dos dois e rola por dentro quando o histórico cresce — a tela não pula. ── */}
       {!selfService && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-      <HabilitarLegadoCard alunoId={aluno.id} ativo={aluno.status === "ATIVO"} />
+      <div className="flex flex-col gap-6">
+      <HabilitarLegadoCard
+        alunoId={aluno.id}
+        ativo={aluno.status === "ATIVO"}
+        className="lg:flex-1 lg:min-h-[18.5rem]"
+      />
 
       {/* ── Cancelar matrícula ── */}
       {!selfService && (
-      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3 lg:only:col-span-2">
+      <div className="bg-iw-surface rounded-2xl border border-iw-gold shadow-sm p-6 space-y-3 lg:flex-1 lg:min-h-[18.5rem]">
         <SectionHeader icon={Ban} label="Cancelar matrícula" />
         <p className="text-xs text-iw-muted">
           Não apaga o cadastro nem o histórico — só marca a matrícula como cancelada (fica registrada, pra
@@ -1179,6 +1187,8 @@ export default function EditarMatriculaForm({
         )}
       </div>
       )}
+      </div>
+      <TransferirAlunoCard matriculaId={matricula.id} />
       </div>
       )}
     </div>
