@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Users, UserCheck, GraduationCap, Wallet, Receipt, ShoppingBag } from "lucide-react";
 import ComparativoAnual from "@/components/admin/dashboard/ComparativoAnual";
+import { buscarTudo } from "@/utils/supabase/buscar-tudo";
 
 // ============================================================
 // Dashboard "Todos os anos" (18/10/2026, pedido do Joaquim): total geral e
@@ -14,17 +15,6 @@ import ComparativoAnual from "@/components/admin/dashboard/ComparativoAnual";
 // ============================================================
 
 const fmt = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-async function buscarTudo<T>(fabrica: (de: number, ate: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
-  const tudo: T[] = [];
-  for (let de = 0; de < 200000; de += 1000) {
-    const { data } = await fabrica(de, de + 999);
-    const lote = data ?? [];
-    tudo.push(...lote);
-    if (lote.length < 1000) break;
-  }
-  return tudo;
-}
 
 const anoDe = (iso: string | null | undefined): number | null => {
   if (!iso) return null;
@@ -43,13 +33,13 @@ export default async function DashboardTodosAnos({
   const [edicoes, matriculas, pagas, abertas, pedidos] = await Promise.all([
     buscarTudo<{ id: string; ano: number | null }>((de, ate) => supabase.from("course_editions").select("id, ano").range(de, ate)),
     buscarTudo<{ aluno_id: string | null; status: string; course_edition_id: string | null; created_at: string }>((de, ate) =>
-      supabase.from("ead_matriculas").select("aluno_id, status, course_edition_id, created_at").range(de, ate)
+      supabase.from("ead_matriculas").select("aluno_id, status, course_edition_id, created_at").order("id").range(de, ate)
     ),
     buscarTudo<{ pago_em: string | null; valor_liquido_centavos: number | null; valor_bruto_centavos: number | null }>((de, ate) =>
-      supabase.from("fin_contas_receber").select("pago_em, valor_liquido_centavos, valor_bruto_centavos").eq("status", "PAGO").range(de, ate)
+      supabase.from("fin_contas_receber").select("pago_em, valor_liquido_centavos, valor_bruto_centavos").eq("status", "PAGO").order("id").range(de, ate)
     ),
     buscarTudo<{ data_vencimento: string | null; valor_bruto_centavos: number | null }>((de, ate) =>
-      supabase.from("fin_contas_receber").select("data_vencimento, valor_bruto_centavos").in("status", ["PENDENTE", "ATRASADO"]).range(de, ate)
+      supabase.from("fin_contas_receber").select("data_vencimento, valor_bruto_centavos").in("status", ["PENDENTE", "ATRASADO"]).order("id").range(de, ate)
     ),
     buscarTudo<{ paid_at: string | null; total_centavos: number | null }>((de, ate) =>
       supabase.from("orders").select("paid_at, total_centavos").eq("status", "PAGO").range(de, ate)
