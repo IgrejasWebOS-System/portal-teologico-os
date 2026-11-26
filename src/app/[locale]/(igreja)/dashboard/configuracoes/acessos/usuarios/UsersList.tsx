@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Search, User, ShieldCheck, Pencil, Check, X, Loader2, AlertTriangle, Link2 } from "lucide-react";
+import { Search, User, ShieldCheck, Pencil, Check, X, Loader2, AlertTriangle, Link2, KeyRound, Copy } from "lucide-react";
 import {
   atualizarPerfilUsuarioAction,
   atualizarVinculoUsuarioAction,
+  definirSenhaProvisoriaUsuarioAction,
+  gerarLinkAcessoUsuarioAction,
 } from "../../actions";
 
 type Profile = {
@@ -65,6 +67,50 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
   const [vinculoUnitId, setVinculoUnitId] = useState("");
   const [vinculoDominio, setVinculoDominio] = useState("CETADP");
   const [vinculoResult, setVinculoResult] = useState<{ success: boolean; message?: string } | null>(null);
+
+  // Senha provisória / link de acesso (26/11/2026): resultado mostrado uma vez,
+  // na própria linha do usuário, para o admin copiar e enviar à pessoa.
+  const [credencial, setCredencial] = useState<
+    { userId: string; tipo: "senha" | "link"; valor?: string; erro?: string; copiado?: boolean } | null
+  >(null);
+
+  const handleSenhaProvisoria = (u: Profile) => {
+    const ok = window.confirm(
+      `Definir uma senha provisória para ${u.full_name ?? u.email}?\n\nA senha atual deixa de valer. No primeiro acesso a pessoa será obrigada a criar uma senha nova.`
+    );
+    if (!ok) return;
+    setCredencial(null);
+    startTransition(async () => {
+      const res = await definirSenhaProvisoriaUsuarioAction(u.id);
+      setCredencial(
+        res.success
+          ? { userId: u.id, tipo: "senha", valor: res.senha }
+          : { userId: u.id, tipo: "senha", erro: res.message ?? "Erro ao definir a senha." }
+      );
+    });
+  };
+
+  const handleGerarLink = (u: Profile) => {
+    setCredencial(null);
+    startTransition(async () => {
+      const res = await gerarLinkAcessoUsuarioAction(u.id);
+      setCredencial(
+        res.success
+          ? { userId: u.id, tipo: "link", valor: res.url }
+          : { userId: u.id, tipo: "link", erro: res.message ?? "Erro ao gerar o link." }
+      );
+    });
+  };
+
+  const copiarCredencial = async () => {
+    if (!credencial?.valor) return;
+    try {
+      await navigator.clipboard.writeText(credencial.valor);
+      setCredencial({ ...credencial, copiado: true });
+    } catch {
+      setError("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.");
+    }
+  };
 
   const roleAtualPorUsuario = useMemo(() => {
     const map = new Map<string, AdminRole>();
@@ -349,19 +395,77 @@ export default function UsersList({ users, currentUserId, souGlobalAdmin, units,
                     <span></span>
                   )}
                   {podeEditar ? (
-                    <button
-                      type="button"
-                      onClick={() => startEditVinculo(u)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
-                      title="Editar nível e unidade"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      Acesso
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => startEditVinculo(u)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy hover:text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8"
+                        title="Editar nível e unidade"
+                      >
+                        <Link2 className="w-3.5 h-3.5" />
+                        Acesso
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSenhaProvisoria(u)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8 disabled:opacity-50"
+                        title="Definir senha provisória (a pessoa troca no primeiro acesso)"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        Senha
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleGerarLink(u)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-iw-navy transition-colors px-3 py-1.5 rounded-lg hover:bg-iw-blue/8 disabled:opacity-50"
+                        title="Gerar novo link para a pessoa criar a senha"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Link
+                      </button>
+                    </div>
                   ) : (
                     <span className="text-xs text-iw-muted/50 text-right">
                       {u.id === currentUserId ? "você" : "—"}
                     </span>
+                  )}
+                  {credencial?.userId === u.id && (
+                    <div className="col-span-full rounded-xl border border-iw-gold/40 bg-iw-gold/5 px-4 py-3 text-xs text-iw-navy space-y-2">
+                      {credencial.erro ? (
+                        <p className="text-iw-error">{credencial.erro}</p>
+                      ) : (
+                        <>
+                          <p className="font-semibold">
+                            {credencial.tipo === "senha"
+                              ? "Senha provisória (aparece só agora — copie e envie à pessoa; no primeiro acesso ela cria a senha definitiva):"
+                              : "Link para criar a senha (uso único, vale por tempo limitado — copie e envie à pessoa):"}
+                          </p>
+                          <p className="font-mono text-sm break-all select-all bg-white border border-iw-border rounded-lg px-3 py-2">
+                            {credencial.valor}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={copiarCredencial}
+                              className="inline-flex items-center gap-1.5 font-semibold text-white bg-iw-navy px-3 py-1.5 rounded-lg"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              {credencial.copiado ? "Copiado" : "Copiar"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCredencial(null)}
+                              className="inline-flex items-center gap-1.5 font-semibold text-iw-muted hover:text-iw-navy px-3 py-1.5 rounded-lg"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Fechar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </li>
               );

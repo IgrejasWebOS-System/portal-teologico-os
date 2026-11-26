@@ -76,7 +76,10 @@ export default function AuthCallbackPage() {
       router.replace(pendente.next);
       return;
     }
-    router.replace("/login?error=" + encodeURIComponent(ERRO_LINK_INVALIDO));
+    // Motivo técnico (ex.: otp_expired) junto da mensagem, para o suporte diagnosticar
+    // pelo print sem precisar abrir os logs do Supabase.
+    const motivo = error.code || error.message;
+    router.replace("/login?error=" + encodeURIComponent(`${ERRO_LINK_INVALIDO} (motivo: ${motivo})`));
   }
 
   useEffect(() => {
@@ -85,7 +88,13 @@ export default function AuthCallbackPage() {
 
     async function processar() {
       const params = new URLSearchParams(window.location.search);
-      const next = params.get("next") || "/portal";
+      const tipoLink = params.get("type");
+      // 26/11/2026, caso Ademir Mendes: o e-mail de redefinir senha chegou como
+      // /auth/callback?token_hash=...&type=recovery SEM "next" (modelo de e-mail do
+      // Supabase sem o redirectTo do app) e a pessoa caía em /portal em vez da tela
+      // de criar senha. Convite e recuperação sem "next" vão sempre para /definir-senha.
+      const next =
+        params.get("next") || (tipoLink === "recovery" || tipoLink === "invite" ? "/definir-senha" : "/portal");
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");

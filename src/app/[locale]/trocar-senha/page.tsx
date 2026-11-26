@@ -6,6 +6,7 @@ import { traduzirErro } from "@/utils/mensagens-erro";
 import { createClient } from "@/utils/supabase/client";
 import { clearMustChangePasswordAction } from "./actions";
 import { validarSenha, REGRA_SENHA_TEXTO } from "@/utils/senha";
+import { PasswordInput } from "@/components/ui";
 
 // M9b — tela de troca obrigatória de senha, destino do redirect feito
 // pelo middleware quando profiles.must_change_password = true (usuário
@@ -72,13 +73,12 @@ export default function TrocarSenhaPage() {
             <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">
               Nova senha
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
               minLength={8}
-              className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+              autoComplete="new-password"
             />
             <p className="text-[11px] text-iw-muted mt-1">{REGRA_SENHA_TEXTO}</p>
           </div>
@@ -86,13 +86,12 @@ export default function TrocarSenhaPage() {
             <label className="block text-[11px] font-bold text-iw-muted uppercase tracking-wider mb-1.5">
               Confirmar senha
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
               required
               minLength={8}
-              className="w-full bg-white border border-iw-border rounded-xl px-3 py-2.5 text-sm text-iw-navy focus:border-iw-blue focus:outline-none focus:ring-2 focus:ring-iw-blue/20"
+              autoComplete="new-password"
             />
           </div>
 
