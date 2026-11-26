@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { redirect } from "next/navigation";
 import { checkIsStaff } from "@/utils/staff";
 import { checkIsProfessor } from "@/utils/professor";
@@ -40,6 +41,10 @@ export async function definirSenhaAction(formData: FormData) {
         encodeURIComponent("Não foi possível definir a senha: " + error.message)
     );
   }
+
+  // 26/11/2026: quem define a senha pelo link (convite ou recuperação) acabou de
+  // escolher a senha definitiva — não precisa passar de novo por /trocar-senha.
+  await createAdminClient().from("profiles").update({ must_change_password: false }).eq("id", user.id);
 
   // Pra onde vai depois de definir a senha — mesmo critério do middleware
   // em /login (checkIsStaff → checkIsProfessor → resolverDestinoPosLogin),

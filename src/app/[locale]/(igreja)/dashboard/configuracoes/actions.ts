@@ -8,6 +8,7 @@ import { registrarAuditoria } from "@/utils/auditoria";
 import { dataFimPadrao } from "@/utils/turmas/periodo";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomInt } from "crypto";
 
 // Tabelas simples suportadas
 type SimpleTable =
@@ -1579,6 +1580,9 @@ export async function inviteStaffAction(formData: FormData) {
   } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: fullName ? { full_name: fullName } : undefined,
+      // 26/11/2026: sem redirectTo o link do convite saía sem destino (modelo de e-mail
+      // usa {{ .RedirectTo }}). Mesmo destino dos demais convites do sistema.
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha`,
     });
 
     if (inviteError || !invited?.user) {
@@ -1698,4 +1702,130 @@ export async function acessarPortalProfessorAction(
   }
 
   return { success: true, url: data.properties.action_link };
+}
+
+// ── Senha provisória e link de acesso (26/11/2026, pedido do Joaquim) ──────
+// Caso Ademir Mendes: o link de e-mail falhava e o operador ficava sem entrar.
+// Duas saídas, só para GLOBAL_ADMIN, nunca para a própria conta:
+//   1) definirSenhaProvisoriaUsuarioAction: define uma senha provisória na hora
+//      e marca must_change_password; no primeiro login o middleware leva a
+//      pessoa para /trocar-senha, onde ela cria a senha definitiva.
+//   2) gerarLinkAcessoUsuarioAction: gera um link novo de criação de senha,
+//      mostrado ao admin para copiar e enviar (WhatsApp etc.), sem depender de
+//      e-mail nem do modelo de e-mail do Supabase.
+// A senha provisória é devolvida UMA vez ao admin e não é gravada em log.
+
+function gerarSenhaProvisoria(): string {
+  const maiusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const minusculas = "abcdefghijkmnpqrstuvwxyz";
+  const numeros = "23456789";
+  const todos = maiusculas + minusculas + numeros;
+  const pick = (s: string) => s[randomInt(s.length)];
+  const chars = [pick(maiusculas), pick(minusculas), pick(numeros)];
+  while (chars.length < 10) chars.push(pick(todos));
+  // embaralha (Fisher-Yates) para a ordem das 3 classes não ser previsível
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
+async function exigirGlobalAdminParaOutroUsuario(
+  userId: string
+): Promise<{ ok: true; adminUserId: string } | { ok: false; message: string }> {
+  if (!userId) return { ok: false, message: "Usuário inválido." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Não autenticado." };
+  if (userId === user.id) {
+    return { ok: false, message: "Você não pode alterar a própria senha por aqui." };
+  }
+  const { data: meuPerfil } = await supabase
+    .from("profiles")
+    .select("system_role")
+    .eq("id", user.id)
+    .single();
+  if (meuPerfil?.system_role !== "GLOBAL_ADMIN") {
+    return { ok: false, message: "Apenas GLOBAL_ADMIN pode gerar senha ou link de outros operadores." };
+  }
+  return { ok: true, adminUserId: user.id };
+}
+
+export async function definirSenhaProvisoriaUsuarioAction(
+  userId: string
+): Promise<{ success: boolean; senha?: string; message?: string }> {
+  const check = await exigirGlobalAdminParaOutroUsuario(userId);
+  if (!check.ok) return { success: false, message: check.message };
+
+  const admin = createAdminClient();
+  const senha = gerarSenhaProvisoria();
+
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+    password: senha,
+    email_confirm: true,
+  });
+  if (authError) {
+    console.error("[configuracoes/actions] definirSenhaProvisoriaUsuarioAction", authError.message);
+    return { success: false, message: "Não foi possível definir a senha: " + traduzirErro(authError.message) };
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ must_change_password: true })
+    .eq("id", userId);
+  if (profileError) {
+    console.error("[configuracoes/actions] definirSenhaProvisoriaUsuarioAction profiles", profileError.message);
+    return {
+      success: false,
+      message:
+        "A senha foi definida, mas não consegui exigir a troca no primeiro acesso. Tente de novo antes de enviar a senha.",
+    };
+  }
+
+  await registrarAuditoria(admin, {
+    ator: { userId: check.adminUserId },
+    papel: "ADMIN_GLOBAL",
+    acao: "DEFINIR_SENHA_PROVISORIA",
+    entidade: "profiles",
+    entidadeId: userId,
+    detalhe: {},
+  });
+
+  return { success: true, senha };
+}
+
+export async function gerarLinkAcessoUsuarioAction(
+  userId: string
+): Promise<{ success: boolean; url?: string; message?: string }> {
+  const check = await exigirGlobalAdminParaOutroUsuario(userId);
+  if (!check.ok) return { success: false, message: check.message };
+
+  const admin = createAdminClient();
+  const { data: perfil } = await admin.from("profiles").select("email").eq("id", userId).maybeSingle();
+  if (!perfil?.email) return { success: false, message: "Este usuário não tem e-mail cadastrado." };
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: perfil.email,
+  });
+  const tokenHash = data?.properties?.hashed_token;
+  if (error || !tokenHash) {
+    console.error("[configuracoes/actions] gerarLinkAcessoUsuarioAction", error?.message);
+    return { success: false, message: "Não foi possível gerar o link de acesso." };
+  }
+
+  await registrarAuditoria(admin, {
+    ator: { userId: check.adminUserId },
+    papel: "ADMIN_GLOBAL",
+    acao: "GERAR_LINK_ACESSO",
+    entidade: "profiles",
+    entidadeId: userId,
+    detalhe: {},
+  });
+
+  // Link próprio do app (token_hash + type): o /auth/callback mostra o botão
+  // "Continuar" e só consome o token no clique; leva para /definir-senha.
+  const url = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/definir-senha&token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+  return { success: true, url };
 }
